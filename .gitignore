@@ -17,3 +17,4 @@ dist/
 *.db-wal
 logs/
 **/*.http
+/ai-app/src/main/resources/static/
