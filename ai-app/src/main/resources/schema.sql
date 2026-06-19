@@ -1,4 +1,4 @@
--- 模型服务提供商表
+-- 模型服务提供商表，这里控制用户启用的模型服务商及模型数据。
 CREATE TABLE IF NOT EXISTS model_provider
 (
     code       TEXT PRIMARY KEY,                           -- 唯一代码，如 'openai', 'deepseek'

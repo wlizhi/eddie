@@ -1,4 +1,4 @@
-package cc.wlizhi.eddieai.settings.mapper;
+package cc.wlizhi.eddieai.settings.dao;
 
 import cc.wlizhi.eddieai.settings.entity.ModelProviderEntity;
 import jakarta.annotation.Resource;
