@@ -1,3 +1,3 @@
-# ai-memory — 三层记忆
+# ai-memory
 
-后端内部模块，无 Controller。被 ai-chat 和 ai-agent 异步调用。
+此模块是模型记忆、全局上下文管理的实现。

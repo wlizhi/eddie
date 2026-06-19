@@ -37,18 +37,12 @@ ai-app（依赖所有，唯一启动入口）
 
 ## AOT生成二进制文件
 
-### 提取元数据
-
-1. 先构建 fat JAR：`mvn package -DskipTests -pl ai-app -am`
-2. 用 GraalVM Tracing Agent 启动应用，录制运行时行为
-    ```shell
-    java -agentlib:native-image-agent=config-output-dir=ai-app/src/main/resources/META-INF/native-image -jar ai-app/target/ai-app-1.0.0-SNAPSHOT.jar --server.port=11521
-    ```
-3. 正常操作 app（触发各种功能，访问 API），然后 Ctrl+C 停掉。Agent 会自动生成 reachability-metadata.json 到指定目录
-
 ### 打包构建本地文件
 
+需要所有依赖包全部兼容了AOT注册，否则会编译失败或运行异常。
+
 ```shell
-mvn clean package -Pnative -pl ai-app -am -DskipTests
+mvn clean
+mvn install -Pnative -pl ai-app -am -DskipTests
 mvn -Pnative native:compile -pl ai-app -DskipTests
 ```
