@@ -17,6 +17,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,7 @@ public class ChatServiceImpl implements ChatService {
         chatClient = chatClient.mutate()
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemoryManager)
+                                .scheduler(Schedulers.parallel())
                                 .build()
                 ).build();
         // 获取 ChatResponse 流（包含 reasoning_content 和 content）
