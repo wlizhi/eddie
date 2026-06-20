@@ -1,5 +1,11 @@
 server:
   port: 11520
+  tomcat:
+    threads:
+      max: 4
+      min-spare: 1
+    accept-count: 10
+    max-connections: 10
 
 spring:
   datasource:
@@ -21,7 +27,3 @@ deepseek:
   base-url: https://api.deepseek.com/v1
   model: deepseek-reasoner
   temperature: 0.7
-
-# 聊天响应缓冲（毫秒），合并多个 token 减少前端渲染频率，设为 0 关闭缓冲
-chat:
-  buffer-ms: 33
