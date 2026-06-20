@@ -21,6 +21,11 @@ public class ChatModelItemVO {
     private String displayName;
 
     /**
+     * 所属供应商实例 ID
+     */
+    private Long providerId;
+
+    /**
      * 模型提供商代码，如 "deepseek"
      */
     private String providerCode;

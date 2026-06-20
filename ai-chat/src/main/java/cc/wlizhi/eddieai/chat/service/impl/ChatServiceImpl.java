@@ -6,6 +6,9 @@ import cc.wlizhi.eddieai.chat.mapper.ChatRequestMapper;
 import cc.wlizhi.eddieai.chat.service.ChatMemoryManager;
 import cc.wlizhi.eddieai.chat.service.ChatPolicy;
 import cc.wlizhi.eddieai.chat.service.ChatService;
+import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
+import cc.wlizhi.eddieai.common.exception.BadRequestException;
+import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
@@ -47,6 +50,8 @@ public class ChatServiceImpl implements ChatService {
     private ChatMemoryManager chatMemoryManager;
     @Resource
     private ChatRequestMapper chatRequestMapper;
+    @Resource
+    private ModelProviderContext modelProviderContext;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -95,8 +100,15 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private ChatPolicy getChatPolicy(ChatRequest request) {
+        if (request.getProviderId() == null) {
+            throw new BadRequestException("providerId 不能为空");
+        }
+        ModelProviderEntity provider = modelProviderContext.getModelProviderById(request.getProviderId());
+        if (provider == null) {
+            throw new BadRequestException("providerId=" + request.getProviderId() + " 不存在的模型服务商");
+        }
         for (ChatPolicy policy : chatPolicies) {
-            if (policy.support(request.getProviderCode())) {
+            if (policy.support(provider.getCode())) {
                 return policy;
             }
         }

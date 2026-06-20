@@ -22,14 +22,14 @@ public class ChatModelProviderDao {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * 查询所有启用的供应商及其 models（仅返回分组展示需要的字段）
+     * 查询所有启用的供应商及其 models
      */
     public List<EnabledProviderModel> findAllEnabledWithModels() {
         String sql = """
-                SELECT code, name, models
+                SELECT id, code, name, models
                 FROM model_provider
                 WHERE enabled = 1
-                ORDER BY sort_order ASC, code ASC
+                ORDER BY sort_order ASC, id ASC
                 """;
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(EnabledProviderModel.class));
     }
@@ -40,6 +40,7 @@ public class ChatModelProviderDao {
     @Getter
     @Setter
     public static class EnabledProviderModel {
+        private Long id;
         private String code;
         private String name;
         private String models;

@@ -17,12 +17,12 @@ public class ChatClientGetDTO {
     private String message;
 
     /**
+     * 供应商实例 ID，用于精确查找服务商配置
+     */
+    private Long providerId;
+
+    /**
      * 模型名称
      */
     private String modelId;
-
-    /**
-     * 供应商 code，仅作分组标识，不可选中
-     */
-    private String providerCode;
 }

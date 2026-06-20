@@ -29,9 +29,9 @@ public class OpenAiChatPolicy implements ChatPolicy {
 
     @Override
     public ChatClient getChatClient(ChatClientGetDTO chatClientGetDTO) {
-        ModelProviderEntity modelProvider = modelProviderContext.getModelProvider(chatClientGetDTO.getProviderCode());
+        ModelProviderEntity modelProvider = modelProviderContext.getModelProviderById(chatClientGetDTO.getProviderId());
         if (modelProvider == null) {
-            throw new BadRequestException(chatClientGetDTO.getProviderCode() + "不支持的模型服务商");
+            throw new BadRequestException("providerId=" + chatClientGetDTO.getProviderId() + " 不存在的模型服务商");
         }
         OpenAiChatModel openAiChatModel = OpenAiChatModel.builder()
                 .options(OpenAiChatOptions.builder()

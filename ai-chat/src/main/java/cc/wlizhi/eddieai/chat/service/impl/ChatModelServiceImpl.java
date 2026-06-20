@@ -35,12 +35,13 @@ public class ChatModelServiceImpl implements ChatModelService {
                 continue;
             }
 
-            List<ChatModelItemVO> modelItems = parseModels(modelsJson);
+            List<ChatModelItemVO> modelItems = parseModels(modelsJson, entity.getId(), entity.getCode());
             if (modelItems.isEmpty()) {
                 continue;
             }
 
             ChatModelSelectorVO vo = new ChatModelSelectorVO();
+            vo.setProviderId(entity.getId());
             vo.setProviderCode(entity.getCode());
             vo.setProviderName(entity.getName());
             vo.setModels(modelItems);
@@ -50,7 +51,7 @@ public class ChatModelServiceImpl implements ChatModelService {
         return result;
     }
 
-    private List<ChatModelItemVO> parseModels(String modelsJson) {
+    private List<ChatModelItemVO> parseModels(String modelsJson, Long providerId, String providerCode) {
         try {
             List<Map<String, Object>> rawList = objectMapper.readValue(
                     modelsJson, new TypeReference<List<Map<String, Object>>>() {
@@ -63,7 +64,8 @@ public class ChatModelServiceImpl implements ChatModelService {
                         Object ownedBy = raw.get("owned_by");
                         item.setModelId(id != null ? id.toString() : null);
                         item.setDisplayName(id != null ? id.toString() : null);
-                        item.setProviderCode(ownedBy != null ? ownedBy.toString() : null);
+                        item.setProviderId(providerId);
+                        item.setProviderCode(ownedBy != null ? ownedBy.toString() : providerCode);
                         return item;
                     })
                     .filter(item -> item.getModelId() != null)

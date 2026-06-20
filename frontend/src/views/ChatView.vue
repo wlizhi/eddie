@@ -127,7 +127,7 @@ const groupedOptions = chatStore.modelSelectors.map((selector) => ({
 /** 当前选中供应商的名称（用于底部栏标签显示） */
 const currentProviderName = computed(() => {
   const sel = chatStore.modelSelectors.find(
-      s => s.providerCode === chatStore.currentProviderCode,
+      s => s.providerId === chatStore.currentProviderId,
   )
   return sel?.providerName ?? ''
 })
@@ -135,7 +135,7 @@ const currentProviderName = computed(() => {
 /** 当前供应商下的模型列表（快速切换胶囊） */
 const currentProviderModels = computed(() => {
   const sel = chatStore.modelSelectors.find(
-      s => s.providerCode === chatStore.currentProviderCode,
+      s => s.providerId === chatStore.currentProviderId,
   )
   return sel?.models ?? []
 })
@@ -153,12 +153,12 @@ const hasMoreModels = computed(() => {
   return currentProviderModels.value.length > QUICK_MODEL_LIMIT
 })
 
-/** NSelect "更多" 下拉选中时同步 providerCode */
+/** NSelect "更多" 下拉选中时同步 providerId */
 function onModelSelect(modelId: string) {
   for (const sel of chatStore.modelSelectors) {
     const found = sel.models.find(m => m.modelId === modelId)
     if (found) {
-      chatStore.selectModel(found.modelId, found.providerCode)
+      chatStore.selectModel(found.modelId, found.providerId)
       return
     }
   }
@@ -333,7 +333,7 @@ function formatTime(ts: number | undefined | null): string {
               :key="m.modelId"
               class="model-chip"
               :class="{ active: m.modelId === chatStore.currentModelId }"
-              @click="chatStore.selectModel(m.modelId, m.providerCode)"
+              @click="chatStore.selectModel(m.modelId, m.providerId)"
           >
             {{ m.displayName ?? m.modelId }}
           </button>

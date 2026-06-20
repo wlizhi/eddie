@@ -15,13 +15,13 @@ public class ModelProviderDao {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * 查询全部服务提供商（仅查询接口1需要的字段，不查询 models）
+     * 查询全部服务提供商
      */
     public List<ModelProviderEntity> findAll() {
         String sql = """
-                SELECT code, name, base_url, api_key, enabled, sort_order, created_at, updated_at
+                SELECT id, code, name, base_url, api_key, models, enabled, built_in, sort_order, created_at, updated_at
                 FROM model_provider
-                ORDER BY sort_order ASC
+                ORDER BY sort_order ASC, id ASC
                 """;
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ModelProviderEntity.class));
     }

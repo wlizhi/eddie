@@ -7,15 +7,18 @@ export interface ChatModelItem {
     modelId: string
     /** 模型显示名，为 null 时前端 fallback 到 modelId */
     displayName: string | null
+    /** 所属供应商实例 ID */
+    providerId: number
     /** 模型提供商代码，如 "deepseek" */
     providerCode: string
 }
 
 /**
- * 聊天模型选择器 — 按供应商分组
+ * 聊天模型选择器 — 按供应商实例分组
  * 对应后端 ChatModelSelectorVO
  */
 export interface ChatModelSelector {
+    providerId: number
     providerCode: string
     providerName: string
     models: ChatModelItem[]
@@ -28,8 +31,8 @@ export interface ChatModelSelector {
 export interface ChatRequest {
     conversationId: string
     message: string
-    /** 供应商 code，来自 ChatModelItemVO.providerCode */
-    providerCode: string
+    /** 供应商实例 ID，来自 ChatModelItemVO.providerId */
+    providerId: number
     /** 模型 ID，来自 ChatModelItemVO.modelId */
     modelId: string
 }
