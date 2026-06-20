@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {ChevronDown, MessageSquare, Plus, Search, Settings, Trash2} from '@lucide/vue'
 import {useAssistantStore} from '@/stores/assistant'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
@@ -11,10 +11,6 @@ const DEFAULT_SHOWN = 3
 const assistantListCollapsed = ref(false)
 const showAllAssistants = ref(true)
 const editAssistantId = ref<number | null>(null)
-
-onMounted(() => {
-  assistantStore.loadList()
-})
 
 const displayedAssistants = computed(() => {
   const items = assistantStore.enabledList

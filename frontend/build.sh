@@ -5,5 +5,5 @@ rm -rf ../ai-app/src/main/resources/static/*
 cp -r dist/* ../ai-app/src/main/resources/static/
 
 cd ..
-mvn clean package -DskipTests
+mvn clean compile -DskipTests
 cd frontend

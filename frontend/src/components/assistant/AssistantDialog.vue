@@ -8,7 +8,7 @@
   - 保存到后端
 -->
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {NModal, NSelect} from 'naive-ui'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
@@ -85,23 +85,22 @@ const groupedModelOptions = computed(() =>
       key: s.providerCode,
       children: s.models.map((m) => ({
         label: m.displayName ?? m.modelId,
-        value: `${s.providerId}:${m.modelId}`, // 组合值：providerId:modelId
+        value: m.modelId, // 直接用 modelId 作为值
       })),
     }))
 )
 
-/** 当前选中的模型显示值 */
-const currentModelValue = computed(() =>
-    formProviderId.value && formModelId.value
-        ? `${formProviderId.value}:${formModelId.value}`
-        : null
-)
-
-function onModelSelect(val: string | null) {
-  if (!val) return
-  const [pid, mid] = val.split(':')
-  formProviderId.value = Number(pid)
-  formModelId.value = mid
+function onModelSelect(modelId: string | null) {
+  if (!modelId) return
+  formModelId.value = modelId
+  // 从模型列表中查找对应的 providerId
+  for (const sel of chatStore.modelSelectors) {
+    const found = sel.models.find(m => m.modelId === modelId)
+    if (found) {
+      formProviderId.value = found.providerId
+      return
+    }
+  }
 }
 
 /** 保存 */
@@ -119,7 +118,7 @@ async function handleSave() {
       memoryRounds: formMemoryRounds.value,
     })
     feedback.value = '✅ 保存成功'
-    setTimeout(() => close(), 800)
+    close()
   } catch (err) {
     feedback.value = '❌ 保存失败'
     console.error(err)
@@ -134,12 +133,7 @@ function close() {
   emit('update:assistantId', null)
 }
 
-/** 首次打开时加载模型列表 */
-onMounted(() => {
-  if (chatStore.modelSelectors.length === 0) {
-    chatStore.loadModels()
-  }
-})
+// 模型列表由 ChatView 统一加载，dialog 只需在打开时用 watch 兜底
 </script>
 
 <template>
@@ -184,7 +178,7 @@ onMounted(() => {
       <div class="field">
         <label class="label">模型</label>
         <NSelect
-            :value="currentModelValue"
+            :value="formModelId || null"
             :options="groupedModelOptions"
             placeholder="选择模型"
             :consistent-menu-width="false"

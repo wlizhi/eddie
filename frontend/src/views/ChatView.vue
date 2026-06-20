@@ -13,14 +13,16 @@
   - InputArea — 底部输入区域（含模型选择器）
 -->
 <script setup lang="ts">
-import {nextTick, onMounted, ref} from 'vue'
+import {nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
+import {useAssistantStore} from '@/stores/assistant'
 import Toolbar from '@/views/chat/Toolbar.vue'
 import MessageList from '@/views/chat/MessageList.vue'
 import EmptyState from '@/views/chat/EmptyState.vue'
 import InputArea from '@/views/chat/InputArea.vue'
 
 const chatStore = useChatStore()
+const assistantStore = useAssistantStore()
 
 /** 宽屏模式 */
 const isWideMode = ref(false)
@@ -32,8 +34,30 @@ const inputText = ref('')
 /** InputArea 组件引用，用于发送后保持焦点 */
 const inputAreaRef = ref<InstanceType<typeof InputArea> | null>(null)
 
-onMounted(() => {
-  chatStore.loadModels()
+onMounted(async () => {
+  // 并行加载模型列表和助手列表，统一入口避免重复请求
+  await Promise.all([
+    chatStore.loadModels(),
+    assistantStore.loadList(),
+  ])
+  // 助手列表加载完成后同步第一个助手的模型到聊天区
+  syncModelFromAssistant()
+})
+
+/**
+ * 将当前选中助手的模型同步到聊天区
+ * 页面刷新 / 切换助手时自动调用
+ */
+function syncModelFromAssistant() {
+  const active = assistantStore.activeAssistant
+  if (active) {
+    chatStore.selectModel(active.modelId, active.providerId)
+  }
+}
+
+// 切换助手时自动同步模型
+watch(() => assistantStore.activeId, () => {
+  syncModelFromAssistant()
 })
 
 /** 发送消息 */
