@@ -7,12 +7,17 @@ import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.deepseek.DeepSeekAssistantMessage;
 import org.springframework.ai.deepseek.DeepSeekChatModel;
 import org.springframework.ai.deepseek.DeepSeekChatOptions;
 import org.springframework.ai.deepseek.api.DeepSeekApi;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class DeepseekChatPolicy implements ChatPolicy {
@@ -47,4 +52,21 @@ public class DeepseekChatPolicy implements ChatPolicy {
                 .build();
     }
 
+    @Override
+    public ServerSentEvent<String> getThinkEvent(ChatResponse chatResponse) {
+        // 提取思考内容（reasoning_content）
+        String reasoning = chatResponse.getResults().stream()
+                .map(Generation::getOutput)
+                .map(msg -> {
+                    if (msg instanceof DeepSeekAssistantMessage deepSeekAssistantMessage) {
+                        return deepSeekAssistantMessage.getReasoningContent();
+                    }
+                    return "";
+                }).filter(Objects::nonNull)
+                .collect(Collectors.joining());
+        return ServerSentEvent.<String>builder()
+                .event("thinking")
+                .data(reasoning)
+                .build();
+    }
 }

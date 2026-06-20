@@ -2,6 +2,8 @@ package cc.wlizhi.eddieai.chat.service;
 
 import cc.wlizhi.eddieai.chat.entity.dto.ChatClientGetDTO;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.http.codec.ServerSentEvent;
 
 /**
  * 多服务商多模型聊天策略
@@ -15,4 +17,10 @@ public interface ChatPolicy {
 
     ChatClient getChatClient(ChatClientGetDTO chatClientGetDTO);
 
+    default ServerSentEvent<String> getThinkEvent(ChatResponse chatResponse) {
+        return ServerSentEvent.<String>builder()
+                .event("thinking")
+                .data("")
+                .build();
+    }
 }

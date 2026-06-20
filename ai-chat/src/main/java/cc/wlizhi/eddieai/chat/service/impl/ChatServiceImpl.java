@@ -66,9 +66,9 @@ public class ChatServiceImpl implements ChatService {
                 .chatResponse();
 
         // 从 ChatResponse 中分别提取思考内容（reasoning_content）和回答内容（content），
-        // 发射对应的 SSE 事件：thinking 和 answer
+        // 发射对应的 SSE 事件：thinking（由各 ChatPolicy 自定义提取）和 answer
         return responseFlux
-                .concatMap(response -> Flux.fromIterable(buildEvents(response)))
+                .concatMap(response -> Flux.fromIterable(buildEvents(response, chatPolicy)))
                 .concatWithValues(
                         ServerSentEvent.<String>builder()
                                 .event("metadata")
@@ -90,23 +90,18 @@ public class ChatServiceImpl implements ChatService {
      * 从单个 ChatResponse chunk 中提取 reasoning_content 和 content，
      * 分别构建 thinking 和 answer SSE 事件。
      * <p>
-     * DeepSeek 推理模型在流式响应中会交替发送 reasoning_content（思考过程）和
-     * content（最终回答），Spring AI 将 reasoning_content 存储在
-     * AssistantMessage 的 metadata 中（key="reasoningContent"）。
+     * thinking 事件由各 ChatPolicy 自定义提取（如 DeepSeek 从 DeepSeekAssistantMessage
+     * 中提取 reasoning_content），answer 事件从 AssistantMessage.getText() 统一提取。
      */
-    private List<ServerSentEvent<String>> buildEvents(ChatResponse response) {
+    private List<ServerSentEvent<String>> buildEvents(ChatResponse response, ChatPolicy chatPolicy) {
         List<ServerSentEvent<String>> events = new ArrayList<>();
 
-        // 提取思考内容（reasoning_content）
-        String reasoning = response.getResults().stream()
-                .map(Generation::getOutput)
-                .map(msg -> {
-                    System.out.println(msg.getMetadata());
-                    Object rc = msg.getMetadata().get("reasoningContent");
-                    return rc != null ? rc.toString() : "";
-                })
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.joining());
+        // 通过 ChatPolicy 提取思考内容（各 provider 实现不同）
+        ServerSentEvent<String> thinkEvent = chatPolicy.getThinkEvent(response);
+        String thinkData = thinkEvent.data();
+        if (thinkData != null && !thinkData.isEmpty()) {
+            events.add(thinkEvent);
+        }
 
         // 提取回答内容
         String content = response.getResults().stream()
@@ -115,20 +110,12 @@ public class ChatServiceImpl implements ChatService {
                 .filter(Objects::nonNull)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.joining());
-
-        if (!reasoning.isEmpty()) {
-            events.add(ServerSentEvent.<String>builder()
-                    .event("thinking")
-                    .data(reasoning)
-                    .build());
-        }
         if (!content.isEmpty()) {
             events.add(ServerSentEvent.<String>builder()
                     .event("answer")
                     .data(content)
                     .build());
         }
-
         return events;
     }
 
