@@ -11,9 +11,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -39,13 +37,7 @@ public class ChatServiceImpl implements ChatService {
     private ChatPolicy defaultChatPolicy;
 
     @Resource
-    private OpenAiChatModel openAiChatModel;
-
-    @Resource
     private ChatMemoryManager chatMemoryManager;
-
-    @Value("${chat.buffer-ms:50}")
-    private int bufferMs;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
