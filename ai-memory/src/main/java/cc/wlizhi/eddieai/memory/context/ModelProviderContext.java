@@ -12,6 +12,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 模型服务商、模型列表上下文，全应用生命周期
@@ -31,6 +32,21 @@ public class ModelProviderContext {
 
     public String getProvider(String modelId) {
         return modelProviderMap.get(modelId);
+    }
+
+    public ModelProviderEntity getModelProvider(String providerCode) {
+        for (ModelProviderEntity provider : modelProviderEntities) {
+            if (Objects.equals(provider.getCode(), providerCode)) {
+                return provider;
+            }
+        }
+        refresh();
+        for (ModelProviderEntity provider : modelProviderEntities) {
+            if (Objects.equals(provider.getCode(), providerCode)) {
+                return provider;
+            }
+        }
+        return null;
     }
 
 

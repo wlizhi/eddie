@@ -19,6 +19,10 @@
             <groupId>cc.wlizhi</groupId>
             <artifactId>ai-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cc.wlizhi</groupId>
+            <artifactId>ai-memory</artifactId>
+        </dependency>
         <!-- 运行时依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

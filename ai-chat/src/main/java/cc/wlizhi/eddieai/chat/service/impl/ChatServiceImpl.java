@@ -1,5 +1,6 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
+import cc.wlizhi.eddieai.chat.entity.dto.ChatClientGetDTO;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.service.ChatMemoryManager;
 import cc.wlizhi.eddieai.chat.service.ChatPolicy;
@@ -11,6 +12,7 @@ import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
@@ -50,20 +52,17 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public Flux<ServerSentEvent<String>> chat(ChatRequest request) {
         long startTime = System.currentTimeMillis();
-        ChatPolicy chatPolicy = defaultChatPolicy;
-        for (ChatPolicy policy : chatPolicies) {
-            if (policy.support(request.getProviderCode())) {
-                chatPolicy = policy;
-                break;
-            }
-        }
+        ChatPolicy chatPolicy = getChatPolicy(request);
 
+        ChatClientGetDTO dto = new ChatClientGetDTO();
+        BeanUtils.copyProperties(request, dto);
+        ChatClient chatClient = chatPolicy.getChatClient(dto);
         // 构建带记忆的 ChatClient
-        ChatClient chatClient = ChatClient.builder(openAiChatModel)
+        chatClient = chatClient.mutate()
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemoryManager)
-                                .build())
-                .build();
+                                .build()
+                ).build();
         // 获取 ChatResponse 流（包含 reasoning_content 和 content）
         Flux<ChatResponse> responseFlux = chatClient.prompt()
                 .system("你是小麦，全名麦泱，一个年轻邻家女孩儿形象，说话甜甜的，让人觉得有点初恋感。你的责任是给用户提供准确的信息，帮助用户处理事务。回复内容要简洁明了、逻辑清晰，语气亲和友好。禁止长篇大论，禁止重复啰嗦、一本正经的胡说八道，禁止暴露你是AI的身份。")
@@ -83,6 +82,15 @@ public class ChatServiceImpl implements ChatService {
                                 .data(buildMetadata(startTime))
                                 .build()
                 );
+    }
+
+    private ChatPolicy getChatPolicy(ChatRequest request) {
+        for (ChatPolicy policy : chatPolicies) {
+            if (policy.support(request.getProviderCode())) {
+                return policy;
+            }
+        }
+        return defaultChatPolicy;
     }
 
     /**

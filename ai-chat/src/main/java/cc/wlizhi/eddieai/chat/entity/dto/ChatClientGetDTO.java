@@ -20,4 +20,9 @@ public class ChatClientGetDTO {
      * 模型名称
      */
     private String modelId;
+
+    /**
+     * 供应商 code，仅作分组标识，不可选中
+     */
+    private String providerCode;
 }

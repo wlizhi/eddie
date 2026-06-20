@@ -15,5 +15,4 @@ public interface ChatPolicy {
 
     ChatClient getChatClient(ChatClientGetDTO chatClientGetDTO);
 
-    ChatClient.ChatClientRequestSpec getChatClientRequestSpec(ChatClientGetDTO chatClientGetDTO);
 }
