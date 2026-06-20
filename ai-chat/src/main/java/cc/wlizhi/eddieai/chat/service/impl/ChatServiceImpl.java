@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.messages.AbstractMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.beans.BeanUtils;
@@ -110,7 +111,7 @@ public class ChatServiceImpl implements ChatService {
         // 提取回答内容
         String content = response.getResults().stream()
                 .map(Generation::getOutput)
-                .map(msg -> msg.getText())
+                .map(AbstractMessage::getText)
                 .filter(Objects::nonNull)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.joining());
