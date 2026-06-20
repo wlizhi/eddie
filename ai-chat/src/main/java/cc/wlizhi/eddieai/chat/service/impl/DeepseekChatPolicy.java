@@ -15,6 +15,7 @@ import org.springframework.ai.deepseek.DeepSeekChatOptions;
 import org.springframework.ai.deepseek.api.DeepSeekApi;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -61,10 +62,9 @@ public class DeepseekChatPolicy implements ChatPolicy {
                     if (msg instanceof DeepSeekAssistantMessage deepSeekAssistantMessage) {
                         return deepSeekAssistantMessage.getReasoningContent();
                     }
-                    return "";
-                }).filter(Objects::nonNull)
-                .collect(Collectors.joining());
-        return ServerSentEvent.<String>builder()
+                    return null;
+                }).filter(Objects::nonNull).collect(Collectors.joining());
+        return ObjectUtils.isEmpty(reasoning) ? null : ServerSentEvent.<String>builder()
                 .event("thinking")
                 .data(reasoning)
                 .build();

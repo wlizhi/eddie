@@ -15,12 +15,13 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.beans.BeanUtils;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -65,10 +66,22 @@ public class ChatServiceImpl implements ChatService {
                 .stream()
                 .chatResponse();
 
+        Function<ChatResponse, List<ServerSentEvent<String>>> eventFun = res -> {
+            ServerSentEvent<String> thinkEvent = chatPolicy.getThinkEvent(res);
+            ServerSentEvent<String> contentEvent = getContentEvent(res);
+            List<ServerSentEvent<String>> events = new ArrayList<>();
+            if (thinkEvent != null) {
+                events.add(thinkEvent);
+            }
+            if (contentEvent != null) {
+                events.add(contentEvent);
+            }
+            return events;
+        };
         // 从 ChatResponse 中分别提取思考内容（reasoning_content）和回答内容（content），
         // 发射对应的 SSE 事件：thinking（由各 ChatPolicy 自定义提取）和 answer
         return responseFlux
-                .concatMap(response -> Flux.fromIterable(buildEvents(response, chatPolicy)))
+                .concatMap(response -> Flux.fromIterable(eventFun.apply(response)))
                 .concatWithValues(
                         ServerSentEvent.<String>builder()
                                 .event("metadata")
@@ -86,37 +99,17 @@ public class ChatServiceImpl implements ChatService {
         return defaultChatPolicy;
     }
 
-    /**
-     * 从单个 ChatResponse chunk 中提取 reasoning_content 和 content，
-     * 分别构建 thinking 和 answer SSE 事件。
-     * <p>
-     * thinking 事件由各 ChatPolicy 自定义提取（如 DeepSeek 从 DeepSeekAssistantMessage
-     * 中提取 reasoning_content），answer 事件从 AssistantMessage.getText() 统一提取。
-     */
-    private List<ServerSentEvent<String>> buildEvents(ChatResponse response, ChatPolicy chatPolicy) {
-        List<ServerSentEvent<String>> events = new ArrayList<>();
-
-        // 通过 ChatPolicy 提取思考内容（各 provider 实现不同）
-        ServerSentEvent<String> thinkEvent = chatPolicy.getThinkEvent(response);
-        String thinkData = thinkEvent.data();
-        if (thinkData != null && !thinkData.isEmpty()) {
-            events.add(thinkEvent);
-        }
-
+    private ServerSentEvent<String> getContentEvent(ChatResponse response) {
         // 提取回答内容
         String content = response.getResults().stream()
                 .map(Generation::getOutput)
                 .map(AbstractMessage::getText)
-                .filter(Objects::nonNull)
-                .filter(s -> !s.isEmpty())
+                .filter(f -> !ObjectUtils.isEmpty(f))
                 .collect(Collectors.joining());
-        if (!content.isEmpty()) {
-            events.add(ServerSentEvent.<String>builder()
-                    .event("answer")
-                    .data(content)
-                    .build());
-        }
-        return events;
+        return ObjectUtils.isEmpty(content) ? null : ServerSentEvent.<String>builder()
+                .event("answer")
+                .data(content)
+                .build();
     }
 
     /**
