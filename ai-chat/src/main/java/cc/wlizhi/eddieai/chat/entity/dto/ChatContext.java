@@ -4,15 +4,24 @@
  * 贯穿整个聊天调用链路的上下文对象，从请求预处理到响应后处理，
  * 每个阶段都可以往 Context 中写入数据，后续阶段可直接读取。
  * <p>
- * 所有扩展点（InputInterceptor、ThinkingHandler 等）都通过此对象
+ * 所有扩展点（PreProcessor、ThinkingHandler、MetadataHandler 等）都通过此对象
  * 交换数据，避免方法参数膨胀和 ThreadLocal 的线程安全问题。
  */
 package cc.wlizhi.eddieai.chat.entity.dto;
 
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
+import cc.wlizhi.eddieai.chat.service.ChatPolicy;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 
+import java.util.HashMap;
+import java.util.Map;
+
+@Getter
+@Setter
 public class ChatContext {
 
     // ==================== 阶段一：原始请求 ====================
@@ -20,9 +29,11 @@ public class ChatContext {
     /** 用户原始请求 */
     private ChatRequest originalRequest;
 
-    // ==================== 阶段二：路由 & Provider ====================
+    // ==================== 阶段二：预处理 & Provider ====================
 
-    /** 路由后的供应商实体 */
+    /**
+     * 供应商实体
+     */
     private ModelProviderEntity provider;
 
     /** 供应商代码 (openai / deepseek / anthropic ...) */
@@ -31,61 +42,50 @@ public class ChatContext {
     /** 最终请求的模型 ID（经过 ModelNameMapper 映射后） */
     private String resolvedModelId;
 
-    // ==================== 阶段三：执行 & 响应 ====================
+    /**
+     * 预处理后的 DTO
+     */
+    private ChatClientGetDTO chatClientGetDTO;
+
+    /**
+     * 系统提示词（TODO: 后续从 assistant 表获取）
+     */
+    private String systemPrompt;
+
+    /**
+     * 会话 ID
+     */
+    private String conversationId;
+
+    /**
+     * 用户消息内容
+     */
+    private String userMessage;
+
+    // ==================== 阶段三：路由 & 构建 ====================
+
+    /**
+     * 路由匹配到的策略
+     */
+    private ChatPolicy chatPolicy;
+
+    /**
+     * 构建好的 ChatClient
+     */
+    private ChatClient chatClient;
+
+    // ==================== 阶段四：执行 & 响应 ====================
 
     /** 请求开始时间戳（毫秒） */
     private long startTime;
 
-    /** 最后一次 ChatResponse（用于提取 token 用量等元数据） */
+    /**
+     * 最后一次 ChatResponse（用于提取 token 用量等元数据）
+     */
     private ChatResponse lastResponse;
 
-    // ==================== getter / setter ====================
+    // ==================== 扩展属性 ====================
 
-    public ChatRequest getOriginalRequest() {
-        return originalRequest;
-    }
-
-    public void setOriginalRequest(ChatRequest originalRequest) {
-        this.originalRequest = originalRequest;
-    }
-
-    public ModelProviderEntity getProvider() {
-        return provider;
-    }
-
-    public void setProvider(ModelProviderEntity provider) {
-        this.provider = provider;
-    }
-
-    public String getProviderCode() {
-        return providerCode;
-    }
-
-    public void setProviderCode(String providerCode) {
-        this.providerCode = providerCode;
-    }
-
-    public String getResolvedModelId() {
-        return resolvedModelId;
-    }
-
-    public void setResolvedModelId(String resolvedModelId) {
-        this.resolvedModelId = resolvedModelId;
-    }
-
-    public long getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
-    }
-
-    public ChatResponse getLastResponse() {
-        return lastResponse;
-    }
-
-    public void setLastResponse(ChatResponse lastResponse) {
-        this.lastResponse = lastResponse;
-    }
+    /** 扩展属性 Map，供任意阶段写入临时数据 */
+    private Map<String, Object> attributes = new HashMap<>();
 }
