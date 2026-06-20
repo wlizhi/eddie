@@ -1,59 +1,53 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {ChevronDown, MessageSquare, Plus, Search, Settings, Trash2} from '@lucide/vue'
+import {useAssistantStore} from '@/stores/assistant'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
+import AssistantDialog from '../assistant/AssistantDialog.vue'
+
+const assistantStore = useAssistantStore()
 
 const DEFAULT_SHOWN = 3
 const assistantListCollapsed = ref(false)
-
-// Mock 助手列表
-const assistants = ref([
-  {id: 'a1', name: '小艾', avatar: null, model: 'DeepSeek V4', sessionCount: 12},
-  {id: 'a2', name: '小麦', avatar: 'emoji:🌾', model: 'Claude 4', sessionCount: 5},
-  {id: 'a3', name: '编程助手', avatar: 'emoji:💻', model: 'GPT-4o', sessionCount: 8},
-  {id: 'a4', name: '翻译官', avatar: 'emoji:🌍', model: 'DeepSeek V4', sessionCount: 3},
-  {id: 'a5', name: '代码审查员', avatar: null, model: 'Claude 4', sessionCount: 6},
-])
-
-// 当前选中的助手
-const activeAssistantId = ref('a1')
 const showAllAssistants = ref(true)
+const editAssistantId = ref<number | null>(null)
 
-const displayedAssistants = computed(() =>
-    showAllAssistants.value ? assistants.value : assistants.value.slice(0, DEFAULT_SHOWN)
-)
+onMounted(() => {
+  assistantStore.loadList()
+})
 
-const activeAssistant = computed(() =>
-    assistants.value.find((a) => a.id === activeAssistantId.value)
-)
+const displayedAssistants = computed(() => {
+  const items = assistantStore.enabledList
+  return showAllAssistants.value ? items : items.slice(0, DEFAULT_SHOWN)
+})
 
 // Mock 会话列表（按当前助手不同返回不同数据）
 const sessionsMap: Record<string, { id: string; title: string; updatedAt: string }[]> = {
-  a1: [
+  '1': [
     {id: 's1', title: '帮我写一个排序算法', updatedAt: '10分钟前'},
     {id: 's2', title: '解释一下 React Hooks', updatedAt: '1小时前'},
     {id: 's3', title: 'Vue 3 和 React 对比', updatedAt: '昨天'},
     {id: 's4', title: 'Python 异步编程入门', updatedAt: '2天前'},
   ],
-  a2: [
+  '2': [
     {id: 's5', title: '分析销售数据趋势', updatedAt: '30分钟前'},
     {id: 's6', title: '生成月度报告', updatedAt: '3小时前'},
   ],
-  a3: [
+  '3': [
     {id: 's7', title: '帮我优化这段 SQL', updatedAt: '15分钟前'},
     {id: 's8', title: '实现一个二分查找', updatedAt: '昨天'},
     {id: 's9', title: '代码审查反馈', updatedAt: '2天前'},
   ],
-  a4: [
+  '4': [
     {id: 's10', title: '翻译一篇技术文档', updatedAt: '1小时前'},
   ],
-  a5: [
+  '5': [
     {id: 's11', title: '审查 PR #42', updatedAt: '昨天'},
     {id: 's12', title: '检查安全性问题', updatedAt: '3天前'},
   ],
 }
 
-const sessions = computed(() => sessionsMap[activeAssistantId.value] ?? [])
+const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? [])
 </script>
 
 <template>
@@ -71,15 +65,15 @@ const sessions = computed(() => sessionsMap[activeAssistantId.value] ?? [])
             v-for="assistant in displayedAssistants"
             :key="assistant.id"
             class="assistant-item"
-            :class="{ active: activeAssistantId === assistant.id }"
-            @click="activeAssistantId = assistant.id"
+            :class="{ active: assistantStore.activeId === assistant.id }"
+            @click="assistantStore.select(assistant.id)"
         >
           <AssistantAvatar :name="assistant.name" :avatar="assistant.avatar" :size="26"/>
           <span class="assistant-name">{{ assistant.name }}</span>
           <button
               class="assistant-settings"
               title="助手设置"
-              @click.stop
+              @click.stop="editAssistantId = assistant.id"
           >
             <Settings :size="13" :stroke-width="2"/>
           </button>
@@ -87,11 +81,11 @@ const sessions = computed(() => sessionsMap[activeAssistantId.value] ?? [])
 
         <!-- 展开/收起 -->
         <button
-            v-if="assistants.length > DEFAULT_SHOWN"
+            v-if="assistantStore.enabledList.length > DEFAULT_SHOWN"
             class="toggle-btn"
             @click="showAllAssistants = !showAllAssistants"
         >
-          {{ showAllAssistants ? '▲ 收起' : `>>> 展示更多 (${assistants.length - DEFAULT_SHOWN})` }}
+          {{ showAllAssistants ? '▲ 收起' : `>>> 展示更多 (${assistantStore.enabledList.length - DEFAULT_SHOWN})` }}
         </button>
       </div>
     </div>
@@ -133,6 +127,9 @@ const sessions = computed(() => sessionsMap[activeAssistantId.value] ?? [])
       </button>
     </div>
   </div>
+
+  <!-- 助手设置弹窗 -->
+  <AssistantDialog v-model:assistant-id="editAssistantId"/>
 </template>
 
 <style scoped>
