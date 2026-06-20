@@ -5,6 +5,7 @@ import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.mapper.ChatRequestMapper;
 import cc.wlizhi.eddieai.chat.service.ChatMemoryManager;
 import cc.wlizhi.eddieai.chat.service.ChatPolicy;
+import cc.wlizhi.eddieai.chat.service.ChatPolicyRouter;
 import cc.wlizhi.eddieai.chat.service.ChatService;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
@@ -25,7 +26,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -42,9 +42,7 @@ import java.util.stream.Stream;
 public class ChatServiceImpl implements ChatService {
 
     @Resource
-    private List<ChatPolicy> chatPolicies;
-    @Resource
-    private ChatPolicy defaultChatPolicy;
+    private ChatPolicyRouter chatPolicyRouter;
 
     @Resource
     private ChatMemoryManager chatMemoryManager;
@@ -107,12 +105,7 @@ public class ChatServiceImpl implements ChatService {
         if (provider == null) {
             throw new BadRequestException("providerId=" + request.getProviderId() + " 不存在的模型服务商");
         }
-        for (ChatPolicy policy : chatPolicies) {
-            if (policy.support(provider.getCode())) {
-                return policy;
-            }
-        }
-        return defaultChatPolicy;
+        return chatPolicyRouter.resolve(provider.getCode());
     }
 
     private ServerSentEvent<String> getContentEvent(ChatResponse response) {
