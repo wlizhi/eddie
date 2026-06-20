@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {nextTick, onMounted, ref, watch} from 'vue'
+import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {Bot, ChevronDown, FileText, Maximize2, MessageSquare, Minimize2, Send, Square} from '@lucide/vue'
 import {NSelect} from 'naive-ui'
@@ -114,7 +114,7 @@ function autoResize(e: Event) {
   el.style.height = Math.min(el.scrollHeight, 200) + 'px'
 }
 
-/** 按供应商分组 — naive-ui NSelect 分组格式 */
+/** 按供应商分组 — naive-ui NSelect 分组格式（用于下拉"更多"） */
 const groupedOptions = chatStore.modelSelectors.map((selector) => ({
   type: 'group' as const,
   label: selector.providerName,
@@ -124,6 +124,46 @@ const groupedOptions = chatStore.modelSelectors.map((selector) => ({
     value: m.modelId,
   })),
 }))
+
+/** 当前选中供应商的名称（用于底部栏标签显示） */
+const currentProviderName = computed(() => {
+  const sel = chatStore.modelSelectors.find(
+      s => s.providerCode === chatStore.currentProviderCode,
+  )
+  return sel?.providerName ?? ''
+})
+
+/** 当前供应商下的模型列表（快速切换胶囊） */
+const currentProviderModels = computed(() => {
+  const sel = chatStore.modelSelectors.find(
+      s => s.providerCode === chatStore.currentProviderCode,
+  )
+  return sel?.models ?? []
+})
+
+/** 前 3 个模型作为胶囊按钮，其余进入 "更多" 下拉 */
+const QUICK_MODEL_LIMIT = 3
+
+/** 快速切换胶囊模型（前 N 个） */
+const quickModels = computed(() => {
+  return currentProviderModels.value.slice(0, QUICK_MODEL_LIMIT)
+})
+
+/** 是否有更多模型需要下拉选择 */
+const hasMoreModels = computed(() => {
+  return currentProviderModels.value.length > QUICK_MODEL_LIMIT
+})
+
+/** NSelect "更多" 下拉选中时同步 providerCode */
+function onModelSelect(modelId: string) {
+  for (const sel of chatStore.modelSelectors) {
+    const found = sel.models.find(m => m.modelId === modelId)
+    if (found) {
+      chatStore.selectModel(found.modelId, found.providerCode)
+      return
+    }
+  }
+}
 
 /** 格式化元数据展示 */
 function formatMetadata(msg: ChatMessage): string {
@@ -271,18 +311,47 @@ function formatMetadata(msg: ChatMessage): string {
         </button>
       </div>
 
-      <!-- 底部栏：模型选择器 + 信息 -->
+      <!-- 底部栏：模型选择器（胶囊按钮 + 下拉） + 功能开关 -->
       <div class="bottom-bar">
-        <div class="model-selector">
+        <!-- 模型选择区 -->
+        <div class="model-selector-area">
+          <!-- 供应商标签 -->
+          <span v-if="currentProviderName" class="provider-tag">{{ currentProviderName }}</span>
+
+          <!-- 胶囊按钮：快速切换当前供应商下的前几个模型 -->
+          <button
+              v-for="m in quickModels"
+              :key="m.modelId"
+              class="model-chip"
+              :class="{ active: m.modelId === chatStore.currentModelId }"
+              @click="chatStore.selectModel(m.modelId, m.providerCode)"
+          >
+            {{ m.displayName ?? m.modelId }}
+          </button>
+
+          <!-- 更多模型下拉 -->
           <NSelect
-              v-if="groupedOptions.length > 0"
+              v-if="hasMoreModels"
               :value="chatStore.currentModelId"
               :options="groupedOptions"
               size="tiny"
-              style="width: 200px"
-              @update:value="(val: string) => chatStore.currentModelId = val"
+              class="more-select"
+              placeholder="更多 ▾"
+              :show-arrow="false"
+              @update:value="onModelSelect"
           />
         </div>
+
+        <!-- 功能开关区（预留） -->
+        <div class="feature-toggles">
+          <button class="toggle-chip disabled" title="联网搜索（即将上线）">
+            🌐 联网
+          </button>
+          <button class="toggle-chip disabled" title="深度思考（即将上线）">
+            💡 深度思考
+          </button>
+        </div>
+
         <span v-if="chatStore.isStreaming" class="streaming-hint">正在生成...</span>
       </div>
     </div>
@@ -660,18 +729,104 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 8px;
+  margin-top: 10px;
   padding: 0 2px;
+  gap: 8px;
 }
 
-.model-selector {
+/* 模型选择区（左侧） */
+.model-selector-area {
   display: flex;
   align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 供应商标签 */
+.provider-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: #9ca3af;
+  background: #f0f1f3;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* 模型胶囊按钮 */
+.model-chip {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.4;
+  border: 1px solid #e0e2e6;
+  border-radius: 14px;
+  background: #fafbfc;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.model-chip:hover {
+  background: #f0f1f3;
+  border-color: #c4c7cc;
+}
+
+.model-chip.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* "更多" 下拉选择器 */
+.more-select {
+  min-width: 70px;
+  max-width: 110px;
+}
+
+/* 功能开关区（右侧） */
+.feature-toggles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.toggle-chip {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.4;
+  border: 1px solid #e0e2e6;
+  border-radius: 14px;
+  background: #fafbfc;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.toggle-chip:hover {
+  background: #f0f1f3;
+  border-color: #c4c7cc;
+}
+
+.toggle-chip.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-chip.disabled:hover {
+  background: #fafbfc;
+  border-color: #e0e2e6;
 }
 
 .streaming-hint {
   font-size: 12px;
   color: #9ca3af;
+  flex-shrink: 0;
 }
 </style>
 

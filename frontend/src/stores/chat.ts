@@ -23,6 +23,9 @@ export const useChatStore = defineStore('chat', () => {
     /** 当前选中的模型 ID */
     const currentModelId = ref<string>('')
 
+    /** 当前选中的供应商 code */
+    const currentProviderCode = ref<string>('')
+
     /** 是否正在流式响应中 */
     const isStreaming = ref(false)
 
@@ -68,11 +71,19 @@ export const useChatStore = defineStore('chat', () => {
 
             // 如果还没有选中的模型，默认选中第一个
             if (!currentModelId.value && list.length > 0 && list[0].models.length > 0) {
-                currentModelId.value = list[0].models[0].modelId
+                const first = list[0].models[0]
+                currentModelId.value = first.modelId
+                currentProviderCode.value = first.providerCode
             }
         } catch (err) {
             console.error('加载模型列表失败:', err)
         }
+    }
+
+    /** 选择模型（同时更新 modelId 和 providerCode） */
+    function selectModel(modelId: string, providerCode: string): void {
+        currentModelId.value = modelId
+        currentProviderCode.value = providerCode
     }
 
     /** 发送消息 */
@@ -111,6 +122,8 @@ export const useChatStore = defineStore('chat', () => {
             request: {
                 conversationId: currentConversationId.value,
                 message: text.trim(),
+                providerCode: currentProviderCode.value,
+                modelId: currentModelId.value,
             },
             signal: abortController.signal,
             onThinking: (chunk) => {
@@ -175,6 +188,7 @@ export const useChatStore = defineStore('chat', () => {
         currentConversationId,
         modelSelectors,
         currentModelId,
+        currentProviderCode,
         isStreaming,
         currentThinking,
         currentAnswer,
@@ -184,6 +198,7 @@ export const useChatStore = defineStore('chat', () => {
         hasMessages,
         // 方法
         loadModels,
+        selectModel,
         sendMessage,
         abortStream,
         newConversation,

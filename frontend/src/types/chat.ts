@@ -3,8 +3,12 @@
  * 对应后端 ChatModelItemVO
  */
 export interface ChatModelItem {
+    /** 模型 ID，如 "deepseek-v4-flash" */
     modelId: string
+    /** 模型显示名，为 null 时前端 fallback 到 modelId */
     displayName: string | null
+    /** 模型提供商代码，如 "deepseek" */
+    providerCode: string
 }
 
 /**
@@ -24,6 +28,10 @@ export interface ChatModelSelector {
 export interface ChatRequest {
     conversationId: string
     message: string
+    /** 供应商 code，来自 ChatModelItemVO.providerCode */
+    providerCode: string
+    /** 模型 ID，来自 ChatModelItemVO.modelId */
+    modelId: string
 }
 
 /**
