@@ -16,3 +16,31 @@ CREATE TABLE IF NOT EXISTS model_provider
 );
 CREATE INDEX IF NOT EXISTS idx_model_provider_code ON model_provider (code);
 CREATE INDEX IF NOT EXISTS idx_model_provider_enabled ON model_provider (enabled);
+
+-- 助手列表
+CREATE TABLE IF NOT EXISTS ai_assistant
+(
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT    NOT NULL,
+    avatar        TEXT    NOT NULL DEFAULT '',
+    description   TEXT    NOT NULL DEFAULT '',
+    system_prompt TEXT    NOT NULL DEFAULT '',
+
+    -- 模型配置（provider_id 关联 model_provider.id，精确到服务商实例）
+    provider_id   INTEGER,
+    model_id      TEXT    NOT NULL DEFAULT '',
+
+    -- 模型参数 JSON：{"temperature":0.7, "maxTokens":2048, "topP":0.9, ...}
+    model_params  TEXT    NOT NULL DEFAULT '{}',
+
+    -- 记忆轮数
+    memory_rounds INTEGER NOT NULL DEFAULT 20,
+
+    -- 状态 & 排序
+    enabled       INTEGER NOT NULL DEFAULT 1,
+    sort_order    INTEGER NOT NULL DEFAULT 0,
+
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_assistant_enabled ON ai_assistant (enabled);

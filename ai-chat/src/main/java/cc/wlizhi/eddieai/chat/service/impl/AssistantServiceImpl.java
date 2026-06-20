@@ -1,0 +1,170 @@
+package cc.wlizhi.eddieai.chat.service.impl;
+
+import cc.wlizhi.eddieai.chat.dao.AssistantMapper;
+import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
+import cc.wlizhi.eddieai.chat.entity.dto.ModelParams;
+import cc.wlizhi.eddieai.chat.entity.request.AssistantCreateRequest;
+import cc.wlizhi.eddieai.chat.entity.request.AssistantUpdateRequest;
+import cc.wlizhi.eddieai.chat.entity.response.AssistantDetailVO;
+import cc.wlizhi.eddieai.chat.entity.response.AssistantVO;
+import cc.wlizhi.eddieai.chat.service.AssistantService;
+import cc.wlizhi.eddieai.common.exception.NotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 助手列表业务实现
+ */
+@Service
+public class AssistantServiceImpl implements AssistantService {
+
+    @Resource
+    private AssistantMapper assistantMapper;
+
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
+
+    @Override
+    public List<AssistantVO> list(boolean showAll) {
+        List<AssistantEntity> entities = assistantMapper.findAll(showAll);
+        List<AssistantVO> result = new ArrayList<>();
+        for (AssistantEntity entity : entities) {
+            result.add(toVO(entity));
+        }
+        return result;
+    }
+
+    @Override
+    public AssistantDetailVO getDetail(Long id) {
+        AssistantEntity entity = assistantMapper.findById(id);
+        if (entity == null) {
+            throw new NotFoundException("助手不存在: " + id);
+        }
+        return toDetailVO(entity);
+    }
+
+    @Override
+    public AssistantVO create(AssistantCreateRequest request) {
+        AssistantEntity entity = new AssistantEntity();
+        entity.setName(request.getName());
+        entity.setAvatar(request.getAvatar() != null ? request.getAvatar() : "");
+        entity.setDescription(request.getDescription() != null ? request.getDescription() : "");
+        entity.setSystemPrompt(request.getSystemPrompt() != null ? request.getSystemPrompt() : "");
+        entity.setProviderId(request.getProviderId());
+        entity.setModelId(request.getModelId());
+        entity.setModelParams(serializeModelParams(request.getModelParams()));
+        entity.setMemoryRounds(request.getMemoryRounds() != null ? request.getMemoryRounds() : 20);
+        entity.setEnabled(1);
+        entity.setSortOrder(0);
+
+        assistantMapper.insert(entity);
+
+        // 插入后查询完整数据（含自增 ID）
+        AssistantEntity saved = assistantMapper.findById(
+                assistantMapper.findLastInsertId());
+        return toVO(saved);
+    }
+
+    @Override
+    public AssistantVO update(Long id, AssistantUpdateRequest request) {
+        if (!assistantMapper.existsById(id)) {
+            throw new NotFoundException("助手不存在: " + id);
+        }
+
+        AssistantEntity entity = new AssistantEntity();
+        entity.setId(id);
+        entity.setName(request.getName());
+        entity.setAvatar(request.getAvatar());
+        entity.setDescription(request.getDescription());
+        entity.setSystemPrompt(request.getSystemPrompt());
+        entity.setProviderId(request.getProviderId());
+        entity.setModelId(request.getModelId());
+        entity.setModelParams(serializeModelParams(request.getModelParams()));
+        entity.setMemoryRounds(request.getMemoryRounds());
+        entity.setEnabled(request.getEnabled());
+        entity.setSortOrder(request.getSortOrder());
+
+        assistantMapper.update(entity);
+
+        AssistantEntity updated = assistantMapper.findById(id);
+        return toVO(updated);
+    }
+
+    @Override
+    public void delete(Long id) {
+        if (!assistantMapper.existsById(id)) {
+            throw new NotFoundException("助手不存在: " + id);
+        }
+        // TODO: 级联删除该助手的全部会话（会话表待实现）
+        // chatSessionMapper.deleteByAssistantId(id);
+        assistantMapper.deleteById(id);
+    }
+
+    // ==================== 内部方法 ====================
+
+    private AssistantVO toVO(AssistantEntity entity) {
+        AssistantVO vo = new AssistantVO();
+        vo.setId(entity.getId());
+        vo.setName(entity.getName());
+        vo.setAvatar(entity.getAvatar());
+        vo.setDescription(entity.getDescription());
+        vo.setSystemPrompt(entity.getSystemPrompt());
+        vo.setProviderId(entity.getProviderId());
+        vo.setProviderName(entity.getProviderName());
+        vo.setModelId(entity.getModelId());
+        vo.setMemoryRounds(entity.getMemoryRounds());
+        vo.setEnabled(entity.getEnabled());
+        vo.setSortOrder(entity.getSortOrder());
+        vo.setCreatedAt(entity.getCreatedAt());
+        vo.setUpdatedAt(entity.getUpdatedAt());
+        return vo;
+    }
+
+    private AssistantDetailVO toDetailVO(AssistantEntity entity) {
+        AssistantDetailVO vo = new AssistantDetailVO();
+        vo.setId(entity.getId());
+        vo.setName(entity.getName());
+        vo.setAvatar(entity.getAvatar());
+        vo.setDescription(entity.getDescription());
+        vo.setSystemPrompt(entity.getSystemPrompt());
+        vo.setProviderId(entity.getProviderId());
+        vo.setProviderCode(entity.getProviderCode());
+        vo.setProviderName(entity.getProviderName());
+        vo.setModelId(entity.getModelId());
+        vo.setModelParams(deserializeModelParams(entity.getModelParams()));
+        vo.setMemoryRounds(entity.getMemoryRounds());
+        vo.setEnabled(entity.getEnabled() == 1);
+        vo.setSortOrder(entity.getSortOrder());
+        vo.setCreatedAt(entity.getCreatedAt());
+        vo.setUpdatedAt(entity.getUpdatedAt());
+        return vo;
+    }
+
+    private String serializeModelParams(ModelParams params) {
+        if (params == null) {
+            return "{}";
+        }
+        try {
+            return objectMapper.writeValueAsString(params);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("序列化 ModelParams 失败", e);
+        }
+    }
+
+    private ModelParams deserializeModelParams(String json) {
+        if (json == null || json.isEmpty() || "{}".equals(json)) {
+            return new ModelParams();
+        }
+        try {
+            return objectMapper.readValue(json, ModelParams.class);
+        } catch (JsonProcessingException e) {
+            return new ModelParams();
+        }
+    }
+}
