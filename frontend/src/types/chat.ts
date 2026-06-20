@@ -68,9 +68,15 @@ export interface ChatMessage {
  * 回答完毕后的元数据
  */
 export interface ChatMetadata {
+    /** 本轮对话耗时（毫秒） */
     durationMs?: number
-    inputTokens?: number
-    outputTokens?: number
+    /** 结束时间戳（毫秒） */
+    timestamp?: number
+    /** prompt token 数 */
+    promptTokens?: number
+    /** completion token 数 */
+    completionTokens?: number
+    /** 总 token 数 */
     totalTokens?: number
 
     [key: string]: unknown

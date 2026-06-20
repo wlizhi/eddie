@@ -4,7 +4,6 @@ import {useChatStore} from '@/stores/chat'
 import {Bot, ChevronDown, FileText, Maximize2, MessageSquare, Minimize2, Send, Square} from '@lucide/vue'
 import {NSelect} from 'naive-ui'
 import {Marked} from 'marked'
-import type {ChatMessage} from '@/types/chat'
 
 const marked = new Marked({breaks: true, gfm: true})
 
@@ -165,21 +164,13 @@ function onModelSelect(modelId: string) {
   }
 }
 
-/** 格式化元数据展示 */
-function formatMetadata(msg: ChatMessage): string {
-  if (!msg.metadata) return ''
-  const parts: string[] = []
-  if (msg.metadata.durationMs != null) {
-    const secs = (msg.metadata.durationMs / 1000).toFixed(1)
-    parts.push(`耗时 ${secs}s`)
-  }
-  if (msg.metadata.totalTokens != null) {
-    parts.push(`Token ${msg.metadata.totalTokens}`)
-  } else {
-    if (msg.metadata.inputTokens != null) parts.push(`输入 ${msg.metadata.inputTokens}`)
-    if (msg.metadata.outputTokens != null) parts.push(`输出 ${msg.metadata.outputTokens}`)
-  }
-  return parts.join(' · ')
+/** 格式化日期时间 */
+function formatTime(ts: number | undefined | null): string {
+  if (ts == null || ts <= 0) return ''
+  const d = new Date(ts)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 </script>
 
@@ -256,9 +247,27 @@ function formatMetadata(msg: ChatMessage): string {
             </div>
           </div>
 
-          <!-- 元数据（仅 assistant，仅显示最后一条） -->
+          <!-- 元数据（仅 assistant） -->
           <div v-if="msg.role === 'assistant' && msg.metadata" class="metadata">
-            {{ formatMetadata(msg) }}
+            <template v-if="msg.metadata.timestamp">
+              <span class="meta-time">{{ formatTime(msg.metadata.timestamp) }}</span>
+              <span class="meta-divider">|</span>
+            </template>
+            <span v-if="msg.metadata.durationMs != null" class="meta-duration">
+              耗时 {{ (msg.metadata.durationMs / 1000).toFixed(1) }}s
+            </span>
+            <span class="meta-divider">|</span>
+            <span v-if="msg.metadata.totalTokens != null" class="meta-tokens">
+              {{ msg.metadata.totalTokens }} tokens
+              <span v-if="msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
+                    class="meta-tokens-detail">
+                (输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }})
+              </span>
+            </span>
+            <span v-else-if="msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
+                  class="meta-tokens">
+              输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }}
+            </span>
           </div>
         </div>
       </div>
@@ -600,9 +609,36 @@ body {
 
 /* ===== 元数据 ===== */
 .metadata {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 10px;
   color: #9ca3af;
-  padding: 0 2px;
+  padding: 2px 2px 0;
+  flex-wrap: wrap;
+  user-select: none;
+}
+
+.meta-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.meta-divider {
+  color: #d1d5db;
+  font-size: 8px;
+}
+
+.meta-duration {
+  color: #9ca3af;
+}
+
+.meta-tokens {
+  color: #9ca3af;
+}
+
+.meta-tokens-detail {
+  color: #b0b7c3;
+  font-size: 9px;
 }
 
 /* ===== 空状态 ===== */

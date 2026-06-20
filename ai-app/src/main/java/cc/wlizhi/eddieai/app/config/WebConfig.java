@@ -2,6 +2,7 @@ package cc.wlizhi.eddieai.app.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 
@@ -14,6 +15,15 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    @jakarta.annotation.Resource
+    private ApiTimingInterceptor apiTimingInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(apiTimingInterceptor)
+                .addPathPatterns("/api/**");
+    }
 
     @Override
     public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
