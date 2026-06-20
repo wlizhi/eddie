@@ -1,5 +1,5 @@
 /**
- * DefaultThinkingHandler — 默认思考内容处理器
+ * DefaultChatThinkingHandler — 默认思考内容处理器
  * <p>
  * 处理 DeepSeek 模型的 reasoning_content 提取。
  * 从 DeepseekChatPolicy 迁移至此，使 ChatPolicy 职责单一。
@@ -7,7 +7,7 @@
 package cc.wlizhi.eddieai.chat.handler.impl;
 
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
-import cc.wlizhi.eddieai.chat.handler.ThinkingHandler;
+import cc.wlizhi.eddieai.chat.handler.ChatThinkingHandler;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.deepseek.DeepSeekAssistantMessage;
@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
-public class DefaultThinkingHandler implements ThinkingHandler {
+public class DefaultChatThinkingHandler implements ChatThinkingHandler {
 
     @Override
     public boolean support(String providerCode) {

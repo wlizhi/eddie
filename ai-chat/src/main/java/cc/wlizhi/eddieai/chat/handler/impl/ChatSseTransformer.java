@@ -1,18 +1,18 @@
 /**
- * SseEventTransformer — SSE 事件转换器
+ * ChatSseTransformer — SSE 事件转换器
  * <p>
  * 职责：将 ChatResponse 流转换为 SSE 事件流，包含三类事件：
  * <ul>
- *   <li>event: thinking — 模型思考内容，由 ThinkingHandler 按 providerCode 匹配提取</li>
+ *   <li>event: thinking — 模型思考内容，由 ChatThinkingHandler 按 providerCode 匹配提取</li>
  *   <li>event: answer — 模型回答内容，通用提取逻辑</li>
- *   <li>event: metadata — 流结束后构建的元数据（耗时、Token 用量等），由 MetadataHandler 处理</li>
+ *   <li>event: metadata — 流结束后构建的元数据（耗时、Token 用量等），由 ChatMetadataHandler 处理</li>
  * </ul>
  */
 package cc.wlizhi.eddieai.chat.handler.impl;
 
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
-import cc.wlizhi.eddieai.chat.handler.MetadataHandler;
-import cc.wlizhi.eddieai.chat.handler.ThinkingHandler;
+import cc.wlizhi.eddieai.chat.handler.ChatMetadataHandler;
+import cc.wlizhi.eddieai.chat.handler.ChatThinkingHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.messages.AbstractMessage;
@@ -34,13 +34,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component
-public class SseEventTransformer {
+public class ChatSseTransformer {
 
     @Resource
-    private List<ThinkingHandler> thinkingHandlers;
+    private List<ChatThinkingHandler> thinkingHandlers;
 
     @Resource
-    private List<MetadataHandler> metadataHandlers;
+    private List<ChatMetadataHandler> metadataHandlers;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -69,12 +69,12 @@ public class SseEventTransformer {
     }
 
     /**
-     * 构建 thinking 事件 — 按 providerCode 匹配 ThinkingHandler
+     * 构建 thinking 事件 — 按 providerCode 匹配 ChatThinkingHandler
      * <p>
-     * ThinkingHandler 同时负责提取和处理（因为提取逻辑是 provider-specific 的）。
+     * ChatThinkingHandler 同时负责提取和处理（因为提取逻辑是 provider-specific 的）。
      */
     private ServerSentEvent<String> buildThinkEvent(ChatResponse response, ChatContext ctx) {
-        for (ThinkingHandler handler : thinkingHandlers) {
+        for (ChatThinkingHandler handler : thinkingHandlers) {
             if (handler.support(ctx.getProviderCode())) {
                 String thinking = handler.extractThinking(response, ctx);
                 if (ObjectUtils.isEmpty(thinking)) {
@@ -113,8 +113,8 @@ public class SseEventTransformer {
     private ServerSentEvent<String> buildMetadataEvent(ChatContext ctx, long startTime, long endTime) {
         long durationMs = endTime - startTime;
 
-        // 优先使用 MetadataHandler
-        for (MetadataHandler handler : metadataHandlers) {
+        // 优先使用 ChatMetadataHandler
+        for (ChatMetadataHandler handler : metadataHandlers) {
             if (handler.support(ctx.getProviderCode())) {
                 Map<String, Object> data = handler.buildMetadata(ctx);
                 data.putIfAbsent("durationMs", durationMs);

@@ -1,5 +1,5 @@
 /**
- * ThinkingHandler — 思考内容处理器
+ * ChatThinkingHandler — 思考内容处理器
  * <p>
  * 扩展点：在流式响应中提取和处理模型的"思考过程"内容。
  * 不同服务商对思考内容的字段命名和格式不同：
@@ -20,7 +20,7 @@ import org.springframework.ai.chat.model.ChatResponse;
  * 职责：从 ChatResponse 中提取并处理模型的"思考过程"内容。
  * 提取和处理逻辑本身就是 provider-specific 的，因此 Handler 同时负责两者。
  */
-public interface ThinkingHandler {
+public interface ChatThinkingHandler {
 
     /**
      * 判断是否支持处理该服务商的思考内容

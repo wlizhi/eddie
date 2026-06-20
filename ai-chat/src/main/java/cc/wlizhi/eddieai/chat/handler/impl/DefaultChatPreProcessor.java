@@ -1,5 +1,5 @@
 /**
- * DefaultPreProcessor — 默认聊天请求预处理器
+ * DefaultChatPreProcessor — 默认聊天请求预处理器
  * <p>
  * 职责：
  * 1. 校验并查询 ModelProvider 信息
@@ -12,7 +12,7 @@ package cc.wlizhi.eddieai.chat.handler.impl;
 import cc.wlizhi.eddieai.chat.entity.dto.ChatClientGetDTO;
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
-import cc.wlizhi.eddieai.chat.handler.PreProcessor;
+import cc.wlizhi.eddieai.chat.handler.ChatPreProcessor;
 import cc.wlizhi.eddieai.chat.mapper.ChatRequestMapper;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
@@ -21,7 +21,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DefaultPreProcessor implements PreProcessor {
+public class DefaultChatPreProcessor implements ChatPreProcessor {
 
     @Resource
     private ModelProviderContext modelProviderContext;

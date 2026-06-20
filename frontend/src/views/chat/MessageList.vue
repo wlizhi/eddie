@@ -77,7 +77,9 @@ function toggleThinking(msgId: string) {
       <!-- 消息内容 -->
       <div class="msg-col">
         <!-- thinking 内容（仅 assistant） -->
-        <div v-if="msg.role === 'assistant' && msg.thinking" class="thinking-section">
+        <div
+            v-if="msg.role === 'assistant' && (msg.thinking || (chatStore.isStreaming && msg === chatStore.messages[chatStore.messages.length - 1] && !msg.content))"
+            class="thinking-section">
           <button class="thinking-toggle" @click="toggleThinking(msg.id)">
             <ChevronDown
                 :size="13"
@@ -85,9 +87,13 @@ function toggleThinking(msgId: string) {
                 class="chevron"
                 :class="{ rotated: thinkingExpanded[msg.id] }"
             />
-            <span>思考过程</span>
+            <span v-if="msg.content || !chatStore.isStreaming">思考过程</span>
+            <span v-else class="thinking-pending">
+              思考中<span class="dots-blink"><span>.</span><span>.</span><span>.</span></span>
+            </span>
           </button>
-          <div v-if="thinkingExpanded[msg.id]" class="thinking-content" v-html="renderMd(msg.thinking)"/>
+          <div v-if="thinkingExpanded[msg.id] && msg.thinking" class="thinking-content"
+               v-html="renderMd(msg.thinking)"/>
         </div>
 
         <!-- 消息正文 -->
@@ -97,11 +103,6 @@ function toggleThinking(msgId: string) {
               class="message-content markdown-body"
               v-html="renderMd(msg.content)"
           ></div>
-          <div
-              v-else-if="chatStore.isStreaming && msg === chatStore.messages[chatStore.messages.length - 1] && msg.role === 'assistant'"
-              class="message-content"
-          >思考中...
-          </div>
         </div>
 
         <!-- 元数据（仅 assistant） -->
@@ -308,5 +309,33 @@ function toggleThinking(msgId: string) {
 .meta-tokens-detail {
   color: #b0b7c3;
   font-size: 9px;
+}
+
+/* ===== 思考中占位 ===== */
+.thinking-pending {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* 三个点逐个出现的打字机动画 */
+.dots-blink span {
+  animation: dot-appear 1.4s infinite both;
+}
+
+.dots-blink span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dots-blink span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dot-appear {
+  0%, 60%, 100% {
+    opacity: 0.2;
+  }
+  30% {
+    opacity: 1;
+  }
 }
 </style>

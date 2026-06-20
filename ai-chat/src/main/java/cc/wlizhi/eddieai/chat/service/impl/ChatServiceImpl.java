@@ -2,9 +2,9 @@ package cc.wlizhi.eddieai.chat.service.impl;
 
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
-import cc.wlizhi.eddieai.chat.handler.PreProcessor;
-import cc.wlizhi.eddieai.chat.handler.impl.ChatExecutionStage;
-import cc.wlizhi.eddieai.chat.handler.impl.SseEventTransformer;
+import cc.wlizhi.eddieai.chat.handler.ChatPreProcessor;
+import cc.wlizhi.eddieai.chat.handler.impl.ChatSseTransformer;
+import cc.wlizhi.eddieai.chat.handler.impl.ChatStreamExecutor;
 import cc.wlizhi.eddieai.chat.service.ChatMemoryManager;
 import cc.wlizhi.eddieai.chat.service.ChatPolicy;
 import cc.wlizhi.eddieai.chat.service.ChatPolicyRouter;
@@ -28,18 +28,18 @@ import java.util.List;
  * 编排流程：
  * <ol>
  *   <li>初始化 {@link ChatContext}</li>
- *   <li>{@link PreProcessor} 预处理（校验、查 Provider、获取 SystemPrompt）</li>
+ *   <li>{@link ChatPreProcessor} 预处理（校验、查 Provider、获取 SystemPrompt）</li>
  *   <li>{@link ChatPolicyRouter} 策略路由</li>
  *   <li>构建 {@link ChatClient} + 注入记忆</li>
- *   <li>{@link ChatExecutionStage} 流式执行</li>
- *   <li>{@link SseEventTransformer} SSE 事件转换</li>
+ *   <li>{@link ChatStreamExecutor} 流式执行</li>
+ *   <li>{@link ChatSseTransformer} SSE 事件转换</li>
  * </ol>
  */
 @Service
 public class ChatServiceImpl implements ChatService {
 
     @Resource
-    private List<PreProcessor> preProcessors;
+    private List<ChatPreProcessor> preProcessors;
 
     @Resource
     private ChatPolicyRouter chatPolicyRouter;
@@ -48,10 +48,10 @@ public class ChatServiceImpl implements ChatService {
     private ChatMemoryManager chatMemoryManager;
 
     @Resource
-    private ChatExecutionStage chatExecutionStage;
+    private ChatStreamExecutor chatStreamExecutor;
 
     @Resource
-    private SseEventTransformer sseEventTransformer;
+    private ChatSseTransformer chatSseTransformer;
 
     @Override
     public Flux<ServerSentEvent<String>> chat(ChatRequest request) {
@@ -79,9 +79,9 @@ public class ChatServiceImpl implements ChatService {
 
         // 5. 执行流式调用
         Flux<org.springframework.ai.chat.model.ChatResponse> responseFlux =
-                chatExecutionStage.execute(ctx);
+                chatStreamExecutor.execute(ctx);
 
         // 6. SSE 事件转换（thinking / answer / metadata）
-        return sseEventTransformer.transform(responseFlux, ctx);
+        return chatSseTransformer.transform(responseFlux, ctx);
     }
 }

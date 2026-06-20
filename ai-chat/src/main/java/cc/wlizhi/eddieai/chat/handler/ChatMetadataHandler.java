@@ -1,5 +1,5 @@
 /**
- * MetadataHandler — 响应元数据处理器
+ * ChatMetadataHandler — 响应元数据处理器
  * <p>
  * 扩展点：在流式响应结束后构建元数据（耗时、Token 用量等）。
  * 不同服务商的 Usage 字段结构和命名可能不同：
@@ -18,7 +18,7 @@ import java.util.Map;
 /**
  * 元数据处理接口
  */
-public interface MetadataHandler {
+public interface ChatMetadataHandler {
 
     /**
      * 判断是否支持处理该服务商的元数据
