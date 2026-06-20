@@ -65,4 +65,13 @@ public class AssistantController {
         assistantService.delete(id);
         return ApiResult.success();
     }
+
+    /**
+     * 批量排序：按 ID 数组顺序重新赋 sort_order（1,2,3...）
+     */
+    @PutMapping("/batch-sort")
+    public ApiResult<Void> batchSort(@RequestBody List<Long> ids) {
+        assistantService.batchSort(ids);
+        return ApiResult.success();
+    }
 }

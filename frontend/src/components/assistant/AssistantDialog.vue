@@ -40,6 +40,13 @@ const formSystemPrompt = ref('')
 const formProviderId = ref<number | null>(null)
 const formModelId = ref('')
 const formMemoryRounds = ref(20)
+const formEnabled = ref<number>(1)
+// 模型参数
+const formTemperature = ref<number | null>(null)
+const formMaxTokens = ref<number | null>(null)
+const formTopP = ref<number | null>(null)
+const formFrequencyPenalty = ref<number | null>(null)
+const formPresencePenalty = ref<number | null>(null)
 
 /** 弹窗是否可见 */
 const show = ref(false)
@@ -70,6 +77,15 @@ async function loadDetail(id: number) {
     formProviderId.value = d.providerId
     formModelId.value = d.modelId
     formMemoryRounds.value = d.memoryRounds ?? 20
+    // enabled: 详情接口返回 boolean(true/false)，统一转 number(1/0)
+    formEnabled.value = d.enabled === true || d.enabled === 1 ? 1 : 0
+    // 填充模型参数（modelParams 可能为 null 或 {}）
+    const mp = d.modelParams || {}
+    formTemperature.value = mp.temperature ?? null
+    formMaxTokens.value = mp.maxTokens ?? null
+    formTopP.value = mp.topP ?? null
+    formFrequencyPenalty.value = mp.frequencyPenalty ?? null
+    formPresencePenalty.value = mp.presencePenalty ?? null
   } catch (err) {
     feedback.value = '加载助手详情失败'
     console.error(err)
@@ -108,6 +124,14 @@ async function handleSave() {
   if (!detail.value) return
   saving.value = true
   try {
+    // 构建 modelParams（只传有值的参数）
+    const modelParams: Record<string, unknown> = {}
+    if (formTemperature.value !== null) modelParams.temperature = formTemperature.value
+    if (formMaxTokens.value !== null) modelParams.maxTokens = formMaxTokens.value
+    if (formTopP.value !== null) modelParams.topP = formTopP.value
+    if (formFrequencyPenalty.value !== null) modelParams.frequencyPenalty = formFrequencyPenalty.value
+    if (formPresencePenalty.value !== null) modelParams.presencePenalty = formPresencePenalty.value
+
     await assistantStore.update(detail.value.id, {
       name: formName.value,
       avatar: formAvatar.value || undefined,
@@ -116,6 +140,8 @@ async function handleSave() {
       providerId: formProviderId.value ?? undefined,
       modelId: formModelId.value || undefined,
       memoryRounds: formMemoryRounds.value,
+      enabled: formEnabled.value,
+      modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
     })
     feedback.value = '✅ 保存成功'
     close()
@@ -190,6 +216,47 @@ function close() {
       <div class="field">
         <label class="label">记忆轮数</label>
         <input v-model.number="formMemoryRounds" type="number" class="input" min="1" max="100" style="width: 100px;"/>
+      </div>
+
+      <!-- 模型参数 -->
+      <div class="field">
+        <label class="label">模型参数</label>
+        <div class="params-grid">
+          <div class="param-item">
+            <span class="param-label">Temperature</span>
+            <input v-model.number="formTemperature" type="number" step="0.1" min="0" max="2" class="input param-input"
+                   placeholder="0.7"/>
+          </div>
+          <div class="param-item">
+            <span class="param-label">Max Tokens</span>
+            <input v-model.number="formMaxTokens" type="number" step="1" min="1" class="input param-input"
+                   placeholder="2048"/>
+          </div>
+          <div class="param-item">
+            <span class="param-label">Top P</span>
+            <input v-model.number="formTopP" type="number" step="0.1" min="0" max="1" class="input param-input"
+                   placeholder="0.9"/>
+          </div>
+          <div class="param-item">
+            <span class="param-label">Frequency Penalty</span>
+            <input v-model.number="formFrequencyPenalty" type="number" step="0.1" min="-2" max="2"
+                   class="input param-input" placeholder="0"/>
+          </div>
+          <div class="param-item">
+            <span class="param-label">Presence Penalty</span>
+            <input v-model.number="formPresencePenalty" type="number" step="0.1" min="-2" max="2"
+                   class="input param-input" placeholder="0"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- 启用/禁用（放最后） -->
+      <div class="field">
+        <label class="label">状态</label>
+        <label class="toggle-row">
+          <input v-model.number="formEnabled" type="checkbox" :true-value="1" :false-value="0" class="toggle-input"/>
+          <span class="toggle-label">{{ formEnabled === 1 ? '启用' : '禁用' }}</span>
+        </label>
       </div>
     </div>
 
@@ -305,5 +372,47 @@ function close() {
   font-size: 13px;
   margin-right: auto;
   color: #6b7280;
+}
+
+/* ===== 启用/禁用开关 ===== */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.toggle-input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.toggle-label {
+  font-size: 13px;
+  color: #1f1f1f;
+}
+
+/* ===== 模型参数网格 ===== */
+.params-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.param-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.param-label {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.param-input {
+  width: 100%;
 }
 </style>

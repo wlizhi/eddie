@@ -67,6 +67,20 @@ export async function updateAssistant(id: number, data: AssistantUpdateRequest):
 }
 
 /**
+ * 批量排序：按 ID 数组顺序重新赋 sort_order
+ */
+export async function batchSortAssistant(ids: number[]): Promise<void> {
+    const res = await fetch(`${BASE}/batch-sort`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(ids),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<void> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '排序失败')
+}
+
+/**
  * 删除助手
  */
 export async function deleteAssistant(id: number): Promise<void> {

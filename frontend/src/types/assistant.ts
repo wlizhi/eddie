@@ -45,9 +45,11 @@ export interface AssistantVO {
 /**
  * 助手详情 VO（对应后端 AssistantDetailVO）
  */
-export interface AssistantDetailVO extends AssistantVO {
+export interface AssistantDetailVO extends Omit<AssistantVO, 'enabled'> {
     providerCode: string
     modelParams: ModelParams | null
+    /** 注意：后端详情接口返回 boolean（true/false），列表接口返回 number（1/0） */
+    enabled: number | boolean
 }
 
 /**

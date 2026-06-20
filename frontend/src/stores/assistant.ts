@@ -46,7 +46,7 @@ export const useAssistantStore = defineStore('assistant', () => {
      * @param showAll true=查询全部, false=仅启用（默认 false）
      * @param force 是否强制重新加载（跳过 loaded 缓存）
      */
-    async function loadList(showAll = false, force = false) {
+    async function loadList(showAll = true, force = true) {
         if (loaded.value && !force) return
         loading.value = true
         try {

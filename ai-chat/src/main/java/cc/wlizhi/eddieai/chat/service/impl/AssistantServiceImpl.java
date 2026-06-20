@@ -106,6 +106,13 @@ public class AssistantServiceImpl implements AssistantService {
         assistantMapper.deleteById(id);
     }
 
+    @Override
+    public void batchSort(List<Long> ids) {
+        for (int i = 0; i < ids.size(); i++) {
+            assistantMapper.updateSortOrder(ids.get(i), i + 1);
+        }
+    }
+
     // ==================== 内部方法 ====================
 
     private AssistantVO toVO(AssistantEntity entity) {

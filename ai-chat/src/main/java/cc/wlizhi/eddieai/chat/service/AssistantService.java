@@ -38,4 +38,9 @@ public interface AssistantService {
      * 删除助手
      */
     void delete(Long id);
+
+    /**
+     * 批量排序：按 ID 数组顺序，自动赋 sort_order = 1,2,3...
+     */
+    void batchSort(List<Long> ids);
 }

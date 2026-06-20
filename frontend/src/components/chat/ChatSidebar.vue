@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
-import {ChevronDown, MessageSquare, Plus, Search, Settings, Trash2} from '@lucide/vue'
+import {ChevronDown, GripVertical, MessageSquare, Plus, Search, Settings, Trash2} from '@lucide/vue'
 import {useAssistantStore} from '@/stores/assistant'
+import {batchSortAssistant} from '@/api/assistant'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AssistantDialog from '../assistant/AssistantDialog.vue'
 
@@ -12,8 +13,53 @@ const assistantListCollapsed = ref(false)
 const showAllAssistants = ref(true)
 const editAssistantId = ref<number | null>(null)
 
+// ========== 拖拽排序 ==========
+const dragIndex = ref<number | null>(null)
+const dragOverIndex = ref<number | null>(null)
+
+function onDragStart(index: number) {
+  dragIndex.value = index
+}
+
+function onDragOver(e: DragEvent, index: number) {
+  e.preventDefault()
+  dragOverIndex.value = index
+}
+
+function onDragLeave() {
+  dragOverIndex.value = null
+}
+
+async function onDrop() {
+  if (dragIndex.value === null || dragOverIndex.value === null) return
+  if (dragIndex.value === dragOverIndex.value) {
+    dragIndex.value = null
+    dragOverIndex.value = null
+    return
+  }
+
+  // 本地重新排序
+  const list = [...assistantStore.list]
+  const [moved] = list.splice(dragIndex.value, 1)
+  list.splice(dragOverIndex.value, 0, moved)
+  assistantStore.list.splice(0, assistantStore.list.length, ...list)
+
+  dragIndex.value = null
+  dragOverIndex.value = null
+
+  // 调后端 batch-sort
+  try {
+    await batchSortAssistant(list.map(a => a.id))
+  } catch (err) {
+    console.error('排序保存失败:', err)
+    // 失败时重新加载
+    assistantStore.loadList(true, true)
+  }
+}
+
+/** 默认展示全部助手（后端已按 enabled DESC, sort_order ASC 排序） */
 const displayedAssistants = computed(() => {
-  const items = assistantStore.enabledList
+  const items = assistantStore.list
   return showAllAssistants.value ? items : items.slice(0, DEFAULT_SHOWN)
 })
 
@@ -58,12 +104,23 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
     <div class="assistant-section" v-show="!assistantListCollapsed">
       <div class="assistant-list">
         <div
-            v-for="assistant in displayedAssistants"
+            v-for="(assistant, index) in displayedAssistants"
             :key="assistant.id"
             class="assistant-item"
-            :class="{ active: assistantStore.activeId === assistant.id }"
+            :class="{
+              active: assistantStore.activeId === assistant.id,
+              disabled: assistant.enabled !== 1,
+              'drag-over': dragOverIndex === index,
+            }"
+            draggable="true"
+            @dragstart="onDragStart(index)"
+            @dragover="onDragOver($event, index)"
+            @dragleave="onDragLeave"
+            @drop.prevent="onDrop"
+            @dragend="dragIndex = null; dragOverIndex = null"
             @click="assistantStore.select(assistant.id)"
         >
+          <span class="drag-handle"><GripVertical :size="12" :stroke-width="1.5"/></span>
           <AssistantAvatar :name="assistant.name" :avatar="assistant.avatar" :size="26"/>
           <span class="assistant-name">{{ assistant.name }}</span>
           <button
@@ -77,11 +134,11 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
 
         <!-- 展开/收起 -->
         <button
-            v-if="assistantStore.enabledList.length > DEFAULT_SHOWN"
+            v-if="assistantStore.list.length > DEFAULT_SHOWN"
             class="toggle-btn"
             @click="showAllAssistants = !showAllAssistants"
         >
-          {{ showAllAssistants ? '▲ 收起' : `>>> 展示更多 (${assistantStore.enabledList.length - DEFAULT_SHOWN})` }}
+          {{ showAllAssistants ? '▲ 收起' : `>>> 展示更多 (${assistantStore.list.length - DEFAULT_SHOWN})` }}
         </button>
       </div>
     </div>
@@ -142,6 +199,41 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
   background: #e6e8ec;
   margin: 4px 12px;
   flex-shrink: 0;
+}
+
+/* ===== 启用/全部过滤器 ===== */
+.filter-bar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 10px 2px;
+  flex-shrink: 0;
+}
+
+.filter-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  color: #9ca3af;
+  transition: background 0.15s, color 0.15s;
+}
+
+.filter-btn:hover {
+  background: #f0f1f3;
+  color: #6b7280;
+}
+
+.filter-btn.active {
+  background: #e8f0fe;
+  color: #2563eb;
+  font-weight: 500;
 }
 
 /* ===== 折叠助手列表按钮 ===== */
@@ -208,6 +300,35 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
 
 .assistant-item.active {
   background: #e8f0fe;
+}
+
+/* 禁用的助手：降低透明度，灰色调 */
+.assistant-item.disabled {
+  opacity: 0.55;
+}
+
+.assistant-item.disabled:hover {
+  background: #f9fafb;
+}
+
+/* 拖拽排序 */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  color: #d1d5db;
+  cursor: grab;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  margin-right: -2px;
+}
+
+.assistant-item:hover .drag-handle {
+  color: #9ca3af;
+}
+
+.assistant-item.drag-over {
+  border-top: 2px solid #2563eb;
+  border-radius: 0;
 }
 
 .assistant-name {

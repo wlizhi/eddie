@@ -32,7 +32,7 @@ public class AssistantMapper {
         if (!showAll) {
             sql += " WHERE a.enabled = 1";
         }
-        sql += " ORDER BY a.sort_order ASC, a.id ASC";
+        sql += " ORDER BY a.enabled DESC, a.sort_order ASC, a.id ASC";
         return jdbcTemplate.query(sql, assistantWithProviderRowMapper);
     }
 
@@ -125,6 +125,15 @@ public class AssistantMapper {
         params.add(entity.getId());
 
         jdbcTemplate.update(sql.toString(), params.toArray());
+    }
+
+    /**
+     * 更新单个助手的排序序号
+     */
+    public void updateSortOrder(Long id, int sortOrder) {
+        jdbcTemplate.update(
+                "UPDATE ai_assistant SET sort_order = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
+                sortOrder, id);
     }
 
     /**
