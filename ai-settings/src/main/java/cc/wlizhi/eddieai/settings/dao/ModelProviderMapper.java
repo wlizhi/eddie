@@ -1,6 +1,6 @@
 package cc.wlizhi.eddieai.settings.dao;
 
-import cc.wlizhi.eddieai.settings.entity.ModelProviderEntity;
+import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;

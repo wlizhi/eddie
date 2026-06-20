@@ -14,10 +14,12 @@ spring:
 
 # DeepSeek 模型配置（兼容 OpenAI 协议）
 # 第一版硬编码，后续从 model_provider 表动态读取
+# deepseek-reasoner：推理模型，会输出 reasoning_content（思考过程）→ 前端显示思考内容
+# deepseek-chat：普通对话模型，无思考过程输出
 deepseek:
   api-key: ${DEEPSEEK_API_KEY:sk-your-key-here}
   base-url: https://api.deepseek.com/v1
-  model: deepseek-chat
+  model: deepseek-reasoner
   temperature: 0.7
 
 # 聊天响应缓冲（毫秒），合并多个 token 减少前端渲染频率，设为 0 关闭缓冲

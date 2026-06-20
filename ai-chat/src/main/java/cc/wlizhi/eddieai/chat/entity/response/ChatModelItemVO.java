@@ -19,4 +19,9 @@ public class ChatModelItemVO {
      * 模型显示名，为 null 时前端 fallback 到 modelId
      */
     private String displayName;
+
+    /**
+     * 模型提供商代码，如 "deepseek"
+     */
+    private String providerCode;
 }

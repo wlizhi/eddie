@@ -1,5 +1,8 @@
 package cc.wlizhi.eddieai.app.config;
 
+import org.springframework.ai.deepseek.DeepSeekChatModel;
+import org.springframework.ai.deepseek.DeepSeekChatOptions;
+import org.springframework.ai.deepseek.api.DeepSeekApi;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,11 +18,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ChatConfig {
 
-    /**
-     * DeepSeek 兼容 OpenAI 协议，使用 OpenAiChatModel 构建
-     */
     @Bean
-    public OpenAiChatModel deepSeekChatModel(
+    public OpenAiChatModel openAiChatModel(
             @Value("${deepseek.api-key}") String apiKey,
             @Value("${deepseek.base-url}") String baseUrl,
             @Value("${deepseek.model}") String model,
@@ -28,6 +28,24 @@ public class ChatConfig {
                 .options(OpenAiChatOptions.builder()
                         .apiKey(apiKey)
                         .baseUrl(baseUrl)
+                        .model(model)
+                        .temperature(temperature)
+                        .build())
+                .build();
+    }
+
+    @Bean
+    public DeepSeekChatModel deepSeekChatModel(
+            @Value("${deepseek.api-key}") String apiKey,
+            @Value("${deepseek.base-url}") String baseUrl,
+            @Value("${deepseek.model}") String model,
+            @Value("${deepseek.temperature}") Double temperature) {
+        return DeepSeekChatModel.builder()
+                .deepSeekApi(DeepSeekApi.builder()
+                        .apiKey(apiKey)
+                        .baseUrl(baseUrl)
+                        .build())
+                .options(DeepSeekChatOptions.builder()
                         .model(model)
                         .temperature(temperature)
                         .build())

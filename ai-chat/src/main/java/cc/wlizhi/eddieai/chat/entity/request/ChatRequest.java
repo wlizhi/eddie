@@ -28,4 +28,16 @@ public class ChatRequest {
      */
     @NotBlank(message = "message 不能为空")
     private String message;
+
+    /**
+     * 供应商 code，仅作分组标识，不可选中
+     */
+    @NotBlank(message = "providerCode 不能为空")
+    private String providerCode;
+
+    /**
+     * 模型名称
+     */
+    @NotBlank(message = "modelId 不能为空")
+    private String modelId;
 }

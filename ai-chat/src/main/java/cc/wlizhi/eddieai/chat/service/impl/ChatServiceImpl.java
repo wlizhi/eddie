@@ -2,19 +2,25 @@ package cc.wlizhi.eddieai.chat.service.impl;
 
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.service.ChatMemoryManager;
+import cc.wlizhi.eddieai.chat.service.ChatPolicy;
 import cc.wlizhi.eddieai.chat.service.ChatService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
-import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 聊天业务实现
@@ -26,7 +32,12 @@ import java.util.Map;
 public class ChatServiceImpl implements ChatService {
 
     @Resource
-    private OpenAiChatModel deepSeekChatModel;
+    private List<ChatPolicy> chatPolicies;
+    @Resource
+    private ChatPolicy defaultChatPolicy;
+
+    @Resource
+    private OpenAiChatModel openAiChatModel;
 
     @Resource
     private ChatMemoryManager chatMemoryManager;
@@ -39,43 +50,85 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public Flux<ServerSentEvent<String>> chat(ChatRequest request) {
         long startTime = System.currentTimeMillis();
+        ChatPolicy chatPolicy = defaultChatPolicy;
+        for (ChatPolicy policy : chatPolicies) {
+            if (policy.support(request.getProviderCode())) {
+                chatPolicy = policy;
+                break;
+            }
+        }
 
         // 构建带记忆的 ChatClient
-        ChatClient chatClient = ChatClient.builder(deepSeekChatModel)
+        ChatClient chatClient = ChatClient.builder(openAiChatModel)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemoryManager)
                                 .build())
                 .build();
-
-        // 原始内容流
-        Flux<String> contentFlux = chatClient.prompt()
+        // 获取 ChatResponse 流（包含 reasoning_content 和 content）
+        Flux<ChatResponse> responseFlux = chatClient.prompt()
                 .system("你是小麦，全名麦泱，一个年轻邻家女孩儿形象，说话甜甜的，让人觉得有点初恋感。你的责任是给用户提供准确的信息，帮助用户处理事务。回复内容要简洁明了、逻辑清晰，语气亲和友好。禁止长篇大论，禁止重复啰嗦、一本正经的胡说八道，禁止暴露你是AI的身份。")
                 .user(request.getMessage())
                 .advisors(advisor -> advisor
                         .param("chat_memory_conversation_id", request.getConversationId()))
                 .stream()
-                .content();
+                .chatResponse();
 
-        // 缓冲合并：在指定毫秒窗口内合并多个 token，减少前端渲染频率
-        if (bufferMs > 0) {
-            contentFlux = contentFlux
-                    .buffer(Duration.ofMillis(bufferMs))
-                    .filter(list -> !list.isEmpty())
-                    .map(list -> String.join("", list));
-        }
-
-        // 流式输出回答内容（前端 SSE 解析已处理 \n 恢复）
-        return contentFlux
-                .map(content -> ServerSentEvent.<String>builder()
-                        .event("answer")
-                        .data(content)
-                        .build())
+        // 从 ChatResponse 中分别提取思考内容（reasoning_content）和回答内容（content），
+        // 发射对应的 SSE 事件：thinking 和 answer
+        return responseFlux
+                .concatMap(response -> Flux.fromIterable(buildEvents(response)))
                 .concatWithValues(
                         ServerSentEvent.<String>builder()
                                 .event("metadata")
                                 .data(buildMetadata(startTime))
                                 .build()
                 );
+    }
+
+    /**
+     * 从单个 ChatResponse chunk 中提取 reasoning_content 和 content，
+     * 分别构建 thinking 和 answer SSE 事件。
+     * <p>
+     * DeepSeek 推理模型在流式响应中会交替发送 reasoning_content（思考过程）和
+     * content（最终回答），Spring AI 将 reasoning_content 存储在
+     * AssistantMessage 的 metadata 中（key="reasoningContent"）。
+     */
+    private List<ServerSentEvent<String>> buildEvents(ChatResponse response) {
+        List<ServerSentEvent<String>> events = new ArrayList<>();
+
+        // 提取思考内容（reasoning_content）
+        String reasoning = response.getResults().stream()
+                .map(Generation::getOutput)
+                .map(msg -> {
+                    System.out.println(msg.getMetadata());
+                    Object rc = msg.getMetadata().get("reasoningContent");
+                    return rc != null ? rc.toString() : "";
+                })
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.joining());
+
+        // 提取回答内容
+        String content = response.getResults().stream()
+                .map(Generation::getOutput)
+                .map(msg -> msg.getText())
+                .filter(Objects::nonNull)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.joining());
+
+        if (!reasoning.isEmpty()) {
+            events.add(ServerSentEvent.<String>builder()
+                    .event("thinking")
+                    .data(reasoning)
+                    .build());
+        }
+        if (!content.isEmpty()) {
+            events.add(ServerSentEvent.<String>builder()
+                    .event("answer")
+                    .data(content)
+                    .build());
+        }
+
+        return events;
     }
 
     /**

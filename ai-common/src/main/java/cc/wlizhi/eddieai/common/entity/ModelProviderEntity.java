@@ -1,4 +1,4 @@
-package cc.wlizhi.eddieai.settings.entity;
+package cc.wlizhi.eddieai.common.entity;
 
 import lombok.Getter;
 import lombok.Setter;

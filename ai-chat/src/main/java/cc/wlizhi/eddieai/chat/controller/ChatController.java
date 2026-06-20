@@ -3,9 +3,9 @@ package cc.wlizhi.eddieai.chat.controller;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.service.ChatService;
 import jakarta.annotation.Resource;
-import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,7 +35,7 @@ public class ChatController {
      * </ul>
      */
     @PostMapping(value = "/send", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> send(@Valid @RequestBody ChatRequest request) {
+    public Flux<ServerSentEvent<String>> send(@Validated @RequestBody ChatRequest request) {
         return chatService.chat(request);
     }
 }

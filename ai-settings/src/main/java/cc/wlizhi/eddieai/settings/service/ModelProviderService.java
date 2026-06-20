@@ -1,6 +1,6 @@
 package cc.wlizhi.eddieai.settings.service;
 
-import cc.wlizhi.eddieai.settings.entity.ModelProviderEntity;
+import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;
 import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
 

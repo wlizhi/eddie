@@ -60,8 +60,10 @@ public class ChatModelServiceImpl implements ChatModelService {
                     .map(raw -> {
                         ChatModelItemVO item = new ChatModelItemVO();
                         Object id = raw.get("id");
+                        Object ownedBy = raw.get("owned_by");
                         item.setModelId(id != null ? id.toString() : null);
                         item.setDisplayName(id != null ? id.toString() : null);
+                        item.setProviderCode(ownedBy != null ? ownedBy.toString() : null);
                         return item;
                     })
                     .filter(item -> item.getModelId() != null)

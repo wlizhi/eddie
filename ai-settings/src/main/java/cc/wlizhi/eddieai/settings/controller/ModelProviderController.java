@@ -1,7 +1,7 @@
 package cc.wlizhi.eddieai.settings.controller;
 
 import cc.wlizhi.eddieai.common.dto.ApiResult;
-import cc.wlizhi.eddieai.settings.entity.ModelProviderEntity;
+import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;
 import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
 import cc.wlizhi.eddieai.settings.service.ModelProviderService;
