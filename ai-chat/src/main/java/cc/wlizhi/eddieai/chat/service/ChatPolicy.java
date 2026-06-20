@@ -18,9 +18,6 @@ public interface ChatPolicy {
     ChatClient getChatClient(ChatClientGetDTO chatClientGetDTO);
 
     default ServerSentEvent<String> getThinkEvent(ChatResponse chatResponse) {
-        return ServerSentEvent.<String>builder()
-                .event("thinking")
-                .data("")
-                .build();
+        return null;
     }
 }
