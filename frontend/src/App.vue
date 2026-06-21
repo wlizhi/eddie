@@ -65,10 +65,6 @@ function toggleCollapse() {
   }
 }
 
-const panelTitle = computed(() => {
-  const allItems = [...mainNavItems, ...bottomNavItems]
-  return allItems.find((n) => n.key === activeNav.value)?.label ?? ''
-})
 </script>
 
 <template>
