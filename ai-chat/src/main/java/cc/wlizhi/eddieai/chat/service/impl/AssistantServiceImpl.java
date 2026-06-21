@@ -9,12 +9,15 @@ import cc.wlizhi.eddieai.chat.entity.response.AssistantDetailVO;
 import cc.wlizhi.eddieai.chat.entity.response.AssistantVO;
 import cc.wlizhi.eddieai.chat.service.AssistantService;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
+import cc.wlizhi.eddieai.common.util.FileStorageUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -92,6 +95,55 @@ public class AssistantServiceImpl implements AssistantService {
 
         assistantMapper.update(entity);
 
+        AssistantEntity updated = assistantMapper.findById(id);
+        return toVO(updated);
+    }
+
+    @Override
+    public AssistantVO updateAvatar(Long id, String avatarText, MultipartFile file) {
+        // 1. 校验助手存在
+        AssistantEntity old = assistantMapper.findById(id);
+        if (old == null) {
+            throw new NotFoundException("助手不存在: " + id);
+        }
+
+        // 2. 计算新头像值
+        String newAvatar;
+        if (file != null && !file.isEmpty()) {
+            // 上传图片 → 保存到磁盘
+            try {
+                byte[] data = file.getBytes();
+                // 提取扩展名，默认 webp
+                String ext = "webp";
+                String originalName = file.getOriginalFilename();
+                if (originalName != null && originalName.contains(".")) {
+                    String origExt = originalName.substring(originalName.lastIndexOf('.') + 1).toLowerCase();
+                    if (origExt.equals("png") || origExt.equals("jpg") || origExt.equals("jpeg")
+                            || origExt.equals("gif") || origExt.equals("webp")) {
+                        ext = origExt;
+                    }
+                }
+                newAvatar = FileStorageUtil.save(data, ext);
+            } catch (IOException e) {
+                throw new RuntimeException("读取上传文件失败", e);
+            }
+        } else if (avatarText != null && !avatarText.isEmpty()) {
+            // 文字/emoji → 直接存
+            newAvatar = avatarText;
+        } else {
+            throw new IllegalArgumentException("请提供头像文字或图片");
+        }
+
+        // 3. 旧头像如果是图片路径 → 删除旧文件
+        String oldAvatar = old.getAvatar();
+        if (FileStorageUtil.isFileUrl(oldAvatar)) {
+            FileStorageUtil.delete(oldAvatar);
+        }
+
+        // 4. 更新 DB
+        assistantMapper.updateAvatar(id, newAvatar);
+
+        // 5. 返回更新后的助手
         AssistantEntity updated = assistantMapper.findById(id);
         return toVO(updated);
     }

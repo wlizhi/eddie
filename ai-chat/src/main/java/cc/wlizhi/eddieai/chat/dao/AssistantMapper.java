@@ -128,6 +128,15 @@ public class AssistantMapper {
     }
 
     /**
+     * 更新助手头像字段
+     */
+    public void updateAvatar(Long id, String avatar) {
+        jdbcTemplate.update(
+                "UPDATE ai_assistant SET avatar = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
+                avatar, id);
+    }
+
+    /**
      * 更新单个助手的排序序号
      */
     public void updateSortOrder(Long id, int sortOrder) {

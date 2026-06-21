@@ -1,29 +1,29 @@
 package cc.wlizhi.eddieai.app;
 
-import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @SpringBootApplication(
         scanBasePackages = "cc.wlizhi.eddieai"
 )
 public class EddieAiApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(EddieAiApplication.class, args);
+    public EddieAiApplication(@Value("${eddie-ai.data-dir}") String dataDir) {
+        try {
+            Files.createDirectories(Path.of(dataDir));
+        } catch (Exception e) {
+            throw new RuntimeException("无法创建数据目录: " + dataDir, e);
+        }
     }
 
-    @PostConstruct
-    public void init() {
-        String path = System.getProperty("user.home") + "/.eddie-ai";
-        File dir = new File(path);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
+    public static void main(String[] args) {
+        SpringApplication.run(EddieAiApplication.class, args);
     }
 
     @EventListener(ApplicationReadyEvent.class)

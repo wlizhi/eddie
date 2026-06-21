@@ -81,6 +81,25 @@ export async function batchSortAssistant(ids: number[]): Promise<void> {
 }
 
 /**
+ * 更新助手头像（支持文字、emoji、图片上传）
+ *
+ * @param id        助手 ID
+ * @param formData  FormData，可包含：
+ *                  - avatar: string (文字/emoji)
+ *                  - file: Blob/File (图片)
+ */
+export async function updateAssistantAvatar(id: number, formData: FormData): Promise<AssistantVO> {
+    const res = await fetch(`${BASE}/${id}/avatar`, {
+        method: 'POST',
+        body: formData,
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<AssistantVO> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '更新头像失败')
+    return json.data
+}
+
+/**
  * 删除助手
  */
 export async function deleteAssistant(id: number): Promise<void> {

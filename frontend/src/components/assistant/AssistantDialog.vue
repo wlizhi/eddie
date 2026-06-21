@@ -12,10 +12,11 @@ import {computed, reactive, ref, watch} from 'vue'
 import {NModal, NSelect, NTooltip} from 'naive-ui'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
-import {fetchAssistantDetail} from '@/api/assistant'
+import {fetchAssistantDetail, updateAssistantAvatar} from '@/api/assistant'
 import type {AssistantDetailVO} from '@/types/assistant'
+import AssistantAvatar from '../common/AssistantAvatar.vue'
+import AvatarPicker from '../common/AvatarPicker.vue'
 
-// 工具提示主题：浅色风格，与弹窗一致
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const tipTheme: any = {
   peers: {
@@ -32,7 +33,6 @@ const tipTheme: any = {
 }
 
 const props = defineProps<{
-  /** 要编辑的助手 ID，null 时弹窗不显示 */
   assistantId: number | null
 }>()
 
@@ -43,10 +43,9 @@ const emit = defineEmits<{
 const assistantStore = useAssistantStore()
 const chatStore = useChatStore()
 
-/** 当前编辑的助手详情 */
 const detail = ref<AssistantDetailVO | null>(null)
 const saving = ref(false)
-const feedback = ref('') // 保存结果提示
+const feedback = ref('')
 
 // ========== 表单数据 ==========
 const formName = ref('')
@@ -57,7 +56,7 @@ const formProviderId = ref<number | null>(null)
 const formModelId = ref('')
 const formMemoryRounds = ref(20)
 const formEnabled = ref<number>(1)
-// 模型参数定义（key 与后端字段名一致）
+
 const modelParamDefs = [
   {
     key: 'temperature',
@@ -103,8 +102,10 @@ const formModelParams = reactive<Record<string, number | null>>(
     Object.fromEntries(modelParamDefs.map(d => [d.key, null]))
 )
 
-/** 弹窗是否可见 */
 const show = ref(false)
+const showPicker = ref(false)
+const originalAvatar = ref('')
+const pendingAvatarFile = ref<File | null>(null)
 
 watch(() => props.assistantId, async (id) => {
   if (id === null) {
@@ -112,7 +113,6 @@ watch(() => props.assistantId, async (id) => {
     return
   }
   feedback.value = ''
-  // 先确保模型列表已加载，再加载详情，最后显示弹窗
   if (chatStore.modelSelectors.length === 0) {
     await chatStore.loadModels()
   }
@@ -120,25 +120,24 @@ watch(() => props.assistantId, async (id) => {
   show.value = true
 })
 
-/** 加载助手详情并填充表单 */
 async function loadDetail(id: number) {
   try {
     const d = await fetchAssistantDetail(id)
     detail.value = d
     formName.value = d.name
     formAvatar.value = d.avatar ?? ''
+    originalAvatar.value = d.avatar ?? ''
     formDescription.value = d.description ?? ''
     formSystemPrompt.value = d.systemPrompt ?? ''
     formProviderId.value = d.providerId
     formModelId.value = d.modelId
     formMemoryRounds.value = d.memoryRounds ?? 20
-    // enabled: 详情接口返回 boolean(true/false)，统一转 number(1/0)
     formEnabled.value = d.enabled === true || d.enabled === 1 ? 1 : 0
-    // 填充模型参数
     const mp = d.modelParams || {}
     for (const def of modelParamDefs) {
       formModelParams[def.key] = (mp as any)[def.key] ?? null
     }
+    pendingAvatarFile.value = null
   } catch (err) {
     feedback.value = '加载助手详情失败'
     console.error(err)
@@ -146,7 +145,6 @@ async function loadDetail(id: number) {
   }
 }
 
-/** 按供应商分组的模型选项（复用 chatStore 数据） */
 const groupedModelOptions = computed(() =>
     chatStore.modelSelectors.map((s) => ({
       type: 'group' as const,
@@ -154,7 +152,7 @@ const groupedModelOptions = computed(() =>
       key: s.providerCode,
       children: s.models.map((m) => ({
         label: m.displayName ?? m.modelId,
-        value: m.modelId, // 直接用 modelId 作为值
+        value: m.modelId,
       })),
     }))
 )
@@ -162,7 +160,6 @@ const groupedModelOptions = computed(() =>
 function onModelSelect(modelId: string | null) {
   if (!modelId) return
   formModelId.value = modelId
-  // 从模型列表中查找对应的 providerId
   for (const sel of chatStore.modelSelectors) {
     const found = sel.models.find(m => m.modelId === modelId)
     if (found) {
@@ -172,11 +169,21 @@ function onModelSelect(modelId: string | null) {
   }
 }
 
-/** 保存 */
+function onAvatarPicked(value: string | null, file: File | null) {
+  if (file) {
+    // 图片上传 → 暂存 file，预览用 blob URL
+    pendingAvatarFile.value = file
+    formAvatar.value = URL.createObjectURL(file)
+  } else if (value) {
+    // 文字/emoji
+    formAvatar.value = value
+    pendingAvatarFile.value = null
+  }
+  showPicker.value = false
+}
+
 async function handleSave() {
   if (!detail.value) return
-
-  // 校验：必须选择模型
   if (!formProviderId.value) {
     feedback.value = '⚠️ 请先选择一个模型'
     return
@@ -184,7 +191,20 @@ async function handleSave() {
 
   saving.value = true
   try {
-    // 构建 modelParams（只传有值的参数）
+    // 第1步：如果头像有变更，先调头像接口
+    if (pendingAvatarFile.value) {
+      const fd = new FormData()
+      fd.append('file', pendingAvatarFile.value)
+      const updated = await updateAssistantAvatar(detail.value.id, fd)
+      formAvatar.value = updated.avatar
+      pendingAvatarFile.value = null
+    } else if (formAvatar.value !== originalAvatar.value) {
+      const fd = new FormData()
+      fd.append('avatar', formAvatar.value)
+      await updateAssistantAvatar(detail.value.id, fd)
+    }
+
+    // 第2步：更新其他字段
     const modelParams: Record<string, unknown> = {}
     for (const def of modelParamDefs) {
       const v = formModelParams[def.key]
@@ -212,13 +232,11 @@ async function handleSave() {
   }
 }
 
-/** 关闭 */
 function close() {
   show.value = false
+  showPicker.value = false
   emit('update:assistantId', null)
 }
-
-// 模型列表由 ChatView 统一加载，dialog 只需在打开时用 watch 兜底
 </script>
 
 <template>
@@ -235,16 +253,18 @@ function close() {
     </template>
 
     <div class="form">
+      <!-- 头像（顶部居中，点击编辑） -->
+      <div class="avatar-section">
+        <div class="avatar-wrap" @click="showPicker = true" title="点击修改头像">
+          <AssistantAvatar :name="formName || '?'" :avatar="formAvatar" :size="72"/>
+          <div class="avatar-overlay">编辑</div>
+        </div>
+      </div>
+
       <!-- 名称 -->
       <div class="field">
         <label class="label">名称</label>
         <input v-model="formName" class="input" placeholder="助手名称"/>
-      </div>
-
-      <!-- 头像 -->
-      <div class="field">
-        <label class="label">头像</label>
-        <input v-model="formAvatar" class="input" placeholder="emoji (如 🤖) 或图片 URL"/>
       </div>
 
       <!-- 描述 -->
@@ -315,6 +335,16 @@ function close() {
       </div>
     </div>
 
+    <!-- 头像选择弹窗 -->
+    <NModal :show="showPicker" preset="card" title="选择头像"
+            style="max-width: 420px; width: 90%;"
+            :mask-closable="false"
+            @update:show="(v: boolean) => { if (!v) showPicker = false }">
+      <AvatarPicker :current-avatar="originalAvatar"
+                    @confirm="onAvatarPicked"
+                    @close="showPicker = false"/>
+    </NModal>
+
     <template #footer>
       <div class="footer">
         <span v-if="feedback" class="feedback">{{ feedback }}</span>
@@ -328,6 +358,39 @@ function close() {
 </template>
 
 <style scoped>
+/* ===== 头像区域（顶部居中） ===== */
+.avatar-section {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 10px;
+}
+
+.avatar-wrap {
+  position: relative;
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 50%;
+}
+
+.avatar-wrap:hover .avatar-overlay {
+  opacity: 1;
+}
+
 /* 弹窗表单：内容超出时仅表单区域内部滚动，不撑出屏幕 */
 .form {
   display: flex;

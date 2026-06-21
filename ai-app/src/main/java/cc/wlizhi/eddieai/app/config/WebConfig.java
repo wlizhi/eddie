@@ -1,10 +1,14 @@
 package cc.wlizhi.eddieai.app.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
+
+import java.nio.file.Path;
 
 /**
  * 前端 SPA 路由支持：非 /api 路径刷新时转发到 index.html
@@ -19,6 +23,9 @@ public class WebConfig implements WebMvcConfigurer {
     @jakarta.annotation.Resource
     private ApiTimingInterceptor apiTimingInterceptor;
 
+    @Value("${eddie-ai.data-dir}")
+    private String dataDir;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(apiTimingInterceptor)
@@ -26,7 +33,13 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Override
-    public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 用户上传的图片文件：/api/files/** → ~/.eddie-ai/images/
+        String imagesPath = Path.of(dataDir, "images").toUri().toString();
+        registry.addResourceHandler("/api/files/**")
+                .addResourceLocations(imagesPath);
+
+        // SPA 路由支持
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
                 .resourceChain(true)

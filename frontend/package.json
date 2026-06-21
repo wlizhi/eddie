@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@lucide/vue": "^1.21.0",
+    "cropperjs": "^2.1.1",
     "marked": "^18.0.5",
     "naive-ui": "^2.44.1",
     "pinia": "^3.0.4",
@@ -17,6 +18,7 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
+    "@types/cropperjs": "^1.1.5",
     "@types/node": "^26.0.0",
     "@vitejs/plugin-vue": "^6.0.7",
     "typescript": "~5.8.0",

@@ -9,6 +9,7 @@ import cc.wlizhi.eddieai.common.dto.ApiResult;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -55,6 +56,23 @@ public class AssistantController {
     public ApiResult<AssistantVO> update(@PathVariable(name = "id") Long id,
                                          @RequestBody AssistantUpdateRequest request) {
         return ApiResult.success(assistantService.update(id, request));
+    }
+
+    /**
+     * 更新助手头像（支持文字、emoji、图片上传）
+     * <p>
+     * Controller 仅接收参数转发，业务逻辑在 Service 层。
+     *
+     * @param id         助手 ID
+     * @param avatarText 文字或 emoji（可选）
+     * @param file       图片文件（可选）
+     */
+    @PostMapping("/{id}/avatar")
+    public ApiResult<AssistantVO> updateAvatar(
+            @PathVariable(name = "id") Long id,
+            @RequestParam(value = "avatar", required = false) String avatarText,
+            @RequestParam(value = "file", required = false) MultipartFile file) {
+        return ApiResult.success(assistantService.updateAvatar(id, avatarText, file));
     }
 
     /**

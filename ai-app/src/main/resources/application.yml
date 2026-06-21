@@ -18,6 +18,10 @@ spring:
       mode: always
       schema-locations: classpath:schema.sql
 
+# 数据目录（SQLite 数据库、用户上传文件等）
+eddie-ai:
+  data-dir: ${user.home}/.eddie-ai
+
 # DeepSeek 模型配置（兼容 OpenAI 协议）
 # 第一版硬编码，后续从 model_provider 表动态读取
 # deepseek-reasoner：推理模型，会输出 reasoning_content（思考过程）→ 前端显示思考内容
