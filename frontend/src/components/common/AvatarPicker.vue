@@ -1,17 +1,58 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, nextTick, ref, watch} from 'vue'
 import ImageCropper from './ImageCropper.vue'
 
-/** 常见 Emoji 列表 */
-const EMOJI_LIST = [
-  '😀', '😂', '🤣', '😊', '😍', '🤩', '😎', '🤔',
-  '🤗', '😴', '😮', '😅', '😆', '😉', '😋', '😜',
-  '🤖', '👻', '💀', '👽', '🎃', '😺', '🙀', '🐱',
-  '❤️', '💛', '💚', '💙', '💜', '🖤', '💕', '💖',
-  '🌟', '⭐', '🔥', '💡', '🎯', '🚀', '🎉', '🎊',
-  '🌈', '🌻', '🌸', '🍀', '🌺', '🌙', '☀️', '❄️',
-  '⚡', '💎', '👑', '🎵', '🎶', '📚', '✏️', '🎨',
-  '🍕', '🍔', '🌮', '🍦', '☕', '🍵', '🍺', '🍷',
+const EMOJI_GROUPS: { label: string; emojis: string[] }[] = [
+  {
+    label: '表情',
+    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊', '😇', '😍', '🤩', '😘', '😗', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '😮', '😯', '😲', '😳', '🥺', '😢', '😭', '😤', '😡', '🤬', '😈', '👿', '💀', '☠️']
+  },
+  {
+    label: '手势',
+    emojis: ['👍', '👎', '👌', '🤞', '🤟', '🤘', '🤙', '✌️', '👋', '🤚', '✋', '🖐', '🖖', '👏', '🙌', '🤝', '💪', '🦾', '🦿', '🤳', '🙏', '✍️', '💅']
+  },
+  {label: '爱心', emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟']},
+  {
+    label: '动物',
+    emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦗', '🕷', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🐘', '🦏', '🐪', '🐫', '🦒', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🐐', '🦌', '🐕', '🐩', '🐈', '🐓', '🦃', '🕊', '🐇', '🐁', '🐀', '🐿', '🦔']
+  },
+  {
+    label: '自然',
+    emojis: ['🌈', '☀️', '🌙', '⭐', '🌟', '✨', '🔥', '💧', '❄️', '☁️', '⛅', '🌧', '⛈', '🌩', '⚡', '💨', '🌪', '🌊', '🌱', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '🍀', '🍁', '🍂', '🍃', '🌍', '🌎', '🌏', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌚', '🌝', '🌞', '🌛', '🌜']
+  },
+  {label: '花卉', emojis: ['🌸', '🌼', '🌻', '🌺', '🌹', '🌷', '💐', '🥀', '💮', '🏵', '🌾']},
+  {
+    label: '水果',
+    emojis: ['🍎', '🍏', '🍊', '🍋', '🍐', '🍑', '🍒', '🍓', '🥝', '🍅', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶', '🥒', '🥬', '🥦', '🍄', '🥜', '🌰', '🍇', '🍈', '🍉', '🍌', '🍍', '🥭', '🍑', '🍒']
+  },
+  {
+    label: '食物',
+    emojis: ['🍕', '🍔', '🌮', '🌯', '🥙', '🍟', '🍗', '🍖', '🥩', '🥓', '🧀', '🍳', '🥞', '🧇', '🍞', '🥐', '🥖', '🥨', '🥯', '🍜', '🍝', '🍣', '🍤', '🍚', '🍛', '🍲', '🥘', '🍿', '🧈', '🍦', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🍫', '🍬', '🍭', '🍮', '🍯', '☕', '🍵', '🍺', '🍻', '🍷', '🥂', '🍸', '🍹', '🧉', '🧊']
+  },
+  {
+    label: '物品',
+    emojis: ['💡', '🔑', '💎', '🎁', '📚', '✏️', '🎨', '📷', '📱', '💻', '⌚', '🎧', '🎮', '🔮', '🧿', '🪄', '💣', '🧨', '🔪', '🏹', '🛡', '🧲', '⚖️', '🔗', '🧰', '🧲', '🧪', '🧫', '🧬', '🩺', '💊', '🩹', '🩼', '🧽']
+  },
+  {
+    label: '运动',
+    emojis: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '⛳', '🎣', '🤿', '🎽', '🎿', '🛷', '🥌', '🎯', '🪀', '🪁', '🏹']
+  },
+  {label: '音乐', emojis: ['🎵', '🎶', '🎼', '🎤', '🎧', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '🪘', '🎬']},
+  {label: '庆祝', emojis: ['🎉', '🎊', '🎈', '🎀', '🎁', '🏆', '🥇', '🥈', '🥉', '🎖', '🏅', '🎗', '🎟', '🎫']},
+  {label: '科技', emojis: ['🤖', '👾', '🛸', '🚀', '🛰', '🛸', '🔭', '📡', '🧬']},
+  {
+    label: '交通',
+    emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛴', '🚲', '🛵', '🏍', '🚄', '🚅', '🚈', '🚝', '🚂', '🚆', '🚇', '✈️', '🚁', '🛩', '⛵', '🚤', '🛥', '🛳', '🚢']
+  },
+  {
+    label: '皇冠',
+    emojis: ['👑', '💍', '👒', '🎩', '🎓', '🧢', '⛑', '🪖', '💄', '💋', '👓', '🕶', '🥽', '🥼', '🦺', '👔', '👕', '👖', '🧣', '🧤', '🧥', '🧦', '👗', '👘', '👙', '👚', '👜', '👛', '🎒', '👝', '🧳', '🌂', '☂️']
+  },
+  {
+    label: '建筑',
+    emojis: ['🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🏯', '🏰', '💒', '🗼', '🗽', '⛪', '🕌', '🕍', '⛩', '🕋', '⛲', '🗿', '🏗', '🏘', '🏚']
+  },
+  {label: '星座', emojis: ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '⛎']},
 ]
 
 const props = withDefaults(defineProps<{
@@ -25,9 +66,44 @@ const emit = defineEmits<{
   close: []
 }>()
 
+/** 判断是否为 emoji */
+function isEmoji(s: string): boolean {
+  if (s.length > 2) return false
+  const cp = s.codePointAt(0) ?? 0
+  return (cp >= 0x1F300 && cp <= 0x1F9FF) || (cp >= 0x2600 && cp <= 0x27BF)
+      || (cp >= 0xFE00 && cp <= 0xFE0F) || cp >= 0x200D
+      || (cp >= 0x1FA00 && cp <= 0x1FA6F) || (cp >= 0x1F600 && cp <= 0x1F64F)
+      || (cp >= 0x2702 && cp <= 0x27B0)
+}
+
+/** 判断是否为图片 URL */
+function isImageUrl(s: string): boolean {
+  return s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/') || s.startsWith('blob:') || s.startsWith('data:')
+}
+
+/** 根据当前头像值推断应显示的 Tab */
+function detectTab(avatar: string | null | undefined): { tab: 'text' | 'emoji' | 'upload'; text: string } {
+  if (!avatar) return {tab: 'text', text: ''}
+  if (isImageUrl(avatar)) return {tab: 'upload', text: ''}
+  if (isEmoji(avatar)) return {tab: 'emoji', text: avatar}
+  if ([...avatar].length === 1) return {tab: 'text', text: avatar}
+  return {tab: 'text', text: avatar}
+}
+
 type Tab = 'text' | 'emoji' | 'upload'
-const activeTab = ref<Tab>('text')
-const inputText = ref(props.currentAvatar ?? '')
+const initTab = detectTab(props.currentAvatar)
+const activeTab = ref<Tab>(initTab.tab)
+const inputText = ref(initTab.text)
+
+// 当外部 currentAvatar 变化时同步
+watch(() => props.currentAvatar, (v) => {
+  const r = detectTab(v)
+  activeTab.value = r.tab
+  inputText.value = r.text
+  selectedFile.value = null
+  croppedBlob.value = null
+  showCropper.value = false
+})
 const selectedFile = ref<File | null>(null)
 const croppedBlob = ref<Blob | null>(null)
 const croppedUrl = computed(() => {
@@ -35,6 +111,16 @@ const croppedUrl = computed(() => {
   return URL.createObjectURL(croppedBlob.value)
 })
 const showCropper = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+/** 直接触发文件选择器 */
+async function pickImage() {
+  selectedFile.value = null
+  croppedBlob.value = null
+  showCropper.value = false
+  await nextTick()
+  fileInputRef.value?.click()
+}
 
 function onFileSelected(e: Event) {
   const input = e.target as HTMLInputElement
@@ -51,8 +137,7 @@ function onCropped(blob: Blob) {
 }
 
 function onCropCancel() {
-  showCropper.value = false
-  selectedFile.value = null
+  pickImage()
 }
 
 function handleConfirm() {
@@ -70,11 +155,12 @@ function selectEmoji(emoji: string) {
 }
 
 function reset() {
-  inputText.value = props.currentAvatar ?? ''
+  const r = detectTab(props.currentAvatar)
+  activeTab.value = r.tab
+  inputText.value = r.text
   selectedFile.value = null
   croppedBlob.value = null
   showCropper.value = false
-  activeTab.value = 'text'
 }
 
 defineExpose({reset})
@@ -98,20 +184,21 @@ defineExpose({reset})
       </div>
 
       <div v-show="activeTab === 'emoji'" class="emoji-tab">
-        <div class="emoji-grid">
-          <button v-for="emoji in EMOJI_LIST" :key="emoji"
-                  class="emoji-item" :class="{selected: inputText === emoji}"
-                  @click="selectEmoji(emoji)">{{ emoji }}
-          </button>
+        <div v-for="group in EMOJI_GROUPS" :key="group.label" class="emoji-group">
+          <div class="emoji-group-label">{{ group.label }}</div>
+          <div class="emoji-grid">
+            <button v-for="emoji in group.emojis" :key="emoji"
+                    class="emoji-item" :class="{selected: inputText === emoji}"
+                    @click="selectEmoji(emoji)">{{ emoji }}
+            </button>
+          </div>
         </div>
       </div>
 
       <div v-show="activeTab === 'upload'" class="upload-tab">
+        <input ref="fileInputRef" type="file" accept="image/*" hidden @change="onFileSelected"/>
         <div v-if="!selectedFile" class="upload-placeholder">
-          <label class="upload-btn">
-            选择图片
-            <input type="file" accept="image/*" hidden @change="onFileSelected"/>
-          </label>
+          <label class="upload-btn" @click="pickImage">选择图片</label>
         </div>
         <ImageCropper v-if="selectedFile && showCropper" :file="selectedFile"
                       @cropped="onCropped" @cancel="onCropCancel"/>
@@ -120,7 +207,7 @@ defineExpose({reset})
           <p class="cropped-hint">图片已裁剪</p>
           <div class="preview-actions">
             <button class="btn-rechoose" @click="showCropper = true">重新裁剪</button>
-            <button class="btn-rechoose" @click="selectedFile = null; croppedBlob = null">换张图片</button>
+            <button class="btn-rechoose" @click="pickImage">换张图片</button>
           </div>
         </div>
       </div>
@@ -214,15 +301,26 @@ defineExpose({reset})
 }
 
 .emoji-tab {
-  max-height: 220px;
+  max-height: 320px;
   overflow-y: auto;
+}
+
+.emoji-group {
+  margin-bottom: 10px;
+}
+
+.emoji-group-label {
+  font-size: 11px;
+  color: #9ca3af;
+  padding: 2px 0 4px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 4px;
 }
 
 .emoji-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 4px;
-  padding: 4px 0;
+  gap: 3px;
 }
 
 .emoji-item {

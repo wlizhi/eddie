@@ -58,7 +58,7 @@ function render() {
   ctx.rect(0, 0, S, S);
   ctx.arc(cx, cy, r, 0, Math.PI * 2, true);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fill();
   ctx.restore()
 
