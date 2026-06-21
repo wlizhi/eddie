@@ -44,6 +44,9 @@ export const useChatStore = defineStore('chat', () => {
     /** AbortController，用于中断请求 */
     let abortController: AbortController | null = null
 
+    /** 会话列表刷新计数器（事件驱动侧边栏同步） */
+    const sessionRefreshCounter = ref(0)
+
     // ========== 计算属性 ==========
 
     const flatModelOptions = computed(() => {
@@ -107,6 +110,7 @@ export const useChatStore = defineStore('chat', () => {
             try {
                 const session = await createSession({assistantId: assistantStore.activeId})
                 currentConversationId.value = String(session.id)
+                sessionRefreshCounter.value++
             } catch (err) {
                 console.error('创建会话失败:', err)
                 return
@@ -176,6 +180,7 @@ export const useChatStore = defineStore('chat', () => {
             onComplete: () => {
                 isStreaming.value = false
                 abortController = null
+                sessionRefreshCounter.value++
                 // 首轮对话后生成标题
                 if (isFirstRound) {
                     generateTitleAsync()
@@ -198,6 +203,7 @@ export const useChatStore = defineStore('chat', () => {
                 providerId: currentProviderId.value,
                 modelCode: currentModelId.value,
             })
+            sessionRefreshCounter.value++
         } catch (err) {
             console.error('生成标题失败:', err)
         }
@@ -264,6 +270,7 @@ export const useChatStore = defineStore('chat', () => {
         currentThinking,
         currentAnswer,
         currentMetadata,
+        sessionRefreshCounter,
         flatModelOptions,
         hasMessages,
         isNewConversation,

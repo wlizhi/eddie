@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue'
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue'
 import {ChevronDown, GripVertical, MessageSquare, Pin, Plus, Search, Settings, Trash2} from '@lucide/vue'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
@@ -17,6 +17,20 @@ const assistantListCollapsed = ref(false)
 const showAllAssistants = ref(true)
 const editAssistantId = ref<number | null>(null)
 const showCreateAssistant = ref(false)
+
+// ========== 搜索 ==========
+const searchQuery = ref('')
+
+/** 当前时间戳（30s 自动刷新，用于相对时间显示） */
+const now = ref(Date.now())
+let timeTimer: ReturnType<typeof setInterval> | null = null
+
+/** 会话列表过滤（支持按标题搜索） */
+const filteredSessions = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return sessions.value
+  return sessions.value.filter(s => (s.title || '').toLowerCase().includes(q))
+})
 
 // ========== 会话列表 ==========
 const sessions = ref<SessionVO[]>([])
@@ -44,18 +58,36 @@ watch(() => assistantStore.activeId, () => {
   loadSessions()
 }, {immediate: true})
 
-// 首轮对话完成后需要刷新列表（标题已更新）
+// 会话 ID 变更时刷新列表（新建会话 / 切换会话）
 watch(() => chatStore.currentConversationId, (newId) => {
-  if (newId && sessions.value.length > 0) {
+  if (newId) {
     loadSessions()
   }
 })
 
-/** 格式化时间 */
+// 事件驱动：聊天事件（发送消息、流式完成、标题生成）后刷新列表
+watch(() => chatStore.sessionRefreshCounter, () => {
+  loadSessions()
+})
+
+// 每 30 秒更新当前时间，驱动相对时间重新计算
+onMounted(() => {
+  timeTimer = setInterval(() => {
+    now.value = Date.now()
+  }, 30_000)
+})
+
+onUnmounted(() => {
+  if (timeTimer) {
+    clearInterval(timeTimer)
+    timeTimer = null
+  }
+})
+
+/** 格式化时间（响应式：now.value 变化时自动重算） */
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
+  const diff = now.value - date.getTime()
   const minutes = Math.floor(diff / 60000)
   if (minutes < 1) return '刚刚'
   if (minutes < 60) return `${minutes}分钟前`
@@ -207,13 +239,13 @@ async function togglePin(session: SessionVO) {
       <!-- 搜索框 -->
       <div class="search-box">
         <Search :size="13" :stroke-width="2" class="search-icon"/>
-        <input type="text" class="search-input" placeholder="搜索会话..."/>
+        <input v-model="searchQuery" type="text" class="search-input" placeholder="搜索会话..."/>
       </div>
 
       <!-- 会话列表 -->
       <div class="session-list">
         <div
-            v-for="session in sessions"
+            v-for="session in filteredSessions"
             :key="session.id"
             class="session-item"
             :class="{ active: chatStore.currentConversationId === String(session.id) }"
@@ -223,7 +255,10 @@ async function togglePin(session: SessionVO) {
             <MessageSquare :size="14" :stroke-width="1.8"/>
           </div>
           <div class="session-info">
-            <div class="session-title">{{ session.title || '新对话' }}</div>
+            <div class="session-title">
+              <span class="title-text">{{ session.title || '新对话' }}</span>
+              <span v-if="session.messageCount > 0" class="msg-count">{{ session.messageCount }}</span>
+            </div>
             <div class="session-time">{{ formatTime(session.updatedAt) }}</div>
           </div>
           <button class="session-pin" title="置顶" @click.stop="togglePin(session)">
@@ -562,12 +597,37 @@ async function togglePin(session: SessionVO) {
 }
 
 .session-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 500;
   color: #1f1f1f;
+  min-width: 0;
+}
+
+.title-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.msg-count {
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: #e5e7eb;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .session-time {
