@@ -196,7 +196,7 @@ async function handleSave() {
       const fd = new FormData()
       fd.append('file', pendingAvatarFile.value)
       const updated = await updateAssistantAvatar(detail.value.id, fd)
-      formAvatar.value = updated.avatar
+      formAvatar.value = updated.avatar ?? ''
       pendingAvatarFile.value = null
     } else if (formAvatar.value !== originalAvatar.value) {
       const fd = new FormData()
@@ -230,6 +230,16 @@ async function handleSave() {
   } finally {
     saving.value = false
   }
+}
+
+async function handleDelete() {
+  if (!detail.value) return
+  const name = formName.value || '此助手'
+  const ok = confirm(`确定删除「${name}」？删除后不可恢复。`)
+  if (!ok) return
+  const id = detail.value.id
+  close()
+  await assistantStore.remove(id)
 }
 
 function close() {
@@ -347,6 +357,7 @@ function close() {
 
     <template #footer>
       <div class="footer">
+        <button class="btn btn-delete" @click="handleDelete">🗑 删除</button>
         <span v-if="feedback" class="feedback">{{ feedback }}</span>
         <button class="btn btn-cancel" @click="close">取消</button>
         <button class="btn btn-save" :disabled="saving || !!feedback" @click="handleSave">
@@ -573,5 +584,17 @@ function close() {
 
 .hint-icon:hover {
   color: #4a5568;
+}
+
+.btn-delete {
+  background: transparent;
+  color: #e74c3c;
+  border-color: #f5c6cb;
+  margin-right: auto;
+  transition: background 0.15s;
+}
+
+.btn-delete:hover {
+  background: #fef2f2;
 }
 </style>
