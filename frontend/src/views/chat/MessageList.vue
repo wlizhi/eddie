@@ -15,15 +15,18 @@
 <script setup lang="ts">
 import {nextTick, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
-import {Bot, ChevronDown} from '@lucide/vue'
+import {useAssistantStore} from '@/stores/assistant'
+import {ChevronDown} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatTime} from '@/utils/format'
+import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
 
 defineProps<{
   qaMode: boolean
 }>()
 
 const chatStore = useChatStore()
+const assistantStore = useAssistantStore()
 
 /** 消息容器 DOM，用于自动滚动 */
 const messageListRef = ref<HTMLElement | null>(null)
@@ -70,7 +73,13 @@ function toggleThinking(msgId: string) {
           <span class="avatar-text">我</span>
         </div>
         <div v-else class="avatar assistant-avatar">
-          <Bot :size="16" :stroke-width="1.8"/>
+          <AssistantAvatar
+              v-if="assistantStore.activeAssistant"
+              :name="assistantStore.activeAssistant.name"
+              :avatar="assistantStore.activeAssistant.avatar"
+              :size="28"
+          />
+          <span v-else class="avatar-text">AI</span>
         </div>
       </div>
 
@@ -89,7 +98,8 @@ function toggleThinking(msgId: string) {
             />
             <span v-if="msg.content || !chatStore.isStreaming">思考过程</span>
             <span v-else class="thinking-pending">
-              思考中<span class="dots-blink"><span>.</span><span>.</span><span>.</span></span>
+               <span class="thinking-text">思考中<span
+                   class="dots-blink"><span>.</span><span>.</span><span>.</span></span></span>
             </span>
           </button>
           <div v-if="thinkingExpanded[msg.id] && msg.thinking" class="thinking-content"
@@ -314,27 +324,47 @@ function toggleThinking(msgId: string) {
 /* ===== 思考中占位 ===== */
 .thinking-pending {
   font-size: 11px;
-  color: #9ca3af;
 }
 
-/* 三个点逐个出现的打字机动画 */
+/* 思考中文字 + 省略号整体呼吸效果 */
+.thinking-text {
+  animation: thinking-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes thinking-breathe {
+  0%, 100% {
+    color: #9ca3af;
+  }
+  50% {
+    color: #6b7280;
+  }
+}
+
+/* 三个点逐字跳动动画（叠加在呼吸文字上） */
+.dots-blink {
+  display: inline-block;
+}
+
 .dots-blink span {
-  animation: dot-appear 1.4s infinite both;
+  animation: dot-bounce 1.2s ease-in-out infinite both;
+  display: inline-block;
 }
 
 .dots-blink span:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: 0.15s;
 }
 
 .dots-blink span:nth-child(3) {
-  animation-delay: 0.4s;
+  animation-delay: 0.3s;
 }
 
-@keyframes dot-appear {
+@keyframes dot-bounce {
   0%, 60%, 100% {
-    opacity: 0.2;
+    transform: translateY(0);
+    opacity: 0.3;
   }
   30% {
+    transform: translateY(-3px);
     opacity: 1;
   }
 }
