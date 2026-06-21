@@ -63,9 +63,9 @@ public class ChatServiceImpl implements ChatService {
         ctx.setOriginalRequest(request);
         ctx.setStartTime(System.currentTimeMillis());
 
-        String conversationId = request.getConversationId();
-        if (conversationId != null && !conversationId.isEmpty()) {
-            ctx.setSessionId(Long.parseLong(conversationId));
+        Long conversationId = request.getConversationId();
+        if (conversationId != null) {
+            ctx.setSessionId(conversationId);
         }
 
         // 2. 预处理

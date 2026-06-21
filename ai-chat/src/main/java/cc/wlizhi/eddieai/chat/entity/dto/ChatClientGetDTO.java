@@ -9,7 +9,7 @@ public class ChatClientGetDTO {
     /**
      * 会话 ID，用于记忆隔离
      */
-    private String conversationId;
+    private Long conversationId;
 
     /**
      * 用户消息内容

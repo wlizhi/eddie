@@ -1,6 +1,7 @@
 package cc.wlizhi.eddieai.chat.entity.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,8 +18,8 @@ public class ChatRequest {
     /**
      * 会话 ID，用于记忆隔离
      */
-    @NotBlank(message = "conversationId 不能为空")
-    private String conversationId;
+    @NotNull(message = "conversationId 不能为空")
+    private Long conversationId;
 
     /**
      * 用户消息内容

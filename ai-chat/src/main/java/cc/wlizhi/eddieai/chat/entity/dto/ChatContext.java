@@ -48,14 +48,14 @@ public class ChatContext {
     private ChatClientGetDTO chatClientGetDTO;
 
     /**
-     * 系统提示词（TODO: 后续从 assistant 表获取）
+     * 系统提示词，从 assistant 表获取
      */
     private String systemPrompt;
 
     /**
-     * 会话 ID（String 兼容现有逻辑）
+     * 会话 ID（Long，DB 主键）
      */
-    private String conversationId;
+    private Long conversationId;
 
     /**
      * 会话 ID（Long，DB 主键）
