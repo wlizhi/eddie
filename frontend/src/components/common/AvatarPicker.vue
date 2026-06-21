@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import ImageCropper from './ImageCropper.vue'
 
 /** 常见 Emoji 列表 */
@@ -30,6 +30,10 @@ const activeTab = ref<Tab>('text')
 const inputText = ref(props.currentAvatar ?? '')
 const selectedFile = ref<File | null>(null)
 const croppedBlob = ref<Blob | null>(null)
+const croppedUrl = computed(() => {
+  if (!croppedBlob.value) return ''
+  return URL.createObjectURL(croppedBlob.value)
+})
 const showCropper = ref(false)
 
 function onFileSelected(e: Event) {
@@ -112,9 +116,12 @@ defineExpose({reset})
         <ImageCropper v-if="selectedFile && showCropper" :file="selectedFile"
                       @cropped="onCropped" @cancel="onCropCancel"/>
         <div v-if="croppedBlob && !showCropper" class="cropped-preview">
-          <img :src="URL.createObjectURL(croppedBlob)" alt="裁剪结果" class="preview-img"/>
+          <img :src="croppedUrl" alt="裁剪结果" class="preview-img"/>
           <p class="cropped-hint">图片已裁剪</p>
-          <button class="btn-rechoose" @click="showCropper = true">重新裁剪</button>
+          <div class="preview-actions">
+            <button class="btn-rechoose" @click="showCropper = true">重新裁剪</button>
+            <button class="btn-rechoose" @click="selectedFile = null; croppedBlob = null">换张图片</button>
+          </div>
         </div>
       </div>
     </div>
@@ -290,6 +297,11 @@ defineExpose({reset})
   font-size: 12px;
   color: #6b7280;
   margin: 0;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .btn-rechoose {

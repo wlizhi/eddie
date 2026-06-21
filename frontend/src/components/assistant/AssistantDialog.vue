@@ -256,7 +256,7 @@ function close() {
       <!-- 头像（顶部居中，点击编辑） -->
       <div class="avatar-section">
         <div class="avatar-wrap" @click="showPicker = true" title="点击修改头像">
-          <AssistantAvatar :name="formName || '?'" :avatar="formAvatar" :size="72"/>
+          <AssistantAvatar :name="formName || '?'" :avatar="formAvatar" :size="88"/>
           <div class="avatar-overlay">编辑</div>
         </div>
       </div>

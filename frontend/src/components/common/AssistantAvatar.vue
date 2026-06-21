@@ -34,7 +34,7 @@ function isSingleChar(s: string): boolean {
 
 const avatarType = computed<'image' | 'emoji' | 'text' | 'initial'>(() => {
   if (!props.avatar) return 'initial'
-  if (props.avatar.startsWith('http://') || props.avatar.startsWith('https://') || props.avatar.startsWith('/')) {
+  if (props.avatar.startsWith('http://') || props.avatar.startsWith('https://') || props.avatar.startsWith('/') || props.avatar.startsWith('blob:') || props.avatar.startsWith('data:')) {
     return 'image'
   }
   if (isEmojiChar(props.avatar)) return 'emoji'
