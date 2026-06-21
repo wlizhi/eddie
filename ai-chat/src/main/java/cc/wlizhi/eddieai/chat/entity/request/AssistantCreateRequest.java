@@ -36,6 +36,7 @@ public class AssistantCreateRequest {
     /**
      * 模型服务商实例 ID（关联 model_provider.id）
      */
+    @NotBlank(message = "模型服务商不能为空")
     private Long providerId;
 
     /**

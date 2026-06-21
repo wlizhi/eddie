@@ -175,6 +175,13 @@ function onModelSelect(modelId: string | null) {
 /** 保存 */
 async function handleSave() {
   if (!detail.value) return
+
+  // 校验：必须选择模型
+  if (!formProviderId.value) {
+    feedback.value = '⚠️ 请先选择一个模型'
+    return
+  }
+
   saving.value = true
   try {
     // 构建 modelParams（只传有值的参数）
@@ -186,9 +193,9 @@ async function handleSave() {
 
     await assistantStore.update(detail.value.id, {
       name: formName.value,
-      avatar: formAvatar.value || undefined,
-      description: formDescription.value || undefined,
-      systemPrompt: formSystemPrompt.value || undefined,
+      avatar: formAvatar.value,
+      description: formDescription.value,
+      systemPrompt: formSystemPrompt.value,
       providerId: formProviderId.value ?? undefined,
       modelId: formModelId.value || undefined,
       memoryRounds: formMemoryRounds.value,
