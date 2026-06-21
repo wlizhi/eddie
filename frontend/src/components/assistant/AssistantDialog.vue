@@ -9,7 +9,6 @@
 -->
 <script setup lang="ts">
 import {computed, reactive, ref, watch} from 'vue'
-import type {TooltipThemeOverrides} from 'naive-ui'
 import {NModal, NSelect, NTooltip} from 'naive-ui'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
@@ -17,7 +16,8 @@ import {fetchAssistantDetail} from '@/api/assistant'
 import type {AssistantDetailVO} from '@/types/assistant'
 
 // 工具提示主题：浅色风格，与弹窗一致
-const tipTheme: TooltipThemeOverrides = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const tipTheme: any = {
   peers: {
     popover: {
       padding: '5px 9px',
@@ -98,7 +98,7 @@ const modelParamDefs = [
     min: -2,
     max: 2
   },
-] as const
+]
 const formModelParams = reactive<Record<string, number | null>>(
     Object.fromEntries(modelParamDefs.map(d => [d.key, null]))
 )
