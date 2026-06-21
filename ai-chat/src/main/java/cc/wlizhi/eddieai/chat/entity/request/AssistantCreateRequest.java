@@ -2,6 +2,7 @@ package cc.wlizhi.eddieai.chat.entity.request;
 
 import cc.wlizhi.eddieai.chat.entity.dto.ModelParams;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -36,7 +37,7 @@ public class AssistantCreateRequest {
     /**
      * 模型服务商实例 ID（关联 model_provider.id）
      */
-    @NotBlank(message = "模型服务商不能为空")
+    @NotNull(message = "模型服务商不能为空")
     private Long providerId;
 
     /**

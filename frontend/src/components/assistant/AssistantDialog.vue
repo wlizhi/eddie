@@ -52,6 +52,14 @@ const detail = ref<AssistantDetailVO | null>(null)
 const saving = ref(false)
 const feedback = ref('')
 
+/** 字段级错误状态：key 为字段名，value 为错误提示 */
+const fieldErrors = reactive<Record<string, string>>({})
+
+/** 清除指定字段的错误状态 */
+function clearFieldError(field: string) {
+  delete fieldErrors[field]
+}
+
 // ========== 表单数据 ==========
 const formName = ref('')
 const formAvatar = ref('')
@@ -158,6 +166,10 @@ function resetFormForCreate() {
     formModelParams[def.key] = null
   }
   pendingAvatarFile.value = null
+  // 清除所有字段错误
+  for (const key of Object.keys(fieldErrors)) {
+    delete fieldErrors[key]
+  }
 }
 
 async function loadDetail(id: number) {
@@ -223,16 +235,23 @@ function onAvatarPicked(value: string | null, file: File | null) {
 }
 
 async function handleSave() {
+  // 清除之前的字段错误（保留 feedback 用于 API 反馈）
+  for (const key of Object.keys(fieldErrors)) {
+    delete fieldErrors[key]
+  }
+
   // ========== 创建模式 ==========
   if (isCreateMode.value) {
+    let hasError = false
     if (!formName.value.trim()) {
-      feedback.value = '⚠️ 请输入助手名称'
-      return
+      fieldErrors['formName'] = '请输入助手名称'
+      hasError = true
     }
     if (!formProviderId.value) {
-      feedback.value = '⚠️ 请先选择一个模型'
-      return
+      fieldErrors['formModelId'] = '请选择一个模型'
+      hasError = true
     }
+    if (hasError) return
 
     saving.value = true
     try {
@@ -277,7 +296,7 @@ async function handleSave() {
   // ========== 编辑模式 ==========
   if (!detail.value) return
   if (!formProviderId.value) {
-    feedback.value = '⚠️ 请先选择一个模型'
+    fieldErrors['formModelId'] = '请选择一个模型'
     return
   }
 
@@ -368,8 +387,16 @@ function close() {
 
       <!-- 名称 -->
       <div class="field">
-        <label class="label">名称</label>
-        <input v-model="formName" class="input" placeholder="助手名称"/>
+        <label class="label">
+          名称 <span class="required-star">*</span>
+        </label>
+        <input
+            v-model="formName"
+            :class="['input', { 'input-error': fieldErrors['formName'] }]"
+            placeholder="助手名称"
+            @input="clearFieldError('formName')"
+        />
+        <span v-if="fieldErrors['formName']" class="field-error-msg">{{ fieldErrors['formName'] }}</span>
       </div>
 
       <!-- 描述 -->
@@ -386,14 +413,19 @@ function close() {
 
       <!-- 模型选择 -->
       <div class="field">
-        <label class="label">模型</label>
-        <NSelect
-            :value="formModelId || null"
-            :options="groupedModelOptions"
-            placeholder="选择模型"
-            :consistent-menu-width="false"
-            @update:value="onModelSelect"
-        />
+        <label class="label">
+          模型 <span class="required-star">*</span>
+        </label>
+        <div :class="['nselect-error-wrap', { 'nselect-error': fieldErrors['formModelId'] }]">
+          <NSelect
+              :value="formModelId || null"
+              :options="groupedModelOptions"
+              placeholder="选择模型"
+              :consistent-menu-width="false"
+              @update:value="(v: string | null) => { onModelSelect(v); clearFieldError('formModelId') }"
+          />
+        </div>
+        <span v-if="fieldErrors['formModelId']" class="field-error-msg">{{ fieldErrors['formModelId'] }}</span>
       </div>
 
       <!-- 记忆轮数 -->
@@ -455,7 +487,7 @@ function close() {
         <button v-if="!isCreateMode" class="btn btn-delete" @click="handleDelete">🗑 删除</button>
         <span v-if="feedback" class="feedback">{{ feedback }}</span>
         <button class="btn btn-cancel" @click="close">取消</button>
-        <button class="btn btn-save" :disabled="saving || !!feedback" @click="handleSave">
+        <button class="btn btn-save" :disabled="saving" @click="handleSave">
           {{ saving ? '保存中...' : '保存' }}
         </button>
       </div>
@@ -691,5 +723,71 @@ function close() {
 
 .btn-delete:hover {
   background: #fef2f2;
+}
+
+/* ===== 必填标记 ===== */
+.required-star {
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+/* ===== 字段错误状态 ===== */
+.input-error {
+  border-color: #ef4444 !important;
+  animation: error-pulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+}
+
+@keyframes error-pulse {
+  0%, 100% {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+  }
+  50% {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+  }
+}
+
+.field-error-msg {
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* ===== NSelect 错误边框包裹 ===== */
+.nselect-error-wrap {
+  border-radius: 6px;
+  transition: box-shadow 0.15s;
+}
+
+.nselect-error-wrap.nselect-error {
+  border-radius: 6px;
+  animation: nselect-error-pulse 1.2s ease-in-out infinite;
+}
+
+.nselect-error-wrap.nselect-error :deep(.n-base-selection) {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+}
+
+@keyframes nselect-error-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.28);
+  }
+}
+
+/* ===== feedback 错误样式（API 失败等场景） ===== */
+.feedback-error {
+  color: #ef4444 !important;
+}
+
+.feedback-success {
+  color: #16a34a !important;
 }
 </style>

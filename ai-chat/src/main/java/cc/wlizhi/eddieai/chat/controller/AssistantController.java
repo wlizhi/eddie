@@ -54,7 +54,7 @@ public class AssistantController {
      */
     @PutMapping("/{id}")
     public ApiResult<AssistantVO> update(@PathVariable(name = "id") Long id,
-                                         @RequestBody AssistantUpdateRequest request) {
+                                         @Valid @RequestBody AssistantUpdateRequest request) {
         return ApiResult.success(assistantService.update(id, request));
     }
 
