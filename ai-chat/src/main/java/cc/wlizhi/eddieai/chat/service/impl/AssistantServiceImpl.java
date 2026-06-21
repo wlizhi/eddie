@@ -1,6 +1,6 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
-import cc.wlizhi.eddieai.chat.dao.AssistantMapper;
+import cc.wlizhi.eddieai.chat.dao.AssistantDao;
 import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
 import cc.wlizhi.eddieai.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddieai.chat.entity.request.AssistantCreateRequest;
@@ -28,14 +28,14 @@ import java.util.List;
 public class AssistantServiceImpl implements AssistantService {
 
     @Resource
-    private AssistantMapper assistantMapper;
+    private AssistantDao assistantDao;
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
 
     @Override
     public List<AssistantVO> list(boolean showAll) {
-        List<AssistantEntity> entities = assistantMapper.findAll(showAll);
+        List<AssistantEntity> entities = assistantDao.findAll(showAll);
         List<AssistantVO> result = new ArrayList<>();
         for (AssistantEntity entity : entities) {
             result.add(toVO(entity));
@@ -45,7 +45,7 @@ public class AssistantServiceImpl implements AssistantService {
 
     @Override
     public AssistantDetailVO getDetail(Long id) {
-        AssistantEntity entity = assistantMapper.findById(id);
+        AssistantEntity entity = assistantDao.findById(id);
         if (entity == null) {
             throw new NotFoundException("助手不存在: " + id);
         }
@@ -66,17 +66,17 @@ public class AssistantServiceImpl implements AssistantService {
         entity.setEnabled(1);
         entity.setSortOrder(0);
 
-        assistantMapper.insert(entity);
+        assistantDao.insert(entity);
 
         // 插入后查询完整数据（含自增 ID）
-        AssistantEntity saved = assistantMapper.findById(
-                assistantMapper.findLastInsertId());
+        AssistantEntity saved = assistantDao.findById(
+                assistantDao.findLastInsertId());
         return toVO(saved);
     }
 
     @Override
     public AssistantVO update(Long id, AssistantUpdateRequest request) {
-        if (!assistantMapper.existsById(id)) {
+        if (!assistantDao.existsById(id)) {
             throw new NotFoundException("助手不存在: " + id);
         }
 
@@ -93,16 +93,16 @@ public class AssistantServiceImpl implements AssistantService {
         entity.setEnabled(request.getEnabled());
         entity.setSortOrder(request.getSortOrder());
 
-        assistantMapper.update(entity);
+        assistantDao.update(entity);
 
-        AssistantEntity updated = assistantMapper.findById(id);
+        AssistantEntity updated = assistantDao.findById(id);
         return toVO(updated);
     }
 
     @Override
     public AssistantVO updateAvatar(Long id, String avatarText, MultipartFile file) {
         // 1. 校验助手存在
-        AssistantEntity old = assistantMapper.findById(id);
+        AssistantEntity old = assistantDao.findById(id);
         if (old == null) {
             throw new NotFoundException("助手不存在: " + id);
         }
@@ -141,27 +141,27 @@ public class AssistantServiceImpl implements AssistantService {
         }
 
         // 4. 更新 DB
-        assistantMapper.updateAvatar(id, newAvatar);
+        assistantDao.updateAvatar(id, newAvatar);
 
         // 5. 返回更新后的助手
-        AssistantEntity updated = assistantMapper.findById(id);
+        AssistantEntity updated = assistantDao.findById(id);
         return toVO(updated);
     }
 
     @Override
     public void delete(Long id) {
-        if (!assistantMapper.existsById(id)) {
+        if (!assistantDao.existsById(id)) {
             throw new NotFoundException("助手不存在: " + id);
         }
         // TODO: 级联删除该助手的全部会话（会话表待实现）
         // chatSessionMapper.deleteByAssistantId(id);
-        assistantMapper.deleteById(id);
+        assistantDao.deleteById(id);
     }
 
     @Override
     public void batchSort(List<Long> ids) {
         for (int i = 0; i < ids.size(); i++) {
-            assistantMapper.updateSortOrder(ids.get(i), i + 1);
+            assistantDao.updateSortOrder(ids.get(i), i + 1);
         }
     }
 

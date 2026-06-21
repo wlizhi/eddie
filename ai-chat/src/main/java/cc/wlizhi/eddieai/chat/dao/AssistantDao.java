@@ -12,7 +12,7 @@ import java.util.List;
  * 助手列表数据访问层
  */
 @Repository
-public class AssistantMapper {
+public class AssistantDao {
 
     @Resource
     private JdbcTemplate jdbcTemplate;
