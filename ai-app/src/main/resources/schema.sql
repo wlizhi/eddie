@@ -44,3 +44,35 @@ CREATE TABLE IF NOT EXISTS ai_assistant
     updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_assistant_enabled ON ai_assistant (enabled);
+
+-- 会话列表：每个助手可创建多个会话，按置顶 → 更新时间倒序
+CREATE TABLE IF NOT EXISTS ai_session
+(
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    assistant_id INTEGER NOT NULL,            -- 归属助手 ID
+    title        TEXT    NOT NULL DEFAULT '', -- AI 生成的会话标题（默认为空，首轮对话后生成）
+    pinned       INTEGER NOT NULL DEFAULT 0,  -- 0=普通, 1=置顶
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_session_sort ON ai_session (assistant_id, pinned DESC, updated_at DESC);
+
+-- 消息记录：每个会话的全量对话记录 + Token/费用统计
+CREATE TABLE IF NOT EXISTS ai_session_msg
+(
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id        INTEGER NOT NULL,             -- 归属会话 ID
+    assistant_id      INTEGER NOT NULL,             -- 冗余：归属助手 ID
+    role              TEXT    NOT NULL,             -- user / assistant / system
+    provider_id       INTEGER,                      -- 模型服务商实例 ID
+    model_code        TEXT    NOT NULL DEFAULT '',  -- 模型 code，如 "deepseek-v4-pro"
+    model_name        TEXT    NOT NULL DEFAULT '',  -- 模型显示名称
+    thinking          TEXT    NOT NULL DEFAULT '',  -- 思考内容（DeepSeek reasoning_content）
+    content           TEXT    NOT NULL,             -- 消息正文
+    prompt_tokens     INTEGER NOT NULL DEFAULT 0,   -- 提示 token 数
+    completion_tokens INTEGER NOT NULL DEFAULT 0,   -- 完成 token 数
+    total_tokens      INTEGER NOT NULL DEFAULT 0,   -- 总 token 数
+    price_estimate    REAL    NOT NULL DEFAULT 0.0, -- 预估费用（美元）
+    created_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_msg_session ON ai_session_msg (session_id);

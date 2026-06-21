@@ -53,7 +53,7 @@ public class ChatSseTransformer {
         return responseFlux
                 .concatMap(response -> {
                     ServerSentEvent<String> thinkEvent = buildThinkEvent(response, ctx);
-                    ServerSentEvent<String> answerEvent = buildAnswerEvent(response);
+                    ServerSentEvent<String> answerEvent = buildAnswerEvent(response, ctx);
                     return Flux.fromIterable(
                             Stream.of(thinkEvent, answerEvent)
                                     .filter(Objects::nonNull)
@@ -80,6 +80,11 @@ public class ChatSseTransformer {
                 if (ObjectUtils.isEmpty(thinking)) {
                     return null;
                 }
+                // 累加完整思考内容到上下文（用于持久化）
+                if (ctx.getFullThinking() == null) {
+                    ctx.setFullThinking(new StringBuilder());
+                }
+                ctx.getFullThinking().append(thinking);
                 return ServerSentEvent.<String>builder()
                         .event("thinking")
                         .data(thinking)
@@ -90,9 +95,9 @@ public class ChatSseTransformer {
     }
 
     /**
-     * 构建 answer 事件（通用逻辑）
+     * 构建 answer 事件并累加到 ctx.fullAnswer（用于持久化）
      */
-    private ServerSentEvent<String> buildAnswerEvent(ChatResponse response) {
+    private ServerSentEvent<String> buildAnswerEvent(ChatResponse response, ChatContext ctx) {
         String content = response.getResults().stream()
                 .map(Generation::getOutput)
                 .map(AbstractMessage::getText)
@@ -101,6 +106,11 @@ public class ChatSseTransformer {
         if (ObjectUtils.isEmpty(content)) {
             return null;
         }
+        // 累加完整回答到上下文
+        if (ctx.getFullAnswer() == null) {
+            ctx.setFullAnswer(new StringBuilder());
+        }
+        ctx.getFullAnswer().append(content);
         return ServerSentEvent.<String>builder()
                 .event("answer")
                 .data(content)

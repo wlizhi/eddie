@@ -1,6 +1,8 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
 import cc.wlizhi.eddieai.chat.dao.AssistantDao;
+import cc.wlizhi.eddieai.chat.dao.MessageDao;
+import cc.wlizhi.eddieai.chat.dao.SessionDao;
 import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
 import cc.wlizhi.eddieai.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddieai.chat.entity.request.AssistantCreateRequest;
@@ -29,6 +31,12 @@ public class AssistantServiceImpl implements AssistantService {
 
     @Resource
     private AssistantDao assistantDao;
+
+    @Resource
+    private SessionDao sessionDao;
+
+    @Resource
+    private MessageDao messageDao;
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
@@ -153,8 +161,9 @@ public class AssistantServiceImpl implements AssistantService {
         if (!assistantDao.existsById(id)) {
             throw new NotFoundException("助手不存在: " + id);
         }
-        // TODO: 级联删除该助手的全部会话（会话表待实现）
-        // chatSessionMapper.deleteByAssistantId(id);
+        // 级联删除：消息 → 会话 → 助手
+        messageDao.deleteByAssistantId(id);
+        sessionDao.deleteByAssistantId(id);
         assistantDao.deleteById(id);
     }
 

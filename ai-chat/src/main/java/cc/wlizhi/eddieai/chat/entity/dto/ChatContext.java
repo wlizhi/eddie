@@ -53,9 +53,19 @@ public class ChatContext {
     private String systemPrompt;
 
     /**
-     * 会话 ID
+     * 会话 ID（String 兼容现有逻辑）
      */
     private String conversationId;
+
+    /**
+     * 会话 ID（Long，DB 主键）
+     */
+    private Long sessionId;
+
+    /**
+     * 归属助手 ID
+     */
+    private Long assistantId;
 
     /**
      * 用户消息内容
@@ -83,6 +93,16 @@ public class ChatContext {
      * 最后一次 ChatResponse（用于提取 token 用量等元数据）
      */
     private ChatResponse lastResponse;
+
+    /**
+     * 完整思考内容（StringBuilder，流式拼接）
+     */
+    private StringBuilder fullThinking;
+
+    /**
+     * 完整回答内容（StringBuilder，流式拼接）
+     */
+    private StringBuilder fullAnswer;
 
     // ==================== 扩展属性 ====================
 
