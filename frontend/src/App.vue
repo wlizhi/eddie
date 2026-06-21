@@ -52,6 +52,8 @@ function togglePanel(key: string) {
   if (activeNav.value === key) {
     newState[key] = !panelCollapsed.value[key]
   }
+  // 设置页面不需要侧栏面板，始终折叠
+  newState['settings'] = true
   panelCollapsed.value = newState
 }
 
