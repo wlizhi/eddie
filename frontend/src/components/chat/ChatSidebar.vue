@@ -1,6 +1,17 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
-import {ChevronDown, GripVertical, MessageSquare, Pin, Plus, Search, Settings, Trash2} from '@lucide/vue'
+import {computed, nextTick, ref} from 'vue'
+import {
+  ChevronDown,
+  GripVertical,
+  MessageSquare,
+  Pencil,
+  Pin,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  Trash2
+} from '@lucide/vue'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
 import {batchSortAssistant} from '@/api/assistant'
@@ -20,14 +31,44 @@ const showAllAssistants = ref(true)
 const editAssistantId = ref<number | null>(null)
 const showCreateAssistant = ref(false)
 
+/** 行内重命名状态 */
+const editingSessionId = ref<number | null>(null)
+const editTitle = ref('')
+
 // 会话列表
 const {
-  searchQuery, filteredSessions, removeSession, togglePin,
+  searchQuery, filteredSessions, removeSession, togglePin, renameSession, aiGenerateTitle,
 } = useSessionList(
     computed(() => assistantStore.activeId),
     computed(() => chatStore.sessionRefreshCounter),
     computed(() => chatStore.currentConversationId),
 )
+
+/** 进入行内编辑模式 */
+function startRename(session: SessionVO) {
+  editingSessionId.value = session.id
+  editTitle.value = session.title || ''
+  nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>('.rename-input')
+    input?.focus()
+    input?.select()
+  })
+}
+
+/** 提交重命名 */
+function submitRename() {
+  if (editingSessionId.value != null && editTitle.value.trim()) {
+    renameSession(editingSessionId.value, editTitle.value.trim())
+  }
+  editingSessionId.value = null
+  editTitle.value = ''
+}
+
+/** 取消重命名 */
+function cancelRename() {
+  editingSessionId.value = null
+  editTitle.value = ''
+}
 
 // 拖拽排序
 const {dragIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd} =
@@ -119,24 +160,42 @@ function selectSession(session: SessionVO) {
             :key="session.id"
             class="session-item"
             :class="{ active: chatStore.currentConversationId === String(session.id) }"
-            @click="selectSession(session)"
+            @click="editingSessionId !== session.id && selectSession(session)"
         >
           <div class="session-icon">
             <MessageSquare :size="14" :stroke-width="1.8"/>
           </div>
           <div class="session-info">
-            <div class="session-title">
+            <div class="session-title" v-if="editingSessionId !== session.id">
               <span class="title-text">{{ session.title || '新对话' }}</span>
               <span v-if="session.messageCount > 0" class="msg-count">{{ session.messageCount }}</span>
             </div>
+            <div class="session-edit" v-else @click.stop>
+              <input
+                  v-model="editTitle"
+                  class="rename-input"
+                  maxlength="50"
+                  @keyup.enter="submitRename()"
+                  @keyup.escape="cancelRename()"
+                  @blur="submitRename()"
+              />
+            </div>
             <div class="session-time">{{ formatTime(session.updatedAt) }}</div>
           </div>
-          <button class="session-pin" title="置顶" @click.stop="togglePin(session)">
-            <Pin :size="11" :stroke-width="2" :class="{ pinned: session.pinned }"/>
-          </button>
-          <button class="session-delete" title="删除会话" @click.stop="removeSession(session.id)">
-            <Trash2 :size="12" :stroke-width="2"/>
-          </button>
+          <div class="session-actions">
+            <button class="session-rename" title="重命名" @click.stop="startRename(session)">
+              <Pencil :size="11" :stroke-width="2"/>
+            </button>
+            <button class="session-ai-title" title="AI 生成标题" @click.stop="aiGenerateTitle(session.id)">
+              <Sparkles :size="11" :stroke-width="2"/>
+            </button>
+            <button class="session-pin" title="置顶" @click.stop="togglePin(session)">
+              <Pin :size="11" :stroke-width="2" :class="{ pinned: session.pinned }"/>
+            </button>
+            <button class="session-delete" title="删除会话" @click.stop="removeSession(session.id)">
+              <Trash2 :size="12" :stroke-width="2"/>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -506,8 +565,49 @@ function selectSession(session: SessionVO) {
   margin-top: 1px;
 }
 
+/* 行内编辑 */
+.session-edit {
+  flex: 1;
+  min-width: 0;
+}
+
+.rename-input {
+  width: 100%;
+  padding: 2px 6px;
+  border: 1px solid #2563eb;
+  border-radius: 4px;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1f1f1f;
+  outline: none;
+}
+
+/* 操作按钮容器 —— 绝对定位悬浮，不占空间 */
+.session-actions {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  background: inherit;
+  padding: 2px 0;
+}
+
+.session-item:hover .session-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.session-rename,
+.session-ai-title,
+.session-pin,
 .session-delete {
-  flex-shrink: 0;
   width: 22px;
   height: 22px;
   border: none;
@@ -517,13 +617,23 @@ function selectSession(session: SessionVO) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #d1d5db;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  color: #6b7280;
+  transition: color 0.15s, background 0.15s;
 }
 
-.session-item:hover .session-delete {
-  opacity: 1;
+.session-rename:hover {
+  color: #374151;
+  background: #e0e2e6;
+}
+
+.session-ai-title:hover {
+  color: #7c3aed;
+  background: #f3f0ff;
+}
+
+.session-pin:hover {
+  color: #2563eb;
+  background: #e8f0fe;
 }
 
 .session-delete:hover {
@@ -531,7 +641,11 @@ function selectSession(session: SessionVO) {
   background: #fef2f2;
 }
 
-/* 置顶按钮 */
+.session-pin .pinned {
+  color: #2563eb;
+}
+
+/* 置顶按钮（保留原有结构兼容，实际样式已在 .session-actions 内统一定义） */
 .session-pin {
   width: 22px;
   height: 22px;

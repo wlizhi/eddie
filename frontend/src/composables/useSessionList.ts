@@ -6,7 +6,7 @@
 import {computed, type ComputedRef, ref, watch} from 'vue'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
-import {deleteSession, fetchSessionList, pinSession, unpinSession} from '@/api/session'
+import {deleteSession, fetchSessionList, generateTitle, pinSession, renameTitle, unpinSession} from '@/api/session'
 import type {SessionVO} from '@/types/session'
 
 export function useSessionList(
@@ -88,6 +88,29 @@ export function useSessionList(
         }
     }
 
+    /** 手动重命名 */
+    async function renameSession(sessionId: number, title: string) {
+        try {
+            await renameTitle(sessionId, {title})
+            loadSessions()
+        } catch (err) {
+            console.error('重命名失败:', err)
+        }
+    }
+
+    /** AI 生成标题 */
+    async function aiGenerateTitle(sessionId: number) {
+        try {
+            await generateTitle(sessionId, {
+                providerId: chatStore.currentProviderId,
+                modelCode: chatStore.currentModelId,
+            })
+            loadSessions()
+        } catch (err) {
+            console.error('AI 生成标题失败:', err)
+        }
+    }
+
     return {
         searchQuery,
         sessions,
@@ -96,5 +119,7 @@ export function useSessionList(
         loadSessions,
         removeSession,
         togglePin,
+        renameSession,
+        aiGenerateTitle,
     }
 }

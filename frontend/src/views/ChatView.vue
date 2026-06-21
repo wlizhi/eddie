@@ -55,9 +55,10 @@ function syncModelFromAssistant() {
   }
 }
 
-// 切换助手时自动同步模型
+// 切换助手时自动同步模型并清空聊天状态（等同于新建会话）
 watch(() => assistantStore.activeId, () => {
   syncModelFromAssistant()
+  chatStore.newConversation()
 })
 
 /** 发送消息 */
