@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref, watch} from 'vue'
+import {computed, ref} from 'vue'
 import {ChevronDown, GripVertical, MessageSquare, Pin, Plus, Search, Settings, Trash2} from '@lucide/vue'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
 import {batchSortAssistant} from '@/api/assistant'
-import {deleteSession, fetchSessionList, pinSession, unpinSession} from '@/api/session'
 import type {SessionVO} from '@/types/session'
+import {useSessionList} from '@/composables/useSessionList'
+import {useDragSort} from '@/composables/useDragSort'
+import {useRelativeTime} from '@/composables/useRelativeTime'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AssistantDialog from '../assistant/AssistantDialog.vue'
 
@@ -18,163 +20,31 @@ const showAllAssistants = ref(true)
 const editAssistantId = ref<number | null>(null)
 const showCreateAssistant = ref(false)
 
-// ========== 搜索 ==========
-const searchQuery = ref('')
+// 会话列表
+const {
+  searchQuery, filteredSessions, removeSession, togglePin,
+} = useSessionList(
+    computed(() => assistantStore.activeId),
+    computed(() => chatStore.sessionRefreshCounter),
+    computed(() => chatStore.currentConversationId),
+)
 
-/** 当前时间戳（30s 自动刷新，用于相对时间显示） */
-const now = ref(Date.now())
-let timeTimer: ReturnType<typeof setInterval> | null = null
-
-/** 会话列表过滤（支持按标题搜索） */
-const filteredSessions = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return sessions.value
-  return sessions.value.filter(s => (s.title || '').toLowerCase().includes(q))
-})
-
-// ========== 会话列表 ==========
-const sessions = ref<SessionVO[]>([])
-const sessionsLoading = ref(false)
-
-/** 加载会话列表 */
-async function loadSessions() {
-  if (!assistantStore.activeId) {
-    sessions.value = []
-    return
-  }
-  sessionsLoading.value = true
-  try {
-    sessions.value = await fetchSessionList(assistantStore.activeId)
-  } catch (err) {
-    console.error('加载会话列表失败:', err)
-  } finally {
-    sessionsLoading.value = false
-  }
-}
-
-// 切换助手时重新加载会话列表
-watch(() => assistantStore.activeId, () => {
-  // 不自动切换到上次会话，让用户自行选择
-  loadSessions()
-}, {immediate: true})
-
-// 会话 ID 变更时刷新列表（新建会话 / 切换会话）
-watch(() => chatStore.currentConversationId, (newId) => {
-  if (newId) {
-    loadSessions()
-  }
-})
-
-// 事件驱动：聊天事件（发送消息、流式完成、标题生成）后刷新列表
-watch(() => chatStore.sessionRefreshCounter, () => {
-  loadSessions()
-})
-
-// 每 30 秒更新当前时间，驱动相对时间重新计算
-onMounted(() => {
-  timeTimer = setInterval(() => {
-    now.value = Date.now()
-  }, 30_000)
-})
-
-onUnmounted(() => {
-  if (timeTimer) {
-    clearInterval(timeTimer)
-    timeTimer = null
-  }
-})
-
-/** 格式化时间（响应式：now.value 变化时自动重算） */
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr)
-  const diff = now.value - date.getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}天前`
-  return date.toLocaleDateString('zh-CN')
-}
-
-// ========== 拖拽排序 ==========
-const dragIndex = ref<number | null>(null)
-const dragOverIndex = ref<number | null>(null)
-
-function onDragStart(index: number) {
-  dragIndex.value = index
-}
-
-function onDragOver(e: DragEvent, index: number) {
-  e.preventDefault()
-  dragOverIndex.value = index
-}
-
-function onDragLeave() {
-  dragOverIndex.value = null
-}
-
-async function onDrop() {
-  if (dragIndex.value === null || dragOverIndex.value === null) return
-  if (dragIndex.value === dragOverIndex.value) {
-    dragIndex.value = null
-    dragOverIndex.value = null
-    return
-  }
-
-  const list = [...assistantStore.list]
-  const [moved] = list.splice(dragIndex.value, 1)
-  list.splice(dragOverIndex.value, 0, moved)
-  assistantStore.list.splice(0, assistantStore.list.length, ...list)
-
-  dragIndex.value = null
-  dragOverIndex.value = null
-
-  try {
-    await batchSortAssistant(list.map(a => a.id))
-  } catch (err) {
-    console.error('排序保存失败:', err)
+// 拖拽排序
+const {dragIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd} =
+    useDragSort(assistantStore.list, batchSortAssistant, () => {
     assistantStore.loadList(true, true)
-  }
-}
+    })
+
+// 相对时间
+const {formatTime} = useRelativeTime()
 
 const displayedAssistants = computed(() => {
   const items = assistantStore.list
   return showAllAssistants.value ? items : items.slice(0, DEFAULT_SHOWN)
 })
 
-/** 点击会话：加载历史消息 */
 function selectSession(session: SessionVO) {
   chatStore.loadConversation(session.id)
-}
-
-/** 删除会话 */
-async function removeSession(sessionId: number) {
-  try {
-    await deleteSession(sessionId)
-    sessions.value = sessions.value.filter(s => s.id !== sessionId)
-    // 如果删除的是当前会话，新建
-    if (chatStore.currentConversationId === String(sessionId)) {
-      chatStore.newConversation()
-    }
-  } catch (err) {
-    console.error('删除会话失败:', err)
-  }
-}
-
-/** 置顶/取消置顶 */
-async function togglePin(session: SessionVO) {
-  try {
-    if (session.pinned) {
-      await unpinSession(session.id)
-    } else {
-      await pinSession(session.id)
-    }
-    loadSessions()
-  } catch (err) {
-    console.error('置顶操作失败:', err)
-  }
 }
 </script>
 

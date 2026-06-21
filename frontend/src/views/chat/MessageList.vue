@@ -85,6 +85,11 @@ function toggleThinking(msgId: string) {
 
       <!-- 消息内容 -->
       <div class="msg-col">
+        <!-- 助手名称 -->
+        <div v-if="msg.role === 'assistant' && assistantStore.activeAssistant" class="assistant-name-label">
+          {{ assistantStore.activeAssistant.name }}
+        </div>
+
         <!-- thinking 内容（仅 assistant） -->
         <div
             v-if="msg.role === 'assistant' && (msg.thinking || (chatStore.isStreaming && msg === chatStore.messages[chatStore.messages.length - 1] && !msg.content))"
@@ -214,6 +219,15 @@ function toggleThinking(msgId: string) {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+/* 助手名称标签 */
+.assistant-name-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  padding: 0 2px;
+  line-height: 1.3;
 }
 
 /* ===== 气泡 ===== */
