@@ -12,6 +12,7 @@ const DEFAULT_SHOWN = 3
 const assistantListCollapsed = ref(false)
 const showAllAssistants = ref(true)
 const editAssistantId = ref<number | null>(null)
+const showCreateAssistant = ref(false)
 
 // ========== 拖拽排序 ==========
 const dragIndex = ref<number | null>(null)
@@ -96,6 +97,9 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
   <div class="sidebar">
     <!-- 助手列表折叠/展开按钮 -->
     <button class="collapse-assistant-btn" @click="assistantListCollapsed = !assistantListCollapsed">
+      <span class="create-trigger" title="创建助手" @click.stop="showCreateAssistant = true">
+        <Plus :size="15" :stroke-width="2.5"/>
+      </span>
       <ChevronDown :size="14" :stroke-width="2" class="collapse-icon" :class="{ rotated: !assistantListCollapsed }"/>
       <span>{{ assistantListCollapsed ? '展开助手列表' : '收起助手列表' }}</span>
     </button>
@@ -181,8 +185,8 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
     </div>
   </div>
 
-  <!-- 助手设置弹窗 -->
-  <AssistantDialog v-model:assistant-id="editAssistantId"/>
+  <!-- 助手设置/创建弹窗 -->
+  <AssistantDialog v-model:assistant-id="editAssistantId" v-model:create-visible="showCreateAssistant"/>
 </template>
 
 <style scoped>
@@ -238,6 +242,7 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
 
 /* ===== 折叠助手列表按钮 ===== */
 .collapse-assistant-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -258,6 +263,30 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
 .collapse-assistant-btn:hover {
   background: #f0f1f3;
   color: #6b7280;
+}
+
+/* ===== 新建按钮（绝对定位在折叠按钮最左侧） ===== */
+.create-trigger {
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: background 0.1s, color 0.1s;
+}
+
+.create-trigger:hover {
+  background: #e8f0fe;
+  color: #2563eb;
 }
 
 .collapse-icon {

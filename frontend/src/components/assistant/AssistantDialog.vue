@@ -34,11 +34,16 @@ const tipTheme: any = {
 
 const props = defineProps<{
   assistantId: number | null
+  createVisible?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:assistantId': [value: number | null]
+  'update:createVisible': [value: boolean]
 }>()
+
+/** 是否为创建模式（createVisible=true 且 assistantId=null） */
+const isCreateMode = computed(() => props.createVisible === true && props.assistantId === null)
 
 const assistantStore = useAssistantStore()
 const chatStore = useChatStore()
@@ -109,7 +114,10 @@ const pendingAvatarFile = ref<File | null>(null)
 
 watch(() => props.assistantId, async (id) => {
   if (id === null) {
-    show.value = false
+    // 创建模式由 createVisible 控制显示，不关闭
+    if (!props.createVisible) {
+      show.value = false
+    }
     return
   }
   feedback.value = ''
@@ -119,6 +127,38 @@ watch(() => props.assistantId, async (id) => {
   await loadDetail(id)
   show.value = true
 })
+
+// 创建模式：createVisible → true 时显示空表单
+watch(() => props.createVisible, async (visible) => {
+  if (visible) {
+    feedback.value = ''
+    resetFormForCreate()
+    if (chatStore.modelSelectors.length === 0) {
+      await chatStore.loadModels()
+    }
+    show.value = true
+  } else if (props.assistantId === null) {
+    show.value = false
+  }
+})
+
+/** 重置表单为创建模式的空状态 */
+function resetFormForCreate() {
+  detail.value = null
+  formName.value = ''
+  formAvatar.value = ''
+  originalAvatar.value = ''
+  formDescription.value = ''
+  formSystemPrompt.value = ''
+  formProviderId.value = null
+  formModelId.value = ''
+  formMemoryRounds.value = 20
+  formEnabled.value = 1
+  for (const def of modelParamDefs) {
+    formModelParams[def.key] = null
+  }
+  pendingAvatarFile.value = null
+}
 
 async function loadDetail(id: number) {
   try {
@@ -183,6 +223,58 @@ function onAvatarPicked(value: string | null, file: File | null) {
 }
 
 async function handleSave() {
+  // ========== 创建模式 ==========
+  if (isCreateMode.value) {
+    if (!formName.value.trim()) {
+      feedback.value = '⚠️ 请输入助手名称'
+      return
+    }
+    if (!formProviderId.value) {
+      feedback.value = '⚠️ 请先选择一个模型'
+      return
+    }
+
+    saving.value = true
+    try {
+      const modelParams: Record<string, unknown> = {}
+      for (const def of modelParamDefs) {
+        const v = formModelParams[def.key]
+        if (v !== null) modelParams[def.key] = v
+      }
+
+      const created = await assistantStore.create({
+        name: formName.value,
+        avatar: formAvatar.value || undefined,
+        description: formDescription.value || undefined,
+        systemPrompt: formSystemPrompt.value || undefined,
+        providerId: formProviderId.value,
+        modelId: formModelId.value,
+        memoryRounds: formMemoryRounds.value,
+        modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
+      })
+
+      if (created) {
+        // 如果有上传图片，创建成功后更新头像
+        if (pendingAvatarFile.value) {
+          const fd = new FormData()
+          fd.append('file', pendingAvatarFile.value)
+          await updateAssistantAvatar(created.id, fd)
+        }
+        feedback.value = '✅ 创建成功'
+        close()
+      } else {
+        feedback.value = '❌ 创建失败'
+      }
+    } catch (err) {
+      feedback.value = '❌ 创建失败'
+      console.error(err)
+    } finally {
+      saving.value = false
+    }
+    return
+  }
+
+  // ========== 编辑模式 ==========
   if (!detail.value) return
   if (!formProviderId.value) {
     feedback.value = '⚠️ 请先选择一个模型'
@@ -245,6 +337,9 @@ async function handleDelete() {
 function close() {
   show.value = false
   showPicker.value = false
+  if (isCreateMode.value) {
+    emit('update:createVisible', false)
+  }
   emit('update:assistantId', null)
 }
 </script>
@@ -259,7 +354,7 @@ function close() {
       :mask-closable="false"
   >
     <template #header>
-      <span style="font-weight: 600; font-size: 15px;">⚙️ 助手设置</span>
+      <span style="font-weight: 600; font-size: 15px;">{{ isCreateMode ? '✨ 新建助手' : '⚙️ 助手设置' }}</span>
     </template>
 
     <div class="form">
@@ -357,7 +452,7 @@ function close() {
 
     <template #footer>
       <div class="footer">
-        <button class="btn btn-delete" @click="handleDelete">🗑 删除</button>
+        <button v-if="!isCreateMode" class="btn btn-delete" @click="handleDelete">🗑 删除</button>
         <span v-if="feedback" class="feedback">{{ feedback }}</span>
         <button class="btn btn-cancel" @click="close">取消</button>
         <button class="btn btn-save" :disabled="saving || !!feedback" @click="handleSave">
