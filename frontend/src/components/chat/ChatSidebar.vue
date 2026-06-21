@@ -1,18 +1,70 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
-import {ChevronDown, GripVertical, MessageSquare, Plus, Search, Settings, Trash2} from '@lucide/vue'
+import {computed, ref, watch} from 'vue'
+import {ChevronDown, GripVertical, MessageSquare, Pin, Plus, Search, Settings, Trash2} from '@lucide/vue'
 import {useAssistantStore} from '@/stores/assistant'
+import {useChatStore} from '@/stores/chat'
 import {batchSortAssistant} from '@/api/assistant'
+import {deleteSession, fetchSessionList, pinSession, unpinSession} from '@/api/session'
+import type {SessionVO} from '@/types/session'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AssistantDialog from '../assistant/AssistantDialog.vue'
 
 const assistantStore = useAssistantStore()
+const chatStore = useChatStore()
 
 const DEFAULT_SHOWN = 3
 const assistantListCollapsed = ref(false)
 const showAllAssistants = ref(true)
 const editAssistantId = ref<number | null>(null)
 const showCreateAssistant = ref(false)
+
+// ========== 会话列表 ==========
+const sessions = ref<SessionVO[]>([])
+const sessionsLoading = ref(false)
+
+/** 加载会话列表 */
+async function loadSessions() {
+  if (!assistantStore.activeId) {
+    sessions.value = []
+    return
+  }
+  sessionsLoading.value = true
+  try {
+    sessions.value = await fetchSessionList(assistantStore.activeId)
+  } catch (err) {
+    console.error('加载会话列表失败:', err)
+  } finally {
+    sessionsLoading.value = false
+  }
+}
+
+// 切换助手时重新加载会话列表
+watch(() => assistantStore.activeId, () => {
+  // 不自动切换到上次会话，让用户自行选择
+  loadSessions()
+}, {immediate: true})
+
+// 首轮对话完成后需要刷新列表（标题已更新）
+watch(() => chatStore.currentConversationId, (newId) => {
+  if (newId && sessions.value.length > 0) {
+    loadSessions()
+  }
+})
+
+/** 格式化时间 */
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}小时前`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}天前`
+  return date.toLocaleDateString('zh-CN')
+}
 
 // ========== 拖拽排序 ==========
 const dragIndex = ref<number | null>(null)
@@ -39,7 +91,6 @@ async function onDrop() {
     return
   }
 
-  // 本地重新排序
   const list = [...assistantStore.list]
   const [moved] = list.splice(dragIndex.value, 1)
   list.splice(dragOverIndex.value, 0, moved)
@@ -48,49 +99,51 @@ async function onDrop() {
   dragIndex.value = null
   dragOverIndex.value = null
 
-  // 调后端 batch-sort
   try {
     await batchSortAssistant(list.map(a => a.id))
   } catch (err) {
     console.error('排序保存失败:', err)
-    // 失败时重新加载
     assistantStore.loadList(true, true)
   }
 }
 
-/** 默认展示全部助手（后端已按 enabled DESC, sort_order ASC 排序） */
 const displayedAssistants = computed(() => {
   const items = assistantStore.list
   return showAllAssistants.value ? items : items.slice(0, DEFAULT_SHOWN)
 })
 
-// Mock 会话列表（按当前助手不同返回不同数据）
-const sessionsMap: Record<string, { id: string; title: string; updatedAt: string }[]> = {
-  '1': [
-    {id: 's1', title: '帮我写一个排序算法', updatedAt: '10分钟前'},
-    {id: 's2', title: '解释一下 React Hooks', updatedAt: '1小时前'},
-    {id: 's3', title: 'Vue 3 和 React 对比', updatedAt: '昨天'},
-    {id: 's4', title: 'Python 异步编程入门', updatedAt: '2天前'},
-  ],
-  '2': [
-    {id: 's5', title: '分析销售数据趋势', updatedAt: '30分钟前'},
-    {id: 's6', title: '生成月度报告', updatedAt: '3小时前'},
-  ],
-  '3': [
-    {id: 's7', title: '帮我优化这段 SQL', updatedAt: '15分钟前'},
-    {id: 's8', title: '实现一个二分查找', updatedAt: '昨天'},
-    {id: 's9', title: '代码审查反馈', updatedAt: '2天前'},
-  ],
-  '4': [
-    {id: 's10', title: '翻译一篇技术文档', updatedAt: '1小时前'},
-  ],
-  '5': [
-    {id: 's11', title: '审查 PR #42', updatedAt: '昨天'},
-    {id: 's12', title: '检查安全性问题', updatedAt: '3天前'},
-  ],
+/** 点击会话：加载历史消息 */
+function selectSession(session: SessionVO) {
+  chatStore.loadConversation(session.id)
 }
 
-const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? [])
+/** 删除会话 */
+async function removeSession(sessionId: number) {
+  try {
+    await deleteSession(sessionId)
+    sessions.value = sessions.value.filter(s => s.id !== sessionId)
+    // 如果删除的是当前会话，新建
+    if (chatStore.currentConversationId === String(sessionId)) {
+      chatStore.newConversation()
+    }
+  } catch (err) {
+    console.error('删除会话失败:', err)
+  }
+}
+
+/** 置顶/取消置顶 */
+async function togglePin(session: SessionVO) {
+  try {
+    if (session.pinned) {
+      await unpinSession(session.id)
+    } else {
+      await pinSession(session.id)
+    }
+    loadSessions()
+  } catch (err) {
+    console.error('置顶操作失败:', err)
+  }
+}
 </script>
 
 <template>
@@ -163,22 +216,27 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
             v-for="session in sessions"
             :key="session.id"
             class="session-item"
+            :class="{ active: chatStore.currentConversationId === String(session.id) }"
+            @click="selectSession(session)"
         >
           <div class="session-icon">
             <MessageSquare :size="14" :stroke-width="1.8"/>
           </div>
           <div class="session-info">
-            <div class="session-title">{{ session.title }}</div>
-            <div class="session-time">{{ session.updatedAt }}</div>
+            <div class="session-title">{{ session.title || '新对话' }}</div>
+            <div class="session-time">{{ formatTime(session.updatedAt) }}</div>
           </div>
-          <button class="session-delete" title="删除会话">
+          <button class="session-pin" title="置顶" @click.stop="togglePin(session)">
+            <Pin :size="11" :stroke-width="2" :class="{ pinned: session.pinned }"/>
+          </button>
+          <button class="session-delete" title="删除会话" @click.stop="removeSession(session.id)">
             <Trash2 :size="12" :stroke-width="2"/>
           </button>
         </div>
       </div>
 
       <!-- 新对话按钮 -->
-      <button class="new-chat-btn">
+      <button class="new-chat-btn" @click="chatStore.newConversation()">
         <Plus :size="15" :stroke-width="2"/>
         <span>新对话</span>
       </button>
@@ -541,6 +599,41 @@ const sessions = computed(() => sessionsMap[String(assistantStore.activeId)] ?? 
 .session-delete:hover {
   color: #ef4444;
   background: #fef2f2;
+}
+
+/* 置顶按钮 */
+.session-pin {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d1d5db;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.session-item:hover .session-pin {
+  opacity: 1;
+}
+
+.session-pin:hover {
+  color: #2563eb;
+  background: #e8f0fe;
+}
+
+.session-pin .pinned {
+  color: #2563eb;
+  opacity: 1;
+}
+
+.session-item.active {
+  background: #e8f0fe;
 }
 
 /* 新对话按钮 */

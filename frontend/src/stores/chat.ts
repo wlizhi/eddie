@@ -1,12 +1,15 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector} from '@/types/chat'
+import type {MessageVO} from '@/types/session'
 import {fetchModelList, streamChat} from '@/api/chat'
+import {createSession, fetchMessages, generateTitle} from '@/api/session'
+import {useAssistantStore} from '@/stores/assistant'
 
 /**
  * 聊天 Store
  *
- * 管理：消息列表、模型列表、流式状态
+ * 管理：消息列表、模型列表、流式状态、会话生命周期
  */
 export const useChatStore = defineStore('chat', () => {
     // ========== 状态 ==========
@@ -14,8 +17,8 @@ export const useChatStore = defineStore('chat', () => {
     /** 消息列表 */
     const messages = ref<ChatMessage[]>([])
 
-    /** 当前会话 ID（临时生成） */
-    const currentConversationId = ref<string>(crypto.randomUUID())
+    /** 当前会话 ID（数字主键，空字符串 = 新会话） */
+    const currentConversationId = ref<string>('')
 
     /** 模型选择器列表 */
     const modelSelectors = ref<ChatModelSelector[]>([])
@@ -43,7 +46,6 @@ export const useChatStore = defineStore('chat', () => {
 
     // ========== 计算属性 ==========
 
-    /** 展平的模型选项列表（用于 NSelect） */
     const flatModelOptions = computed(() => {
         const options: { label: string; value: string; group?: string }[] = []
         for (const selector of modelSelectors.value) {
@@ -58,18 +60,17 @@ export const useChatStore = defineStore('chat', () => {
         return options
     })
 
-    /** 是否有已发送的消息 */
     const hasMessages = computed(() => messages.value.length > 0)
+
+    /** 是否为新会话（尚未创建） */
+    const isNewConversation = computed(() => currentConversationId.value === '')
 
     // ========== 方法 ==========
 
-    /** 加载模型列表 */
     async function loadModels(): Promise<void> {
         try {
             const list = await fetchModelList()
             modelSelectors.value = list
-
-            // 如果还没有选中的模型，默认选中第一个
             if (!currentModelId.value && list.length > 0 && list[0].models.length > 0) {
                 const first = list[0].models[0]
                 currentModelId.value = first.modelId
@@ -80,15 +81,37 @@ export const useChatStore = defineStore('chat', () => {
         }
     }
 
-    /** 选择模型 */
     function selectModel(modelId: string, providerId: number): void {
         currentModelId.value = modelId
         currentProviderId.value = providerId
     }
 
-    /** 发送消息 */
+    /**
+     * 发送消息
+     *
+     * 新会话：先创建 session → 发送消息 → 生成标题
+     * 已有会话：直接发送消息
+     */
     async function sendMessage(text: string): Promise<void> {
         if (!text.trim() || isStreaming.value) return
+
+        const isFirstRound = isNewConversation.value
+
+        // 新会话：创建 session
+        if (isFirstRound) {
+            const assistantStore = useAssistantStore()
+            if (!assistantStore.activeId) {
+                console.error('没有选中的助手')
+                return
+            }
+            try {
+                const session = await createSession({assistantId: assistantStore.activeId})
+                currentConversationId.value = String(session.id)
+            } catch (err) {
+                console.error('创建会话失败:', err)
+                return
+            }
+        }
 
         // 添加用户消息
         const userMsg: ChatMessage = {
@@ -105,7 +128,7 @@ export const useChatStore = defineStore('chat', () => {
         currentAnswer.value = ''
         currentMetadata.value = null
 
-        // 创建新的 assistant 空消息占位
+        // 创建 assistant 空消息占位
         const assistantMsg: ChatMessage = {
             id: crypto.randomUUID(),
             role: 'assistant',
@@ -115,7 +138,6 @@ export const useChatStore = defineStore('chat', () => {
         }
         messages.value.push(assistantMsg)
 
-        // 创建 AbortController
         abortController = new AbortController()
 
         await streamChat({
@@ -128,7 +150,6 @@ export const useChatStore = defineStore('chat', () => {
             signal: abortController.signal,
             onThinking: (chunk) => {
                 currentThinking.value += chunk
-                // 更新 assistant 消息的 thinking
                 const last = messages.value[messages.value.length - 1]
                 if (last && last.role === 'assistant') {
                     last.thinking = currentThinking.value
@@ -136,7 +157,6 @@ export const useChatStore = defineStore('chat', () => {
             },
             onAnswer: (chunk) => {
                 currentAnswer.value += chunk
-                // 更新 assistant 消息的 content（打字机效果）
                 const last = messages.value[messages.value.length - 1]
                 if (last && last.role === 'assistant') {
                     last.content = currentAnswer.value
@@ -150,12 +170,16 @@ export const useChatStore = defineStore('chat', () => {
                         last.metadata = currentMetadata.value
                     }
                 } catch {
-                    // ignore parse error
+                    // ignore
                 }
             },
             onComplete: () => {
                 isStreaming.value = false
                 abortController = null
+                // 首轮对话后生成标题
+                if (isFirstRound) {
+                    generateTitleAsync()
+                }
             },
             onError: (error) => {
                 console.error('流式请求出错:', error)
@@ -165,7 +189,20 @@ export const useChatStore = defineStore('chat', () => {
         })
     }
 
-    /** 中断当前请求 */
+    /** 异步生成标题（首轮对话后） */
+    async function generateTitleAsync(): Promise<void> {
+        const sid = Number(currentConversationId.value)
+        if (!sid) return
+        try {
+            await generateTitle(sid, {
+                providerId: currentProviderId.value,
+                modelCode: currentModelId.value,
+            })
+        } catch (err) {
+            console.error('生成标题失败:', err)
+        }
+    }
+
     function abortStream(): void {
         if (abortController) {
             abortController.abort()
@@ -175,15 +212,49 @@ export const useChatStore = defineStore('chat', () => {
 
     /** 新建会话 */
     function newConversation(): void {
-        currentConversationId.value = crypto.randomUUID()
+        currentConversationId.value = ''
         messages.value = []
         currentThinking.value = ''
         currentAnswer.value = ''
         currentMetadata.value = null
     }
 
+    /** 切换到已有会话并加载历史消息 */
+    async function loadConversation(sessionId: number): Promise<void> {
+        currentConversationId.value = String(sessionId)
+        messages.value = []
+        currentThinking.value = ''
+        currentAnswer.value = ''
+        currentMetadata.value = null
+
+        try {
+            const list = await fetchMessages(sessionId)
+            // 后端返回倒序（最新在前），反转为正序
+            for (let i = list.length - 1; i >= 0; i--) {
+                messages.value.push(toChatMessage(list[i]))
+            }
+        } catch (err) {
+            console.error('加载历史消息失败:', err)
+        }
+    }
+
+    /** MessageVO → ChatMessage */
+    function toChatMessage(msg: MessageVO): ChatMessage {
+        return {
+            id: String(msg.id),
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            thinking: msg.thinking || undefined,
+            timestamp: new Date(msg.createdAt).getTime(),
+            metadata: msg.totalTokens ? {
+                promptTokens: msg.promptTokens,
+                completionTokens: msg.completionTokens,
+                totalTokens: msg.totalTokens,
+            } as ChatMetadata : undefined,
+        }
+    }
+
     return {
-        // 状态
         messages,
         currentConversationId,
         modelSelectors,
@@ -193,14 +264,14 @@ export const useChatStore = defineStore('chat', () => {
         currentThinking,
         currentAnswer,
         currentMetadata,
-        // 计算属性
         flatModelOptions,
         hasMessages,
-        // 方法
+        isNewConversation,
         loadModels,
         selectModel,
         sendMessage,
         abortStream,
         newConversation,
+        loadConversation,
     }
 })

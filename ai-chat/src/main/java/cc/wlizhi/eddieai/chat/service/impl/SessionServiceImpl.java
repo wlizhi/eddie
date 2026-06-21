@@ -135,6 +135,7 @@ public class SessionServiceImpl implements SessionService {
         vo.setTitle(entity.getTitle());
         vo.setPinned(entity.getPinned());
         vo.setUpdatedAt(entity.getUpdatedAt());
+        vo.setMessageCount(0);
         return vo;
     }
 
