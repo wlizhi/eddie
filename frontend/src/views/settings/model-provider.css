@@ -1,0 +1,228 @@
+/* ===== 整体布局 ===== */
+.provider-body {
+    display: flex;
+    border: 1px solid #e6e8ec;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* ===== 左侧服务商列表 ===== */
+.provider-sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: #fafbfc;
+    border-right: 1px solid #e6e8ec;
+    flex-shrink: 0;
+}
+
+.provider-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f1f3;
+    transition: background 0.12s;
+}
+
+.provider-item:hover {
+    background: #f0f1f3;
+}
+
+.provider-item.active {
+    background: #e8f0fe;
+}
+
+.provider-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1f1f1f;
+}
+
+.provider-item.active .provider-name {
+    color: #2563eb;
+}
+
+.provider-code {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+.sidebar-empty,
+.sidebar-loading {
+    padding: 24px 14px;
+    text-align: center;
+    font-size: 13px;
+    color: #9ca3af;
+}
+
+/* ===== 右侧详情区 ===== */
+.provider-detail {
+    flex: 1;
+    padding: 24px 28px;
+}
+
+.provider-detail.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #9ca3af;
+}
+
+.detail-placeholder-icon {
+    color: #d1d5db;
+}
+
+.detail-placeholder-text {
+    font-size: 13px;
+}
+
+/* ===== 属性设置 ===== */
+.props-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.prop-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.prop-label {
+    width: 72px;
+    font-size: 13px;
+    color: #6b7280;
+    flex-shrink: 0;
+}
+
+.prop-input {
+    flex: 1;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #e6e8ec;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1f1f1f;
+    background: #ffffff;
+    outline: none;
+    transition: border-color 0.12s;
+}
+
+.prop-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.prop-input:disabled {
+    background: #f5f6f8;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* ===== 分隔线 ===== */
+.section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.divider-line {
+    flex: 1;
+    height: 1px;
+    background: #e6e8ec;
+}
+
+.fetch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 12px;
+    border: 1px solid #e6e8ec;
+    border-radius: 6px;
+    background: #ffffff;
+    font-size: 12px;
+    color: #6b7280;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.12s, color 0.12s;
+    flex-shrink: 0;
+}
+
+.fetch-btn:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.fetch-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.fetch-btn .spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== 模型列表 ===== */
+.models-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.model-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f1f3;
+}
+
+.model-row:last-child {
+    border-bottom: none;
+}
+
+.model-name {
+    font-size: 13px;
+    color: #1f1f1f;
+    font-family: Monaco, 'Fira Code', monospace;
+}
+
+.btn-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+
+.btn-remove:hover {
+    color: #ef4444;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.models-empty {
+    padding: 20px 0;
+    text-align: center;
+    font-size: 13px;
+    color: #9ca3af;
+}
