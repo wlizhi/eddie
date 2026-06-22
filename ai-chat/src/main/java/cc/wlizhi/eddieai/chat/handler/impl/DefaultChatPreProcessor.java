@@ -3,9 +3,8 @@
  * <p>
  * 职责：
  * 1. 校验并查询 ModelProvider 信息
- * 2. 根据 conversationId 查询会话 → 获取助手信息 → 设置系统提示词
- * 3. DTO 转换（ChatRequest → ChatClientGetDTO）
- * 4. 填充基础上下文字段
+ * 2. 根据 conversationId 查询会话 → 获取助手信息
+ * 3. 填充基础上下文字段
  */
 package cc.wlizhi.eddieai.chat.handler.impl;
 
@@ -13,11 +12,9 @@ import cc.wlizhi.eddieai.chat.context.AssistantContext;
 import cc.wlizhi.eddieai.chat.dao.SessionDao;
 import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
 import cc.wlizhi.eddieai.chat.entity.SessionEntity;
-import cc.wlizhi.eddieai.chat.entity.dto.ChatClientGetDTO;
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.handler.ChatPreProcessor;
-import cc.wlizhi.eddieai.chat.mapper.ChatRequestMapper;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
@@ -35,9 +32,6 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
 
     @Resource
     private SessionDao sessionDao;
-
-    @Resource
-    private ChatRequestMapper chatRequestMapper;
 
     @Override
     public void process(ChatContext ctx) {
@@ -64,11 +58,7 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
         ctx.setAssistant(assistant);
         ctx.setSession(session);
 
-        // 3. DTO 转换
-        ChatClientGetDTO dto = chatRequestMapper.toDto(request);
-        ctx.setChatClientGetDTO(dto);
-
-        // 4. 基础字段
+        // 3. 基础字段
         ctx.setUserMessage(request.getMessage());
     }
 }

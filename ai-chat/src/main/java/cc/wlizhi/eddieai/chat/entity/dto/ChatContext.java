@@ -12,7 +12,6 @@ package cc.wlizhi.eddieai.chat.entity.dto;
 import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
 import cc.wlizhi.eddieai.chat.entity.SessionEntity;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
-import cc.wlizhi.eddieai.chat.service.ChatPolicy;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import lombok.Getter;
 import lombok.Setter;
@@ -45,11 +44,6 @@ public class ChatContext {
     private String resolvedModelId;
 
     /**
-     * 预处理后的 DTO
-     */
-    private ChatClientGetDTO chatClientGetDTO;
-
-    /**
      * 完整的助手实体（含 systemPrompt、modelId、modelParams、memoryRounds 等）
      */
     private AssistantEntity assistant;
@@ -64,12 +58,7 @@ public class ChatContext {
      */
     private String userMessage;
 
-    // ==================== 阶段三：路由 & 构建 ====================
-
-    /**
-     * 路由匹配到的策略
-     */
-    private ChatPolicy chatPolicy;
+    // ==================== 阶段三：构建 & 执行 ====================
 
     /**
      * 构建好的 ChatClient

@@ -6,9 +6,9 @@ import cc.wlizhi.eddieai.chat.handler.ChatPostProcessor;
 import cc.wlizhi.eddieai.chat.handler.ChatPreProcessor;
 import cc.wlizhi.eddieai.chat.handler.impl.ChatSseTransformer;
 import cc.wlizhi.eddieai.chat.handler.impl.ChatStreamExecutor;
+import cc.wlizhi.eddieai.chat.service.ChatClientFactory;
+import cc.wlizhi.eddieai.chat.service.ChatClientFactoryRouter;
 import cc.wlizhi.eddieai.chat.service.ChatMemoryManager;
-import cc.wlizhi.eddieai.chat.service.ChatPolicy;
-import cc.wlizhi.eddieai.chat.service.ChatPolicyRouter;
 import cc.wlizhi.eddieai.chat.service.ChatService;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
@@ -28,8 +28,8 @@ import java.util.List;
  * <ol>
  *   <li>初始化 {@link ChatContext}，解析 sessionId</li>
  *   <li>{@link ChatPreProcessor} 预处理</li>
- *   <li>{@link ChatPolicyRouter} 策略路由</li>
- *   <li>构建 {@link ChatClient} + 注入记忆</li>
+ *   <li>{@link ChatClientFactoryRouter} 工厂路由 + {@link ChatClientFactory} 构建 ChatClient</li>
+ *   <li>注入记忆 Advisor</li>
  *   <li>{@link ChatStreamExecutor} 流式执行</li>
  *   <li>{@link ChatSseTransformer} SSE 事件转换</li>
  *   <li>{@link ChatPostProcessor} 后置处理（消息持久化等）</li>
@@ -42,7 +42,7 @@ public class ChatServiceImpl implements ChatService {
     private List<ChatPreProcessor> preProcessors;
 
     @Resource
-    private ChatPolicyRouter chatPolicyRouter;
+    private ChatClientFactoryRouter chatClientFactoryRouter;
 
     @Resource
     private ChatMemoryManager chatMemoryManager;
@@ -66,12 +66,11 @@ public class ChatServiceImpl implements ChatService {
         // 2. 预处理
         preProcessors.forEach(p -> p.process(ctx));
 
-        // 3. 策略路由
-        ChatPolicy chatPolicy = chatPolicyRouter.resolve(ctx.getProviderCode());
-        ctx.setChatPolicy(chatPolicy);
+        // 3. 工厂路由 + 构建 ChatClient
+        ChatClientFactory factory = chatClientFactoryRouter.resolve(ctx.getProviderCode());
 
-        // 4. 构建 ChatClient + 注入记忆 Advisor
-        ChatClient chatClient = chatPolicy.getChatClient(ctx.getChatClientGetDTO());
+        // 4. 注入记忆 Advisor
+        ChatClient chatClient = factory.getChatClient(ctx);
         chatClient = chatClient.mutate()
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemoryManager)
