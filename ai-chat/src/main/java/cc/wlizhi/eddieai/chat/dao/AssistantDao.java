@@ -209,9 +209,6 @@ public class AssistantDao {
         entity.setSortOrder(rs.getObject("sort_order") != null ? rs.getInt("sort_order") : 0);
         entity.setCreatedAt(rs.getString("created_at"));
         entity.setUpdatedAt(rs.getString("updated_at"));
-        // JOIN 字段
-        entity.setProviderName(rs.getString("provider_name"));
-        entity.setProviderCode(rs.getString("provider_code"));
         return entity;
     };
 }
