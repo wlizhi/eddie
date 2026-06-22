@@ -1,0 +1,234 @@
+.message-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message-row {
+    display: flex;
+    gap: 8px;
+    max-width: 800px;
+}
+
+.user-row {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.assistant-row {
+    align-self: flex-start;
+}
+
+/* 问答模式下用户消息也左对齐 */
+.message-list.qa-mode .user-row {
+    align-self: flex-start;
+    flex-direction: row;
+}
+
+.message-list.qa-mode .user-bubble {
+    border-bottom-right-radius: 10px;
+}
+
+/* ===== 头像 ===== */
+.avatar-col {
+    flex-shrink: 0;
+}
+
+.avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.user-avatar {
+    background: #2563eb;
+    color: #fff;
+}
+
+.assistant-avatar {
+    background: #f0f1f3;
+    color: #6b7280;
+}
+
+.avatar-text {
+    font-size: 10px;
+}
+
+/* ===== 消息列 ===== */
+.msg-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+/* 助手名称标签 */
+.assistant-name-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    padding: 0 2px;
+    line-height: 1.3;
+}
+
+/* ===== 气泡 ===== */
+.message-bubble {
+    padding: 6px 10px;
+    border-radius: 10px;
+    line-height: 1.55;
+    font-size: 13.5px;
+}
+
+.user-bubble {
+    background: #2563eb;
+    color: #fff;
+    border-bottom-right-radius: 3px;
+}
+
+.assistant-bubble {
+    background: #f4f5f7;
+    color: #1f1f1f;
+    border-bottom-left-radius: 3px;
+}
+
+.message-content {
+    word-break: break-word;
+}
+
+/* ===== 思考区域 ===== */
+.thinking-section {
+    border-left: 2px solid #d1d5db;
+    padding-left: 8px;
+    margin-bottom: 3px;
+}
+
+.thinking-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 4px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 11px;
+    color: #9ca3af;
+    transition: background 0.15s, color 0.15s;
+}
+
+.thinking-toggle:hover {
+    background: #f0f1f3;
+    color: #6b7280;
+}
+
+.chevron {
+    transition: transform 0.2s;
+}
+
+.chevron.rotated {
+    transform: rotate(0deg);
+}
+
+.chevron:not(.rotated) {
+    transform: rotate(-90deg);
+}
+
+.thinking-content {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 4px 0;
+}
+
+/* ===== 元数据 ===== */
+.metadata {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #9ca3af;
+    padding: 2px 2px 0;
+    flex-wrap: wrap;
+    user-select: none;
+}
+
+.meta-time {
+    font-variant-numeric: tabular-nums;
+}
+
+.meta-divider {
+    color: #d1d5db;
+    font-size: 8px;
+}
+
+.meta-duration {
+    color: #9ca3af;
+}
+
+.meta-tokens {
+    color: #9ca3af;
+}
+
+.meta-tokens-detail {
+    color: #b0b7c3;
+    font-size: 9px;
+}
+
+/* ===== 思考中占位 ===== */
+.thinking-pending {
+    font-size: 11px;
+}
+
+/* 思考中文字 + 省略号整体呼吸效果 */
+.thinking-text {
+    animation: ml-thinking-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes ml-thinking-breathe {
+    0%, 100% {
+        color: #9ca3af;
+    }
+    50% {
+        color: #6b7280;
+    }
+}
+
+/* 三个点逐字跳动动画（叠加在呼吸文字上） */
+.dots-blink {
+    display: inline-block;
+}
+
+.dots-blink span {
+    animation: ml-dot-bounce 1.2s ease-in-out infinite both;
+    display: inline-block;
+}
+
+.dots-blink span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.dots-blink span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes ml-dot-bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.3;
+    }
+    30% {
+        transform: translateY(-3px);
+        opacity: 1;
+    }
+}
