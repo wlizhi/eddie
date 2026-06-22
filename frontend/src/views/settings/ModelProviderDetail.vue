@@ -43,10 +43,9 @@
       <span class="divider-line"/>
       <button
           class="fetch-btn"
-          :disabled="fetching"
           @click="$emit('fetch-models')"
       >
-        <RefreshCw :size="14" :stroke-width="1.8" :class="{ spinning: fetching }"/>
+        <RefreshCw :size="14" :stroke-width="1.8"/>
         获取模型列表
       </button>
     </div>
@@ -83,7 +82,10 @@
             title="移除模型"
             @click="$emit('remove-model', m.code)"
         >
-          <Trash2 :size="14" :stroke-width="1.8"/>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
         </button>
       </div>
       <div v-if="models.length === 0" class="models-empty">
@@ -95,7 +97,7 @@
 
 <script setup lang="ts">
 import {computed} from 'vue'
-import {RefreshCw, Settings, Trash2} from '@lucide/vue'
+import {RefreshCw, Settings} from '@lucide/vue'
 import type {ModelItem, ModelProvider} from '@/types/modelProvider'
 import {CAPABILITY_LABELS} from '@/types/modelProvider'
 import {capIcon, normalizeCaps} from './modelCapabilities'
@@ -105,7 +107,6 @@ const props = defineProps<{
   name: string
   baseUrl: string
   apiKey: string
-  fetching: boolean
 }>()
 
 defineEmits<{

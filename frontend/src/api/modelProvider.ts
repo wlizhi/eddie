@@ -133,3 +133,15 @@ export async function batchRemoveModels(providerId: number, codes: string[]): Pr
     const json: ApiResult<void> = await res.json()
     if (json.code !== 200) throw new Error(json.message || '批量删除模型失败')
 }
+
+/**
+ * 远程拉取模型列表（从服务商 API 获取）
+ * POST /api/model-provider/{id}/fetch-models
+ */
+export async function fetchRemoteModels(providerId: number): Promise<ModelItem[]> {
+    const res = await fetch(`${BASE}/${providerId}/fetch-models`, {method: 'POST'})
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<ModelItem[]> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '拉取远程模型列表失败')
+    return json.data
+}

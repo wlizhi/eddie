@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -82,7 +83,8 @@ public class DashScopeModelFetcher implements RemoteModelFetcher {
             total = pageResult.total();
             pageNo++;
         } while (total >= pageNo * PAGE_SIZE);
-
+        allModels.sort(Comparator.comparing(ModelVO::getCode));
+        allModels = allModels.reversed();
         return allModels;
     }
 

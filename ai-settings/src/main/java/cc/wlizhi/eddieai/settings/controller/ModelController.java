@@ -31,7 +31,7 @@ public class ModelController {
      * @param request    模型参数（code 用于匹配，其余字段按需更新）
      */
     @PutMapping("/{providerId}/model")
-    public ApiResult<Void> updateModel(@PathVariable Long providerId,
+    public ApiResult<Void> updateModel(@PathVariable(name = "providerId") Long providerId,
                                        @RequestBody @Valid ModelUpdateRequest request) {
         modelService.updateModel(providerId, request);
         return ApiResult.success();
@@ -47,7 +47,7 @@ public class ModelController {
      * @param request    要新增的模型列表
      */
     @PostMapping("/{providerId}/models/batch-add")
-    public ApiResult<Void> batchAddModels(@PathVariable Long providerId,
+    public ApiResult<Void> batchAddModels(@PathVariable(name = "providerId") Long providerId,
                                           @RequestBody ModelBatchAddRequest request) {
         modelService.batchAddModels(providerId, request);
         return ApiResult.success();
@@ -62,7 +62,7 @@ public class ModelController {
      * @param request    要删除的模型 code 列表
      */
     @PostMapping("/{providerId}/models/batch-remove")
-    public ApiResult<Void> batchRemoveModels(@PathVariable Long providerId,
+    public ApiResult<Void> batchRemoveModels(@PathVariable(name = "providerId") Long providerId,
                                              @RequestBody ModelBatchRemoveRequest request) {
         modelService.batchRemoveModels(providerId, request);
         return ApiResult.success();

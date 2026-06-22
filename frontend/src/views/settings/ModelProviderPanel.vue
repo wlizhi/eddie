@@ -17,11 +17,10 @@
           :name="editForm.name"
           :base-url="editForm.baseUrl"
           :api-key="editForm.apiKey"
-          :fetching="fetching"
           @update:name="editForm.name = $event"
           @update:base-url="editForm.baseUrl = $event"
           @update:api-key="editForm.apiKey = $event"
-          @fetch-models="fetchRemoteModels"
+          @fetch-models="openFetchModal"
           @remove-model="removeModel"
           @open-settings="openModelSettings"
       />
@@ -48,6 +47,16 @@
         @close="closeModal"
         @save="saveModelSettings"
     />
+
+    <!-- 远程模型拉取弹窗 -->
+    <ModelFetchModal
+        v-if="activeProvider"
+        :visible="showFetchModal"
+        :provider-id="activeProvider.id"
+        :existing-codes="existingModelCodes"
+        @close="showFetchModal = false"
+        @changed="onModelsChanged"
+    />
   </div>
 </template>
 
@@ -63,9 +72,9 @@ import ModelProviderSidebar from './ModelProviderSidebar.vue'
 import ModelProviderDetail from './ModelProviderDetail.vue'
 import ModelSettingsModal from './ModelSettingsModal.vue'
 import AddProviderModal from './AddProviderModal.vue'
+import ModelFetchModal from './ModelFetchModal.vue'
 
 const loading = ref(false)
-const fetching = ref(false)
 const providers = ref<ModelProvider[]>([])
 const activeProvider = ref<ModelProvider | null>(null)
 
@@ -191,6 +200,22 @@ async function saveProvider() {
       baseUrl: editForm.baseUrl,
       apiKey: editForm.apiKey,
     })
+    // 同步更新到 providers 列表，使左侧 sidebar 响应式更新
+    const idx = providers.value.findIndex(p => p.id === activeProvider.value!.id)
+    if (idx !== -1) {
+      providers.value[idx] = {
+        ...providers.value[idx],
+        name: editForm.name,
+        baseUrl: editForm.baseUrl,
+        apiKey: editForm.apiKey,
+      }
+    }
+    // 同步更新 activeProvider
+    Object.assign(activeProvider.value, {
+      name: editForm.name,
+      baseUrl: editForm.baseUrl,
+      apiKey: editForm.apiKey,
+    })
   } catch (e) {
     console.error('保存失败', e)
   }
@@ -207,19 +232,44 @@ async function removeModel(code: string) {
   }
 }
 
-/** 拉取远程模型列表（占位，待后端接口实现后完善） */
-async function fetchRemoteModels() {
-  if (!activeProvider.value) return
-  fetching.value = true
+// ===== 远程模型拉取弹窗 =====
+const showFetchModal = ref(false)
+
+/** 已存在的模型 code 列表，用于弹窗过滤 */
+const existingModelCodes = computed(() =>
+    (activeProvider.value?.models ?? []).map(m => m.code)
+)
+
+/** 打开远程模型拉取弹窗 */
+function openFetchModal() {
+  showFetchModal.value = true
+}
+
+/** 模型变更后刷新数据（不关闭弹窗） */
+async function onModelsChanged() {
   try {
-    // TODO: 调用后端 POST /api/model-provider/{code}/fetch-models 接口
-    // 接口待实现
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.warn('fetch-models 接口尚未实现')
+    providers.value = await listProviders()
+    if (activeProvider.value) {
+      const updated = providers.value.find(p => p.id === activeProvider.value!.id)
+      if (updated) selectProvider(updated)
+    }
   } catch (e) {
-    console.error('拉取失败', e)
-  } finally {
-    fetching.value = false
+    console.error('刷新服务商列表失败', e)
+  }
+}
+
+/** 模型添加完成后刷新数据（关闭弹窗） */
+async function onModelsAdded() {
+  showFetchModal.value = false
+  // 刷新当前服务商数据
+  try {
+    providers.value = await listProviders()
+    if (activeProvider.value) {
+      const updated = providers.value.find(p => p.id === activeProvider.value!.id)
+      if (updated) selectProvider(updated)
+    }
+  } catch (e) {
+    console.error('刷新服务商列表失败', e)
   }
 }
 
