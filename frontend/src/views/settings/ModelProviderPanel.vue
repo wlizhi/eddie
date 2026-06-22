@@ -33,6 +33,13 @@
       </div>
     </div>
 
+    <!-- 新增服务商弹窗 -->
+    <AddProviderModal
+        :visible="showAddModal"
+        @close="showAddModal = false"
+        @created="onProviderCreated"
+    />
+
     <!-- 模型设置弹窗 -->
     <ModelSettingsModal
         v-if="showModal"
@@ -47,7 +54,7 @@
 <script setup lang="ts">
 import {computed, onMounted, reactive, ref, watch} from 'vue'
 import {Cpu} from '@lucide/vue'
-import {batchRemoveModels, createProvider, listProviders, updateModel, updateProvider} from '@/api/modelProvider'
+import {batchRemoveModels, listProviders, updateModel, updateProvider} from '@/api/modelProvider'
 import type {ModelItem, ModelProvider} from '@/types/modelProvider'
 import {normalizeCaps} from './modelCapabilities'
 
@@ -55,6 +62,7 @@ import {normalizeCaps} from './modelCapabilities'
 import ModelProviderSidebar from './ModelProviderSidebar.vue'
 import ModelProviderDetail from './ModelProviderDetail.vue'
 import ModelSettingsModal from './ModelSettingsModal.vue'
+import AddProviderModal from './AddProviderModal.vue'
 
 const loading = ref(false)
 const fetching = ref(false)
@@ -75,7 +83,28 @@ const currentModels = computed(() =>
     }))
 )
 
-// ===== 弹窗状态 =====
+// ===== 新增服务商弹窗 =====
+const showAddModal = ref(false)
+
+/** 打开新增服务商弹窗 */
+function addProvider() {
+  showAddModal.value = true
+}
+
+/** 新增完成后回调 */
+async function onProviderCreated() {
+  showAddModal.value = false
+  try {
+    providers.value = await listProviders()
+    if (providers.value.length > 0) {
+      selectProvider(providers.value[0])
+    }
+  } catch (e) {
+    console.error('重新加载服务商列表失败', e)
+  }
+}
+
+// ===== 模型设置弹窗 =====
 const showModal = ref(false)
 const editingModel = ref<ModelItem | null>(null)
 
@@ -143,30 +172,6 @@ function selectProvider(p: ModelProvider) {
   editForm.name = p.name
   editForm.baseUrl = p.baseUrl
   editForm.apiKey = p.apiKey
-}
-
-/** 新增服务商 */
-async function addProvider() {
-  const code = prompt('请输入服务商 code（唯一标识，如 custom-openai）')
-  if (!code) return
-
-  const name = prompt('请输入服务商名称')
-  if (!name) return
-
-  const baseUrl = prompt('请输入 API 地址')
-  if (!baseUrl) return
-
-  const apiKey = prompt('请输入 API 密钥（可选）') || ''
-
-  try {
-    await createProvider({code, name, baseUrl, apiKey})
-    // 重新加载列表并选中新增的服务商
-    providers.value = await listProviders()
-    const newProvider = providers.value.find(p => p.code === code)
-    if (newProvider) selectProvider(newProvider)
-  } catch (e) {
-    console.error('新增服务商失败', e)
-  }
 }
 
 /** 监听 editForm 变化，自动保存 */
