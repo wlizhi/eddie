@@ -6,7 +6,7 @@
 import {ref} from 'vue'
 
 export function useDragSort<T extends { id: number }>(
-    list: T[],
+    getList: () => T[],
     onSort: (ids: number[]) => Promise<void>,
     onError?: () => void
 ) {
@@ -34,6 +34,7 @@ export function useDragSort<T extends { id: number }>(
             return
         }
 
+        const list = getList()
         const items = [...list]
         const [moved] = items.splice(dragIndex.value, 1)
         items.splice(dragOverIndex.value, 0, moved)

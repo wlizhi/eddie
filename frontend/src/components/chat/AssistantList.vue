@@ -17,7 +17,7 @@ const showCreateAssistant = ref(false)
 
 // 拖拽排序
 const {dragIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd} =
-    useDragSort(assistantStore.list, batchSortAssistant, () => {
+    useDragSort(() => assistantStore.list, batchSortAssistant, () => {
       assistantStore.loadList(true, true)
     })
 
