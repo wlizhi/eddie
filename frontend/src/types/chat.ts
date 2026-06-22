@@ -60,11 +60,17 @@ export type MessageRole = 'user' | 'assistant'
  */
 export interface ChatMessage {
     id: string
+    /** 后端数据库 ID（仅从接口加载的消息有值，用于游标分页） */
+    dbId?: number
     role: MessageRole
     content: string
     thinking?: string
     timestamp: number
     metadata?: ChatMetadata | null
+    /** 预渲染的 Markdown 内容 HTML，避免模板中重复 parse */
+    renderedContent?: string
+    /** 预渲染的 thinking Markdown 内容 HTML */
+    renderedThinking?: string
 }
 
 /**

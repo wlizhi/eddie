@@ -5,6 +5,7 @@ import type {MessageVO} from '@/types/session'
 import {fetchModelList, streamChat} from '@/api/chat'
 import {createSession, fetchMessages, generateTitle} from '@/api/session'
 import {useAssistantStore} from '@/stores/assistant'
+import {renderMd} from '@/utils/markdown'
 
 /**
  * 聊天 Store
@@ -46,6 +47,15 @@ export const useChatStore = defineStore('chat', () => {
 
     /** 会话列表刷新计数器（事件驱动侧边栏同步） */
     const sessionRefreshCounter = ref(0)
+
+    /** 是否还有更早的消息可加载 */
+    const hasMoreMessages = ref(false)
+
+    /** 是否正在加载更早的消息 */
+    const isLoadingMore = ref(false)
+
+    /** 每页消息数量（与后端 MESSAGE_PAGE_SIZE 保持一致） */
+    const MESSAGE_PAGE_SIZE = 20
 
     // ========== 计算属性 ==========
 
@@ -223,40 +233,102 @@ export const useChatStore = defineStore('chat', () => {
         currentThinking.value = ''
         currentAnswer.value = ''
         currentMetadata.value = null
+        hasMoreMessages.value = false
+        isLoadingMore.value = false
     }
 
     /** 切换到已有会话并加载历史消息 */
     async function loadConversation(sessionId: number): Promise<void> {
         currentConversationId.value = String(sessionId)
-        messages.value = []
         currentThinking.value = ''
         currentAnswer.value = ''
         currentMetadata.value = null
+        isLoadingMore.value = false
 
         try {
             const list = await fetchMessages(sessionId)
-            // 后端返回倒序（最新在前），反转为正序
+            // 后端返回倒序（最新在前），反转为正序后一次性赋值，
+            // 避免逐条 push 触发多次 watcher 和中间态的 scrollToBottom
+            const newMessages: ChatMessage[] = []
             for (let i = list.length - 1; i >= 0; i--) {
-                messages.value.push(toChatMessage(list[i]))
+                newMessages.push(toChatMessage(list[i]))
             }
+            messages.value = newMessages
+            // 返回数量等于每页大小，说明可能还有更多消息
+            hasMoreMessages.value = list.length >= MESSAGE_PAGE_SIZE
         } catch (err) {
+            messages.value = []
             console.error('加载历史消息失败:', err)
         }
     }
 
-    /** MessageVO → ChatMessage */
+    /**
+     * 加载更早的消息（游标分页，向上滚动触发）
+     *
+     * 使用当前消息列表中最早一条有 dbId 的消息的 ID 作为 beforeId 游标。
+     * 后端返回倒序（最新在前），需要反转为正序后前置插入到 messages 头部。
+     */
+    async function loadMoreMessages(): Promise<void> {
+        const sid = Number(currentConversationId.value)
+        if (!sid || isLoadingMore.value || !hasMoreMessages.value) return
+
+        // 找到最早一条有 dbId 的消息（消息列表按时间正序排列，最早的在最前面）
+        let beforeId: number | undefined
+        for (const msg of messages.value) {
+            if (msg.dbId != null) {
+                beforeId = msg.dbId
+                break
+            }
+        }
+        if (beforeId == null) {
+            hasMoreMessages.value = false
+            return
+        }
+
+        isLoadingMore.value = true
+
+        try {
+            const list = await fetchMessages(sid, beforeId)
+            if (list.length === 0) {
+                hasMoreMessages.value = false
+                return
+            }
+
+            // 后端返回倒序（最新在前），反转为正序后前置插入
+            const olderMessages: ChatMessage[] = []
+            for (let i = list.length - 1; i >= 0; i--) {
+                olderMessages.push(toChatMessage(list[i]))
+            }
+            messages.value = [...olderMessages, ...messages.value]
+
+            // 返回数量少于每页大小，说明没有更多了
+            if (list.length < MESSAGE_PAGE_SIZE) {
+                hasMoreMessages.value = false
+            }
+        } catch (err) {
+            console.error('加载更多消息失败:', err)
+        } finally {
+            isLoadingMore.value = false
+        }
+    }
+
+    /** MessageVO → ChatMessage（同时预渲染 Markdown 内容，避免模板中重复 parse） */
     function toChatMessage(msg: MessageVO): ChatMessage {
         return {
             id: String(msg.id),
+            dbId: msg.id,
             role: msg.role as 'user' | 'assistant',
             content: msg.content,
+            renderedContent: renderMd(msg.content),
             thinking: msg.thinking || undefined,
+            renderedThinking: msg.thinking ? renderMd(msg.thinking) : undefined,
             timestamp: new Date(msg.createdAt).getTime(),
-            metadata: msg.totalTokens ? {
-                promptTokens: msg.promptTokens,
-                completionTokens: msg.completionTokens,
-                totalTokens: msg.totalTokens,
-            } as ChatMetadata : undefined,
+            metadata: {
+                timestamp: new Date(msg.createdAt).getTime(),
+                ...(msg.totalTokens != null ? {totalTokens: msg.totalTokens} : {}),
+                ...(msg.promptTokens != null ? {promptTokens: msg.promptTokens} : {}),
+                ...(msg.completionTokens != null ? {completionTokens: msg.completionTokens} : {}),
+            },
         }
     }
 
@@ -271,6 +343,8 @@ export const useChatStore = defineStore('chat', () => {
         currentAnswer,
         currentMetadata,
         sessionRefreshCounter,
+        hasMoreMessages,
+        isLoadingMore,
         flatModelOptions,
         hasMessages,
         isNewConversation,
@@ -280,5 +354,6 @@ export const useChatStore = defineStore('chat', () => {
         abortStream,
         newConversation,
         loadConversation,
+        loadMoreMessages,
     }
 })

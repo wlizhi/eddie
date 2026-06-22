@@ -232,3 +232,36 @@
         opacity: 1;
     }
 }
+
+/* ===== 加载更多指示器 ===== */
+.load-more-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 0;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.load-more-indicator .spinner {
+    animation: ml-spin 0.8s linear infinite;
+}
+
+@keyframes ml-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== 已加载全部 ===== */
+.no-more-hint {
+    text-align: center;
+    font-size: 11px;
+    color: #d1d5db;
+    padding: 4px 0;
+    user-select: none;
+}
