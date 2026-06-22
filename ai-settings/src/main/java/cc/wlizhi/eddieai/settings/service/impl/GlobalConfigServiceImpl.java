@@ -2,7 +2,7 @@ package cc.wlizhi.eddieai.settings.service.impl;
 
 import cc.wlizhi.eddieai.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddieai.memory.context.GlobalConfigContext;
-import cc.wlizhi.eddieai.settings.dao.GlobalConfigDao;
+import cc.wlizhi.eddieai.memory.dao.GlobalConfigDao;
 import cc.wlizhi.eddieai.settings.service.GlobalConfigService;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
