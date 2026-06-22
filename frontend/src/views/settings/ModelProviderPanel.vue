@@ -8,6 +8,8 @@
           :loading="loading"
           @select="selectProvider"
           @add="addProvider"
+          @toggle="toggleProviderEnabled"
+          @sort="handleSort"
       />
 
       <!-- 右侧：服务商详情配置 -->
@@ -63,7 +65,7 @@
 <script setup lang="ts">
 import {computed, onMounted, reactive, ref, watch} from 'vue'
 import {Cpu} from '@lucide/vue'
-import {batchRemoveModels, listProviders, updateModel, updateProvider} from '@/api/modelProvider'
+import {batchRemoveModels, listProviders, updateModel, updateProvider, updateSortOrder} from '@/api/modelProvider'
 import type {ModelItem, ModelProvider} from '@/types/modelProvider'
 import {normalizeCaps} from './modelCapabilities'
 
@@ -218,6 +220,39 @@ async function saveProvider() {
     })
   } catch (e) {
     console.error('保存失败', e)
+  }
+}
+
+/** 启用/禁用切换 */
+async function toggleProviderEnabled(p: ModelProvider) {
+  const newEnabled = p.enabled === 1 ? 0 : 1
+  try {
+    await updateProvider({id: p.id, enabled: newEnabled})
+    // 同步本地数据
+    const idx = providers.value.findIndex(x => x.id === p.id)
+    if (idx !== -1) {
+      providers.value[idx] = {...providers.value[idx], enabled: newEnabled}
+    }
+    if (activeProvider.value?.id === p.id) {
+      activeProvider.value.enabled = newEnabled
+    }
+  } catch (e) {
+    console.error('切换启用状态失败', e)
+  }
+}
+
+/** 拖拽排序 */
+async function handleSort(orderedIds: number[]) {
+  try {
+    await updateSortOrder(orderedIds)
+    // 重新获取完整列表以同步后端排序（含 enabled/disabled 分组）
+    providers.value = await listProviders()
+    if (activeProvider.value) {
+      const updated = providers.value.find(p => p.id === activeProvider.value!.id)
+      if (updated) selectProvider(updated)
+    }
+  } catch (e) {
+    console.error('更新排序失败', e)
   }
 }
 

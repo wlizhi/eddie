@@ -77,3 +77,21 @@ CREATE TABLE IF NOT EXISTS ai_session_msg
     created_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_msg_session ON ai_session_msg (session_id);
+
+-- 全局配置表（key-value 结构，config_key 直接使用 GlobalConfigKey 枚举名存储）
+-- config_val 为 JSON 字符串，前端/业务模块按需反序列化
+CREATE TABLE IF NOT EXISTS global_config
+(
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_key  TEXT NOT NULL UNIQUE,
+    config_val  TEXT NOT NULL DEFAULT '{}',
+    description TEXT NOT NULL DEFAULT '',
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+-- 初始数据（仅首次建表时插入）
+INSERT INTO global_config (config_key, config_val, description)
+VALUES ('DEFAULT_MODEL', '{}', '默认对话模型'),
+       ('FAST_MODEL', '{}', '快速模型'),
+       ('TRANSLATE_MODEL', '{}', '翻译模型')
+ON CONFLICT(config_key) DO NOTHING;

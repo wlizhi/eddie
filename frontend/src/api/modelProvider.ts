@@ -145,3 +145,18 @@ export async function fetchRemoteModels(providerId: number): Promise<ModelItem[]
     if (json.code !== 200) throw new Error(json.message || '拉取远程模型列表失败')
     return json.data
 }
+
+/**
+ * 全量更新排序序号（前端拖拽后按顺序传入 id 数组）
+ * PUT /api/model-provider/sort-order
+ */
+export async function updateSortOrder(orderedIds: number[]): Promise<void> {
+    const res = await fetch(`${BASE}/sort-order`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(orderedIds),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<void> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '更新排序失败')
+}
