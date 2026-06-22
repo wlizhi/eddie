@@ -15,11 +15,20 @@ public class ModelProviderMapper {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * 查询全部服务提供商（仅查询接口1需要的字段，不查询 models）
+     * 查询全部服务提供商
      */
     public List<ModelProviderEntity> findAll() {
-        String sql = "SELECT code, name, base_url, api_key, enabled, sort_order, created_at, updated_at FROM model_provider";
+        String sql = "SELECT id, code, name, base_url, api_key, models, enabled, built_in, sort_order, created_at, updated_at FROM model_provider";
         return jdbcTemplate.query(sql, providerRowMapper);
+    }
+
+    /**
+     * 根据 id 查询
+     */
+    public ModelProviderEntity findById(Long id) {
+        String sql = "SELECT id, code, name, base_url, api_key, models, enabled, built_in, sort_order, created_at, updated_at FROM model_provider WHERE id = ?";
+        List<ModelProviderEntity> results = jdbcTemplate.query(sql, providerRowMapper, id);
+        return results.isEmpty() ? null : results.get(0);
     }
 
     /**
@@ -35,8 +44,8 @@ public class ModelProviderMapper {
      * 新增服务提供商
      */
     public void insert(ModelProviderEntity entity) {
-        String sql = "INSERT INTO model_provider (code, name, base_url, api_key, models, enabled, sort_order, created_at, updated_at) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))";
+        String sql = "INSERT INTO model_provider (code, name, base_url, api_key, models, enabled, built_in, sort_order, created_at, updated_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))";
         jdbcTemplate.update(sql,
                 entity.getCode(),
                 entity.getName(),
@@ -44,15 +53,16 @@ public class ModelProviderMapper {
                 entity.getApiKey(),
                 entity.getModels(),
                 entity.getEnabled(),
+                entity.getBuiltIn(),
                 entity.getSortOrder());
     }
 
     /**
-     * 更新服务提供商
+     * 按 id 更新服务提供商
      */
     public void update(ModelProviderEntity entity) {
         String sql = "UPDATE model_provider SET name = ?, base_url = ?, api_key = ?, models = ?, "
-                + "enabled = ?, sort_order = ?, updated_at = datetime('now', 'localtime') WHERE code = ?";
+                + "enabled = ?, sort_order = ?, updated_at = datetime('now', 'localtime') WHERE id = ?";
         jdbcTemplate.update(sql,
                 entity.getName(),
                 entity.getBaseUrl(),
@@ -60,15 +70,15 @@ public class ModelProviderMapper {
                 entity.getModels(),
                 entity.getEnabled(),
                 entity.getSortOrder(),
-                entity.getCode());
+                entity.getId());
     }
 
     /**
-     * 根据 code 删除服务提供商
+     * 根据 id 删除服务提供商
      */
-    public void deleteByCode(String code) {
-        String sql = "DELETE FROM model_provider WHERE code = ?";
-        jdbcTemplate.update(sql, code);
+    public void deleteById(Long id) {
+        String sql = "DELETE FROM model_provider WHERE id = ?";
+        jdbcTemplate.update(sql, id);
     }
 
     /**
@@ -80,13 +90,24 @@ public class ModelProviderMapper {
         return count != null && count > 0;
     }
 
+    /**
+     * 更新排序序号
+     */
+    public void updateSortOrder(Long id, int sortOrder) {
+        String sql = "UPDATE model_provider SET sort_order = ?, updated_at = datetime('now', 'localtime') WHERE id = ?";
+        jdbcTemplate.update(sql, sortOrder, id);
+    }
+
     private final RowMapper<ModelProviderEntity> providerRowMapper = (rs, rowNum) -> {
         ModelProviderEntity entity = new ModelProviderEntity();
+        entity.setId(rs.getLong("id"));
         entity.setCode(rs.getString("code"));
         entity.setName(rs.getString("name"));
         entity.setBaseUrl(rs.getString("base_url"));
         entity.setApiKey(rs.getString("api_key"));
+        entity.setModels(rs.getString("models"));
         entity.setEnabled(rs.getInt("enabled"));
+        entity.setBuiltIn(rs.getInt("built_in"));
         entity.setSortOrder(rs.getObject("sort_order") != null ? rs.getInt("sort_order") : null);
         entity.setCreatedAt(rs.getString("created_at"));
         entity.setUpdatedAt(rs.getString("updated_at"));

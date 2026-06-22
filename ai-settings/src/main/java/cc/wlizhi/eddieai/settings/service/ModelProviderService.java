@@ -1,6 +1,7 @@
 package cc.wlizhi.eddieai.settings.service;
 
-import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
+import cc.wlizhi.eddieai.settings.entity.request.ModelProviderCreateRequest;
+import cc.wlizhi.eddieai.settings.entity.request.ModelProviderUpdateRequest;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;
 import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
 
@@ -17,6 +18,11 @@ public interface ModelProviderService {
     List<ModelProviderVO> listAll();
 
     /**
+     * 查询所有服务商及其模型列表（两层嵌套结构）
+     */
+    List<ModelProviderVO> listWithModels();
+
+    /**
      * 根据服务商 code 获取模型列表
      */
     List<ModelVO> getModelsByCode(String code);
@@ -24,15 +30,20 @@ public interface ModelProviderService {
     /**
      * 新增服务提供商
      */
-    void create(ModelProviderEntity entity);
+    void create(ModelProviderCreateRequest request);
 
     /**
      * 修改服务提供商
      */
-    void update(ModelProviderEntity entity);
+    void update(ModelProviderUpdateRequest request);
 
     /**
-     * 删除服务提供商
+     * 根据 id 删除服务提供商
      */
-    void deleteByCode(String code);
+    void deleteById(Long id);
+
+    /**
+     * 全量更新排序序号（前端拖拽后按顺序传入 id 数组）
+     */
+    void updateSortOrder(List<Long> orderedIds);
 }

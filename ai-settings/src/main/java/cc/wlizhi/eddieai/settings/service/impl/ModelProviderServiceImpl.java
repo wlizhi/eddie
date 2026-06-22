@@ -6,6 +6,8 @@ import cc.wlizhi.eddieai.common.exception.ConflictException;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
 import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
 import cc.wlizhi.eddieai.settings.dao.ModelProviderMapper;
+import cc.wlizhi.eddieai.settings.entity.request.ModelProviderCreateRequest;
+import cc.wlizhi.eddieai.settings.entity.request.ModelProviderUpdateRequest;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;
 import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
 import cc.wlizhi.eddieai.settings.service.ModelProviderService;
@@ -36,27 +38,30 @@ public class ModelProviderServiceImpl implements ModelProviderService {
     public List<ModelProviderVO> listAll() {
         List<ModelProviderEntity> entities = modelProviderMapper.findAll();
 
-        // 排序：sort_order 升序（null 排最后），再按 code ASCII 升序
+        // 排序：1级 enabled 启用在前禁用在后，2级 sort_order 升序，3级 id 正序
         entities.sort(Comparator
-                .comparing(ModelProviderEntity::getSortOrder,
+                .comparing(ModelProviderEntity::getEnabled, Comparator.reverseOrder())
+                .thenComparing(ModelProviderEntity::getSortOrder,
                         Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(ModelProviderEntity::getCode));
+                .thenComparing(ModelProviderEntity::getId));
 
         return transformToProviderVOS(entities);
     }
 
-    private static @NonNull List<ModelProviderVO> transformToProviderVOS(List<ModelProviderEntity> entities) {
+    @Override
+    public List<ModelProviderVO> listWithModels() {
+        List<ModelProviderEntity> entities = modelProviderMapper.findAll();
+
+        entities.sort(Comparator
+                .comparing(ModelProviderEntity::getEnabled, Comparator.reverseOrder())
+                .thenComparing(ModelProviderEntity::getSortOrder,
+                        Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(ModelProviderEntity::getId));
+
         List<ModelProviderVO> result = new ArrayList<>();
         for (ModelProviderEntity entity : entities) {
-            ModelProviderVO vo = new ModelProviderVO();
-            vo.setCode(entity.getCode());
-            vo.setName(entity.getName());
-            vo.setBaseUrl(entity.getBaseUrl());
-            vo.setApiKey(entity.getApiKey());
-            vo.setEnabled(entity.getEnabled());
-            vo.setSortOrder(entity.getSortOrder());
-            vo.setCreatedAt(entity.getCreatedAt());
-            vo.setUpdatedAt(entity.getUpdatedAt());
+            ModelProviderVO vo = transformToVO(entity);
+            vo.setModels(parseModelsJson(entity.getModels()));
             result.add(vo);
         }
         return result;
@@ -68,7 +73,140 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         if (modelsJson == null || modelsJson.isEmpty() || "[]".equals(modelsJson)) {
             return new ArrayList<>();
         }
+        return parseModelsJson(modelsJson);
+    }
 
+    @Override
+    public void create(ModelProviderCreateRequest request) {
+        // 校验必传参数
+        if (request.getCode() == null || request.getCode().isBlank()) {
+            throw new BadRequestException("服务商 code 不能为空");
+        }
+        if (request.getName() == null || request.getName().isBlank()) {
+            throw new BadRequestException("服务商名称不能为空");
+        }
+        if (request.getBaseUrl() == null || request.getBaseUrl().isBlank()) {
+            throw new BadRequestException("API 地址不能为空");
+        }
+
+        ModelProviderEntity entity = new ModelProviderEntity();
+        entity.setCode(request.getCode().trim());
+        entity.setName(request.getName().trim());
+        entity.setBaseUrl(request.getBaseUrl().trim());
+        entity.setApiKey(request.getApiKey() != null ? request.getApiKey() : "");
+        entity.setModels(request.getModels() != null ? request.getModels() : "[]");
+        entity.setEnabled(request.getEnabled() != null ? request.getEnabled() : 1);
+        entity.setBuiltIn(request.getBuiltIn() != null ? request.getBuiltIn() : 0);
+        entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
+
+        try {
+            modelProviderMapper.insert(entity);
+        } catch (UncategorizedSQLException ex) {
+            throw new ConflictException("服务商 code 已存在: " + entity.getCode());
+        }
+        modelProviderContext.refresh();
+    }
+
+    @Override
+    public void update(ModelProviderUpdateRequest request) {
+        if (request.getId() == null) {
+            throw new BadRequestException("服务商 ID 不能为空");
+        }
+
+        ModelProviderEntity existing = modelProviderMapper.findById(request.getId());
+        if (existing == null) {
+            throw new NotFoundException("服务商不存在: " + request.getId());
+        }
+
+        // 内置记录：code 和 name 不可修改
+        if (existing.getBuiltIn() == 1) {
+            if (request.getName() != null && !request.getName().equals(existing.getName())) {
+                throw new BadRequestException("内置服务商名称不可修改");
+            }
+        }
+
+        // 只更新非 null 字段
+        if (request.getName() != null) {
+            existing.setName(request.getName().trim());
+        }
+        if (request.getBaseUrl() != null) {
+            existing.setBaseUrl(request.getBaseUrl().trim());
+        }
+        if (request.getApiKey() != null) {
+            existing.setApiKey(request.getApiKey());
+        }
+        if (request.getModels() != null) {
+            existing.setModels(request.getModels());
+        }
+        if (request.getEnabled() != null) {
+            existing.setEnabled(request.getEnabled());
+        }
+        if (request.getSortOrder() != null) {
+            existing.setSortOrder(request.getSortOrder());
+        }
+
+        modelProviderMapper.update(existing);
+        modelProviderContext.refresh();
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        if (id == null) {
+            throw new BadRequestException("服务商 ID 不能为空");
+        }
+
+        ModelProviderEntity existing = modelProviderMapper.findById(id);
+        if (existing == null) {
+            throw new NotFoundException("服务商不存在: " + id);
+        }
+        if (existing.getBuiltIn() == 1) {
+            throw new BadRequestException("内置服务商不可删除");
+        }
+
+        modelProviderMapper.deleteById(id);
+        modelProviderContext.refresh();
+    }
+
+    @Override
+    public void updateSortOrder(List<Long> orderedIds) {
+        if (orderedIds == null || orderedIds.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < orderedIds.size(); i++) {
+            modelProviderMapper.updateSortOrder(orderedIds.get(i), i + 1);
+        }
+        modelProviderContext.refresh();
+    }
+
+    // ========== 私有方法 ==========
+
+    private @NonNull List<ModelProviderVO> transformToProviderVOS(List<ModelProviderEntity> entities) {
+        List<ModelProviderVO> result = new ArrayList<>();
+        for (ModelProviderEntity entity : entities) {
+            result.add(transformToVO(entity));
+        }
+        return result;
+    }
+
+    private @NonNull ModelProviderVO transformToVO(ModelProviderEntity entity) {
+        ModelProviderVO vo = new ModelProviderVO();
+        vo.setId(entity.getId());
+        vo.setCode(entity.getCode());
+        vo.setName(entity.getName());
+        vo.setBaseUrl(entity.getBaseUrl());
+        vo.setApiKey(entity.getApiKey());
+        vo.setEnabled(entity.getEnabled());
+        vo.setBuiltIn(entity.getBuiltIn());
+        vo.setSortOrder(entity.getSortOrder());
+        vo.setCreatedAt(entity.getCreatedAt());
+        vo.setUpdatedAt(entity.getUpdatedAt());
+        return vo;
+    }
+
+    private @NonNull List<ModelVO> parseModelsJson(String modelsJson) {
+        if (modelsJson == null || modelsJson.isEmpty() || "[]".equals(modelsJson)) {
+            return new ArrayList<>();
+        }
         try {
             List<Map<String, Object>> rawList = objectMapper.readValue(modelsJson,
                     new TypeReference<List<Map<String, Object>>>() {
@@ -76,7 +214,6 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             List<ModelVO> result = new ArrayList<>();
             for (Map<String, Object> raw : rawList) {
                 ModelVO vo = new ModelVO();
-                // id → code, object → object, owned_by → ownedBy
                 Object idObj = raw.get("id");
                 vo.setCode(idObj != null ? idObj.toString() : null);
                 Object objectObj = raw.get("object");
@@ -89,42 +226,5 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         } catch (Exception e) {
             throw new RuntimeException("解析模型列表 JSON 失败: " + e.getMessage(), e);
         }
-    }
-
-    @Override
-    public void create(ModelProviderEntity entity) {
-        if (entity.getCode() == null || entity.getCode().isEmpty()) {
-            throw new BadRequestException("服务商 code 不能为空");
-        }
-        try {
-            modelProviderMapper.insert(entity);
-        } catch (UncategorizedSQLException ex) {
-            throw new ConflictException("服务商 code 已存在: " + entity.getCode());
-        }
-        modelProviderContext.refresh();
-    }
-
-    @Override
-    public void update(ModelProviderEntity entity) {
-        if (entity.getCode() == null || entity.getCode().isEmpty()) {
-            throw new BadRequestException("服务商 code 不能为空");
-        }
-        if (!modelProviderMapper.existsByCode(entity.getCode())) {
-            throw new NotFoundException("服务商不存在: " + entity.getCode());
-        }
-        modelProviderMapper.update(entity);
-        modelProviderContext.refresh();
-    }
-
-    @Override
-    public void deleteByCode(String code) {
-        if (code == null || code.isEmpty()) {
-            throw new BadRequestException("服务商 code 不能为空");
-        }
-        if (!modelProviderMapper.existsByCode(code)) {
-            throw new NotFoundException("服务商不存在: " + code);
-        }
-        modelProviderMapper.deleteByCode(code);
-        modelProviderContext.refresh();
     }
 }
