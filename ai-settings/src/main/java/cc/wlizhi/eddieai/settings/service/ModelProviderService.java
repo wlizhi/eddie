@@ -46,4 +46,9 @@ public interface ModelProviderService {
      * 全量更新排序序号（前端拖拽后按顺序传入 id 数组）
      */
     void updateSortOrder(List<Long> orderedIds);
+
+    /**
+     * 根据服务商 id 远程拉取模型列表
+     */
+    List<ModelVO> fetchRemoteModels(Long providerId);
 }

@@ -11,6 +11,7 @@ import cc.wlizhi.eddieai.settings.entity.request.ModelProviderCreateRequest;
 import cc.wlizhi.eddieai.settings.entity.request.ModelProviderUpdateRequest;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;
 import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
+import cc.wlizhi.eddieai.settings.remote.RemoteModelFetcherRouter;
 import cc.wlizhi.eddieai.settings.service.ModelProviderService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +34,9 @@ public class ModelProviderServiceImpl implements ModelProviderService {
 
     @Resource
     private ModelProviderMapper modelProviderMapper;
+
+    @Resource
+    private RemoteModelFetcherRouter remoteModelFetcherRouter;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -180,6 +184,18 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         modelProviderContext.refresh();
     }
 
+    @Override
+    public List<ModelVO> fetchRemoteModels(Long providerId) {
+        if (providerId == null) {
+            throw new BadRequestException("服务商 ID 不能为空");
+        }
+        ModelProviderEntity entity = modelProviderContext.getModelProviderById(providerId);
+        if (entity == null) {
+            throw new NotFoundException("服务商不存在: " + providerId);
+        }
+        return remoteModelFetcherRouter.fetchModels(entity.getCode(), entity.getBaseUrl(), entity.getApiKey());
+    }
+
     // ========== 私有方法 ==========
 
     private @NonNull List<ModelProviderVO> transformToProviderVOS(List<ModelProviderEntity> entities) {
@@ -225,6 +241,11 @@ public class ModelProviderServiceImpl implements ModelProviderService {
                 vo.setOwnedBy(ownedByObj != null ? ownedByObj.toString() : null);
                 // capabilities：优先读 JSON 中已有标签，没有则从模型 ID 关键词推断
                 vo.setCapabilities(parseCapabilities(raw, modelId));
+                // 定价信息
+                Object currencyObj = raw.get("currency");
+                vo.setCurrency(currencyObj != null ? currencyObj.toString() : null);
+                vo.setInputPrice(parseDouble(raw.get("input_price")));
+                vo.setOutputPrice(parseDouble(raw.get("output_price")));
                 result.add(vo);
             }
             return result;
@@ -288,5 +309,22 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         // 工具调用：所有非嵌入/重排的聊天模型都支持
         caps.add(ModelCapability.FUNCTION_CALLING);
         return caps;
+    }
+
+    /**
+     * 安全地将 Object 转为 Double，非数字或 null 时返回 null
+     */
+    private Double parseDouble(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        try {
+            return Double.parseDouble(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

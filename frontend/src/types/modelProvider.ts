@@ -16,12 +16,28 @@ export interface ModelProvider {
 }
 
 /**
+ * 模型能力枚举映射
+ */
+export const CAPABILITY_LABELS: Record<string, string> = {
+    vision: '视觉',
+    web_search: '联网',
+    reasoning: '推理',
+    function_calling: '工具',
+    rerank: '重排',
+    embedding: '嵌入',
+}
+
+/**
  * 模型项 — 对应后端 ModelVO
  */
 export interface ModelItem {
     code: string
     object: string
     ownedBy: string
+    capabilities: string[]
+    currency?: string
+    inputPrice?: number
+    outputPrice?: number
 }
 
 /**

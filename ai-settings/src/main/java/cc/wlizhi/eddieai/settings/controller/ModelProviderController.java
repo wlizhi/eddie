@@ -81,4 +81,15 @@ public class ModelProviderController {
         modelProviderService.updateSortOrder(orderedIds);
         return ApiResult.success();
     }
+
+    /**
+     * 远程拉取模型列表
+     * <p>
+     * 根据服务商 id 从缓存中获取 baseUrl 和 apiKey，调用远程 API 获取模型列表。
+     * 不同服务商接口路径和返回格式可能不同，由对应的 {@code RemoteModelFetcher} 实现处理。
+     */
+    @PostMapping("/{id}/fetch-models")
+    public ApiResult<List<ModelVO>> fetchRemoteModels(@PathVariable Long id) {
+        return ApiResult.success(modelProviderService.fetchRemoteModels(id));
+    }
 }

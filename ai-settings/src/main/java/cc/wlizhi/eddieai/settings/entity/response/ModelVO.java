@@ -23,6 +23,21 @@ public class ModelVO {
      */
     private List<ModelCapability> capabilities;
 
+    /**
+     * 币种，如 USD、CNY
+     */
+    private String currency;
+
+    /**
+     * 输入价格，每百万 token
+     */
+    private Double inputPrice;
+
+    /**
+     * 输出价格，每百万 token
+     */
+    private Double outputPrice;
+
     public String getCode() {
         return code;
     }
@@ -53,5 +68,29 @@ public class ModelVO {
 
     public void setCapabilities(List<ModelCapability> capabilities) {
         this.capabilities = capabilities;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public Double getInputPrice() {
+        return inputPrice;
+    }
+
+    public void setInputPrice(Double inputPrice) {
+        this.inputPrice = inputPrice;
+    }
+
+    public Double getOutputPrice() {
+        return outputPrice;
+    }
+
+    public void setOutputPrice(Double outputPrice) {
+        this.outputPrice = outputPrice;
     }
 }
