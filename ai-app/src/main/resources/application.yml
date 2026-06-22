@@ -2,10 +2,10 @@ server:
   port: 11520
   tomcat:
     threads:
-      max: 4
+      max: 8
       min-spare: 1
     accept-count: 10
-    max-connections: 10
+    max-connections: 20
 
 spring:
   datasource:
