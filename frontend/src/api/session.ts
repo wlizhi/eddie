@@ -14,6 +14,7 @@
 import type {ApiResult} from '@/types/chat'
 import type {
     MessageVO,
+    PageResult,
     SessionCreateRequest,
     SessionVO,
     TitleGenerateRequest,
@@ -34,10 +35,20 @@ export async function createSession(data: SessionCreateRequest): Promise<Session
     return json.data
 }
 
-export async function fetchSessionList(assistantId: number): Promise<SessionVO[]> {
-    const res = await fetch(`${BASE}/list?assistantId=${assistantId}`)
+export async function fetchSessionList(
+    assistantId: number,
+    pageNum: number = 1,
+    pageSize: number = 50,
+    title?: string
+): Promise<PageResult<SessionVO>> {
+    const params = new URLSearchParams()
+    params.set('assistantId', String(assistantId))
+    params.set('pageNum', String(pageNum))
+    params.set('pageSize', String(pageSize))
+    if (title) params.set('title', title)
+    const res = await fetch(`${BASE}/list?${params}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-    const json: ApiResult<SessionVO[]> = await res.json()
+    const json: ApiResult<PageResult<SessionVO>> = await res.json()
     if (json.code !== 200) throw new Error(json.message || '获取会话列表失败')
     return json.data
 }

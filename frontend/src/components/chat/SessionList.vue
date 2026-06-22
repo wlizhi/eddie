@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {computed, nextTick, ref} from 'vue'
-import {MessageSquare, Pencil, Pin, Plus, Search, Sparkles, Trash2} from '@lucide/vue'
+import {Loader2, MessageSquare, Pencil, Pin, Plus, Search, Sparkles, Trash2} from '@lucide/vue'
 import {useChatStore} from '@/stores/chat'
 import type {SessionVO} from '@/types/session'
 import {useSessionList} from '@/composables/useSessionList'
+import {useVirtualList} from '@/composables/useVirtualList'
 import {useRelativeTime} from '@/composables/useRelativeTime'
 import {useAssistantStore} from '@/stores/assistant'
 
@@ -14,14 +15,34 @@ const assistantStore = useAssistantStore()
 const editingSessionId = ref<number | null>(null)
 const editTitle = ref('')
 
-// 会话列表
+// 会话列表（分页 + 服务端搜索）
 const {
-  searchQuery, filteredSessions, removeSession, togglePin, renameSession, aiGenerateTitle,
+  searchQuery, sessions, sessionsLoading, loadingMore, loadMore,
+  removeSession, togglePin, renameSession, aiGenerateTitle,
 } = useSessionList(
     computed(() => assistantStore.activeId),
     computed(() => chatStore.sessionRefreshCounter),
     computed(() => chatStore.currentConversationId),
 )
+
+/** 虚拟滚动容器 ref */
+const listContainer = ref<HTMLElement | null>(null)
+
+/** 单项固定高度：与 CSS 中 .session-item 实际渲染高度一致 */
+const ITEM_HEIGHT = 44
+
+const {
+  visibleItems,
+  offsetY,
+  totalHeight,
+  onScroll,
+} = useVirtualList(listContainer, {
+  items: sessions,
+  itemHeight: ITEM_HEIGHT,
+  buffer: 5,
+  loadMoreThreshold: 200,
+  onLoadMore: loadMore,
+})
 
 /** 进入行内编辑模式 */
 function startRename(session: SessionVO) {
@@ -65,49 +86,77 @@ function selectSession(session: SessionVO) {
       <input v-model="searchQuery" type="text" class="search-input" placeholder="搜索会话..."/>
     </div>
 
-    <!-- 会话列表 -->
-    <div class="session-list">
-      <div
-          v-for="session in filteredSessions"
-          :key="session.id"
-          class="session-item"
-          :class="{ active: chatStore.currentConversationId === String(session.id) }"
-          @click="editingSessionId !== session.id && selectSession(session)"
-      >
-        <div class="session-icon">
-          <MessageSquare :size="14" :stroke-width="1.8"/>
-        </div>
-        <div class="session-info">
-          <div class="session-title" v-if="editingSessionId !== session.id">
-            <span class="title-text">{{ session.title || '新对话' }}</span>
-            <span v-if="session.messageCount > 0" class="msg-count">{{ session.messageCount }}</span>
+    <!-- 首次加载中 -->
+    <div v-if="sessionsLoading" class="loading-state">
+      <Loader2 :size="16" :stroke-width="2" class="spin"/>
+      <span>加载中...</span>
+    </div>
+
+    <!-- 虚拟滚动会话列表 -->
+    <div
+        v-else
+        ref="listContainer"
+        class="session-list"
+        @scroll="onScroll"
+    >
+      <!-- 撑开滚动条高度的占位元素 -->
+      <div :style="{ height: totalHeight + 'px', position: 'relative' }">
+        <!-- 可见项容器，使用 transform 偏移到正确位置 -->
+        <div :style="{ transform: `translateY(${offsetY}px)` }">
+          <div
+              v-for="session in visibleItems"
+              :key="session.id"
+              class="session-item"
+              :class="{ active: chatStore.currentConversationId === String(session.id) }"
+              @click="editingSessionId !== session.id && selectSession(session)"
+          >
+            <div class="session-icon">
+              <MessageSquare :size="14" :stroke-width="1.8"/>
+            </div>
+            <div class="session-info">
+              <div class="session-title" v-if="editingSessionId !== session.id">
+                <span class="title-text">{{ session.title || '新对话' }}</span>
+                <span v-if="session.messageCount > 0" class="msg-count">{{ session.messageCount }}</span>
+              </div>
+              <div class="session-edit" v-else @click.stop>
+                <input
+                    v-model="editTitle"
+                    class="rename-input"
+                    maxlength="50"
+                    @keyup.enter="submitRename()"
+                    @keyup.escape="cancelRename()"
+                    @blur="submitRename()"
+                />
+              </div>
+              <div class="session-time">{{ formatTime(session.updatedAt) }}</div>
+            </div>
+            <div class="session-actions">
+              <button class="session-rename" title="重命名" @click.stop="startRename(session)">
+                <Pencil :size="11" :stroke-width="2"/>
+              </button>
+              <button class="session-ai-title" title="AI 生成标题" @click.stop="aiGenerateTitle(session.id)">
+                <Sparkles :size="11" :stroke-width="2"/>
+              </button>
+              <button class="session-pin" title="置顶" @click.stop="togglePin(session)">
+                <Pin :size="11" :stroke-width="2" :class="{ pinned: session.pinned }"/>
+              </button>
+              <button class="session-delete" title="删除会话" @click.stop="removeSession(session.id)">
+                <Trash2 :size="12" :stroke-width="2"/>
+              </button>
+            </div>
           </div>
-          <div class="session-edit" v-else @click.stop>
-            <input
-                v-model="editTitle"
-                class="rename-input"
-                maxlength="50"
-                @keyup.enter="submitRename()"
-                @keyup.escape="cancelRename()"
-                @blur="submitRename()"
-            />
-          </div>
-          <div class="session-time">{{ formatTime(session.updatedAt) }}</div>
         </div>
-        <div class="session-actions">
-          <button class="session-rename" title="重命名" @click.stop="startRename(session)">
-            <Pencil :size="11" :stroke-width="2"/>
-          </button>
-          <button class="session-ai-title" title="AI 生成标题" @click.stop="aiGenerateTitle(session.id)">
-            <Sparkles :size="11" :stroke-width="2"/>
-          </button>
-          <button class="session-pin" title="置顶" @click.stop="togglePin(session)">
-            <Pin :size="11" :stroke-width="2" :class="{ pinned: session.pinned }"/>
-          </button>
-          <button class="session-delete" title="删除会话" @click.stop="removeSession(session.id)">
-            <Trash2 :size="12" :stroke-width="2"/>
-          </button>
-        </div>
+      </div>
+
+      <!-- 加载更多指示器 -->
+      <div v-if="loadingMore" class="loading-more">
+        <Loader2 :size="12" :stroke-width="2" class="spin"/>
+        <span>加载更多...</span>
+      </div>
+
+      <!-- 无数据 -->
+      <div v-if="!sessionsLoading && sessions.length === 0" class="empty-state">
+        <span>暂无会话</span>
       </div>
     </div>
 
@@ -164,14 +213,47 @@ function selectSession(session: SessionVO) {
   border-color: #2563eb;
 }
 
-/* 会话列表 */
+/* 加载 / 空状态 */
+.loading-state,
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 会话列表（虚拟滚动容器） */
 .session-list {
   flex: 1;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
   padding: 2px 8px;
+  position: relative;
 }
 
 .session-item {
@@ -183,6 +265,8 @@ function selectSession(session: SessionVO) {
   cursor: pointer;
   transition: background 0.15s;
   position: relative;
+  height: 44px;
+  box-sizing: border-box;
 }
 
 .session-item:hover {

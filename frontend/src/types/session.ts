@@ -50,3 +50,11 @@ export interface TitleGenerateRequest {
     providerId: number
     modelCode: string
 }
+
+/** 通用分页结果 */
+export interface PageResult<T> {
+    page: number
+    size: number
+    total: number
+    records: T[]
+}
