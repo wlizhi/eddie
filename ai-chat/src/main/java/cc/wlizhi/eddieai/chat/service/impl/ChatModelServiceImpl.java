@@ -4,6 +4,7 @@ import cc.wlizhi.eddieai.chat.entity.response.ChatModelItemVO;
 import cc.wlizhi.eddieai.chat.entity.response.ChatModelSelectorVO;
 import cc.wlizhi.eddieai.chat.service.ChatModelService;
 import cc.wlizhi.eddieai.common.dao.ChatModelProviderDao;
+import cc.wlizhi.eddieai.common.enums.ModelCapability;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,6 +53,14 @@ public class ChatModelServiceImpl implements ChatModelService {
         return result;
     }
 
+    /**
+     * 需要排除的模型能力类型（重排、嵌入，仅用于对话模型选择）
+     */
+    private static final Set<String> EXCLUDED_CAPABILITIES = Set.of(
+            ModelCapability.RERANK.getCode(),
+            ModelCapability.EMBEDDING.getCode()
+    );
+
     private List<ChatModelItemVO> parseModels(String modelsJson, Long providerId, String providerCode) {
         try {
             List<Map<String, Object>> rawList = objectMapper.readValue(
@@ -58,6 +68,14 @@ public class ChatModelServiceImpl implements ChatModelService {
                     });
 
             return rawList.stream()
+                    .filter(raw -> {
+                        Object capsObj = raw.get("capabilities");
+                        if (capsObj instanceof List<?> caps) {
+                            return caps.stream().noneMatch(c ->
+                                    c instanceof String s && EXCLUDED_CAPABILITIES.contains(s));
+                        }
+                        return true; // 无 capabilities 字段视为普通对话模型，不过滤
+                    })
                     .map(raw -> {
                         ChatModelItemVO item = new ChatModelItemVO();
                         Object id = raw.get("id");

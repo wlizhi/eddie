@@ -6,7 +6,7 @@
   - Enter 发送 / Shift+Enter 换行
   - IME 输入法组合处理
   - 发送/中断按钮
-  - 模型选择器（胶囊按钮 + 更多下拉）
+  - 模型选择器（单 NSelect 下拉，与助手弹窗风格一致）
   - 功能开关（联网搜索、深度思考，预留）
   - 流式响应状态提示
 
@@ -40,7 +40,10 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 /** IME 输入法组合状态 */
 const isComposing = ref(false)
 
-/** 按供应商分组 — naive-ui NSelect 分组格式 */
+/** 复合键分隔符，防止不同供应商下同编号模型冲突 */
+const MODEL_KEY_SEPARATOR = '::'
+
+/** 按供应商分组 — naive-ui NSelect 分组格式（复合键） */
 const groupedOptions = computed(() =>
     chatStore.modelSelectors.map((selector) => ({
       type: 'group' as const,
@@ -48,48 +51,26 @@ const groupedOptions = computed(() =>
       key: selector.providerCode,
       children: selector.models.map((m) => ({
         label: m.displayName ?? m.modelId,
-        value: m.modelId,
+        value: `${m.providerId}${MODEL_KEY_SEPARATOR}${m.modelId}`,
       })),
     }))
 )
 
-/** 当前选中供应商的名称 */
-const currentProviderName = computed(() => {
-  const sel = chatStore.modelSelectors.find(
-      s => s.providerId === chatStore.currentProviderId,
-  )
-  return sel?.providerName ?? ''
+/** 当前选中项的复合键 */
+const selectedModelKey = computed<string | null>(() => {
+  if (!chatStore.currentProviderId || !chatStore.currentModelId) return null
+  return `${chatStore.currentProviderId}${MODEL_KEY_SEPARATOR}${chatStore.currentModelId}`
 })
 
-/** 当前供应商下的模型列表 */
-const currentProviderModels = computed(() => {
-  const sel = chatStore.modelSelectors.find(
-      s => s.providerId === chatStore.currentProviderId,
-  )
-  return sel?.models ?? []
-})
-
-const QUICK_MODEL_LIMIT = 3
-
-/** 快速切换胶囊模型 */
-const quickModels = computed(() =>
-    currentProviderModels.value.slice(0, QUICK_MODEL_LIMIT)
-)
-
-/** 是否有更多模型需要下拉选择 */
-const hasMoreModels = computed(() =>
-    currentProviderModels.value.length > QUICK_MODEL_LIMIT
-)
-
-/** NSelect "更多" 下拉选中时同步 providerId */
-function onModelSelect(modelId: string) {
-  for (const sel of chatStore.modelSelectors) {
-    const found = sel.models.find(m => m.modelId === modelId)
-    if (found) {
-      chatStore.selectModel(found.modelId, found.providerId)
-      return
-    }
-  }
+/** NSelect 选中时从复合键解析并同步 store */
+function onModelSelect(compositeKey: string | null) {
+  if (!compositeKey) return
+  const sepIdx = compositeKey.indexOf(MODEL_KEY_SEPARATOR)
+  if (sepIdx === -1) return
+  const providerId = Number(compositeKey.substring(0, sepIdx))
+  const modelId = compositeKey.substring(sepIdx + MODEL_KEY_SEPARATOR.length)
+  if (!providerId || !modelId) return
+  chatStore.selectModel(modelId, providerId)
 }
 
 /** 处理输入框键盘事件 */
@@ -167,26 +148,13 @@ defineExpose({focusInput})
     <!-- 底部栏 -->
     <div class="bottom-bar">
       <div class="model-selector-area">
-        <span v-if="currentProviderName" class="provider-tag">{{ currentProviderName }}</span>
-
-        <button
-            v-for="m in quickModels"
-            :key="m.modelId"
-            class="model-chip"
-            :class="{ active: m.modelId === chatStore.currentModelId }"
-            @click="chatStore.selectModel(m.modelId, m.providerId)"
-        >
-          {{ m.displayName ?? m.modelId }}
-        </button>
-
         <NSelect
-            v-if="hasMoreModels"
-            :value="chatStore.currentModelId"
+            :value="selectedModelKey"
             :options="groupedOptions"
             size="tiny"
-            class="more-select"
-            placeholder="更多 ▾"
-            :show-arrow="false"
+            class="model-select"
+            placeholder="选择模型"
+            :consistent-menu-width="false"
             @update:value="onModelSelect"
         />
       </div>

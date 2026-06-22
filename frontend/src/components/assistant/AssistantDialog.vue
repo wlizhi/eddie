@@ -33,6 +33,7 @@ const {
   clearFieldError, onModelSelect, onAvatarPicked,
   handleSave, handleDelete, close,
   groupedModelOptions,
+  selectedModelKey,
 } = useAssistantForm(props, emit)
 
 const modelParamDefs = MODEL_PARAM_DEFS
@@ -94,7 +95,7 @@ const tipTheme = TIP_THEME_OVERRIDES
         </label>
         <div :class="['nselect-error-wrap', { 'nselect-error': fieldErrors['formModelId'] }]">
           <NSelect
-              :value="formModelId || null"
+              :value="selectedModelKey"
               :options="groupedModelOptions"
               placeholder="选择模型"
               :consistent-menu-width="false"

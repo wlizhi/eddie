@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -22,7 +23,7 @@ public class DefaultChatThinkingHandler implements ChatThinkingHandler {
 
     @Override
     public boolean support(String providerCode) {
-        return Objects.equals(providerCode, "deepseek");
+        return Set.of("deepseek", "dashscope").contains(providerCode);
     }
 
     @Override

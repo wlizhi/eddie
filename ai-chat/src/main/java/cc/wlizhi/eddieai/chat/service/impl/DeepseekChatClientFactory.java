@@ -14,7 +14,7 @@ import org.springframework.ai.deepseek.DeepSeekChatOptions;
 import org.springframework.ai.deepseek.api.DeepSeekApi;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class DeepseekChatClientFactory implements ChatClientFactory {
@@ -22,10 +22,11 @@ public class DeepseekChatClientFactory implements ChatClientFactory {
     private static final Logger log = LoggerFactory.getLogger(DeepseekChatClientFactory.class);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Set<String> supports = Set.of("deepseek", "dashscope");
 
     @Override
     public boolean support(String providerCode) {
-        return Objects.equals(providerCode, "deepseek");
+        return supports.contains("deepseek");
     }
 
     @Override
@@ -34,7 +35,7 @@ public class DeepseekChatClientFactory implements ChatClientFactory {
         AssistantEntity assistant = ctx.getAssistant();
 
         DeepSeekChatOptions.Builder optionsBuilder = DeepSeekChatOptions.builder()
-                .model(assistant.getModelId());
+                .model(ctx.getOriginalRequest().getModelId());
 
         applyModelParams(optionsBuilder, assistant.getModelParams());
 

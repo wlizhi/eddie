@@ -133,6 +133,9 @@ export function useAssistantForm(
     }
 
     // ========== 模型选择 ==========
+    /** 选项唯一标识：服务商ID:模型ID，防止不同服务商同编号模型冲突 */
+    const MODEL_KEY_SEPARATOR = '::'
+
     const groupedModelOptions = computed(() =>
         chatStore.modelSelectors.map((s) => ({
             type: 'group' as const,
@@ -140,21 +143,26 @@ export function useAssistantForm(
             key: s.providerCode,
             children: s.models.map((m) => ({
                 label: m.displayName ?? m.modelId,
-                value: m.modelId,
+                value: `${m.providerId}${MODEL_KEY_SEPARATOR}${m.modelId}`,
             })),
         }))
     )
 
-    function onModelSelect(modelId: string | null) {
-        if (!modelId) return
+    /** 当前选中项的复合键，用于 NSelect 的 :value 绑定 */
+    const selectedModelKey = computed<string | null>(() => {
+        if (!formProviderId.value || !formModelId.value) return null
+        return `${formProviderId.value}${MODEL_KEY_SEPARATOR}${formModelId.value}`
+    })
+
+    function onModelSelect(compositeKey: string | null) {
+        if (!compositeKey) return
+        const sepIdx = compositeKey.indexOf(MODEL_KEY_SEPARATOR)
+        if (sepIdx === -1) return
+        const providerId = Number(compositeKey.substring(0, sepIdx))
+        const modelId = compositeKey.substring(sepIdx + MODEL_KEY_SEPARATOR.length)
+        if (!providerId || !modelId) return
+        formProviderId.value = providerId
         formModelId.value = modelId
-        for (const sel of chatStore.modelSelectors) {
-            const found = sel.models.find(m => m.modelId === modelId)
-            if (found) {
-                formProviderId.value = found.providerId
-                return
-            }
-        }
     }
 
     // ========== 头像 ==========
@@ -327,5 +335,6 @@ export function useAssistantForm(
 
         // 计算属性
         groupedModelOptions,
+        selectedModelKey,
     }
 }

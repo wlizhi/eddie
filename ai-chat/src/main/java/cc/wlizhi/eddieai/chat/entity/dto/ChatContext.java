@@ -27,7 +27,9 @@ public class ChatContext {
 
     // ==================== 阶段一：原始请求 ====================
 
-    /** 用户原始请求 */
+    /**
+     * 用户原始请求
+     */
     private ChatRequest originalRequest;
 
     // ==================== 阶段二：预处理 & Provider ====================
@@ -37,11 +39,10 @@ public class ChatContext {
      */
     private ModelProviderEntity provider;
 
-    /** 供应商代码 (openai / deepseek / anthropic ...) */
+    /**
+     * 供应商代码 (openai / deepseek / anthropic ...)
+     */
     private String providerCode;
-
-    /** 最终请求的模型 ID（经过 ModelNameMapper 映射后） */
-    private String resolvedModelId;
 
     /**
      * 完整的助手实体（含 systemPrompt、modelId、modelParams、memoryRounds 等）
@@ -67,7 +68,9 @@ public class ChatContext {
 
     // ==================== 阶段四：执行 & 响应 ====================
 
-    /** 请求开始时间戳（毫秒） */
+    /**
+     * 请求开始时间戳（毫秒）
+     */
     private long startTime;
 
     /**
@@ -87,6 +90,8 @@ public class ChatContext {
 
     // ==================== 扩展属性 ====================
 
-    /** 扩展属性 Map，供任意阶段写入临时数据 */
+    /**
+     * 扩展属性 Map，供任意阶段写入临时数据
+     */
     private Map<String, Object> attributes = new HashMap<>();
 }

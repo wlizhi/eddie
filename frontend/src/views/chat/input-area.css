@@ -81,49 +81,10 @@
 .model-selector-area {
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
 }
 
-.provider-tag {
-    font-size: 11px;
-    font-weight: 500;
-    color: #9ca3af;
-    background: #f0f1f3;
-    padding: 2px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
-    user-select: none;
-}
-
-.model-chip {
-    padding: 3px 10px;
-    font-size: 12px;
-    font-family: inherit;
-    line-height: 1.4;
-    border: 1px solid #e0e2e6;
-    border-radius: 14px;
-    background: #fafbfc;
-    color: #4b5563;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-}
-
-.model-chip:hover {
-    background: #f0f1f3;
-    border-color: #c4c7cc;
-}
-
-.model-chip.active {
-    background: #2563eb;
-    border-color: #2563eb;
-    color: #fff;
-}
-
-.more-select {
-    min-width: 70px;
-    max-width: 110px;
+.model-select {
+    min-width: 100px;
 }
 
 .feature-toggles {
