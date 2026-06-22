@@ -39,7 +39,7 @@ import java.util.Map;
  * 文档：<a href="https://help.aliyun.com/zh/model-studio/list-deployable-models-api">列举可部署模型</a>
  */
 @Component
-public class BailianModelFetcher implements RemoteModelFetcher {
+public class DashScopeModelFetcher implements RemoteModelFetcher {
 
     private static final String MODELS_PATH = "/api/v1/deployments/models";
     private static final String PROVIDER_CODE = "dashscope";
@@ -48,7 +48,7 @@ public class BailianModelFetcher implements RemoteModelFetcher {
     private final RestClient restClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public BailianModelFetcher() {
+    public DashScopeModelFetcher() {
         this.restClient = RestClient.builder().build();
     }
 
