@@ -1,6 +1,7 @@
 package cc.wlizhi.eddieai.settings.service.impl;
 
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
+import cc.wlizhi.eddieai.common.enums.ModelCapability;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.common.exception.ConflictException;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ModelProviderServiceImpl implements ModelProviderService {
@@ -215,16 +217,76 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             for (Map<String, Object> raw : rawList) {
                 ModelVO vo = new ModelVO();
                 Object idObj = raw.get("id");
-                vo.setCode(idObj != null ? idObj.toString() : null);
+                String modelId = idObj != null ? idObj.toString() : null;
+                vo.setCode(modelId);
                 Object objectObj = raw.get("object");
                 vo.setObject(objectObj != null ? objectObj.toString() : null);
                 Object ownedByObj = raw.get("owned_by");
                 vo.setOwnedBy(ownedByObj != null ? ownedByObj.toString() : null);
+                // capabilities：优先读 JSON 中已有标签，没有则从模型 ID 关键词推断
+                vo.setCapabilities(parseCapabilities(raw, modelId));
                 result.add(vo);
             }
             return result;
         } catch (Exception e) {
             throw new RuntimeException("解析模型列表 JSON 失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 解析模型能力标签，优先读 JSON 中的 capabilities，否则根据模型 ID 关键词推断
+     */
+    @SuppressWarnings("unchecked")
+    private List<ModelCapability> parseCapabilities(Map<String, Object> raw, String modelId) {
+        // 1) 如果 JSON 中有 capabilities 字段，直接解析
+        Object capsObj = raw.get("capabilities");
+        if (capsObj instanceof List) {
+            List<String> capCodes = (List<String>) capsObj;
+            List<ModelCapability> caps = capCodes.stream()
+                    .map(ModelCapability::fromCode)
+                    .filter(c -> c != null)
+                    .collect(Collectors.toList());
+            if (!caps.isEmpty()) {
+                return caps;
+            }
+        }
+        // 2) 兜底：根据模型 ID 关键词推断
+        return inferCapabilities(modelId);
+    }
+
+    /**
+     * 根据模型 ID 关键词推断能力标签
+     */
+    private List<ModelCapability> inferCapabilities(String modelId) {
+        if (modelId == null) {
+            return List.of(ModelCapability.FUNCTION_CALLING);
+        }
+        String id = modelId.toLowerCase();
+        // 嵌入模型
+        if (id.contains("embedding") || id.contains("embed")) {
+            return List.of(ModelCapability.EMBEDDING);
+        }
+        // 重排模型
+        if (id.contains("rerank")) {
+            return List.of(ModelCapability.RERANK);
+        }
+        List<ModelCapability> caps = new ArrayList<>();
+        // 视觉
+        if (id.contains("vision") || id.contains("vl") || id.contains("multimodal")) {
+            caps.add(ModelCapability.VISION);
+        }
+        // 联网搜索
+        if (id.contains("search") || id.contains("web")) {
+            caps.add(ModelCapability.WEB_SEARCH);
+        }
+        // 推理（o1/o3/r1/deepseek-r1/reasoning 等）
+        if (id.startsWith("o1-") || id.startsWith("o1/")
+                || id.startsWith("o3-") || id.startsWith("o3/")
+                || id.contains("r1") || id.contains("reasoning")) {
+            caps.add(ModelCapability.REASONING);
+        }
+        // 工具调用：所有非嵌入/重排的聊天模型都支持
+        caps.add(ModelCapability.FUNCTION_CALLING);
+        return caps;
     }
 }
