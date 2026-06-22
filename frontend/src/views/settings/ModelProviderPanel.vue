@@ -47,7 +47,7 @@
 <script setup lang="ts">
 import {computed, onMounted, reactive, ref, watch} from 'vue'
 import {Cpu} from '@lucide/vue'
-import {listProviders, updateProvider} from '@/api/modelProvider'
+import {batchRemoveModels, createProvider, listProviders, updateModel, updateProvider} from '@/api/modelProvider'
 import type {ModelItem, ModelProvider} from '@/types/modelProvider'
 import {normalizeCaps} from './modelCapabilities'
 
@@ -107,26 +107,30 @@ async function saveModelSettings(payload: {
       ? (payload.customCurrency || '¥')
       : payload.currency
 
-  const updated = currentModels.value.map(m => {
-    if (m.code === editingModel.value!.code) {
-      return {
-        ...m,
-        name: payload.name || m.code,
-        capabilities: [...payload.capabilities],
-        currency: finalCurrency,
-        inputPrice: payload.inputPrice,
-        outputPrice: payload.outputPrice,
-      }
-    }
-    return m
-  })
-
   try {
-    await updateProvider({
-      id: activeProvider.value.id,
-      models: JSON.stringify(updated),
+    await updateModel(activeProvider.value.id, {
+      code: editingModel.value.code,
+      name: payload.name || editingModel.value.code,
+      capabilities: [...payload.capabilities],
+      currency: finalCurrency,
+      inputPrice: payload.inputPrice,
+      outputPrice: payload.outputPrice,
     })
-    activeProvider.value.models = updated
+
+    // 更新本地数据
+    activeProvider.value.models = currentModels.value.map(m => {
+      if (m.code === editingModel.value!.code) {
+        return {
+          ...m,
+          name: payload.name || m.code,
+          capabilities: [...payload.capabilities],
+          currency: finalCurrency,
+          inputPrice: payload.inputPrice,
+          outputPrice: payload.outputPrice,
+        }
+      }
+      return m
+    })
     closeModal()
   } catch (e) {
     console.error('保存模型设置失败', e)
@@ -141,11 +145,28 @@ function selectProvider(p: ModelProvider) {
   editForm.apiKey = p.apiKey
 }
 
-/** 新增服务商（占位） */
+/** 新增服务商 */
 async function addProvider() {
-  // TODO: 调用后端 POST /api/model-provider 创建空服务商
-  // 接口待实现
-  console.warn('add-provider 接口尚未实现')
+  const code = prompt('请输入服务商 code（唯一标识，如 custom-openai）')
+  if (!code) return
+
+  const name = prompt('请输入服务商名称')
+  if (!name) return
+
+  const baseUrl = prompt('请输入 API 地址')
+  if (!baseUrl) return
+
+  const apiKey = prompt('请输入 API 密钥（可选）') || ''
+
+  try {
+    await createProvider({code, name, baseUrl, apiKey})
+    // 重新加载列表并选中新增的服务商
+    providers.value = await listProviders()
+    const newProvider = providers.value.find(p => p.code === code)
+    if (newProvider) selectProvider(newProvider)
+  } catch (e) {
+    console.error('新增服务商失败', e)
+  }
 }
 
 /** 监听 editForm 变化，自动保存 */
@@ -173,13 +194,9 @@ async function saveProvider() {
 /** 移除某个模型 */
 async function removeModel(code: string) {
   if (!activeProvider.value) return
-  const updated = currentModels.value.filter(m => m.code !== code)
   try {
-    await updateProvider({
-      id: activeProvider.value.id,
-      models: JSON.stringify(updated),
-    })
-    activeProvider.value.models = updated
+    await batchRemoveModels(activeProvider.value.id, [code])
+    activeProvider.value.models = currentModels.value.filter(m => m.code !== code)
   } catch (e) {
     console.error('移除模型失败', e)
   }

@@ -41,6 +41,20 @@ export interface ModelItem {
 }
 
 /**
+ * 新增服务商请求 — 对应后端 ModelProviderCreateRequest
+ */
+export interface ModelProviderCreatePayload {
+    code: string
+    name: string
+    baseUrl: string
+    apiKey?: string
+    models?: string
+    enabled?: number
+    builtIn?: number
+    sortOrder?: number
+}
+
+/**
  * 更新服务商请求 — 对应后端 ModelProviderUpdateRequest
  */
 export interface ModelProviderUpdatePayload {

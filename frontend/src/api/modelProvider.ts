@@ -1,5 +1,10 @@
 import type {ApiResult} from '@/types/chat'
-import type {ModelItem, ModelProvider, ModelProviderUpdatePayload} from '@/types/modelProvider'
+import type {
+    ModelItem,
+    ModelProvider,
+    ModelProviderCreatePayload,
+    ModelProviderUpdatePayload
+} from '@/types/modelProvider'
 
 const BASE = '/api/model-provider'
 
@@ -51,4 +56,80 @@ export async function deleteProvider(id: number): Promise<void> {
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
     const json: ApiResult<void> = await res.json()
     if (json.code !== 200) throw new Error(json.message || '删除失败')
+}
+
+/**
+ * 新增服务商
+ * POST /api/model-provider
+ */
+export async function createProvider(payload: ModelProviderCreatePayload): Promise<void> {
+    const res = await fetch(`${BASE}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<void> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '新增服务商失败')
+}
+
+/**
+ * 修改服务商下的某个模型参数
+ * PUT /api/model-provider/{providerId}/model
+ */
+export async function updateModel(providerId: number, payload: {
+    code: string
+    name?: string
+    capabilities?: string[]
+    currency?: string
+    inputPrice?: number
+    outputPrice?: number
+}): Promise<void> {
+    const res = await fetch(`${BASE}/${providerId}/model`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<void> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '更新模型失败')
+}
+
+/**
+ * 批量新增模型到服务商
+ * POST /api/model-provider/{providerId}/models/batch-add
+ */
+export async function batchAddModels(providerId: number, models: {
+    code: string
+    name?: string
+    object?: string
+    ownedBy?: string
+    capabilities?: string[]
+    currency?: string
+    inputPrice?: number
+    outputPrice?: number
+}[]): Promise<void> {
+    const res = await fetch(`${BASE}/${providerId}/models/batch-add`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({models}),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<void> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '批量新增模型失败')
+}
+
+/**
+ * 批量删除服务商下的模型
+ * POST /api/model-provider/{providerId}/models/batch-remove
+ */
+export async function batchRemoveModels(providerId: number, codes: string[]): Promise<void> {
+    const res = await fetch(`${BASE}/${providerId}/models/batch-remove`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({codes}),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<void> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '批量删除模型失败')
 }
