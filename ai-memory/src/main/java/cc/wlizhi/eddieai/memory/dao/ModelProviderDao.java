@@ -25,4 +25,13 @@ public class ModelProviderDao {
                 """;
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ModelProviderEntity.class));
     }
+
+    public ModelProviderEntity getById(Long id) {
+        String sql = """
+                SELECT id, code, name, base_url, api_key, models, enabled, built_in, sort_order, created_at, updated_at
+                FROM model_provider
+                WHERE id = ?
+                """;
+        return jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<>(ModelProviderEntity.class), id);
+    }
 }

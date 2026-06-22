@@ -1,15 +1,16 @@
 package cc.wlizhi.eddieai.memory.context;
 
+import cc.wlizhi.eddieai.common.cache.GlobalCache;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.memory.dao.ModelProviderDao;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 模型服务商上下文，全应用生命周期缓存
@@ -18,9 +19,10 @@ import java.util.Objects;
  * ChatPolicy 策略匹配仍通过 {@code code}（业务类型）进行。
  */
 @Component
-public class ModelProviderContext {
+public class ModelProviderContext implements GlobalCache {
 
     private volatile Map<Long, ModelProviderEntity> modelProviderMap;
+    private final ReentrantLock lock = new ReentrantLock();
 
     @Resource
     private ModelProviderDao modelProviderDao;
@@ -42,38 +44,17 @@ public class ModelProviderContext {
         return modelProviderMap.get(providerId);
     }
 
-    /**
-     * 根据业务类型 code 获取服务商配置（仅限 ChatPolicy 策略匹配使用）
-     * 注意：同 code 可能有多个实例，只返回排序第一个
-     */
-    public ModelProviderEntity getModelProvider(String providerCode) {
-        for (ModelProviderEntity provider : modelProviderMap.values()) {
-            if (Objects.equals(provider.getCode(), providerCode)) {
-                return provider;
-            }
-        }
-        refresh();
-        for (ModelProviderEntity provider : modelProviderMap.values()) {
-            if (Objects.equals(provider.getCode(), providerCode)) {
-                return provider;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 获取全部缓存的服务商列表
-     */
-    public List<ModelProviderEntity> getAll() {
-        return List.copyOf(modelProviderMap.values());
-    }
-
     public void refresh() {
-        List<ModelProviderEntity> all = modelProviderDao.findAll();
-        Map<Long, ModelProviderEntity> map = new HashMap<>();
-        for (ModelProviderEntity entity : all) {
-            map.put(entity.getId(), entity);
+        try {
+            lock.lock();
+            List<ModelProviderEntity> all = modelProviderDao.findAll();
+            Map<Long, ModelProviderEntity> map = new LinkedHashMap<>();
+            for (ModelProviderEntity entity : all) {
+                map.put(entity.getId(), entity);
+            }
+            this.modelProviderMap = map;
+        } finally {
+            lock.unlock();
         }
-        this.modelProviderMap = map;
     }
 }

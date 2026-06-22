@@ -11,8 +11,10 @@ import cc.wlizhi.eddieai.chat.entity.request.AssistantUpdateRequest;
 import cc.wlizhi.eddieai.chat.entity.response.AssistantDetailVO;
 import cc.wlizhi.eddieai.chat.entity.response.AssistantVO;
 import cc.wlizhi.eddieai.chat.service.AssistantService;
+import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
 import cc.wlizhi.eddieai.common.util.FileStorageUtil;
+import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -41,6 +43,8 @@ public class AssistantServiceImpl implements AssistantService {
 
     @Resource
     private MessageDao messageDao;
+    @Resource
+    private ModelProviderContext modelProviderContext;
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
@@ -50,7 +54,12 @@ public class AssistantServiceImpl implements AssistantService {
         List<AssistantEntity> entities = assistantDao.findAll(showAll);
         List<AssistantVO> result = new ArrayList<>();
         for (AssistantEntity entity : entities) {
-            result.add(toVO(entity));
+            ModelProviderEntity modelProvider = modelProviderContext.getModelProviderById(entity.getProviderId());
+            AssistantVO assistant = toVO(entity);
+            if (modelProvider != null) {
+                assistant.setProviderName(modelProvider.getName());
+            }
+            result.add(assistant);
         }
         return result;
     }
@@ -61,7 +70,13 @@ public class AssistantServiceImpl implements AssistantService {
         if (entity == null) {
             throw new NotFoundException("助手不存在: " + id);
         }
-        return toDetailVO(entity);
+        ModelProviderEntity modelProvider = modelProviderContext.getModelProviderById(entity.getProviderId());
+        AssistantDetailVO assistant = toDetailVO(entity);
+        if (modelProvider != null) {
+            assistant.setProviderCode(modelProvider.getCode());
+            assistant.setProviderName(modelProvider.getName());
+        }
+        return assistant;
     }
 
     @Override
@@ -159,10 +174,10 @@ public class AssistantServiceImpl implements AssistantService {
 
         // 4. 更新 DB
         assistantDao.updateAvatar(id, newAvatar);
-
+        // 5. 刷新缓存
         assistantContext.refresh();
 
-        // 5. 返回更新后的助手
+        // 6. 返回更新后的助手
         AssistantEntity updated = assistantDao.findById(id);
         return toVO(updated);
     }
@@ -176,7 +191,7 @@ public class AssistantServiceImpl implements AssistantService {
         messageDao.deleteByAssistantId(id);
         sessionDao.deleteByAssistantId(id);
         assistantDao.deleteById(id);
-
+        // 刷新缓存
         assistantContext.refresh();
     }
 
@@ -198,7 +213,6 @@ public class AssistantServiceImpl implements AssistantService {
         vo.setDescription(entity.getDescription());
         vo.setSystemPrompt(entity.getSystemPrompt());
         vo.setProviderId(entity.getProviderId());
-        vo.setProviderName(entity.getProviderName());
         vo.setModelId(entity.getModelId());
         vo.setMemoryRounds(entity.getMemoryRounds());
         vo.setEnabled(entity.getEnabled());
@@ -216,8 +230,6 @@ public class AssistantServiceImpl implements AssistantService {
         vo.setDescription(entity.getDescription());
         vo.setSystemPrompt(entity.getSystemPrompt());
         vo.setProviderId(entity.getProviderId());
-        vo.setProviderCode(entity.getProviderCode());
-        vo.setProviderName(entity.getProviderName());
         vo.setModelId(entity.getModelId());
         vo.setModelParams(deserializeModelParams(entity.getModelParams()));
         vo.setMemoryRounds(entity.getMemoryRounds());

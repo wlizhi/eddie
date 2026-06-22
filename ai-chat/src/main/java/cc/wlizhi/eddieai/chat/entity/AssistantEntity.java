@@ -51,16 +51,6 @@ public class AssistantEntity {
     private String modelParams;
 
     /**
-     * 模型服务商名称（LEFT JOIN 查询，非 DB 字段）
-     */
-    private String providerName;
-
-    /**
-     * 模型服务商 code（LEFT JOIN 查询，非 DB 字段）
-     */
-    private String providerCode;
-
-    /**
      * 记忆轮数
      */
     private Integer memoryRounds;

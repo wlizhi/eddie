@@ -2,13 +2,15 @@ package cc.wlizhi.eddieai.chat.context;
 
 import cc.wlizhi.eddieai.chat.dao.AssistantDao;
 import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
+import cc.wlizhi.eddieai.common.cache.GlobalCache;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 助手列表上下文，全应用生命周期缓存
@@ -16,9 +18,10 @@ import java.util.Map;
  * 以 {@code assistantId} 为键快速查找助手信息，包括系统提示词、模型参数等。
  */
 @Component
-public class AssistantContext {
+public class AssistantContext implements GlobalCache {
 
     private volatile Map<Long, AssistantEntity> assistantMap;
+    private final ReentrantLock lock = new ReentrantLock();
 
     @Resource
     private AssistantDao assistantDao;
@@ -40,19 +43,17 @@ public class AssistantContext {
         return assistantMap.get(assistantId);
     }
 
-    /**
-     * 获取全部缓存的助手列表（仅启用的）
-     */
-    public List<AssistantEntity> getAll() {
-        return List.copyOf(assistantMap.values());
-    }
-
     public void refresh() {
-        List<AssistantEntity> all = assistantDao.findAll(true);
-        Map<Long, AssistantEntity> map = new HashMap<>();
-        for (AssistantEntity entity : all) {
-            map.put(entity.getId(), entity);
+        try {
+            lock.lock();
+            List<AssistantEntity> all = assistantDao.findAll(true);
+            Map<Long, AssistantEntity> map = new LinkedHashMap<>();
+            for (AssistantEntity entity : all) {
+                map.put(entity.getId(), entity);
+            }
+            this.assistantMap = map;
+        } finally {
+            lock.unlock();
         }
-        this.assistantMap = map;
     }
 }

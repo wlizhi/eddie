@@ -18,35 +18,35 @@ public class AssistantDao {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * 查询助手列表（LEFT JOIN model_provider 获取服务商名称）
+     * 查询助手列表
      *
      * @param showAll true=查询全部, false=仅查询启用的
      */
     public List<AssistantEntity> findAll(boolean showAll) {
-        String sql = "SELECT a.id, a.name, a.avatar, a.description, a.system_prompt, " +
-                "a.provider_id, a.model_id, a.model_params, a.memory_rounds, " +
-                "a.enabled, a.sort_order, a.created_at, a.updated_at, " +
-                "p.name AS provider_name, p.code AS provider_code " +
-                "FROM ai_assistant a " +
-                "LEFT JOIN model_provider p ON a.provider_id = p.id";
+        String sql = """
+                SELECT a.id, a.name, a.avatar, a.description, a.system_prompt,
+                       a.provider_id, a.model_id, a.model_params, a.memory_rounds,
+                       a.enabled, a.sort_order, a.created_at, a.updated_at
+                FROM ai_assistant a
+                """;
         if (!showAll) {
             sql += " WHERE a.enabled = 1";
         }
         sql += " ORDER BY a.enabled DESC, a.sort_order ASC, a.id ASC";
-        return jdbcTemplate.query(sql, assistantWithProviderRowMapper);
+        return jdbcTemplate.query(sql, assistantRowMapper);
     }
 
     /**
      * 根据 ID 查询助手（LEFT JOIN model_provider 获取服务商名称）
      */
     public AssistantEntity findById(Long id) {
-        String sql = "SELECT a.id, a.name, a.avatar, a.description, a.system_prompt, " +
-                "a.provider_id, a.model_id, a.model_params, a.memory_rounds, " +
-                "a.enabled, a.sort_order, a.created_at, a.updated_at, " +
-                "p.name AS provider_name, p.code AS provider_code " +
-                "FROM ai_assistant a " +
-                "LEFT JOIN model_provider p ON a.provider_id = p.id " +
-                "WHERE a.id = ?";
+        String sql = """
+                SELECT a.id, a.name, a.avatar, a.description, a.system_prompt,
+                       a.provider_id, a.model_id, a.model_params, a.memory_rounds,
+                       a.enabled, a.sort_order, a.created_at, a.updated_at
+                FROM ai_assistant a
+                WHERE a.id = ?
+                """;
         List<AssistantEntity> results = jdbcTemplate.query(sql, assistantWithProviderRowMapper, id);
         return results.isEmpty() ? null : results.get(0);
     }
@@ -55,11 +55,13 @@ public class AssistantDao {
      * 新增助手
      */
     public void insert(AssistantEntity entity) {
-        String sql = "INSERT INTO ai_assistant (name, avatar, description, system_prompt, " +
-                "provider_id, model_id, model_params, memory_rounds, enabled, sort_order, " +
-                "created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
-                "datetime('now', 'localtime'), datetime('now', 'localtime'))";
+        String sql = """
+                INSERT INTO ai_assistant (name, avatar, description, system_prompt,
+                                          provider_id, model_id, model_params, memory_rounds,
+                                          enabled, sort_order, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        datetime('now', 'localtime'), datetime('now', 'localtime'))
+                """;
         jdbcTemplate.update(sql,
                 entity.getName(),
                 entity.getAvatar(),
@@ -167,6 +169,27 @@ public class AssistantDao {
     public Long findLastInsertId() {
         return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
     }
+
+    /**
+     * 自定义 RowMapper：仅映射 AssistantEntity 基础字段
+     */
+    private final RowMapper<AssistantEntity> assistantRowMapper = (rs, rowNum) -> {
+        AssistantEntity entity = new AssistantEntity();
+        entity.setId(rs.getLong("id"));
+        entity.setName(rs.getString("name"));
+        entity.setAvatar(rs.getString("avatar"));
+        entity.setDescription(rs.getString("description"));
+        entity.setSystemPrompt(rs.getString("system_prompt"));
+        entity.setProviderId(rs.getObject("provider_id") != null ? rs.getLong("provider_id") : null);
+        entity.setModelId(rs.getString("model_id"));
+        entity.setModelParams(rs.getString("model_params"));
+        entity.setMemoryRounds(rs.getInt("memory_rounds"));
+        entity.setEnabled(rs.getInt("enabled"));
+        entity.setSortOrder(rs.getObject("sort_order") != null ? rs.getInt("sort_order") : 0);
+        entity.setCreatedAt(rs.getString("created_at"));
+        entity.setUpdatedAt(rs.getString("updated_at"));
+        return entity;
+    };
 
     /**
      * 自定义 RowMapper：映射 AssistantEntity + JOIN 字段
