@@ -6,7 +6,7 @@ import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.common.exception.ConflictException;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
 import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
-import cc.wlizhi.eddieai.settings.dao.ModelProviderMapper;
+import cc.wlizhi.eddieai.settings.dao.ModelProviderDao;
 import cc.wlizhi.eddieai.settings.entity.request.ModelProviderCreateRequest;
 import cc.wlizhi.eddieai.settings.entity.request.ModelProviderUpdateRequest;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;
@@ -33,7 +33,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
     private ModelProviderContext modelProviderContext;
 
     @Resource
-    private ModelProviderMapper modelProviderMapper;
+    private ModelProviderDao modelProviderDao;
 
     @Resource
     private RemoteModelFetcherRouter remoteModelFetcherRouter;
@@ -42,7 +42,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
 
     @Override
     public List<ModelProviderVO> listAll() {
-        List<ModelProviderEntity> entities = modelProviderMapper.findAll();
+        List<ModelProviderEntity> entities = modelProviderDao.findAll();
 
         // 排序：1级 enabled 启用在前禁用在后，2级 sort_order 升序，3级 id 正序
         entities.sort(Comparator
@@ -56,7 +56,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
 
     @Override
     public List<ModelProviderVO> listWithModels() {
-        List<ModelProviderEntity> entities = modelProviderMapper.findAll();
+        List<ModelProviderEntity> entities = modelProviderDao.findAll();
 
         entities.sort(Comparator
                 .comparing(ModelProviderEntity::getEnabled, Comparator.reverseOrder())
@@ -75,7 +75,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
 
     @Override
     public List<ModelVO> getModelsByCode(String code) {
-        String modelsJson = modelProviderMapper.findModelsByCode(code);
+        String modelsJson = modelProviderDao.findModelsByCode(code);
         if (modelsJson == null || modelsJson.isEmpty() || "[]".equals(modelsJson)) {
             return new ArrayList<>();
         }
@@ -106,7 +106,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
 
         try {
-            modelProviderMapper.insert(entity);
+            modelProviderDao.insert(entity);
         } catch (UncategorizedSQLException ex) {
             throw new ConflictException("服务商 code 已存在: " + entity.getCode());
         }
@@ -119,7 +119,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             throw new BadRequestException("服务商 ID 不能为空");
         }
 
-        ModelProviderEntity existing = modelProviderMapper.findById(request.getId());
+        ModelProviderEntity existing = modelProviderDao.findById(request.getId());
         if (existing == null) {
             throw new NotFoundException("服务商不存在: " + request.getId());
         }
@@ -151,7 +151,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             existing.setSortOrder(request.getSortOrder());
         }
 
-        modelProviderMapper.update(existing);
+        modelProviderDao.update(existing);
         modelProviderContext.refresh();
     }
 
@@ -161,7 +161,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             throw new BadRequestException("服务商 ID 不能为空");
         }
 
-        ModelProviderEntity existing = modelProviderMapper.findById(id);
+        ModelProviderEntity existing = modelProviderDao.findById(id);
         if (existing == null) {
             throw new NotFoundException("服务商不存在: " + id);
         }
@@ -169,7 +169,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             throw new BadRequestException("内置服务商不可删除");
         }
 
-        modelProviderMapper.deleteById(id);
+        modelProviderDao.deleteById(id);
         modelProviderContext.refresh();
     }
 
@@ -179,7 +179,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             return;
         }
         for (int i = 0; i < orderedIds.size(); i++) {
-            modelProviderMapper.updateSortOrder(orderedIds.get(i), i + 1);
+            modelProviderDao.updateSortOrder(orderedIds.get(i), i + 1);
         }
         modelProviderContext.refresh();
     }

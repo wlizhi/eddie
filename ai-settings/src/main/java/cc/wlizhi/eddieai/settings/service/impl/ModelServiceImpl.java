@@ -4,7 +4,7 @@ import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
 import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
-import cc.wlizhi.eddieai.settings.dao.ModelProviderMapper;
+import cc.wlizhi.eddieai.settings.dao.ModelProviderDao;
 import cc.wlizhi.eddieai.settings.entity.request.ModelBatchAddRequest;
 import cc.wlizhi.eddieai.settings.entity.request.ModelBatchRemoveRequest;
 import cc.wlizhi.eddieai.settings.entity.request.ModelUpdateRequest;
@@ -23,7 +23,7 @@ import java.util.Map;
 public class ModelServiceImpl implements ModelService {
 
     @Resource
-    private ModelProviderMapper modelProviderMapper;
+    private ModelProviderDao modelProviderDao;
 
     @Resource
     private ModelProviderContext modelProviderContext;
@@ -36,7 +36,7 @@ public class ModelServiceImpl implements ModelService {
             throw new BadRequestException("服务商 ID 不能为空");
         }
 
-        ModelProviderEntity entity = modelProviderMapper.findById(providerId);
+        ModelProviderEntity entity = modelProviderDao.findById(providerId);
         if (entity == null) {
             throw new NotFoundException("服务商不存在: " + providerId);
         }
@@ -76,7 +76,7 @@ public class ModelServiceImpl implements ModelService {
 
         // 序列化并保存
         entity.setModels(serializeModels(models));
-        modelProviderMapper.update(entity);
+        modelProviderDao.update(entity);
         modelProviderContext.refresh();
     }
 
@@ -89,7 +89,7 @@ public class ModelServiceImpl implements ModelService {
             return;
         }
 
-        ModelProviderEntity entity = modelProviderMapper.findById(providerId);
+        ModelProviderEntity entity = modelProviderDao.findById(providerId);
         if (entity == null) {
             throw new NotFoundException("服务商不存在: " + providerId);
         }
@@ -118,7 +118,7 @@ public class ModelServiceImpl implements ModelService {
         }
 
         entity.setModels(serializeModels(models));
-        modelProviderMapper.update(entity);
+        modelProviderDao.update(entity);
         modelProviderContext.refresh();
     }
 
@@ -131,7 +131,7 @@ public class ModelServiceImpl implements ModelService {
             return;
         }
 
-        ModelProviderEntity entity = modelProviderMapper.findById(providerId);
+        ModelProviderEntity entity = modelProviderDao.findById(providerId);
         if (entity == null) {
             throw new NotFoundException("服务商不存在: " + providerId);
         }
@@ -144,7 +144,7 @@ public class ModelServiceImpl implements ModelService {
         });
 
         entity.setModels(serializeModels(models));
-        modelProviderMapper.update(entity);
+        modelProviderDao.update(entity);
         modelProviderContext.refresh();
     }
 

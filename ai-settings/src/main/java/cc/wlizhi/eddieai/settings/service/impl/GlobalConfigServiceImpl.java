@@ -2,7 +2,7 @@ package cc.wlizhi.eddieai.settings.service.impl;
 
 import cc.wlizhi.eddieai.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddieai.memory.context.GlobalConfigContext;
-import cc.wlizhi.eddieai.settings.dao.GlobalConfigMapper;
+import cc.wlizhi.eddieai.settings.dao.GlobalConfigDao;
 import cc.wlizhi.eddieai.settings.service.GlobalConfigService;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -26,7 +26,7 @@ public class GlobalConfigServiceImpl implements GlobalConfigService {
     private GlobalConfigContext globalConfigContext;
 
     @Resource
-    private GlobalConfigMapper globalConfigMapper;
+    private GlobalConfigDao globalConfigDao;
 
     @Override
     public Map<String, String> getConfigs() {
@@ -47,7 +47,7 @@ public class GlobalConfigServiceImpl implements GlobalConfigService {
         }
 
         // 写入 DB（DELETE + batch INSERT，单事务）
-        globalConfigMapper.replaceAll(validConfigs);
+        globalConfigDao.replaceAll(validConfigs);
 
         // 刷新缓存
         globalConfigContext.refresh();

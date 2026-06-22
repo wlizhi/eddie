@@ -18,7 +18,7 @@ import java.util.Map;
  * @author Eddie
  */
 @Repository
-public class GlobalConfigMapper {
+public class GlobalConfigDao {
 
     @Resource
     private JdbcTemplate jdbcTemplate;
