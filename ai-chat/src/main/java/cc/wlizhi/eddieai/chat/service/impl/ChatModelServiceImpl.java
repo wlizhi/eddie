@@ -1,9 +1,9 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
-import cc.wlizhi.eddieai.chat.dao.ChatModelProviderDao;
 import cc.wlizhi.eddieai.chat.entity.response.ChatModelItemVO;
 import cc.wlizhi.eddieai.chat.entity.response.ChatModelSelectorVO;
 import cc.wlizhi.eddieai.chat.service.ChatModelService;
+import cc.wlizhi.eddieai.common.dao.ChatModelProviderDao;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;

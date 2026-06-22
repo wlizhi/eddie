@@ -1,8 +1,8 @@
 package cc.wlizhi.eddieai.memory.context;
 
 import cc.wlizhi.eddieai.common.cache.GlobalCache;
+import cc.wlizhi.eddieai.common.dao.ModelProviderDao;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
-import cc.wlizhi.eddieai.memory.dao.ModelProviderDao;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;

@@ -1,12 +1,12 @@
 package cc.wlizhi.eddieai.settings.service.impl;
 
+import cc.wlizhi.eddieai.common.dao.ModelProviderDao;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.enums.ModelCapability;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.common.exception.ConflictException;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
 import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
-import cc.wlizhi.eddieai.settings.dao.ModelProviderDao;
 import cc.wlizhi.eddieai.settings.entity.request.ModelProviderCreateRequest;
 import cc.wlizhi.eddieai.settings.entity.request.ModelProviderUpdateRequest;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;

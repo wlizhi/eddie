@@ -9,10 +9,10 @@
  */
 package cc.wlizhi.eddieai.chat.entity.dto;
 
-import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
-import cc.wlizhi.eddieai.chat.entity.SessionEntity;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
+import cc.wlizhi.eddieai.common.entity.AssistantEntity;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
+import cc.wlizhi.eddieai.common.entity.SessionEntity;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.ai.chat.client.ChatClient;

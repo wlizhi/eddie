@@ -9,13 +9,13 @@
 package cc.wlizhi.eddieai.chat.handler.impl;
 
 import cc.wlizhi.eddieai.chat.context.AssistantContext;
-import cc.wlizhi.eddieai.chat.dao.SessionDao;
-import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
-import cc.wlizhi.eddieai.chat.entity.SessionEntity;
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.handler.ChatPreProcessor;
+import cc.wlizhi.eddieai.common.dao.SessionDao;
+import cc.wlizhi.eddieai.common.entity.AssistantEntity;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
+import cc.wlizhi.eddieai.common.entity.SessionEntity;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
 import jakarta.annotation.Resource;

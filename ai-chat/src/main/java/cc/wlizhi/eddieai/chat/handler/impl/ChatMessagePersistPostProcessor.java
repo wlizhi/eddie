@@ -1,12 +1,12 @@
 package cc.wlizhi.eddieai.chat.handler.impl;
 
-import cc.wlizhi.eddieai.chat.dao.MessageDao;
-import cc.wlizhi.eddieai.chat.dao.SessionDao;
-import cc.wlizhi.eddieai.chat.entity.MessageEntity;
-import cc.wlizhi.eddieai.chat.entity.SessionEntity;
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.handler.ChatPostProcessor;
+import cc.wlizhi.eddieai.common.dao.MessageDao;
+import cc.wlizhi.eddieai.common.dao.SessionDao;
+import cc.wlizhi.eddieai.common.entity.MessageEntity;
+import cc.wlizhi.eddieai.common.entity.SessionEntity;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;

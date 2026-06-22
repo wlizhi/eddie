@@ -1,16 +1,16 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
 import cc.wlizhi.eddieai.chat.context.AssistantContext;
-import cc.wlizhi.eddieai.chat.dao.AssistantDao;
-import cc.wlizhi.eddieai.chat.dao.MessageDao;
-import cc.wlizhi.eddieai.chat.dao.SessionDao;
-import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
 import cc.wlizhi.eddieai.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddieai.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddieai.chat.entity.request.AssistantUpdateRequest;
 import cc.wlizhi.eddieai.chat.entity.response.AssistantDetailVO;
 import cc.wlizhi.eddieai.chat.entity.response.AssistantVO;
 import cc.wlizhi.eddieai.chat.service.AssistantService;
+import cc.wlizhi.eddieai.common.dao.AssistantDao;
+import cc.wlizhi.eddieai.common.dao.MessageDao;
+import cc.wlizhi.eddieai.common.dao.SessionDao;
+import cc.wlizhi.eddieai.common.entity.AssistantEntity;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
 import cc.wlizhi.eddieai.common.util.FileStorageUtil;

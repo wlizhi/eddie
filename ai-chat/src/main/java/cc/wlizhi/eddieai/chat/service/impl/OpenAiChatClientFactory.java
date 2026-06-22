@@ -1,9 +1,9 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
-import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddieai.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddieai.chat.service.ChatClientFactory;
+import cc.wlizhi.eddieai.common.entity.AssistantEntity;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;

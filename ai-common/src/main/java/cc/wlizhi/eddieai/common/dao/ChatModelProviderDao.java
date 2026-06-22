@@ -1,4 +1,4 @@
-package cc.wlizhi.eddieai.chat.dao;
+package cc.wlizhi.eddieai.common.dao;
 
 import jakarta.annotation.Resource;
 import lombok.Getter;

@@ -1,6 +1,6 @@
-package cc.wlizhi.eddieai.chat.dao;
+package cc.wlizhi.eddieai.common.dao;
 
-import cc.wlizhi.eddieai.chat.entity.SessionEntity;
+import cc.wlizhi.eddieai.common.entity.SessionEntity;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;

@@ -1,8 +1,8 @@
 package cc.wlizhi.eddieai.chat.context;
 
-import cc.wlizhi.eddieai.chat.dao.AssistantDao;
-import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
 import cc.wlizhi.eddieai.common.cache.GlobalCache;
+import cc.wlizhi.eddieai.common.dao.AssistantDao;
+import cc.wlizhi.eddieai.common.entity.AssistantEntity;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;

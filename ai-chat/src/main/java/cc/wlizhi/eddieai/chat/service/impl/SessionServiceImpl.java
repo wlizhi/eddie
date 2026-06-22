@@ -1,13 +1,13 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
-import cc.wlizhi.eddieai.chat.dao.MessageDao;
-import cc.wlizhi.eddieai.chat.dao.SessionDao;
-import cc.wlizhi.eddieai.chat.entity.MessageEntity;
-import cc.wlizhi.eddieai.chat.entity.SessionEntity;
 import cc.wlizhi.eddieai.chat.entity.response.MessageVO;
 import cc.wlizhi.eddieai.chat.entity.response.SessionVO;
 import cc.wlizhi.eddieai.chat.service.SessionService;
+import cc.wlizhi.eddieai.common.dao.MessageDao;
+import cc.wlizhi.eddieai.common.dao.SessionDao;
 import cc.wlizhi.eddieai.common.dto.PageResult;
+import cc.wlizhi.eddieai.common.entity.MessageEntity;
+import cc.wlizhi.eddieai.common.entity.SessionEntity;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
 import jakarta.annotation.Resource;
