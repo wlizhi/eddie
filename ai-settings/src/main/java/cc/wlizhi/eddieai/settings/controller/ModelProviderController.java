@@ -68,7 +68,7 @@ public class ModelProviderController {
      * 删除服务提供商
      */
     @DeleteMapping("/{id}")
-    public ApiResult<Void> delete(@PathVariable Long id) {
+    public ApiResult<Void> delete(@PathVariable(name = "id") Long id) {
         modelProviderService.deleteById(id);
         return ApiResult.success();
     }
@@ -89,7 +89,7 @@ public class ModelProviderController {
      * 不同服务商接口路径和返回格式可能不同，由对应的 {@code RemoteModelFetcher} 实现处理。
      */
     @PostMapping("/{id}/fetch-models")
-    public ApiResult<List<ModelVO>> fetchRemoteModels(@PathVariable Long id) {
+    public ApiResult<List<ModelVO>> fetchRemoteModels(@PathVariable(name = "id") Long id) {
         return ApiResult.success(modelProviderService.fetchRemoteModels(id));
     }
 }

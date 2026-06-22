@@ -34,6 +34,8 @@ import java.util.Map;
  * </pre>
  * 接口路径：{baseUrl}/api/v1/deployments/models
  * <p>
+ * 自动翻页：如果返回的 total 达到 page_size（100），继续请求下一页合并数据。
+ * <p>
  * 文档：<a href="https://help.aliyun.com/zh/model-studio/list-deployable-models-api">列举可部署模型</a>
  */
 @Component
@@ -41,6 +43,7 @@ public class BailianModelFetcher implements RemoteModelFetcher {
 
     private static final String MODELS_PATH = "/api/v1/deployments/models";
     private static final String PROVIDER_CODE = "dashscope";
+    private static final int PAGE_SIZE = 100;
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -56,23 +59,37 @@ public class BailianModelFetcher implements RemoteModelFetcher {
 
     @Override
     public List<ModelVO> fetchModels(String baseUrl, String apiKey) {
-        String url = UrlUtil.join(baseUrl, MODELS_PATH)
-                + "?page_no=1&page_size=100&version=v1.0";
+        List<ModelVO> allModels = new ArrayList<>();
+        int pageNo = 1;
+        int total;
 
-        String json = restClient.get()
-                .uri(url)
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + apiKey)
-                .retrieve()
-                .body(String.class);
+        do {
+            String url = UrlUtil.join(baseUrl, MODELS_PATH)
+                    + "?page_no=" + pageNo
+                    + "&page_size=" + PAGE_SIZE
+                    + "&version=v1.0"
+                    + "&model_source=base";
 
-        return parseResponse(json);
+            String json = restClient.get()
+                    .uri(url)
+                    .header("Accept", "application/json")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .retrieve()
+                    .body(String.class);
+
+            PageResult pageResult = parsePage(json);
+            allModels.addAll(pageResult.models());
+            total = pageResult.total();
+            pageNo++;
+        } while (total >= pageNo * PAGE_SIZE);
+
+        return allModels;
     }
 
     /**
-     * 解析百炼返回的 {request_id, output} 格式
+     * 解析单页返回数据，返回模型列表和总数
      */
-    private List<ModelVO> parseResponse(String json) {
+    private PageResult parsePage(String json) {
         try {
             Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {
             });
@@ -91,32 +108,44 @@ public class BailianModelFetcher implements RemoteModelFetcher {
             @SuppressWarnings("unchecked")
             Map<String, Object> output = (Map<String, Object>) outputObj;
 
+            // 解析 total
+            int total = 0;
+            Object totalObj = output.get("total");
+            if (totalObj instanceof Number) {
+                total = ((Number) totalObj).intValue();
+            }
+
+            // 解析 models
             Object modelsObj = output.get("models");
-            if (!(modelsObj instanceof List<?>)) {
-                return new ArrayList<>();
-            }
-
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> modelsList = (List<Map<String, Object>>) modelsObj;
-            List<ModelVO> result = new ArrayList<>();
-
-            for (Map<String, Object> item : modelsList) {
-                ModelVO vo = new ModelVO();
-                Object nameObj = item.get("model_name");
-                String modelName = nameObj != null ? nameObj.toString() : null;
-                if (modelName == null) {
-                    continue;
+            List<ModelVO> models = new ArrayList<>();
+            if (modelsObj instanceof List<?>) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> modelsList = (List<Map<String, Object>>) modelsObj;
+                for (Map<String, Object> item : modelsList) {
+                    ModelVO vo = new ModelVO();
+                    Object nameObj = item.get("model_name");
+                    String modelName = nameObj != null ? nameObj.toString() : null;
+                    if (modelName == null) {
+                        continue;
+                    }
+                    vo.setCode(modelName);
+                    vo.setObject("model");
+                    vo.setOwnedBy(PROVIDER_CODE);
+                    models.add(vo);
                 }
-                vo.setCode(modelName);
-                vo.setObject("model");
-                vo.setOwnedBy(PROVIDER_CODE);
-                result.add(vo);
             }
-            return result;
+
+            return new PageResult(models, total);
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("解析百炼远程模型列表返回数据失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 单页解析结果
+     */
+    private record PageResult(List<ModelVO> models, int total) {
     }
 }
