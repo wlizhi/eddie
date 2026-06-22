@@ -9,7 +9,7 @@
 ### 模块说明
 
 - ai-app 启动聚合模块：全局配置、启动类 → cc.wlizhi.eddieai.app
-- ai-common 通用模块：通用实体类、常量、枚举、工具类 → cc.wlizhi.eddieai.common
+- ai-common 通用模块：通用实体类、常量、枚举、工具类、全量Dao操作类 → cc.wlizhi.eddieai.common
 - ai-chat 聊天模块：聊天会话、聊天记录、聊天消息 → cc.wlizhi.eddieai.chat
 - ai-agent 智能体模块：智能体各接口入口、任务编排 → cc.wlizhi.eddieai.agent
 - ai-memory 记忆模块：三层记忆（短期，中期压缩，长期摘要） → cc.wlizhi.eddieai.memory
@@ -19,7 +19,7 @@
 
 ### 依赖关系（自上而下依赖）
 
-ai-common（零依赖，被所有模块依赖）
+ai-common（被所有模块依赖）
 ↑ ai-role / ai-settings / ai-memory（独立模块）
 ↑ ai-chat（依赖 ai-memory 的异步处理）
 ↑ ai-agent（依赖 ai-chat）
