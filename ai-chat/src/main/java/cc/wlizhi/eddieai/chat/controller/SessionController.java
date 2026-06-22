@@ -7,6 +7,7 @@ import cc.wlizhi.eddieai.chat.entity.response.MessageVO;
 import cc.wlizhi.eddieai.chat.entity.response.SessionVO;
 import cc.wlizhi.eddieai.chat.service.SessionService;
 import cc.wlizhi.eddieai.common.dto.ApiResult;
+import cc.wlizhi.eddieai.common.dto.PageResult;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -32,11 +33,15 @@ public class SessionController {
     }
 
     /**
-     * 会话列表（某助手下）
+     * 分页查询会话列表（某助手下），支持 title 模糊搜索
      */
     @GetMapping("/list")
-    public ApiResult<List<SessionVO>> list(@RequestParam("assistantId") Long assistantId) {
-        return ApiResult.success(sessionService.list(assistantId));
+    public ApiResult<PageResult<SessionVO>> list(
+            @RequestParam("assistantId") Long assistantId,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "50") int pageSize) {
+        return ApiResult.success(sessionService.list(assistantId, title, pageNum, pageSize));
     }
 
     /**

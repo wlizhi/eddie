@@ -7,6 +7,7 @@ import cc.wlizhi.eddieai.chat.entity.SessionEntity;
 import cc.wlizhi.eddieai.chat.entity.response.MessageVO;
 import cc.wlizhi.eddieai.chat.entity.response.SessionVO;
 import cc.wlizhi.eddieai.chat.service.SessionService;
+import cc.wlizhi.eddieai.common.dto.PageResult;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
 import jakarta.annotation.Resource;
@@ -40,15 +41,16 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
-    public List<SessionVO> list(Long assistantId) {
-        List<SessionEntity> entities = sessionDao.findByAssistantId(assistantId);
-        List<SessionVO> result = new ArrayList<>();
+    public PageResult<SessionVO> list(Long assistantId, String title, int pageNum, int pageSize) {
+        long total = sessionDao.countByAssistantId(assistantId, title);
+        int offset = (pageNum - 1) * pageSize;
+        List<SessionEntity> entities = sessionDao.findByAssistantIdPaged(assistantId, title, offset, pageSize);
+
+        List<SessionVO> vos = new ArrayList<>();
         for (SessionEntity entity : entities) {
-            SessionVO vo = toVO(entity);
-            vo.setMessageCount(messageDao.countBySessionId(entity.getId()));
-            result.add(vo);
+            vos.add(toVO(entity));
         }
-        return result;
+        return PageResult.of(pageNum, pageSize, total, vos);
     }
 
     @Override
@@ -135,7 +137,7 @@ public class SessionServiceImpl implements SessionService {
         vo.setTitle(entity.getTitle());
         vo.setPinned(entity.getPinned());
         vo.setUpdatedAt(entity.getUpdatedAt());
-        vo.setMessageCount(0);
+        vo.setMessageCount(entity.getMessageCount() != null ? entity.getMessageCount() : 0);
         return vo;
     }
 

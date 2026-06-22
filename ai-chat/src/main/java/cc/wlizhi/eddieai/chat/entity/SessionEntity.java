@@ -31,6 +31,11 @@ public class SessionEntity {
     private Integer pinned;
 
     /**
+     * 消息数量（冗余字段，每次发消息时同步更新）
+     */
+    private Integer messageCount;
+
+    /**
      * 创建时间
      */
     private String createdAt;

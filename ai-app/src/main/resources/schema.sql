@@ -48,12 +48,13 @@ CREATE INDEX IF NOT EXISTS idx_assistant_enabled ON ai_assistant (enabled);
 -- 会话列表：每个助手可创建多个会话，按置顶 → 更新时间倒序
 CREATE TABLE IF NOT EXISTS ai_session
 (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    assistant_id INTEGER NOT NULL,            -- 归属助手 ID
-    title        TEXT    NOT NULL DEFAULT '', -- AI 生成的会话标题（默认为空，首轮对话后生成）
-    pinned       INTEGER NOT NULL DEFAULT 0,  -- 0=普通, 1=置顶
-    created_at   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-    updated_at   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    assistant_id  INTEGER NOT NULL,            -- 归属助手 ID
+    title         TEXT    NOT NULL DEFAULT '', -- AI 生成的会话标题（默认为空，首轮对话后生成）
+    pinned        INTEGER NOT NULL DEFAULT 0,  -- 0=普通, 1=置顶
+    message_count INTEGER NOT NULL DEFAULT 0,  -- 消息数量冗余字段，每次发消息时同步更新
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_session_sort ON ai_session (assistant_id, pinned DESC, updated_at DESC);
 

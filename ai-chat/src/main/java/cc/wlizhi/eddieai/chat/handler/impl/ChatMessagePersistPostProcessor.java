@@ -90,7 +90,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         assistantMsg.setPriceEstimate(0.0);
         messageDao.insert(assistantMsg);
 
-        // 更新会话活跃时间
-        sessionDao.touch(sessionId);
+        // 更新会话活跃时间并同步消息数量（合并为一条 SQL）
+        sessionDao.touchAndIncrementMessageCount(sessionId, 2);
     }
 }

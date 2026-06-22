@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,11 +39,53 @@ public class SessionDao {
      * 查询某助手下的会话列表（置顶 → 更新时间倒序）
      */
     public List<SessionEntity> findByAssistantId(Long assistantId) {
-        String sql = "SELECT s.id, s.assistant_id, s.title, s.pinned, s.created_at, s.updated_at, " +
-                "(SELECT COUNT(*) FROM ai_session_msg m WHERE m.session_id = s.id) AS message_count " +
-                "FROM ai_session s WHERE s.assistant_id = ? " +
-                "ORDER BY s.pinned DESC, s.updated_at DESC";
+        String sql = "SELECT id, assistant_id, title, pinned, message_count, created_at, updated_at " +
+                "FROM ai_session WHERE assistant_id = ? ORDER BY pinned DESC, updated_at DESC";
         return jdbcTemplate.query(sql, sessionRowMapper, assistantId);
+    }
+
+    /**
+     * 分页查询某助手下的会话列表（置顶 → 更新时间倒序），支持 title 模糊搜索
+     *
+     * @param assistantId 归属助手 ID
+     * @param title       标题模糊搜索关键字（传 null 或空字符串则不过滤）
+     * @param offset      偏移量
+     * @param limit       每页数量
+     */
+    public List<SessionEntity> findByAssistantIdPaged(Long assistantId, String title, int offset, int limit) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT id, assistant_id, title, pinned, message_count, created_at, updated_at " +
+                        "FROM ai_session WHERE assistant_id = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(assistantId);
+
+        if (title != null && !title.isBlank()) {
+            sql.append(" AND title LIKE ?");
+            params.add("%" + title.trim() + "%");
+        }
+
+        sql.append(" ORDER BY pinned DESC, updated_at DESC LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(offset);
+
+        return jdbcTemplate.query(sql.toString(), sessionRowMapper, params.toArray());
+    }
+
+    /**
+     * 统计某助手下的会话数量，支持 title 模糊过滤
+     */
+    public long countByAssistantId(Long assistantId, String title) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM ai_session WHERE assistant_id = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(assistantId);
+
+        if (title != null && !title.isBlank()) {
+            sql.append(" AND title LIKE ?");
+            params.add("%" + title.trim() + "%");
+        }
+
+        Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+        return count != null ? count : 0;
     }
 
     /**
@@ -82,11 +125,15 @@ public class SessionDao {
     }
 
     /**
-     * 更新活跃时间
+     * 更新活跃时间并同步消息数量（合并为一条 SQL）
+     *
+     * @param id    会话 ID
+     * @param delta 消息数量增量（正数为增加，负数为减少）
      */
-    public void touch(Long id) {
+    public void touchAndIncrementMessageCount(Long id, int delta) {
         jdbcTemplate.update(
-                "UPDATE ai_session SET updated_at = datetime('now', 'localtime') WHERE id = ?", id);
+                "UPDATE ai_session SET updated_at = datetime('now', 'localtime'), " +
+                        "message_count = message_count + ? WHERE id = ?", delta, id);
     }
 
     /**
@@ -109,6 +156,7 @@ public class SessionDao {
         entity.setAssistantId(rs.getLong("assistant_id"));
         entity.setTitle(rs.getString("title"));
         entity.setPinned(rs.getInt("pinned"));
+        entity.setMessageCount(rs.getInt("message_count"));
         entity.setCreatedAt(rs.getString("created_at"));
         entity.setUpdatedAt(rs.getString("updated_at"));
         return entity;
