@@ -23,10 +23,10 @@ public class ChatStreamExecutor {
      */
     public Flux<ChatResponse> execute(ChatContext ctx) {
         return ctx.getChatClient().prompt()
-                .system(ctx.getSystemPrompt())
+                .system(ctx.getAssistant().getSystemPrompt())
                 .user(ctx.getUserMessage())
                 .advisors(advisor -> advisor
-                        .param("chat_memory_conversation_id", ctx.getConversationId()))
+                        .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId()))
                 .stream()
                 .chatResponse()
                 .doOnNext(ctx::setLastResponse);

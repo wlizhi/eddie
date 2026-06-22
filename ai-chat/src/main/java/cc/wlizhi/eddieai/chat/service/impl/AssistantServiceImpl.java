@@ -1,5 +1,6 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
+import cc.wlizhi.eddieai.chat.context.AssistantContext;
 import cc.wlizhi.eddieai.chat.dao.AssistantDao;
 import cc.wlizhi.eddieai.chat.dao.MessageDao;
 import cc.wlizhi.eddieai.chat.dao.SessionDao;
@@ -28,6 +29,9 @@ import java.util.List;
  */
 @Service
 public class AssistantServiceImpl implements AssistantService {
+
+    @Resource
+    private AssistantContext assistantContext;
 
     @Resource
     private AssistantDao assistantDao;
@@ -76,6 +80,9 @@ public class AssistantServiceImpl implements AssistantService {
 
         assistantDao.insert(entity);
 
+        // 刷新全局缓存
+        assistantContext.refresh();
+
         // 插入后查询完整数据（含自增 ID）
         AssistantEntity saved = assistantDao.findById(
                 assistantDao.findLastInsertId());
@@ -102,6 +109,8 @@ public class AssistantServiceImpl implements AssistantService {
         entity.setSortOrder(request.getSortOrder());
 
         assistantDao.update(entity);
+
+        assistantContext.refresh();
 
         AssistantEntity updated = assistantDao.findById(id);
         return toVO(updated);
@@ -151,6 +160,8 @@ public class AssistantServiceImpl implements AssistantService {
         // 4. 更新 DB
         assistantDao.updateAvatar(id, newAvatar);
 
+        assistantContext.refresh();
+
         // 5. 返回更新后的助手
         AssistantEntity updated = assistantDao.findById(id);
         return toVO(updated);
@@ -165,6 +176,8 @@ public class AssistantServiceImpl implements AssistantService {
         messageDao.deleteByAssistantId(id);
         sessionDao.deleteByAssistantId(id);
         assistantDao.deleteById(id);
+
+        assistantContext.refresh();
     }
 
     @Override
@@ -172,6 +185,7 @@ public class AssistantServiceImpl implements AssistantService {
         for (int i = 0; i < ids.size(); i++) {
             assistantDao.updateSortOrder(ids.get(i), i + 1);
         }
+        assistantContext.refresh();
     }
 
     // ==================== 内部方法 ====================

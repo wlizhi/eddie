@@ -9,6 +9,8 @@
  */
 package cc.wlizhi.eddieai.chat.entity.dto;
 
+import cc.wlizhi.eddieai.chat.entity.AssistantEntity;
+import cc.wlizhi.eddieai.chat.entity.SessionEntity;
 import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.service.ChatPolicy;
 import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
@@ -48,24 +50,14 @@ public class ChatContext {
     private ChatClientGetDTO chatClientGetDTO;
 
     /**
-     * 系统提示词，从 assistant 表获取
+     * 完整的助手实体（含 systemPrompt、modelId、modelParams、memoryRounds 等）
      */
-    private String systemPrompt;
+    private AssistantEntity assistant;
 
     /**
-     * 会话 ID（Long，DB 主键）
+     * 完整的会话实体（含 title、assistantId、pinned 等）
      */
-    private Long conversationId;
-
-    /**
-     * 会话 ID（Long，DB 主键）
-     */
-    private Long sessionId;
-
-    /**
-     * 归属助手 ID
-     */
-    private Long assistantId;
+    private SessionEntity session;
 
     /**
      * 用户消息内容

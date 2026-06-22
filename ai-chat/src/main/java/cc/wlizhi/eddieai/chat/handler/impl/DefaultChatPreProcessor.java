@@ -51,7 +51,7 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
         ctx.setProvider(provider);
         ctx.setProviderCode(provider.getCode());
 
-        // 2. 根据 conversationId 查询会话 → 获取助手 → 设置系统提示词
+        // 2. 根据 conversationId 查询会话 → 获取助手 → 填充完整实体
         SessionEntity session = sessionDao.findById(request.getConversationId());
         if (session == null) {
             throw new BadRequestException("conversationId=" + request.getConversationId() + " 不存在的会话");
@@ -61,15 +61,14 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
         if (assistant == null) {
             throw new BadRequestException("assistantId=" + assistantId + " 不存在的助手");
         }
-        ctx.setSystemPrompt(assistant.getSystemPrompt());
-        ctx.setAssistantId(assistantId);
+        ctx.setAssistant(assistant);
+        ctx.setSession(session);
 
         // 3. DTO 转换
         ChatClientGetDTO dto = chatRequestMapper.toDto(request);
         ctx.setChatClientGetDTO(dto);
 
         // 4. 基础字段
-        ctx.setConversationId(request.getConversationId());
         ctx.setUserMessage(request.getMessage());
     }
 }

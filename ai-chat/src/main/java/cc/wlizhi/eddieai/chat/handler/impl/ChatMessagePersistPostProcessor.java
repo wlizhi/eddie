@@ -33,15 +33,11 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
     }
 
     private void persist(ChatContext ctx) {
-        Long sessionId = ctx.getSessionId();
-        if (sessionId == null) {
-            return;
-        }
-
-        SessionEntity session = sessionDao.findById(sessionId);
+        SessionEntity session = ctx.getSession();
         if (session == null) {
             return;
         }
+        Long sessionId = session.getId();
         Long assistantId = session.getAssistantId();
         ChatRequest request = ctx.getOriginalRequest();
 

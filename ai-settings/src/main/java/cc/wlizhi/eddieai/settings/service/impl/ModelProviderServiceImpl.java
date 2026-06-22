@@ -4,6 +4,7 @@ import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.common.exception.ConflictException;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
+import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
 import cc.wlizhi.eddieai.settings.dao.ModelProviderMapper;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;
 import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
@@ -22,6 +23,9 @@ import java.util.Map;
 
 @Service
 public class ModelProviderServiceImpl implements ModelProviderService {
+
+    @Resource
+    private ModelProviderContext modelProviderContext;
 
     @Resource
     private ModelProviderMapper modelProviderMapper;
@@ -97,6 +101,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         } catch (UncategorizedSQLException ex) {
             throw new ConflictException("服务商 code 已存在: " + entity.getCode());
         }
+        modelProviderContext.refresh();
     }
 
     @Override
@@ -108,6 +113,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             throw new NotFoundException("服务商不存在: " + entity.getCode());
         }
         modelProviderMapper.update(entity);
+        modelProviderContext.refresh();
     }
 
     @Override
@@ -119,5 +125,6 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             throw new NotFoundException("服务商不存在: " + code);
         }
         modelProviderMapper.deleteByCode(code);
+        modelProviderContext.refresh();
     }
 }
