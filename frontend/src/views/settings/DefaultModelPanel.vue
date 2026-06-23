@@ -263,25 +263,25 @@ async function handleSave() {
 }
 
 .config-card {
-  border: 1px solid #e6e8ec;
+  border: 1px solid var(--border-default);
   border-radius: 10px;
   padding: 20px 24px;
   margin-bottom: 16px;
-  background: #fafbfc;
+  background: var(--bg-secondary);
 }
 
 .config-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  color: #1f1f1f;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
 .config-header .fast-icon {
-  color: #10b981;
+  color: var(--success-default);
 }
 
 .config-header .translate-icon {
@@ -289,8 +289,8 @@ async function handleSave() {
 }
 
 .config-hint {
-  font-size: 12px;
-  color: #9ca3af;
+  font-size: var(--font-size-small);
+  color: var(--text-tertiary);
   margin-bottom: 14px;
   line-height: 1.5;
 }
@@ -304,8 +304,8 @@ async function handleSave() {
 
 .config-label {
   width: 56px;
-  font-size: 13px;
-  color: #6b7280;
+  font-size: var(--font-size-base);
+  color: var(--text-quaternary);
   flex-shrink: 0;
   padding-top: 4px;
 }
@@ -335,41 +335,42 @@ async function handleSave() {
 }
 
 .param-label {
-  font-size: 11px;
-  color: #6b7280;
+  font-size: var(--font-size-xs);
+  color: var(--text-quaternary);
   font-weight: 500;
 }
 
 .param-input {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #d9dce0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  font-size: 12px;
-  color: #1f1f1f;
-  background: #fff;
+  font-size: var(--font-size-small);
+  color: var(--text-primary);
+  background: var(--bg-primary);
   outline: none;
   transition: border-color 0.15s;
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 .param-input:focus {
-  border-color: #409eff;
+  border-color: var(--accent-default);
 }
 
 .param-input::placeholder {
-  color: #c0c4cc;
+  color: var(--text-tertiary);
 }
 
 /* 反馈 */
 .feedback {
-  font-size: 13px;
+  font-size: var(--font-size-base);
   padding: 8px 0;
   margin-bottom: 12px;
 }
 
 .feedback.error {
-  color: #e74c3c;
+  color: var(--danger-default);
 }
 
 /* 保存栏 */
@@ -381,22 +382,23 @@ async function handleSave() {
 
 .btn-save {
   padding: 8px 24px;
-  background: #409eff;
-  color: #fff;
+  background: var(--accent-default);
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: var(--font-size-base);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
+  font-family: inherit;
 }
 
 .btn-save:hover {
-  background: #337ecc;
+  background: var(--accent-hover);
 }
 
 .btn-save:disabled {
-  background: #a0cfff;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 </style>

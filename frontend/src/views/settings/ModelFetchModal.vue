@@ -223,7 +223,7 @@ async function toggleModel(m: ModelItem) {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--bg-mask);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -231,7 +231,7 @@ async function toggleModel(m: ModelItem) {
 }
 
 .fetch-modal {
-  background: #ffffff;
+  background: var(--bg-primary);
   border-radius: 12px;
   width: 720px;
   max-width: 90vw;
@@ -248,14 +248,14 @@ async function toggleModel(m: ModelItem) {
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  border-bottom: 1px solid #e6e8ec;
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .modal-header h3 {
   font-size: 15px;
   font-weight: 600;
-  color: #1f1f1f;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -268,14 +268,14 @@ async function toggleModel(m: ModelItem) {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
 
 .modal-close:hover {
-  background: #f0f1f3;
-  color: #1f1f1f;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* ===== body ===== */
@@ -296,14 +296,14 @@ async function toggleModel(m: ModelItem) {
   gap: 10px;
   padding: 48px 24px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-quaternary);
 }
 
 .fetch-spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid #e6e8ec;
-  border-top-color: #2563eb;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--accent-default);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -322,7 +322,7 @@ async function toggleModel(m: ModelItem) {
   gap: 8px;
   padding: 32px 24px;
   font-size: 13px;
-  color: #ef4444;
+  color: var(--danger-default);
 }
 
 /* 搜索栏 + 统计信息（同一行） */
@@ -345,7 +345,7 @@ async function toggleModel(m: ModelItem) {
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--text-tertiary);
   pointer-events: none;
 }
 
@@ -353,23 +353,23 @@ async function toggleModel(m: ModelItem) {
   width: 100%;
   height: 32px;
   padding: 0 10px 0 32px;
-  border: 1px solid #e6e8ec;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   font-size: 13px;
-  color: #1f1f1f;
-  background: #f9fafb;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.12s, background 0.12s;
 }
 
 .search-input:focus {
-  border-color: #2563eb;
-  background: #ffffff;
+  border-color: var(--accent-default);
+  background: var(--bg-primary);
 }
 
 .search-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 /* 统计 */
@@ -378,14 +378,14 @@ async function toggleModel(m: ModelItem) {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: auto;
 }
 
 .fetch-existing-count {
-  color: #10b981;
+  color: var(--success-default);
   font-weight: 500;
 }
 
@@ -394,7 +394,7 @@ async function toggleModel(m: ModelItem) {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  border: 1px solid #e6e8ec;
+  border: 1px solid var(--border-default);
   border-radius: 8px;
 }
 
@@ -402,7 +402,7 @@ async function toggleModel(m: ModelItem) {
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid #f0f1f3;
+  border-bottom: 1px solid var(--border-lighter);
   gap: 12px;
 }
 
@@ -411,13 +411,13 @@ async function toggleModel(m: ModelItem) {
 }
 
 .fetch-row.exists {
-  background: #f6fef9;
+  background: var(--accent-light-bg);
 }
 
 /* 单元格 */
 .fetch-cell {
   font-size: 13px;
-  color: #1f1f1f;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -433,7 +433,7 @@ async function toggleModel(m: ModelItem) {
   width: 100px;
   flex-shrink: 0;
   text-align: right;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -441,7 +441,7 @@ async function toggleModel(m: ModelItem) {
   padding: 32px;
   text-align: center;
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 /* 能力标签（与 ModelProviderDetail 样式一致） */
@@ -468,33 +468,33 @@ async function toggleModel(m: ModelItem) {
 }
 
 .cap-tag.vision {
-  background: #ede9fe;
-  color: #7c3aed;
+  background: var(--tag-vision-bg);
+  color: var(--tag-vision-text);
 }
 
 .cap-tag.web_search {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--tag-web-bg);
+  color: var(--tag-web-text);
 }
 
 .cap-tag.reasoning {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--tag-reasoning-bg);
+  color: var(--tag-reasoning-text);
 }
 
 .cap-tag.function_calling {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--tag-fc-bg);
+  color: var(--tag-fc-text);
 }
 
 .cap-tag.rerank {
-  background: #fce7f3;
-  color: #db2777;
+  background: var(--tag-rerank-bg);
+  color: var(--tag-rerank-text);
 }
 
 .cap-tag.embedding {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: var(--tag-embedding-bg);
+  color: var(--tag-embedding-text);
 }
 
 /* 操作按钮 */
@@ -512,23 +512,23 @@ async function toggleModel(m: ModelItem) {
 }
 
 .fetch-action-btn.btn-add {
-  background: #eef2ff;
-  color: #2563eb;
+  background: var(--accent-light-bg);
+  color: var(--accent-default);
 }
 
 .fetch-action-btn.btn-add:hover:not(:disabled) {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--accent-default);
+  color: var(--text-inverse);
 }
 
 .fetch-action-btn.btn-remove {
-  background: #fef2f2;
-  color: #ef4444;
+  background: var(--danger-light-bg);
+  color: var(--danger-default);
 }
 
 .fetch-action-btn.btn-remove:hover:not(:disabled) {
-  background: #ef4444;
-  color: #ffffff;
+  background: var(--danger-default);
+  color: var(--text-inverse);
 }
 
 .fetch-action-btn:disabled {
@@ -546,24 +546,24 @@ async function toggleModel(m: ModelItem) {
   justify-content: flex-end;
   gap: 10px;
   padding: 10px 20px;
-  border-top: 1px solid #e6e8ec;
+  border-top: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .btn-cancel {
   height: 32px;
   padding: 0 16px;
-  border: 1px solid #e6e8ec;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--bg-primary);
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-quaternary);
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s;
 }
 
 .btn-cancel:hover {
-  border-color: #d1d5db;
-  color: #1f1f1f;
+  border-color: var(--border-hover);
+  color: var(--text-primary);
 }
 </style>

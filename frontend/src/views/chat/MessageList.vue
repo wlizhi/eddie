@@ -236,7 +236,7 @@ function onScroll() {
             <span
                 v-if="msg.metadata.timestamp || msg.metadata.durationMs != null || msg.metadata.totalTokens != null || msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
                 class="meta-divider">|</span>
-            <span class="meta-cost">≈{{ currencySymbol(msg.metadata.currency) }}{{
+            <span class="meta-cost">{{ currencySymbol(msg.metadata.currency) }}{{
                 msg.metadata.costEstimate.toFixed(6)
               }}</span>
           </template>

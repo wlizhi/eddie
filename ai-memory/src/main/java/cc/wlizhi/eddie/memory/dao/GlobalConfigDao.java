@@ -40,26 +40,23 @@ public class GlobalConfigDao {
     }
 
     /**
-     * 全量替换所有配置。<p>
-     * DELETE 旧数据 → batch INSERT 新数据，在同一事务中执行。
+     * 逐条 UPSERT 配置。<p>
+     * 仅更新传入的 key，其他 key 保持不变，避免误删其他配置。
      *
      * @param configs 合法的 key → value 映射
      */
     public void replaceAll(Map<String, String> configs) {
+        if (configs.isEmpty()) {
+            return;
+        }
         transactionTemplate.execute(status -> {
-            // 清空旧数据（SQLite 无 TRUNCATE，DELETE FROM 等效）
-            jdbcTemplate.update("DELETE FROM global_config");
-
-            // 2. 批量插入新数据
-            String sql = "INSERT INTO global_config (config_key, config_val, description, updated_at) "
-                    + "VALUES (?, ?, ?, datetime('now', 'localtime'))";
+            String sql = "INSERT OR REPLACE INTO global_config (config_key, config_val, description, updated_at) "
+                    + "VALUES (?, ?, '', datetime('now', 'localtime'))";
             List<Object[]> batchArgs = new ArrayList<>();
             for (Map.Entry<String, String> entry : configs.entrySet()) {
-                batchArgs.add(new Object[]{entry.getKey(), entry.getValue(), ""});
+                batchArgs.add(new Object[]{entry.getKey(), entry.getValue()});
             }
-            if (!batchArgs.isEmpty()) {
-                jdbcTemplate.batchUpdate(sql, batchArgs);
-            }
+            jdbcTemplate.batchUpdate(sql, batchArgs);
             return null;
         });
     }

@@ -53,8 +53,8 @@ const emit = defineEmits<{
   display: flex;
   gap: 2px;
   padding: 3px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--bg-mask);
+  border: 1px solid var(--border-lighter);
   border-radius: 8px;
   opacity: 0.65;
   transition: opacity 0.2s, background 0.2s, box-shadow 0.2s;
@@ -63,7 +63,7 @@ const emit = defineEmits<{
 .chat-view:hover .view-toolbar,
 .view-toolbar:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--bg-secondary);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
@@ -77,13 +77,13 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--text-quaternary);
   transition: background 0.15s, color 0.15s, transform 0.12s;
 }
 
 .toolbar-btn:hover {
-  background: #e8eaee;
-  color: #374151;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .toolbar-btn:active {

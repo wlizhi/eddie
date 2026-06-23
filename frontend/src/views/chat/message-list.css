@@ -44,22 +44,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 600;
 }
 
 .user-avatar {
-    background: #2563eb;
-    color: #fff;
+    background: var(--msg-user-bg);
+    color: var(--msg-user-text);
 }
 
 .assistant-avatar {
-    background: #f0f1f3;
-    color: #6b7280;
+    background: var(--bg-hover);
+    color: var(--text-quaternary);
 }
 
 .avatar-text {
-    font-size: 10px;
+    font-size: var(--font-size-xxs);
 }
 
 /* ===== 消息列 ===== */
@@ -73,9 +73,9 @@
 
 /* 助手名称标签 */
 .assistant-name-label {
-    font-size: 12px;
+    font-size: var(--font-size-small);
     font-weight: 600;
-    color: #374151;
+    color: var(--text-secondary);
     padding: 0 2px;
     line-height: 1.3;
 }
@@ -86,18 +86,18 @@
     padding: 6px 10px;
     border-radius: 10px;
     line-height: 1.55;
-    font-size: 13.5px;
+    font-size: var(--font-size-body);
 }
 
 .user-bubble {
-    background: #2563eb;
-    color: #fff;
+    background: var(--msg-user-bg);
+    color: var(--msg-user-text);
     border-bottom-right-radius: 3px;
 }
 
 .assistant-bubble {
-    background: #f4f5f7;
-    color: #1f1f1f;
+    background: var(--msg-assistant-bg);
+    color: var(--msg-assistant-text);
     border-bottom-left-radius: 3px;
 }
 
@@ -107,7 +107,7 @@
 
 /* ===== 思考区域 ===== */
 .thinking-section {
-    border-left: 2px solid #d1d5db;
+    border-left: 2px solid var(--border-hover);
     padding-left: 8px;
     margin-bottom: 3px;
 }
@@ -121,14 +121,14 @@
     border-radius: 4px;
     background: transparent;
     cursor: pointer;
-    font-size: 11px;
-    color: #9ca3af;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
     transition: background 0.15s, color 0.15s;
 }
 
 .thinking-toggle:hover {
-    background: #f0f1f3;
-    color: #6b7280;
+    background: var(--bg-hover);
+    color: var(--text-quaternary);
 }
 
 .chevron {
@@ -144,8 +144,8 @@
 }
 
 .thinking-content {
-    font-size: 12px;
-    color: #6b7280;
+    font-size: var(--font-size-small);
+    color: var(--text-quaternary);
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
@@ -157,8 +157,8 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 10px;
-    color: #9ca3af;
+    font-size: var(--font-size-xxs);
+    color: var(--text-tertiary);
     padding: 2px 2px 0;
     flex-wrap: wrap;
     user-select: none;
@@ -169,26 +169,26 @@
 }
 
 .meta-divider {
-    color: #d1d5db;
-    font-size: 8px;
+    color: var(--border-hover);
+    font-size: 0.533rem;
 }
 
 .meta-duration {
-    color: #9ca3af;
+    color: var(--text-tertiary);
 }
 
 .meta-tokens {
-    color: #9ca3af;
+    color: var(--text-tertiary);
 }
 
 .meta-tokens-detail {
-    color: #b0b7c3;
-    font-size: 9px;
+    color: var(--text-muted);
+    font-size: 0.6rem;
 }
 
 /* ===== 思考中占位 ===== */
 .thinking-pending {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
 }
 
 /* 思考中文字 + 省略号整体呼吸效果 */
@@ -198,10 +198,10 @@
 
 @keyframes ml-thinking-breathe {
     0%, 100% {
-        color: #9ca3af;
+        color: var(--text-tertiary);
     }
     50% {
-        color: #6b7280;
+        color: var(--text-quaternary);
     }
 }
 
@@ -241,8 +241,8 @@
     justify-content: center;
     gap: 6px;
     padding: 8px 0;
-    font-size: 12px;
-    color: #9ca3af;
+    font-size: var(--font-size-small);
+    color: var(--text-tertiary);
 }
 
 .load-more-indicator .spinner {
@@ -261,8 +261,8 @@
 /* ===== 已加载全部 ===== */
 .no-more-hint {
     text-align: center;
-    font-size: 11px;
-    color: #d1d5db;
+    font-size: var(--font-size-xs);
+    color: var(--icon-muted);
     padding: 4px 0;
     user-select: none;
 }
@@ -297,12 +297,12 @@
 
 .copy-btn-assistant {
     background: transparent;
-    color: #b0b7c3;
+    color: var(--text-muted);
 }
 
 .copy-btn-assistant:hover {
-    background: #e8eaed;
-    color: #6b7280;
+    background: var(--bg-hover);
+    color: var(--text-quaternary);
 }
 
 .message-bubble:hover .copy-btn {
@@ -316,12 +316,12 @@
 }
 
 .copied-text {
-    font-size: 10px;
+    font-size: var(--font-size-xxs);
     font-weight: 500;
     white-space: nowrap;
 }
 
 /* ===== 预估费用 ===== */
 .meta-cost {
-    color: #9ca3af;
+    color: var(--text-tertiary);
 }

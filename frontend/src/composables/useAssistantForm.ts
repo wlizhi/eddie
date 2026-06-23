@@ -10,6 +10,7 @@ import {useChatStore} from '@/stores/chat'
 import {fetchAssistantDetail, updateAssistantAvatar} from '@/api/assistant'
 import type {AssistantDetailVO} from '@/types/assistant'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
+import {showToast} from '@/composables/useToast'
 
 export function useAssistantForm(
     props: {
@@ -217,13 +218,13 @@ export function useAssistantForm(
                         fd.append('file', pendingAvatarFile.value)
                         await updateAssistantAvatar(created.id, fd)
                     }
-                    feedback.value = '✅ 创建成功'
+                    showToast('创建成功')
                     close()
                 } else {
-                    feedback.value = '❌ 创建失败'
+                    showToast('创建失败', 'error')
                 }
             } catch (err) {
-                feedback.value = '❌ 创建失败'
+                showToast('创建失败', 'error')
                 console.error(err)
             } finally {
                 saving.value = false
@@ -265,10 +266,10 @@ export function useAssistantForm(
                 enabled: formEnabled.value,
                 modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
             })
-            feedback.value = '✅ 保存成功'
+            showToast('保存成功')
             close()
         } catch (err) {
-            feedback.value = '❌ 保存失败'
+            showToast('保存失败', 'error')
             console.error(err)
         } finally {
             saving.value = false
@@ -292,6 +293,7 @@ export function useAssistantForm(
         const id = detail.value.id
         close()
         await assistantStore.remove(id)
+        showToast('已删除')
     }
 
     function close() {

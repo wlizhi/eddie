@@ -22,7 +22,13 @@ public enum GlobalConfigKey {
     /**
      * 翻译模型（翻译功能专用）
      */
-    TRANSLATE_MODEL("翻译模型");
+    TRANSLATE_MODEL("翻译模型"),
+
+    /**
+     * 显示设置（字体大小、字体类型、主题模式等）
+     * value 为 JSON: {"fontSize":"medium","fontFamily":"system","themeMode":"light","colorScheme":"blue"}
+     */
+    DISPLAY_SETTINGS("显示设置");
 
     private final String description;
 

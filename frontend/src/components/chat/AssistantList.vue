@@ -97,17 +97,17 @@ const displayedAssistants = computed(() => {
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-small);
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
-  border-bottom: 1px solid #e6e8ec;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .collapse-assistant-btn:hover {
-  background: #f0f1f3;
-  color: #6b7280;
+  background: var(--bg-hover);
+  color: var(--text-quaternary);
 }
 
 /* ===== 新建按钮（绝对定位在折叠按钮最左侧） ===== */
@@ -125,13 +125,13 @@ const displayedAssistants = computed(() => {
   border-radius: 5px;
   background: transparent;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   transition: background 0.1s, color 0.1s;
 }
 
 .create-trigger:hover {
-  background: #e8f0fe;
-  color: #2563eb;
+  background: var(--accent-light-bg);
+  color: var(--accent-default);
 }
 
 .collapse-icon {
@@ -169,11 +169,11 @@ const displayedAssistants = computed(() => {
 }
 
 .assistant-item:hover {
-  background: #f0f1f3;
+  background: var(--bg-hover);
 }
 
 .assistant-item.active {
-  background: #e8f0fe;
+  background: var(--accent-light-bg);
 }
 
 /* 禁用的助手：降低透明度，灰色调 */
@@ -189,7 +189,7 @@ const displayedAssistants = computed(() => {
 .drag-handle {
   display: flex;
   align-items: center;
-  color: #d1d5db;
+  color: var(--text-quaternary);
   cursor: grab;
   flex-shrink: 0;
   transition: color 0.15s;
@@ -197,18 +197,18 @@ const displayedAssistants = computed(() => {
 }
 
 .assistant-item:hover .drag-handle {
-  color: #9ca3af;
+  color: var(--text-secondary);
 }
 
 .assistant-item.drag-over {
-  border-top: 2px solid #2563eb;
+  border-top: 2px solid var(--accent-default);
   border-radius: 0;
 }
 
 .assistant-name {
-  font-size: 13px;
+  font-size: var(--font-size-base);
   font-weight: 500;
-  color: #1f1f1f;
+  color: var(--text-primary);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -226,7 +226,7 @@ const displayedAssistants = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #d1d5db;
+  color: var(--text-quaternary);
   opacity: 0;
   transition: opacity 0.15s, color 0.15s, background 0.15s;
   flex-shrink: 0;
@@ -237,8 +237,8 @@ const displayedAssistants = computed(() => {
 }
 
 .assistant-settings:hover {
-  color: #6b7280;
-  background: #e0e2e6;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
 }
 
 /* 展开/收起按钮 */
@@ -250,14 +250,14 @@ const displayedAssistants = computed(() => {
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  font-size: 12px;
-  color: #6b7280;
+  font-size: var(--font-size-small);
+  color: var(--text-quaternary);
   text-align: left;
   transition: background 0.15s, color 0.15s;
 }
 
 .toggle-btn:hover {
-  background: #f0f1f3;
-  color: #2563eb;
+  background: var(--bg-hover);
+  color: var(--accent-default);
 }
 </style>

@@ -29,7 +29,7 @@ const {
 const listContainer = ref<HTMLElement | null>(null)
 
 /** 单项固定高度：与 CSS 中 .session-item 实际渲染高度一致 */
-const ITEM_HEIGHT = 44
+const ITEM_HEIGHT = 52
 
 const {
   visibleItems,
@@ -188,7 +188,7 @@ function selectSession(session: SessionVO) {
 .search-icon {
   position: absolute;
   left: 20px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   pointer-events: none;
 }
 
@@ -197,20 +197,20 @@ function selectSession(session: SessionVO) {
   padding: 5px 8px 5px 26px;
   border: 1px solid transparent;
   border-radius: 6px;
-  background: #f4f5f7;
-  font-size: 12px;
-  color: #1f1f1f;
+  background: var(--bg-tertiary);
+  font-size: var(--font-size-small);
+  color: var(--text-primary);
   outline: none;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .search-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .search-input:focus {
-  background: #ffffff;
-  border-color: #2563eb;
+  background: var(--bg-primary);
+  border-color: var(--accent-default);
 }
 
 /* 加载 / 空状态 */
@@ -221,8 +221,8 @@ function selectSession(session: SessionVO) {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 12px;
-  color: #9ca3af;
+  font-size: var(--font-size-small);
+  color: var(--text-tertiary);
 }
 
 .loading-more {
@@ -231,8 +231,8 @@ function selectSession(session: SessionVO) {
   justify-content: center;
   gap: 4px;
   padding: 6px 0;
-  font-size: 11px;
-  color: #9ca3af;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 .spin {
@@ -265,16 +265,17 @@ function selectSession(session: SessionVO) {
   cursor: pointer;
   transition: background 0.15s;
   position: relative;
-  height: 44px;
+  min-height: 44px;
+  height: auto;
   box-sizing: border-box;
 }
 
 .session-item:hover {
-  background: #f4f5f7;
+  background: var(--bg-tertiary);
 }
 
 .session-item.active {
-  background: #e8f0fe;
+  background: var(--accent-light-bg);
 }
 
 .session-icon {
@@ -284,9 +285,9 @@ function selectSession(session: SessionVO) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f1f3;
+  background: var(--bg-hover);
   border-radius: 6px;
-  color: #6b7280;
+  color: var(--text-quaternary);
 }
 
 .session-info {
@@ -298,18 +299,21 @@ function selectSession(session: SessionVO) {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--font-size-small);
   font-weight: 500;
-  color: #1f1f1f;
+  color: var(--text-primary);
   min-width: 0;
 }
 
 .title-text {
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
 }
 
 .msg-count {
@@ -318,10 +322,10 @@ function selectSession(session: SessionVO) {
   height: 17px;
   padding: 0 5px;
   border-radius: 8px;
-  background: #e5e7eb;
-  font-size: 10px;
+  background: var(--border-lighter);
+  font-size: var(--font-size-xxs);
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-quaternary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -329,8 +333,8 @@ function selectSession(session: SessionVO) {
 }
 
 .session-time {
-  font-size: 11px;
-  color: #9ca3af;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
   margin-top: 1px;
 }
 
@@ -343,12 +347,12 @@ function selectSession(session: SessionVO) {
 .rename-input {
   width: 100%;
   padding: 2px 6px;
-  border: 1px solid #2563eb;
+  border: 1px solid var(--accent-default);
   border-radius: 4px;
-  background: #ffffff;
-  font-size: 12px;
+  background: var(--bg-primary);
+  font-size: var(--font-size-small);
   font-weight: 500;
-  color: #1f1f1f;
+  color: var(--text-primary);
   outline: none;
 }
 
@@ -386,32 +390,32 @@ function selectSession(session: SessionVO) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--text-quaternary);
   transition: color 0.15s, background 0.15s;
 }
 
 .session-rename:hover {
-  color: #374151;
-  background: #e0e2e6;
+  color: var(--text-secondary);
+  background: var(--border-light);
 }
 
 .session-ai-title:hover {
-  color: #7c3aed;
+  color: var(--tag-vision-text);
   background: #f3f0ff;
 }
 
 .session-pin:hover {
-  color: #2563eb;
-  background: #e8f0fe;
+  color: var(--accent-default);
+  background: var(--accent-light-bg);
 }
 
 .session-delete:hover {
-  color: #ef4444;
-  background: #fef2f2;
+  color: var(--danger-default);
+  background: var(--danger-light-bg);
 }
 
 .session-pin .pinned {
-  color: #2563eb;
+  color: var(--accent-default);
 }
 
 /* 新对话按钮 */
@@ -422,19 +426,19 @@ function selectSession(session: SessionVO) {
   gap: 6px;
   margin: 6px 12px 10px;
   padding: 7px;
-  border: 1px solid #e6e8ec;
+  border: 1px solid var(--border-default);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--bg-primary);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-small);
   font-weight: 500;
-  color: #1f1f1f;
+  color: var(--text-primary);
   transition: background 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
 
 .new-chat-btn:hover {
-  background: #f4f5f7;
+  background: var(--bg-tertiary);
   border-color: #d0d4da;
 }
 </style>

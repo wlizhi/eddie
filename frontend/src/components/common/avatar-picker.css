@@ -6,7 +6,7 @@
 
 .tabs {
     display: flex;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .tab {
@@ -14,9 +14,9 @@
     padding: 7px 0;
     border: none;
     background: transparent;
-    font-size: 12px;
+    font-size: var(--font-size-small);
     font-weight: 500;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     font-family: inherit;
@@ -24,12 +24,12 @@
 }
 
 .tab:hover {
-    color: #6b7280;
+    color: var(--text-quaternary);
 }
 
 .tab.active {
-    color: #2563eb;
-    border-bottom-color: #2563eb;
+    color: var(--accent-default);
+    border-bottom-color: var(--accent-default);
 }
 
 .tab-content {
@@ -47,7 +47,7 @@
 .text-input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #e0e2e6;
+    border: 1px solid var(--border-light);
     border-radius: 6px;
     font-size: 14px;
     text-align: center;
@@ -58,7 +58,7 @@
 }
 
 .text-input:focus {
-    border-color: #2563eb;
+    border-color: var(--accent-default);
 }
 
 .preview-row {
@@ -68,8 +68,8 @@
 }
 
 .preview-label {
-    font-size: 12px;
-    color: #9ca3af;
+    font-size: var(--font-size-small);
+    color: var(--text-tertiary);
 }
 
 .preview-char {
@@ -87,8 +87,8 @@
 }
 
 .emoji-group-label {
-    font-size: 11px;
-    color: #9ca3af;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
     padding: 2px 0 4px;
     border-bottom: 1px solid #f0f0f0;
     margin-bottom: 4px;
@@ -116,12 +116,12 @@
 }
 
 .emoji-item:hover {
-    background: #f0f1f3;
+    background: var(--bg-hover);
 }
 
 .emoji-item.selected {
-    background: #e0e7ff;
-    outline: 2px solid #2563eb;
+    background: var(--tag-embedding-bg);
+    outline: 2px solid var(--accent-default);
     outline-offset: -2px;
 }
 
@@ -140,9 +140,9 @@
     align-items: center;
     padding: 8px 24px;
     border-radius: 6px;
-    background: #2563eb;
-    color: #fff;
-    font-size: 13px;
+    background: var(--accent-default);
+    color: var(--text-inverse);
+    font-size: var(--font-size-base);
     font-weight: 500;
     cursor: pointer;
     font-family: inherit;
@@ -150,7 +150,7 @@
 }
 
 .upload-btn:hover {
-    background: #1d4ed8;
+    background: var(--accent-hover);
 }
 
 .cropped-preview {
@@ -165,12 +165,12 @@
     height: 80px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--border-light);
 }
 
 .cropped-hint {
-    font-size: 12px;
-    color: #6b7280;
+    font-size: var(--font-size-small);
+    color: var(--text-quaternary);
     margin: 0;
 }
 
@@ -182,18 +182,18 @@
 .btn-rechoose {
     padding: 5px 14px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: var(--font-size-small);
     font-family: inherit;
     font-weight: 500;
     cursor: pointer;
-    border: 1px solid #e0e2e6;
-    background: #f4f5f7;
-    color: #6b7280;
+    border: 1px solid var(--border-light);
+    background: var(--bg-tertiary);
+    color: var(--text-quaternary);
     transition: background 0.15s;
 }
 
 .btn-rechoose:hover {
-    background: #e8eaee;
+    background: var(--bg-hover);
 }
 
 .footer {
@@ -201,13 +201,13 @@
     justify-content: flex-end;
     gap: 8px;
     padding-top: 8px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border-light);
 }
 
 .btn {
     padding: 6px 18px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: var(--font-size-small);
     font-family: inherit;
     font-weight: 500;
     cursor: pointer;
@@ -216,22 +216,22 @@
 }
 
 .btn-cancel {
-    background: #f4f5f7;
-    color: #6b7280;
-    border-color: #e0e2e6;
+    background: var(--bg-tertiary);
+    color: var(--text-quaternary);
+    border-color: var(--border-light);
 }
 
 .btn-cancel:hover {
-    background: #e8eaee;
+    background: var(--bg-hover);
 }
 
 .btn-confirm {
-    background: #2563eb;
-    color: #fff;
+    background: var(--accent-default);
+    color: var(--text-inverse);
 }
 
 .btn-confirm:hover {
-    background: #1d4ed8;
+    background: var(--accent-hover);
 }
 
 .btn-confirm:disabled {

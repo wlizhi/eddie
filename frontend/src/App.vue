@@ -1,7 +1,19 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
+import {darkTheme, NConfigProvider} from 'naive-ui'
 import {Bot, ChevronLeft, ChevronRight, MessageSquare, Settings} from '@lucide/vue'
+import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
+import ToastNotification from '@/components/common/ToastNotification.vue'
+
+onMounted(() => {
+  loadDisplaySettings()
+})
+
+/** Naive UI 主题：跟随 displaySettings 响应式变化 */
+const naiveTheme = computed(() =>
+    displaySettings.themeMode === 'dark' ? darkTheme : null
+)
 
 const router = useRouter()
 const route = useRoute()
@@ -68,6 +80,7 @@ function toggleCollapse() {
 </script>
 
 <template>
+  <NConfigProvider :theme="naiveTheme">
   <div class="app-layout">
     <!-- Nav Rail -->
     <nav class="nav-rail">
@@ -117,6 +130,8 @@ function toggleCollapse() {
       <router-view/>
     </main>
   </div>
+    <ToastNotification/>
+  </NConfigProvider>
 </template>
 
 <style>
@@ -135,10 +150,15 @@ html, body, #app {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-  'Noto Sans SC', sans-serif;
-  background: #ffffff;
-  color: #1f1f1f;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* 确保所有表单元素继承字体设置 */
+button, input, select, textarea {
+  font-family: inherit;
 }
 </style>
 
@@ -153,8 +173,8 @@ body {
 .nav-rail {
   width: 48px;
   min-width: 48px;
-  background: #f4f5f7;
-  border-right: 1px solid #e6e8ec;
+  background: var(--bg-nav-rail);
+  border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -174,7 +194,7 @@ body {
 .nav-rail-divider {
   width: 24px;
   height: 1px;
-  background: #e0e2e6;
+  background: var(--divider-light);
   margin: 4px 0;
   flex-shrink: 0;
 }
@@ -198,17 +218,17 @@ body {
   justify-content: center;
   position: relative;
   transition: background 0.15s, color 0.15s;
-  color: #6b7280;
+  color: var(--text-quaternary);
 }
 
 .nav-item:hover {
-  background: #e8eaee;
-  color: #374151;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
 }
 
 .nav-item.active {
-  background: #ffffff;
-  color: #2563eb;
+  background: var(--bg-primary);
+  color: var(--accent-default);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -219,8 +239,8 @@ body {
   left: 44px;
   top: 50%;
   transform: translateY(-50%);
-  background: #2c2c2c;
-  color: #fff;
+  background: var(--bg-tooltip);
+  color: var(--text-inverse);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;
@@ -238,8 +258,8 @@ body {
 .context-panel {
   width: 260px;
   min-width: 260px;
-  background: #fafbfc;
-  border-right: 1px solid #e6e8ec;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   transition: width 0.2s ease, min-width 0.2s ease, opacity 0.15s ease;
@@ -266,14 +286,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   transition: background 0.15s, color 0.15s;
   z-index: 10;
 }
 
 .panel-collapse-btn:hover {
-  background: #e8eaee;
-  color: #6b7280;
+  background: var(--bg-hover);
+  color: var(--text-quaternary);
 }
 
 .panel-body {
@@ -287,6 +307,6 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--bg-primary);
 }
 </style>

@@ -49,23 +49,23 @@
     margin: .6em 0;
     padding: 12px 14px;
     border-radius: 8px;
-    background: #1e1e1e;
+    background: var(--text-code-bg);
     overflow-x: auto
 }
 
 .markdown-body pre code {
     padding: 0;
     background: 0 0;
-    color: #d4d4d4;
+    color: var(--text-code);
     font-size: .82em;
     line-height: 1.6
 }
 
 .markdown-body blockquote {
-    border-left: 3px solid #d1d5db;
+    border-left: 3px solid var(--border-hover);
     padding: .3em 0 .3em 12px;
     margin: .4em 0;
-    color: #6b7280
+    color: var(--text-quaternary)
 }
 
 .markdown-body table {
@@ -76,24 +76,24 @@
 }
 
 .markdown-body td, .markdown-body th {
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-hover);
     padding: 6px 10px;
     text-align: left
 }
 
 .markdown-body th {
-    background: #f0f1f3;
+    background: var(--bg-hover);
     font-weight: 600
 }
 
 .markdown-body hr {
     border: 0;
-    border-top: 1px solid #e0e2e6;
+    border-top: 1px solid var(--border-light);
     margin: .8em 0
 }
 
 .markdown-body a {
-    color: #2563eb;
+    color: var(--accent-default);
     text-decoration: underline
 }
 
