@@ -64,8 +64,16 @@ public class DashScopeModelFetcher implements RemoteModelFetcher {
         int pageNo = 1;
         int total;
 
+        // 从 baseUrl 中提取 origin（协议+域名），去除兼容模式路径部分
+        // 例如 https://dashscope.aliyuncs.com/compatible-mode/v1 → https://dashscope.aliyuncs.com
+        java.net.URI uri = java.net.URI.create(baseUrl);
+        String origin = uri.getScheme() + "://" + uri.getHost();
+        if (uri.getPort() != -1) {
+            origin += ":" + uri.getPort();
+        }
+
         do {
-            String url = UrlUtil.join(baseUrl, MODELS_PATH)
+            String url = UrlUtil.join(origin, MODELS_PATH)
                     + "?page_no=" + pageNo
                     + "&page_size=" + PAGE_SIZE
                     + "&version=v1.0"
