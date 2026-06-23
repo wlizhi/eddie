@@ -25,6 +25,7 @@
           @fetch-models="openFetchModal"
           @remove-model="removeModel"
           @open-settings="openModelSettings"
+          @delete-provider="handleDeleteProvider"
       />
 
       <!-- 未选中状态 -->
@@ -59,13 +60,29 @@
         @close="showFetchModal = false"
         @changed="onModelsChanged"
     />
+
+    <!-- 删除确认弹窗 -->
+    <ConfirmModal
+        :visible="showDeleteConfirm"
+        title="删除服务商"
+        :message="`确认删除服务商「${deletingName}」？删除后不可恢复。`"
+        @confirm="doDeleteProvider"
+        @cancel="showDeleteConfirm = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import {computed, onMounted, reactive, ref, watch} from 'vue'
 import {Cpu} from '@lucide/vue'
-import {batchRemoveModels, listProviders, updateModel, updateProvider, updateSortOrder} from '@/api/modelProvider'
+import {
+  batchRemoveModels,
+  deleteProvider,
+  listProviders,
+  updateModel,
+  updateProvider,
+  updateSortOrder
+} from '@/api/modelProvider'
 import type {ModelItem, ModelProvider} from '@/types/modelProvider'
 import {normalizeCaps} from './modelCapabilities'
 
@@ -75,6 +92,7 @@ import ModelProviderDetail from './ModelProviderDetail.vue'
 import ModelSettingsModal from './ModelSettingsModal.vue'
 import AddProviderModal from './AddProviderModal.vue'
 import ModelFetchModal from './ModelFetchModal.vue'
+import ConfirmModal from './ConfirmModal.vue'
 
 const loading = ref(false)
 const providers = ref<ModelProvider[]>([])
@@ -264,6 +282,34 @@ async function removeModel(code: string) {
     activeProvider.value.models = currentModels.value.filter(m => m.code !== code)
   } catch (e) {
     console.error('移除模型失败', e)
+  }
+}
+
+/** 删除确认弹窗状态 */
+const showDeleteConfirm = ref(false)
+const deletingName = ref('')
+
+/** 打开删除确认弹窗 */
+function handleDeleteProvider() {
+  if (!activeProvider.value) return
+  deletingName.value = activeProvider.value.name || activeProvider.value.code
+  showDeleteConfirm.value = true
+}
+
+/** 执行删除 */
+async function doDeleteProvider() {
+  if (!activeProvider.value) return
+  showDeleteConfirm.value = false
+  try {
+    await deleteProvider(activeProvider.value.id)
+    providers.value = await listProviders()
+    if (providers.value.length > 0) {
+      selectProvider(providers.value[0])
+    } else {
+      activeProvider.value = null
+    }
+  } catch (e) {
+    console.error('删除服务商失败', e)
   }
 }
 

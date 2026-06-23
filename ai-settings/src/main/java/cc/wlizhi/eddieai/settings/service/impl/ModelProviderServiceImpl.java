@@ -11,6 +11,7 @@ import cc.wlizhi.eddieai.settings.entity.request.ModelProviderCreateRequest;
 import cc.wlizhi.eddieai.settings.entity.request.ModelProviderUpdateRequest;
 import cc.wlizhi.eddieai.settings.entity.response.ModelProviderVO;
 import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
+import cc.wlizhi.eddieai.settings.remote.ModelCapabilityResolver;
 import cc.wlizhi.eddieai.settings.remote.RemoteModelFetcherRouter;
 import cc.wlizhi.eddieai.settings.service.ModelProviderService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -37,6 +38,9 @@ public class ModelProviderServiceImpl implements ModelProviderService {
 
     @Resource
     private RemoteModelFetcherRouter remoteModelFetcherRouter;
+
+    @Resource
+    private ModelCapabilityResolver modelCapabilityResolver;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -193,7 +197,13 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         if (entity == null) {
             throw new NotFoundException("服务商不存在: " + providerId);
         }
-        return remoteModelFetcherRouter.fetchModels(entity.getCode(), entity.getBaseUrl(), entity.getApiKey());
+        List<ModelVO> models = remoteModelFetcherRouter.fetchModels(entity.getCode(), entity.getBaseUrl(), entity.getApiKey());
+        // 填充能力标签：查映射表 → 兜底关键词推断
+        String providerCode = entity.getCode();
+        for (ModelVO model : models) {
+            model.setCapabilities(modelCapabilityResolver.resolve(providerCode, model.getCode()));
+        }
+        return models;
     }
 
     // ========== 私有方法 ==========

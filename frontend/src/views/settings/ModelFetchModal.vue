@@ -67,6 +67,17 @@
                 :class="{ exists: isExist(m.code) }"
             >
               <div class="fetch-cell code">{{ m.code }}</div>
+              <div class="model-capabilities" v-if="m.capabilities?.length">
+                <span
+                    v-for="cap in m.capabilities"
+                    :key="cap"
+                    class="cap-tag"
+                    :class="cap"
+                >
+                  <span v-html="capIcon(cap, 11)"></span>
+                  {{ CAPABILITY_LABELS[cap] || cap }}
+                </span>
+              </div>
               <div class="fetch-cell owned-by">{{ m.ownedBy || '-' }}</div>
               <button
                   class="fetch-action-btn"
@@ -106,14 +117,24 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue'
 import type {ModelItem} from '@/types/modelProvider'
+import {CAPABILITY_LABELS} from '@/types/modelProvider'
 import {batchAddModels, batchRemoveModels, fetchRemoteModels} from '@/api/modelProvider'
+import {capIcon, normalizeCaps} from './modelCapabilities'
 
 const searchQuery = ref('')
 
+/** 模型列表，capabilities 统一转小写 */
+const normalizedModels = computed(() =>
+    models.value.map(m => ({
+      ...m,
+      capabilities: normalizeCaps(m.capabilities),
+    }))
+)
+
 const filteredModels = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return models.value
-  return models.value.filter(m => m.code.toLowerCase().includes(q))
+  if (!q) return normalizedModels.value
+  return normalizedModels.value.filter(m => m.code.toLowerCase().includes(q))
 })
 
 const props = defineProps<{
@@ -421,6 +442,59 @@ async function toggleModel(m: ModelItem) {
   text-align: center;
   font-size: 13px;
   color: #9ca3af;
+}
+
+/* 能力标签（与 ModelProviderDetail 样式一致） */
+.model-capabilities {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cap-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.cap-tag svg {
+  flex-shrink: 0;
+}
+
+.cap-tag.vision {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.cap-tag.web_search {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.cap-tag.reasoning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.cap-tag.function_calling {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.cap-tag.rerank {
+  background: #fce7f3;
+  color: #db2777;
+}
+
+.cap-tag.embedding {
+  background: #e0e7ff;
+  color: #4f46e5;
 }
 
 /* 操作按钮 */
