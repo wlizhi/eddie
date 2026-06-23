@@ -32,18 +32,36 @@
 
         <!-- 模型列表 -->
         <template v-else>
-          <!-- 统计信息 -->
-          <div class="fetch-stats">
-            <span>共 {{ models.length }} 个模型</span>
-            <span v-if="existingCount > 0" class="fetch-existing-count">
-              已添加 {{ existingCount }} 个
-            </span>
+          <!-- 搜索栏 + 统计信息（同一行） -->
+          <div class="fetch-toolbar">
+            <div class="fetch-search">
+              <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                  v-model="searchQuery"
+                  class="search-input"
+                  type="text"
+                  placeholder="搜索模型 code..."
+              />
+            </div>
+            <div class="fetch-stats">
+              <span v-if="searchQuery">
+                搜索到 {{ filteredModels.length }} / 共 {{ models.length }} 个模型
+              </span>
+              <span v-else>共 {{ models.length }} 个模型</span>
+              <span v-if="existingCount > 0" class="fetch-existing-count">
+                已添加 {{ existingCount }} 个
+              </span>
+            </div>
           </div>
 
           <!-- 列表 -->
           <div class="fetch-list" ref="listRef">
             <div
-                v-for="m in models"
+                v-for="m in filteredModels"
                 :key="m.code"
                 class="fetch-row"
                 :class="{ exists: isExist(m.code) }"
@@ -89,6 +107,14 @@
 import {computed, ref, watch} from 'vue'
 import type {ModelItem} from '@/types/modelProvider'
 import {batchAddModels, batchRemoveModels, fetchRemoteModels} from '@/api/modelProvider'
+
+const searchQuery = ref('')
+
+const filteredModels = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return models.value
+  return models.value.filter(m => m.code.toLowerCase().includes(q))
+})
 
 const props = defineProps<{
   visible: boolean
@@ -188,6 +214,7 @@ async function toggleModel(m: ModelItem) {
   border-radius: 12px;
   width: 720px;
   max-width: 90vw;
+  height: 85vh;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -199,7 +226,7 @@ async function toggleModel(m: ModelItem) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid #e6e8ec;
   flex-shrink: 0;
 }
@@ -232,7 +259,7 @@ async function toggleModel(m: ModelItem) {
 
 /* ===== body ===== */
 .modal-body {
-  padding: 20px;
+  padding: 16px 20px;
   overflow-y: auto;
   flex: 1;
   display: flex;
@@ -277,15 +304,63 @@ async function toggleModel(m: ModelItem) {
   color: #ef4444;
 }
 
+/* 搜索栏 + 统计信息（同一行） */
+.fetch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.fetch-search {
+  position: relative;
+  flex: 0 1 260px;
+  min-width: 0;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 32px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1f1f1f;
+  background: #f9fafb;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.search-input:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
 /* 统计 */
 .fetch-stats {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
   color: #9ca3af;
-  margin-bottom: 12px;
+  white-space: nowrap;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .fetch-existing-count {
@@ -396,7 +471,7 @@ async function toggleModel(m: ModelItem) {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding: 14px 20px;
+  padding: 10px 20px;
   border-top: 1px solid #e6e8ec;
   flex-shrink: 0;
 }

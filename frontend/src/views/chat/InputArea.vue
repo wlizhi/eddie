@@ -113,63 +113,63 @@ defineExpose({focusInput})
 
 <template>
   <div class="input-area">
-    <!-- 输入框 + 按钮 -->
-    <div class="input-row">
-      <textarea
-          ref="inputRef"
-          :value="modelValue"
-          class="chat-input"
-          placeholder="输入消息..."
-          rows="1"
-          @input="onInput"
-          @keydown="handleKeydown"
-          @compositionstart="onCompositionStart"
-          @compositionend="onCompositionEnd"
-      />
-      <button
-          v-if="!chatStore.isStreaming"
-          class="send-btn"
-          :disabled="!modelValue.trim()"
-          title="发送"
-          @click="emit('send')"
-      >
-        <Send :size="16" :stroke-width="2"/>
-      </button>
-      <button
-          v-else
-          class="stop-btn"
-          title="中断"
-          @click="chatStore.abortStream()"
-      >
-        <Square :size="14" :stroke-width="2"/>
-      </button>
-    </div>
+    <div class="input-container" :class="{ 'is-streaming': chatStore.isStreaming }">
+      <!-- 输入框 + 发送按钮 -->
+      <div class="input-body">
+        <textarea
+            ref="inputRef"
+            :value="modelValue"
+            class="chat-input"
+            placeholder="输入消息..."
+            rows="1"
+            @input="onInput"
+            @keydown="handleKeydown"
+            @compositionstart="onCompositionStart"
+            @compositionend="onCompositionEnd"
+        />
+        <button
+            v-if="!chatStore.isStreaming"
+            class="send-btn"
+            :disabled="!modelValue.trim()"
+            title="发送"
+            @click="emit('send')"
+        >
+          <Send :size="16" :stroke-width="2"/>
+        </button>
+        <button
+            v-else
+            class="stop-btn"
+            title="中断"
+            @click="chatStore.abortStream()"
+        >
+          <Square :size="14" :stroke-width="2"/>
+        </button>
+      </div>
 
-    <!-- 底部栏 -->
-    <div class="bottom-bar">
-      <div class="model-selector-area">
+      <!-- 底部工具栏：模型选择 + 功能开关 -->
+      <div class="input-toolbar">
         <NSelect
             :value="selectedModelKey"
             :options="groupedOptions"
             size="tiny"
             class="model-select"
             placeholder="选择模型"
+            filterable
             :consistent-menu-width="false"
             @update:value="onModelSelect"
         />
+        <div class="feature-toggles">
+          <button class="toggle-chip disabled" title="联网搜索（即将上线）">
+            🌐 联网
+          </button>
+          <button class="toggle-chip disabled" title="深度思考（即将上线）">
+            💡 思考
+          </button>
+        </div>
       </div>
-
-      <div class="feature-toggles">
-        <button class="toggle-chip disabled" title="联网搜索（即将上线）">
-          🌐 联网
-        </button>
-        <button class="toggle-chip disabled" title="深度思考（即将上线）">
-          💡 深度思考
-        </button>
-      </div>
-
-      <span v-if="chatStore.isStreaming" class="streaming-hint">正在生成...</span>
     </div>
+
+    <span v-if="chatStore.isStreaming" class="streaming-hint">正在生成...</span>
   </div>
 </template>
 

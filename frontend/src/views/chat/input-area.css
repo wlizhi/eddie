@@ -1,40 +1,151 @@
 .input-area {
     flex-shrink: 0;
-    border-top: 1px solid #e6e8ec;
     padding: 10px 16px 12px;
     background: #fff;
 }
 
-.input-row {
+/* ===== 输入容器（单一边框包裹内部所有元素） ===== */
+.input-container {
+    border: 1px solid #e0e2e6;
+    border-radius: 18px;
+    background: #fafbfc;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input-container:focus-within {
+    border-color: #2563eb;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+/* ===== 底部工具栏：模型选择 + 功能开关 ===== */
+.input-toolbar {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 4px;
+    padding: 0 10px 6px;
+}
+
+/* 模型选择器 — 扁平化，无独立边框，宽度自适应内容 */
+.model-select {
+    width: auto;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.model-select :deep(.n-base-selection) {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 8px !important;
+    min-height: auto !important;
+    padding: 0 4px;
+    transition: background 0.15s;
+}
+
+.model-select :deep(.n-base-selection:hover) {
+    background: rgba(0, 0, 0, 0.04) !important;
+}
+
+.model-select :deep(.n-base-selection-label) {
+    min-height: auto !important;
+    height: auto !important;
+    padding: 0 2px;
+}
+
+.model-select :deep(.n-base-selection-input) {
+    font-size: 12px !important;
+    color: #6b7280 !important;
+    height: auto !important;
+    min-height: auto !important;
+    padding: 2px 4px !important;
+}
+
+.model-select :deep(.n-base-selection-placeholder) {
+    font-size: 12px !important;
+    color: #6b7280 !important;
+}
+
+.model-select :deep(.n-base-selection-arrow) {
+    font-size: 12px !important;
+    color: #9ca3af !important;
+}
+
+.model-select :deep(.n-base-selection-tags) {
+    min-height: auto !important;
+    padding: 0 !important;
+}
+
+.model-select :deep(.n-base-selection .n-base-suffix) {
+    min-height: auto !important;
+}
+
+/* ===== 功能开关按钮 ===== */
+.feature-toggles {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.toggle-chip {
+    padding: 3px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1.4;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.toggle-chip:hover:not(.disabled) {
+    background: rgba(0, 0, 0, 0.04);
+    color: #1f1f1f;
+}
+
+.toggle-chip.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.toggle-chip.disabled:hover {
+    background: transparent;
+}
+
+/* ===== 输入框主体行 ===== */
+.input-body {
+    display: flex;
     align-items: flex-end;
+    gap: 8px;
+    padding: 8px 10px 2px;
 }
 
 .chat-input {
     flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #e0e2e6;
-    border-radius: 8px;
+    min-height: 36px;
+    padding: 4px 0;
+    border: none;
+    border-radius: 0;
     font-size: 13.5px;
     font-family: inherit;
     line-height: 1.5;
     resize: vertical;
     outline: none;
-    transition: border-color 0.15s;
     color: #1f1f1f;
-    background: #fafbfc;
+    background: transparent;
 }
 
-.chat-input:focus {
-    border-color: #2563eb;
-    background: #fff;
+.chat-input::placeholder {
+    color: #9ca3af;
 }
 
+/* ===== 发送 / 中断按钮 ===== */
 .send-btn,
 .stop-btn {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border: none;
     border-radius: 8px;
     display: flex;
@@ -68,63 +179,21 @@
     background: #dc2626;
 }
 
-/* ===== 底部栏 ===== */
-.bottom-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 10px;
-    padding: 0 2px;
-    gap: 8px;
-}
-
-.model-selector-area {
-    display: flex;
-    align-items: center;
-}
-
-.model-select {
-    min-width: 100px;
-}
-
-.feature-toggles {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-}
-
-.toggle-chip {
-    padding: 3px 10px;
-    font-size: 12px;
-    font-family: inherit;
-    line-height: 1.4;
-    border: 1px solid #e0e2e6;
-    border-radius: 14px;
-    background: #fafbfc;
-    color: #6b7280;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-}
-
-.toggle-chip:hover {
-    background: #f0f1f3;
-    border-color: #c4c7cc;
-}
-
-.toggle-chip.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.toggle-chip.disabled:hover {
-    background: #fafbfc;
-    border-color: #e0e2e6;
-}
-
+/* ===== 流式状态提示 ===== */
 .streaming-hint {
-    font-size: 12px;
-    color: #9ca3af;
-    flex-shrink: 0;
+    display: block;
+    font-size: 11px;
+    color: #2563eb;
+    text-align: right;
+    padding: 2px 10px 0;
+    animation: streaming-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes streaming-pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
 }

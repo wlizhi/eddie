@@ -98,6 +98,7 @@ const tipTheme = TIP_THEME_OVERRIDES
               :value="selectedModelKey"
               :options="groupedModelOptions"
               placeholder="选择模型"
+              filterable
               :consistent-menu-width="false"
               @update:value="(v: string | null) => { onModelSelect(v); clearFieldError('formModelId') }"
           />
