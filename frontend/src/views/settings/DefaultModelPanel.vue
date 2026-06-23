@@ -128,6 +128,17 @@ function slotState(key: string): SlotSelection {
   return slotSelections[key]
 }
 
+/** 检查 compositeKey 是否存在于当前分组选项列表中 */
+function isValidCompositeKey(candidate: string | null): boolean {
+  if (!candidate) return false
+  for (const group of groupedModelOptions.value) {
+    for (const child of group.children) {
+      if (child.value === candidate) return true
+    }
+  }
+  return false
+}
+
 function onSlotModelSelect(slotKey: string, compositeKey: string | null) {
   if (!compositeKey) return
   const sepIdx = compositeKey.indexOf(MODEL_KEY_SEPARATOR)
@@ -174,10 +185,13 @@ onMounted(async () => {
         const params = val.modelParams || {}
 
         if (providerId && modelId) {
+          const compositeKey = `${providerId}${MODEL_KEY_SEPARATOR}${modelId}`
+          // 仅当该 compositeKey 在当前模型列表中存在时才设置为选中值
+          // 否则保持 null（显示 placeholder/空白，避免 NSelect 显示原始 key 字符串）
           slotSelections[slot.key] = {
             providerId,
             modelId,
-            compositeKey: `${providerId}${MODEL_KEY_SEPARATOR}${modelId}`,
+            compositeKey: isValidCompositeKey(compositeKey) ? compositeKey : null,
           }
         }
 

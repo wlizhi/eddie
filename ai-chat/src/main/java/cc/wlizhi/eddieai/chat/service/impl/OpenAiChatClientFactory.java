@@ -37,7 +37,7 @@ public class OpenAiChatClientFactory implements ChatClientFactory {
         OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
                 .apiKey(provider.getApiKey())
                 .baseUrl(provider.getBaseUrl())
-                .model(assistant.getModelId());
+                .model(ctx.getOriginalRequest().getModelId());
 
         applyModelParams(optionsBuilder, assistant.getModelParams());
 

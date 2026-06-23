@@ -26,7 +26,7 @@ public class DeepseekChatClientFactory implements ChatClientFactory {
 
     @Override
     public boolean support(String providerCode) {
-        return supports.contains("deepseek");
+        return supports.contains(providerCode);
     }
 
     @Override
