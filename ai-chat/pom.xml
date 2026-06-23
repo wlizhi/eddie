@@ -6,12 +6,12 @@
 
     <parent>
         <groupId>cc.wlizhi</groupId>
-        <artifactId>eddie-ai-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <artifactId>eddie</artifactId>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>ai-chat</artifactId>
-    <name>Eddie AI — Chat</name>
+    <name>Eddie — Chat</name>
     <description>助手聊天：对话管理、上下文构建</description>
 
     <dependencies>

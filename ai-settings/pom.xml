@@ -6,12 +6,12 @@
 
     <parent>
         <groupId>cc.wlizhi</groupId>
-        <artifactId>eddie-ai-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <artifactId>eddie</artifactId>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>ai-settings</artifactId>
-    <name>Eddie AI — Settings</name>
+    <name>Eddie — Settings</name>
     <description>全局设置：模型提供商、MCP、显示配置</description>
 
     <dependencies>

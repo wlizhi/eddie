@@ -1,6 +1,6 @@
-# Eddie AI
+# Eddie
 
-个人电脑全能助手 — 助手聊天 + 智能体 + 多层记忆 + 多模型支持
+个人电脑AI助手 — 助手聊天 + 智能体 + 多模型支持
 
 ---
 
@@ -12,7 +12,7 @@
 | [`ai-chat`](ai-chat)         | `cc.wlizhi.eddieai.chat`     | 助手聊天：对话管理、上下文构建      |
 | [`ai-agent`](ai-agent)       | `cc.wlizhi.eddieai.agent`    | 智能体：任务规划、逐步执行        |
 | [`ai-role`](ai-role)         | `cc.wlizhi.eddieai.role`     | 角色管理：助手 / 智能体角色 CRUD |
-| [`ai-memory`](ai-memory)     | `cc.wlizhi.eddieai.memory`   | 三层记忆：短期、中期压缩、长期摘要    |
+| [`ai-memory`](ai-memory)     | `cc.wlizhi.eddieai.memory`   | 记忆：短期、中期压缩、长期摘要      |
 | [`ai-settings`](ai-settings) | `cc.wlizhi.eddieai.settings` | 全局设置：模型提供商、MCP、显示配置  |
 | [`ai-app`](ai-app)           | `cc.wlizhi.eddieai.app`      | 启动入口 + GraalVM 打包    |
 
@@ -40,7 +40,7 @@ ai-role   ai-settings   ai-memory（独立模块，自查询 DB）
 |---------|--------------------------------------------|
 | 语言      | Java 25（GraalVM Native Image 打包）           |
 | 后端框架    | Spring Boot 4.1.0 + Spring AI 2.0.0        |
-| 数据库     | SQLite（`~/.eddie-ai/eddie-ai.db`）          |
+| 数据库     | SQLite（`~/.eddie/eddie.db`）                |
 | 持久层     | Spring JDBC Template（HikariCP 连接池，最大 1 连接） |
 | AI 协议   | OpenAI 兼容协议（DeepSeek API / OpenAI API）     |
 | MCP 客户端 | `spring-ai-starter-mcp-client`             |
@@ -66,12 +66,12 @@ cp -r frontend/dist/* ai-app/src/main/resources/static/
 mvn clean package -DskipTests
 ```
 
-产物：`ai-app/target/ai-app-1.0.0-SNAPSHOT.jar`
+产物：`ai-app/target/ai-app-1.0.0.jar`
 
 运行：
 
 ```shell
-java -jar ai-app/target/ai-app-1.0.0-SNAPSHOT.jar
+java -jar ai-app/target/ai-app-1.0.0.jar
 ```
 
 > 也可使用 `mvn install -DskipTests` 将模块安装到本地 Maven 仓库。
@@ -119,23 +119,7 @@ mvn -Pnative native:compile -pl ai-app -DskipTests
 
 ## 项目结构
 
-```
-eddie-ai/
-├── ai-app/                      # 启动聚合模块
-│   └── src/main/resources/
-│       ├── application.yml      # 全局配置
-│       ├── schema.sql           # 数据库建表脚本
-│       └── static/              # 前端构建产物（自动生成）
-├── ai-common/                   # 通用模块
-├── ai-chat/                     # 聊天模块
-├── ai-agent/                    # 智能体模块
-├── ai-memory/                   # 记忆模块
-├── ai-role/                     # 角色模块
-├── ai-settings/                 # 全局配置模块
-├── frontend/                    # 前端代码（Vue 3）
-├── build-native.sh              # Native Image 一键构建脚本
-└── pom.xml                      # 父 POM
-```
+完整项目结构说明请查看 [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)。
 
 ## 快速启动
 
@@ -152,12 +136,12 @@ cp -r frontend/dist/* ai-app/src/main/resources/static/
 
 # 打包并启动
 mvn clean package -DskipTests
-java -jar ai-app/target/ai-app-1.0.0-SNAPSHOT.jar
+java -jar ai-app/target/ai-app-1.0.0.jar
 ```
 
 3. 访问：`http://localhost:11520`
 
 ## 数据库
 
-- 文件路径：`~/.eddie-ai/eddie-ai.db`
+- 文件路径：`~/.eddie/eddie.db`
 - 建表脚本：[`ai-app/src/main/resources/schema.sql`](ai-app/src/main/resources/schema.sql)

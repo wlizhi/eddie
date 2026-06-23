@@ -6,12 +6,12 @@
 
     <parent>
         <groupId>cc.wlizhi</groupId>
-        <artifactId>eddie-ai-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <artifactId>eddie</artifactId>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>ai-app</artifactId>
-    <name>Eddie AI — App</name>
+    <name>Eddie — App</name>
     <description>启动入口 + GraalVM 打包</description>
 
     <dependencies>
@@ -90,7 +90,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>cc.wlizhi.eddieai.app.EddieAiApplication</mainClass>
+                    <mainClass>cc.wlizhi.eddie.app.EddieAiApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>
@@ -113,14 +113,14 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <mainClass>cc.wlizhi.eddieai.app.EddieAiApplication</mainClass>
+                            <mainClass>cc.wlizhi.eddie.app.EddieAiApplication</mainClass>
                         </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
                         <configuration>
-                            <mainClass>cc.wlizhi.eddieai.app.EddieAiApplication</mainClass>
+                            <mainClass>cc.wlizhi.eddie.app.EddieAiApplication</mainClass>
                             <buildArgs>
                                 <buildArg>-Os</buildArg>
                                 <buildArg>-H:GenerateDebugInfo=0</buildArg>

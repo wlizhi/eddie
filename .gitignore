@@ -18,3 +18,6 @@ dist/
 logs/
 **/*.http
 /ai-app/src/main/resources/static/
+
+# AI 辅助插件配置
+.kilocode/

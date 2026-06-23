@@ -30,7 +30,7 @@ ai-common（被所有模块依赖）
 
 - Java 版本：25（GraalVM Native Image 打包）
 - Spring Boot 4.1.0 + Spring AI 2.0.0
-- 数据库：SQLite（文件路径：~/.eddie-ai/eddie-ai.db）
+- 数据库：SQLite（文件路径：~/.eddie/eddie.db）
 - 持久层：Spring JDBC Template（HikariCP 连接池，最大 1 连接）
 - Mapper 工具：MapStruct 1.6.3
 - AI 协议：OpenAI 兼容协议（DeepSeek API / OpenAI API）
@@ -43,19 +43,18 @@ ai-common（被所有模块依赖）
 
 - 配置文件：ai-app/src/main/resources/application.yml
 - 数据库建表脚本：ai-app/src/main/resources/schema.sql
-- 启动类：cc.wlizhi.eddieai.app.EddieAiApplication
-- 数据目录：${user.home}/.eddie-ai/
+- 启动类：cc.wlizhi.eddie.app.EddieAiApplication
+- 数据目录：${user.home}/.eddie/
 - 启动端口：11520
-- 扫描基础包：cc.wlizhi.eddieai（Spring Boot scanBasePackages）
+- 扫描基础包：cc.wlizhi.eddie（Spring Boot scanBasePackages）
 
 ### 编码规范
 
-- Java代码禁止使用反射，兼容AOT
-- 接口采用三层结构，controller -> 接口定义， service -> 业务逻辑接口， service/impl -> 业务逻辑实现，dao ->
+- Java代码禁止使用反射，兼容AOT。
+- 接口包名规范：`controller` -> 接口定义， `service` -> 业务逻辑接口， `service/impl` -> 业务逻辑实现，`dao` ->
   数据库访问（一般查询返回映射类）。
-- 实体类的get/set方法使用 @Getter @Setter @ToString这种写法。
-- 实体类包结构：entity -> 表结构映射类，entity/request -> 请求参数类，entity/response -> 响应参数类。entity/dto ->
-  中间计算使用的实体类。
+- 实体类包结构：`entity` -> 表结构映射类，`entity/request` -> 请求参数类，`entity/response` -> 响应参数类。`entity/dto` ->
+  实体类的get/set方法使用 @Getter @Setter @ToString这种写法。
 - 将数据更新到数据库时，时间字段注意时区问题。
 - 查询语句禁止表关联，仅允许单表查询。
 
@@ -66,7 +65,7 @@ ai-common（被所有模块依赖）
 
 ## 开发工具
 
-当前用户使用的开发工具是IntelliJ IDEA，具体版本信息如下：
+用户使用的开发工具是 `IntelliJ IDEA`，具体版本信息如下：
 
 ```text
 IntelliJ IDEA 2026.1.3
@@ -82,4 +81,4 @@ Metal Rendering is ON
 Kotlin: 261.25134.95-IJ
 ```
 
-**前文中提到的 VSCode 不准确，你是集成在 IDEA 中的 kilo code 插件**。
+**注：前文提到的 `VSCode` 不准确，你是集成在 `IntelliJ IDEA` 中的 `Kilo Code` 插件**。

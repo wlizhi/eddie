@@ -6,12 +6,12 @@
 
     <parent>
         <groupId>cc.wlizhi</groupId>
-        <artifactId>eddie-ai-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <artifactId>eddie</artifactId>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>ai-common</artifactId>
-    <name>Eddie AI — Common</name>
+    <name>Eddie — Common</name>
     <description>公共 DTO、枚举定义</description>
 
     <dependencies>

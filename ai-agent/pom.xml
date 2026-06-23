@@ -6,13 +6,13 @@
 
     <parent>
         <groupId>cc.wlizhi</groupId>
-        <artifactId>eddie-ai-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <artifactId>eddie</artifactId>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>ai-agent</artifactId>
-    <name>Eddie AI — Agent</name>
-    <description>智能体：任务规划、逐步执行</description>
+    <name>Eddie — Agent</name>
+    <description>智能体：任务规划、执行</description>
 
     <dependencies>
         <dependency>

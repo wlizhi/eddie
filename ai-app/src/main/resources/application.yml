@@ -9,7 +9,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:sqlite:${user.home}/.eddie-ai/eddie-ai.db
+    url: jdbc:sqlite:${user.home}/.eddie/eddie.db
     driver-class-name: org.sqlite.JDBC
     hikari:
       maximum-pool-size: 1
@@ -19,5 +19,5 @@ spring:
       schema-locations: classpath:schema.sql
 
 # 数据目录（SQLite 数据库、用户上传文件等）
-eddie-ai:
-  data-dir: ${user.home}/.eddie-ai
+eddie:
+  data-dir: ${user.home}/.eddie
