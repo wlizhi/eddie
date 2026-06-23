@@ -1,18 +1,34 @@
 package cc.wlizhi.eddieai.chat.service.impl;
 
+import cc.wlizhi.eddieai.chat.context.AssistantContext;
+import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddieai.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddieai.chat.entity.response.MessageVO;
 import cc.wlizhi.eddieai.chat.entity.response.SessionVO;
+import cc.wlizhi.eddieai.chat.service.ChatClientFactory;
+import cc.wlizhi.eddieai.chat.service.ChatClientFactoryRouter;
 import cc.wlizhi.eddieai.chat.service.SessionService;
 import cc.wlizhi.eddieai.common.dao.MessageDao;
 import cc.wlizhi.eddieai.common.dao.SessionDao;
 import cc.wlizhi.eddieai.common.dto.PageResult;
+import cc.wlizhi.eddieai.common.entity.AssistantEntity;
 import cc.wlizhi.eddieai.common.entity.MessageEntity;
+import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.entity.SessionEntity;
-import cc.wlizhi.eddieai.common.exception.BadRequestException;
+import cc.wlizhi.eddieai.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddieai.common.exception.NotFoundException;
+import cc.wlizhi.eddieai.memory.context.GlobalConfigContext;
+import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,11 +38,30 @@ import java.util.List;
 @Service
 public class SessionServiceImpl implements SessionService {
 
+    private static final Logger log = LoggerFactory.getLogger(SessionServiceImpl.class);
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final int TITLE_MAX_LENGTH = 20;
+
     @Resource
     private SessionDao sessionDao;
 
     @Resource
     private MessageDao messageDao;
+
+    @Resource
+    private GlobalConfigContext globalConfigContext;
+
+    @Resource
+    private ModelProviderContext modelProviderContext;
+
+    @Resource
+    private AssistantContext assistantContext;
+
+    @Resource
+    private ChatClientFactoryRouter chatClientFactoryRouter;
+
+    @Resource
+    private ResourceLoader resourceLoader;
 
     private static final int MESSAGE_PAGE_SIZE = 20;
 
@@ -88,14 +123,17 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
-    public String generateTitle(Long sessionId, Long providerId, String modelCode) {
-        if (!sessionDao.existsById(sessionId)) {
+    public String generateTitle(Long sessionId) {
+        SessionEntity session = sessionDao.findById(sessionId);
+        if (session == null) {
             throw new NotFoundException("会话不存在: " + sessionId);
         }
 
         List<MessageEntity> firstRound = messageDao.findFirstRound(sessionId);
         if (firstRound.size() < 2) {
-            throw new BadRequestException("会话消息不足，无法生成标题");
+            // 消息不足，返回空字符串
+            sessionDao.updateTitle(sessionId, "");
+            return "";
         }
 
         String userMsg = "";
@@ -108,11 +146,114 @@ public class SessionServiceImpl implements SessionService {
             }
         }
 
-        // TODO: 调用模型生成标题（使用 providerId + modelCode 创建 ChatClient）
-        // 当前简化实现：取用户首条消息前 20 字作为标题
-        String title = userMsg.length() > 20 ? userMsg.substring(0, 20) : userMsg;
+        // 降级链：FAST_MODEL → DEFAULT_MODEL → 助手绑定模型 → 截取前 20 字
+        String title = tryGenerateWithAi(userMsg, assistantMsg, session);
+        if (title != null && !title.isBlank()) {
+            sessionDao.updateTitle(sessionId, title);
+            return title;
+        }
+
+        // 最终降级：截取首条消息前 20 字
+        title = userMsg.length() > TITLE_MAX_LENGTH ? userMsg.substring(0, TITLE_MAX_LENGTH) : userMsg;
         sessionDao.updateTitle(sessionId, title);
         return title;
+    }
+
+    /**
+     * 逐级尝试用 AI 模型生成标题
+     */
+    private String tryGenerateWithAi(String userMsg, String assistantMsg, SessionEntity session) {
+        // 降级链 1: FAST_MODEL
+        String fastModelJson = globalConfigContext.getConfig(GlobalConfigKey.FAST_MODEL);
+        if (fastModelJson != null) {
+            try {
+                JsonNode node = objectMapper.readTree(fastModelJson);
+                String title = callModel(node, userMsg, assistantMsg);
+                if (title != null) return title;
+            } catch (Exception e) {
+                log.warn("FAST_MODEL 调用失败", e);
+            }
+        }
+
+        // 降级链 2: DEFAULT_MODEL
+        String defaultModelJson = globalConfigContext.getConfig(GlobalConfigKey.DEFAULT_MODEL);
+        if (defaultModelJson != null) {
+            try {
+                JsonNode node = objectMapper.readTree(defaultModelJson);
+                String title = callModel(node, userMsg, assistantMsg);
+                if (title != null) return title;
+            } catch (Exception e) {
+                log.warn("DEFAULT_MODEL 调用失败", e);
+            }
+        }
+
+        // 降级链 3: 助手绑定模型
+        if (session.getAssistantId() != null) {
+            AssistantEntity assistant = assistantContext.getAssistantById(session.getAssistantId());
+            if (assistant != null && assistant.getProviderId() != null && assistant.getModelId() != null) {
+                String title = callModel(assistant.getProviderId(), assistant.getModelId(), userMsg, assistantMsg);
+                if (title != null) return title;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 从 JSON 节点解析 providerId + modelCode 并调用模型
+     */
+    private String callModel(JsonNode node, String userMsg, String assistantMsg) {
+        Long providerId = node.get("providerId") != null ? node.get("providerId").asLong() : null;
+        String modelCode = node.get("modelCode") != null ? node.get("modelCode").asText() : null;
+        if (providerId == null || modelCode == null) {
+            return null;
+        }
+        return callModel(providerId, modelCode, userMsg, assistantMsg);
+    }
+
+    /**
+     * 使用指定 provider + model 调用 AI 生成标题
+     */
+    private String callModel(Long providerId, String modelCode, String userMsg, String assistantMsg) {
+        ModelProviderEntity provider = modelProviderContext.getModelProviderById(providerId);
+        if (provider == null) {
+            log.warn("生成标题时未找到 provider: {}", providerId);
+            return null;
+        }
+
+        // 加载 prompt 模板
+        String prompt;
+        try {
+            org.springframework.core.io.Resource resource = resourceLoader.getResource("classpath:prompts/title-generation.md");
+            prompt = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.warn("加载标题生成 prompt 文件失败", e);
+            return null;
+        }
+
+        prompt = prompt.replace("{userMessage}", userMsg)
+                .replace("{assistantMessage}", assistantMsg != null ? assistantMsg : "");
+
+        // 构建最小 ChatContext 用于获取 ChatClient
+        ChatContext ctx = new ChatContext();
+        ctx.setProvider(provider);
+        ctx.setProviderCode(provider.getCode());
+        ChatRequest request = new ChatRequest();
+        request.setModelId(modelCode);
+        ctx.setOriginalRequest(request);
+        AssistantEntity assistant = new AssistantEntity();
+        assistant.setModelParams(null);
+        ctx.setAssistant(assistant);
+
+        try {
+            ChatClientFactory factory = chatClientFactoryRouter.resolve(provider.getCode());
+            ChatClient chatClient = factory.getChatClient(ctx);
+            String result = chatClient.prompt(prompt).call().content();
+            return result != null ? result.trim() : null;
+        } catch (Exception e) {
+            log.warn("调用模型(providerId={}, modelCode={})生成标题失败: {}", providerId, modelCode, e.getMessage());
+            return null;
+        }
     }
 
     @Override

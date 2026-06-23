@@ -51,14 +51,14 @@ public interface SessionService {
     void unpin(Long id);
 
     /**
-     * AI 生成标题（取首轮对话，调模型生成）
+     * AI 生成标题（取首轮对话，通过模型降级链获取快速模型后调 AI 生成）
+     * <p>
+     * 降级链：FAST_MODEL → DEFAULT_MODEL → 助手绑定模型 → 截取首条消息前 20 字
      *
-     * @param sessionId  会话 ID
-     * @param providerId 模型服务商 ID
-     * @param modelCode  模型 code
-     * @return 生成的标题
+     * @param sessionId 会话 ID
+     * @return 生成/截取的标题
      */
-    String generateTitle(Long sessionId, Long providerId, String modelCode);
+    String generateTitle(Long sessionId);
 
     /**
      * 游标分页获取会话消息（倒序，最新在前）

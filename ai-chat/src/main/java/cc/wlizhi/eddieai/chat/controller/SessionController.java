@@ -1,7 +1,6 @@
 package cc.wlizhi.eddieai.chat.controller;
 
 import cc.wlizhi.eddieai.chat.entity.request.SessionCreateRequest;
-import cc.wlizhi.eddieai.chat.entity.request.TitleGenerateRequest;
 import cc.wlizhi.eddieai.chat.entity.request.TitleRenameRequest;
 import cc.wlizhi.eddieai.chat.entity.response.MessageVO;
 import cc.wlizhi.eddieai.chat.entity.response.SessionVO;
@@ -63,13 +62,11 @@ public class SessionController {
     }
 
     /**
-     * AI 生成标题
+     * AI 生成标题（无需请求体，模型从全局配置/助手配置自动降级读取）
      */
     @PostMapping("/{id}/generate-title")
-    public ApiResult<String> generateTitle(@PathVariable("id") Long id,
-                                           @Valid @RequestBody TitleGenerateRequest request) {
-        return ApiResult.success(
-                sessionService.generateTitle(id, request.getProviderId(), request.getModelCode()));
+    public ApiResult<String> generateTitle(@PathVariable("id") Long id) {
+        return ApiResult.success(sessionService.generateTitle(id));
     }
 
     /**
