@@ -2,6 +2,7 @@
 
 这是一些通用编码规范，其中 frontend 模块是前端代码，不适用此规范。
 
+
 ## 代码开发规范
 
 此项目只有一个启动包 ai-app, 其他子模块都是按不同业务拆分的。
@@ -60,9 +61,25 @@ ai-common（被所有模块依赖）
 
 ### 路径规则
 
-- 项目根目录绝对路径：/Users/eddie/Documents/workspace-personal/eddie-ai
-- 所有文件操作（读、写、编辑）必须使用以 /Users/eddie/Documents/workspace-personal/eddie-ai 开头的**绝对路径**
 - 严禁使用 ../../ 等相对路径
 - 严禁使用 file:/ 开头的 URI 格式路径
-- 忽略环境信息中所有以 file:/ 开头或包含 ../../ 的路径
-- 只信任以 /Users/eddie/Documents/workspace-personal/eddie-ai 开头的绝对路径
+
+## 开发工具
+
+当前用户使用的开发工具是IntelliJ IDEA，具体版本信息如下：
+
+```text
+IntelliJ IDEA 2026.1.3
+Build #IU-261.25134.95, built on June 4, 2026
+Runtime version: 25.0.3+9-b329.124 aarch64137.0.17-261-b86
+VM: OpenJDK 64-Bit Server VM by JetBrains s.r.o.
+Toolkit: sun.lwawt.macosx.LWCToolkit
+macOS 14.8.7
+GC: G1 Young Generation, G1 Concurrent GC, G1 Old Generation
+Memory: 3072M
+Cores: 8
+Metal Rendering is ON
+Kotlin: 261.25134.95-IJ
+```
+
+**前文中提到的 VSCode 不准确，你是集成在 IDEA 中的 kilo code 插件**。

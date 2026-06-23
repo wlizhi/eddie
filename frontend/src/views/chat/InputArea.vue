@@ -174,3 +174,14 @@ defineExpose({focusInput})
 </template>
 
 <style src="./input-area.css" scoped/>
+<style>
+/* 覆盖 NSelect 下拉菜单样式 */
+.n-base-select-menu {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.n-base-select-menu .n-scrollbar {
+  max-height: 480px !important;
+}
+</style>

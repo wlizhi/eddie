@@ -6,45 +6,34 @@ import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 阿里云百炼远程模型获取器
+ * 阿里云百炼远程模型获取器（OpenAI 兼容接口）
  * <p>
- * 百炼 API（DashScope）返回格式：
+ * 百炼 OpenAI 兼容接口返回格式：
  * <pre>
  * {
- *   "request_id": "f7da015c-...",
- *   "output": {
- *     "page_no": 1,
- *     "page_size": 100,
- *     "total": 5,
- *     "models": [
- *       {
- *         "model_name": "qwen3-8b",
- *         "plans": [ ... ]
- *       }
- *     ]
- *   }
+ *   "object": "list",
+ *   "data": [
+ *     { "id": "qwen-plus", "object": "model", "created": 1234567890, "owned_by": "system" }
+ *   ]
  * }
  * </pre>
- * 接口路径：{baseUrl}/api/v1/deployments/models
+ * 接口路径：{baseUrl}/models
  * <p>
- * 自动翻页：如果返回的 total 达到 page_size（100），继续请求下一页合并数据。
- * <p>
- * 文档：<a href="https://help.aliyun.com/zh/model-studio/list-deployable-models-api">列举可部署模型</a>
+ * 文档：<a href="https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope">OpenAI 接口兼容说明</a>
  */
 @Component
 public class DashScopeModelFetcher implements RemoteModelFetcher {
 
-    private static final String MODELS_PATH = "/api/v1/deployments/models";
+    private static final String MODELS_PATH = "/models";
     private static final String PROVIDER_CODE = "dashscope";
-    private static final int PAGE_SIZE = 100;
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -60,46 +49,22 @@ public class DashScopeModelFetcher implements RemoteModelFetcher {
 
     @Override
     public List<ModelVO> fetchModels(String baseUrl, String apiKey) {
-        List<ModelVO> allModels = new ArrayList<>();
-        int pageNo = 1;
-        int total;
+        String url = UrlUtil.join(baseUrl, MODELS_PATH);
 
-        // 从 baseUrl 中提取 origin（协议+域名），去除兼容模式路径部分
-        // 例如 https://dashscope.aliyuncs.com/compatible-mode/v1 → https://dashscope.aliyuncs.com
-        java.net.URI uri = java.net.URI.create(baseUrl);
-        String origin = uri.getScheme() + "://" + uri.getHost();
-        if (uri.getPort() != -1) {
-            origin += ":" + uri.getPort();
-        }
+        String json = restClient.get()
+                .uri(url)
+                .header("Accept", "application/json")
+                .header("Authorization", "Bearer " + apiKey)
+                .retrieve()
+                .body(String.class);
 
-        do {
-            String url = UrlUtil.join(origin, MODELS_PATH)
-                    + "?page_no=" + pageNo
-                    + "&page_size=" + PAGE_SIZE
-                    + "&version=v1.0"
-                    + "&model_source=base";
-
-            String json = restClient.get()
-                    .uri(url)
-                    .header("Accept", "application/json")
-                    .header("Authorization", "Bearer " + apiKey)
-                    .retrieve()
-                    .body(String.class);
-
-            PageResult pageResult = parsePage(json);
-            allModels.addAll(pageResult.models());
-            total = pageResult.total();
-            pageNo++;
-        } while (total >= pageNo * PAGE_SIZE);
-        allModels.sort(Comparator.comparing(ModelVO::getCode));
-        allModels = allModels.reversed();
-        return allModels;
+        return parseResponse(json);
     }
 
     /**
-     * 解析单页返回数据，返回模型列表和总数
+     * 解析 OpenAI 兼容格式的 {object, data[]} 响应
      */
-    private PageResult parsePage(String json) {
+    private List<ModelVO> parseResponse(String json) {
         try {
             Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {
             });
@@ -110,52 +75,31 @@ public class DashScopeModelFetcher implements RemoteModelFetcher {
                 throw new BadRequestException("远程拉取失败: " + message);
             }
 
-            Object outputObj = root.get("output");
-            if (!(outputObj instanceof Map<?, ?>)) {
-                throw new BadRequestException("远程返回数据格式异常: output 字段缺失或非对象");
+            Object dataObj = root.get("data");
+            if (!(dataObj instanceof List<?>)) {
+                throw new BadRequestException("远程返回数据格式异常: data 字段缺失或非数组");
             }
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> output = (Map<String, Object>) outputObj;
+            List<Map<String, Object>> dataList = (List<Map<String, Object>>) dataObj;
+            dataList.sort((o1, o2) -> Long.valueOf(o2.get("created").toString()).compareTo(Long.valueOf(o1.get("created").toString())));
+            List<ModelVO> result = new ArrayList<>();
 
-            // 解析 total
-            int total = 0;
-            Object totalObj = output.get("total");
-            if (totalObj instanceof Number) {
-                total = ((Number) totalObj).intValue();
+            for (Map<String, Object> item : dataList) {
+                ModelVO vo = new ModelVO();
+                Object idObj = item.get("id");
+                vo.setCode(idObj != null ? idObj.toString() : null);
+                Object objectObj = item.get("object");
+                vo.setObject(objectObj != null ? objectObj.toString() : null);
+                Object ownedByObj = item.get("owned_by");
+                vo.setOwnedBy(ObjectUtils.isEmpty(ownedByObj) ? PROVIDER_CODE : ownedByObj.toString());
+                result.add(vo);
             }
-
-            // 解析 models
-            Object modelsObj = output.get("models");
-            List<ModelVO> models = new ArrayList<>();
-            if (modelsObj instanceof List<?>) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> modelsList = (List<Map<String, Object>>) modelsObj;
-                for (Map<String, Object> item : modelsList) {
-                    ModelVO vo = new ModelVO();
-                    Object nameObj = item.get("model_name");
-                    String modelName = nameObj != null ? nameObj.toString() : null;
-                    if (modelName == null) {
-                        continue;
-                    }
-                    vo.setCode(modelName);
-                    vo.setObject("model");
-                    vo.setOwnedBy(PROVIDER_CODE);
-                    models.add(vo);
-                }
-            }
-
-            return new PageResult(models, total);
+            return result;
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("解析百炼远程模型列表返回数据失败: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * 单页解析结果
-     */
-    private record PageResult(List<ModelVO> models, int total) {
     }
 }
