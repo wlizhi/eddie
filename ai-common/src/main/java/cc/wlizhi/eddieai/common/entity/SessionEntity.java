@@ -36,6 +36,11 @@ public class SessionEntity {
     private Integer messageCount;
 
     /**
+     * 累计 token 数（冗余字段，每次发消息时同步更新）
+     */
+    private Integer totalTokens;
+
+    /**
      * 创建时间
      */
     private String createdAt;

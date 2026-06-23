@@ -7,6 +7,7 @@ import cc.wlizhi.eddieai.common.dao.MessageDao;
 import cc.wlizhi.eddieai.common.dao.SessionDao;
 import cc.wlizhi.eddieai.common.entity.MessageEntity;
 import cc.wlizhi.eddieai.common.entity.SessionEntity;
+import cc.wlizhi.eddieai.common.util.PriceCalculator;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
@@ -69,24 +70,31 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         assistantMsg.setThinking(ctx.getFullThinking() != null ? ctx.getFullThinking().toString() : "");
 
         ChatResponse lastResponse = ctx.getLastResponse();
+        int promptTokens = 0, completionTokens = 0, totalTokens = 0;
         if (lastResponse != null) {
             ChatResponseMetadata metadata = lastResponse.getMetadata();
             Usage usage = metadata.getUsage();
-            usage.getPromptTokens();
-            assistantMsg.setPromptTokens(usage.getPromptTokens());
-            usage.getCompletionTokens();
-            assistantMsg.setCompletionTokens(usage.getCompletionTokens());
-            usage.getTotalTokens();
-            assistantMsg.setTotalTokens(usage.getTotalTokens());
+            promptTokens = usage.getPromptTokens();
+            completionTokens = usage.getCompletionTokens();
+            totalTokens = usage.getTotalTokens();
+            assistantMsg.setPromptTokens(promptTokens);
+            assistantMsg.setCompletionTokens(completionTokens);
+            assistantMsg.setTotalTokens(totalTokens);
         } else {
             assistantMsg.setPromptTokens(0);
             assistantMsg.setCompletionTokens(0);
             assistantMsg.setTotalTokens(0);
         }
-        assistantMsg.setPriceEstimate(0.0);
+        // 预估费用（BigDecimal 精确计算，每百万 token 单价）
+        double estimate = 0.0;
+        if (ctx.getInputPrice() != null && promptTokens > 0) {
+            estimate = PriceCalculator.calculate(promptTokens, completionTokens,
+                    ctx.getInputPrice(), ctx.getOutputPrice());
+        }
+        assistantMsg.setPriceEstimate(estimate);
         messageDao.insert(assistantMsg);
 
-        // 更新会话活跃时间并同步消息数量（合并为一条 SQL）
-        sessionDao.touchAndIncrementMessageCount(sessionId, 2);
+        // 更新会话活跃时间并同步消息数量、累计 token 数（合并为一条 SQL）
+        sessionDao.touchAndIncrementMessageCount(sessionId, 2, totalTokens);
     }
 }

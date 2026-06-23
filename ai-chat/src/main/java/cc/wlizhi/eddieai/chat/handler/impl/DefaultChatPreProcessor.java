@@ -18,8 +18,14 @@ import cc.wlizhi.eddieai.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddieai.common.entity.SessionEntity;
 import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.memory.context.ModelProviderContext;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
+
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class DefaultChatPreProcessor implements ChatPreProcessor {
@@ -32,6 +38,8 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
 
     @Resource
     private SessionDao sessionDao;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void process(ChatContext ctx) {
@@ -60,5 +68,29 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
 
         // 3. 基础字段
         ctx.setUserMessage(request.getMessage());
+
+        // 4. 解析模型价格（每百万 token 单价）：从 provider.models JSON 中匹配当前 modelId，提取 input_price / output_price / currency
+        String modelsJson = provider.getModels();
+        if (!ObjectUtils.isEmpty(modelsJson) && !"[]".equals(modelsJson)) {
+            try {
+                List<Map<String, Object>> modelList = objectMapper.readValue(
+                        modelsJson, new TypeReference<List<Map<String, Object>>>() {
+                        });
+                modelList.stream()
+                        .filter(m -> request.getModelId().equals(m.get("id")))
+                        .findFirst()
+                        .ifPresent(m -> {
+                            Object inputPrice = m.get("input_price");
+                            Object outputPrice = m.get("output_price");
+                            if (inputPrice instanceof Number) ctx.setInputPrice(((Number) inputPrice).doubleValue());
+                            if (outputPrice instanceof Number) ctx.setOutputPrice(((Number) outputPrice).doubleValue());
+                            Object currency = m.get("currency");
+                            if (currency instanceof String) ctx.setCurrency((String) currency);
+                        });
+            } catch (Exception e) {
+                // 价格解析失败不影响主流程，仅跳过费用计算
+                // log 由调用方统一处理
+            }
+        }
     }
 }

@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS ai_session
     title         TEXT    NOT NULL DEFAULT '', -- AI 生成的会话标题（默认为空，首轮对话后生成）
     pinned        INTEGER NOT NULL DEFAULT 0,  -- 0=普通, 1=置顶
     message_count INTEGER NOT NULL DEFAULT 0,  -- 消息数量冗余字段，每次发消息时同步更新
+    total_tokens INTEGER NOT NULL DEFAULT 0    -- 累计 token 数冗余字段
     created_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
     updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );

@@ -39,7 +39,7 @@ public class SessionDao {
      * 查询某助手下的会话列表（置顶 → 更新时间倒序）
      */
     public List<SessionEntity> findByAssistantId(Long assistantId) {
-        String sql = "SELECT id, assistant_id, title, pinned, message_count, created_at, updated_at " +
+        String sql = "SELECT id, assistant_id, title, pinned, message_count, total_tokens, total_cost, created_at, updated_at " +
                 "FROM ai_session WHERE assistant_id = ? ORDER BY pinned DESC, updated_at DESC";
         return jdbcTemplate.query(sql, sessionRowMapper, assistantId);
     }
@@ -54,7 +54,7 @@ public class SessionDao {
      */
     public List<SessionEntity> findByAssistantIdPaged(Long assistantId, String title, int offset, int limit) {
         StringBuilder sql = new StringBuilder(
-                "SELECT id, assistant_id, title, pinned, message_count, created_at, updated_at " +
+                "SELECT id, assistant_id, title, pinned, message_count, total_tokens, total_cost, created_at, updated_at " +
                         "FROM ai_session WHERE assistant_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(assistantId);
@@ -92,7 +92,7 @@ public class SessionDao {
      * 根据 ID 查询会话
      */
     public SessionEntity findById(Long id) {
-        String sql = "SELECT id, assistant_id, title, pinned, created_at, updated_at FROM ai_session WHERE id = ?";
+        String sql = "SELECT id, assistant_id, title, pinned, message_count, total_tokens, total_cost, created_at, updated_at FROM ai_session WHERE id = ?";
         List<SessionEntity> results = jdbcTemplate.query(sql, sessionSimpleRowMapper, id);
         return results.isEmpty() ? null : results.get(0);
     }
@@ -125,15 +125,26 @@ public class SessionDao {
     }
 
     /**
-     * 更新活跃时间并同步消息数量（合并为一条 SQL）
+     * 更新活跃时间并同步消息数量和累计 token 数（合并为一条 SQL）
      *
-     * @param id    会话 ID
-     * @param delta 消息数量增量（正数为增加，负数为减少）
+     * @param id         会话 ID
+     * @param msgDelta   消息数量增量（正数为增加，负数为减少）
+     * @param tokenDelta 累计 token 增量
      */
-    public void touchAndIncrementMessageCount(Long id, int delta) {
+    public void touchAndIncrementMessageCount(Long id, int msgDelta, int tokenDelta) {
         jdbcTemplate.update(
                 "UPDATE ai_session SET updated_at = datetime('now', 'localtime'), " +
-                        "message_count = message_count + ? WHERE id = ?", delta, id);
+                        "message_count = message_count + ?, " +
+                        "total_tokens = total_tokens + ? WHERE id = ?",
+                msgDelta, tokenDelta, id);
+    }
+
+    /**
+     * @deprecated 保留兼容，新代码请使用 {@link #touchAndIncrementMessageCount(Long, int, int)}
+     */
+    @Deprecated
+    public void touchAndIncrementMessageCount(Long id, int delta) {
+        touchAndIncrementMessageCount(id, delta, 0);
     }
 
     /**
@@ -157,6 +168,7 @@ public class SessionDao {
         entity.setTitle(rs.getString("title"));
         entity.setPinned(rs.getInt("pinned"));
         entity.setMessageCount(rs.getInt("message_count"));
+        entity.setTotalTokens(rs.getInt("total_tokens"));
         entity.setCreatedAt(rs.getString("created_at"));
         entity.setUpdatedAt(rs.getString("updated_at"));
         return entity;
@@ -168,6 +180,8 @@ public class SessionDao {
         entity.setAssistantId(rs.getLong("assistant_id"));
         entity.setTitle(rs.getString("title"));
         entity.setPinned(rs.getInt("pinned"));
+        entity.setMessageCount(rs.getInt("message_count"));
+        entity.setTotalTokens(rs.getInt("total_tokens"));
         entity.setCreatedAt(rs.getString("created_at"));
         entity.setUpdatedAt(rs.getString("updated_at"));
         return entity;

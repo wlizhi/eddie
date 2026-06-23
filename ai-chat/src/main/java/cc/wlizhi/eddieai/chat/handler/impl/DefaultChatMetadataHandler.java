@@ -8,6 +8,7 @@ package cc.wlizhi.eddieai.chat.handler.impl;
 
 import cc.wlizhi.eddieai.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddieai.chat.handler.ChatMetadataHandler;
+import cc.wlizhi.eddieai.common.util.PriceCalculator;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -35,6 +36,15 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
             if (usage.getPromptTokens() != null) data.put("promptTokens", usage.getPromptTokens());
             if (usage.getCompletionTokens() != null) data.put("completionTokens", usage.getCompletionTokens());
             if (usage.getTotalTokens() != null) data.put("totalTokens", usage.getTotalTokens());
+
+            // 预估费用（单价为每百万 token，BigDecimal 精确计算）
+            if (ctx.getInputPrice() != null && usage.getPromptTokens() != null) {
+                double cost = PriceCalculator.calculate(
+                        usage.getPromptTokens(), usage.getCompletionTokens(),
+                        ctx.getInputPrice(), ctx.getOutputPrice());
+                data.put("costEstimate", cost);
+                data.put("currency", ctx.getCurrency());
+            }
         }
 
         return data;

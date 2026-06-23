@@ -36,6 +36,11 @@ public class SessionVO {
     private Integer messageCount;
 
     /**
+     * 累计 token 数
+     */
+    private Integer totalTokens;
+
+    /**
      * 最后活跃时间
      */
     private String updatedAt;

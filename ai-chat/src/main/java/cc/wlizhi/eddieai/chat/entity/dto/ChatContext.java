@@ -66,6 +66,23 @@ public class ChatContext {
      */
     private ChatClient chatClient;
 
+    // ==================== 阶段二.五：模型价格（预处理解析） ====================
+
+    /**
+     * 当前模型的 input 单价（每百万 token）
+     */
+    private Double inputPrice;
+
+    /**
+     * 当前模型的 output 单价（每百万 token）
+     */
+    private Double outputPrice;
+
+    /**
+     * 货币符号，如 ¥ / $
+     */
+    private String currency;
+
     // ==================== 阶段四：执行 & 响应 ====================
 
     /**
