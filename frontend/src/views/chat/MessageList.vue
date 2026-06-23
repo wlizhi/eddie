@@ -17,7 +17,7 @@
 import {nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
-import {ChevronDown, Loader} from '@lucide/vue'
+import {ChevronDown, Copy, Loader} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
@@ -70,6 +70,31 @@ onMounted(() => {
 /** 切换 thinking 折叠状态 */
 function toggleThinking(msgId: string) {
   thinkingExpanded.value[msgId] = !thinkingExpanded.value[msgId]
+}
+
+/** 当前正在显示"已复制"提示的消息 ID */
+const copiedMessageId = ref<string | null>(null)
+
+/** 复制消息内容到剪贴板（去除 SSE 协议引入的首部换行） */
+function copyContent(msgId: string, content: string) {
+  navigator.clipboard.writeText(content.replace(/^\n+/, '')).then(() => {
+    copiedMessageId.value = msgId
+    setTimeout(() => {
+      if (copiedMessageId.value === msgId) {
+        copiedMessageId.value = null
+      }
+    }, 2000)
+  })
+}
+
+/** 币种代码 → 符号映射 */
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', CNY: '¥', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩', HKD: 'HK$', TWD: 'NT$', SGD: 'S$',
+}
+
+function currencySymbol(currency?: string | null): string {
+  if (!currency) return '$'
+  return CURRENCY_SYMBOLS[currency] ?? currency + ' '
 }
 
 /**
@@ -165,6 +190,18 @@ function onScroll() {
               class="message-content markdown-body"
               v-html="renderMd(msg.content)"
           ></div>
+          <!-- 复制按钮 -->
+          <button
+              v-if="msg.content"
+              class="copy-btn"
+              :class="msg.role === 'user' ? 'copy-btn-user' : 'copy-btn-assistant'"
+              :data-copied="copiedMessageId === msg.id || undefined"
+              @click="copyContent(msg.id, msg.content)"
+              :title="copiedMessageId === msg.id ? '已复制' : '复制消息'"
+          >
+            <Copy v-if="copiedMessageId !== msg.id" :size="13" :stroke-width="2"/>
+            <span v-else class="copied-text">已复制</span>
+          </button>
         </div>
 
         <!-- 元数据（仅 assistant） -->
@@ -193,6 +230,15 @@ function onScroll() {
             <span class="meta-tokens">
               输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }}
             </span>
+          </template>
+          <!-- 预估费用 -->
+          <template v-if="msg.metadata.costEstimate != null">
+            <span
+                v-if="msg.metadata.timestamp || msg.metadata.durationMs != null || msg.metadata.totalTokens != null || msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
+                class="meta-divider">|</span>
+            <span class="meta-cost">≈{{ currencySymbol(msg.metadata.currency) }}{{
+                msg.metadata.costEstimate.toFixed(6)
+              }}</span>
           </template>
         </div>
       </div>

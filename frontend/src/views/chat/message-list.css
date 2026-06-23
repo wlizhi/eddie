@@ -82,6 +82,7 @@
 
 /* ===== 气泡 ===== */
 .message-bubble {
+    position: relative;
     padding: 6px 10px;
     border-radius: 10px;
     line-height: 1.55;
@@ -264,4 +265,63 @@
     color: #d1d5db;
     padding: 4px 0;
     user-select: none;
+}
+
+/* ===== 复制按钮 ===== */
+.copy-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.copy-btn-user {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.copy-btn-user:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+
+.copy-btn-assistant {
+    background: transparent;
+    color: #b0b7c3;
+}
+
+.copy-btn-assistant:hover {
+    background: #e8eaed;
+    color: #6b7280;
+}
+
+.message-bubble:hover .copy-btn {
+    opacity: 1;
+}
+
+.copy-btn[data-copied] {
+    opacity: 1;
+    width: auto;
+    padding: 0 5px;
+}
+
+.copied-text {
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* ===== 预估费用 ===== */
+.meta-cost {
+    color: #9ca3af;
 }

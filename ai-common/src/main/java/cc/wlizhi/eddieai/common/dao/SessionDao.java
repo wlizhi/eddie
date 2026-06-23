@@ -39,7 +39,7 @@ public class SessionDao {
      * 查询某助手下的会话列表（置顶 → 更新时间倒序）
      */
     public List<SessionEntity> findByAssistantId(Long assistantId) {
-        String sql = "SELECT id, assistant_id, title, pinned, message_count, total_tokens, total_cost, created_at, updated_at " +
+        String sql = "SELECT id, assistant_id, title, pinned, message_count, total_tokens, created_at, updated_at " +
                 "FROM ai_session WHERE assistant_id = ? ORDER BY pinned DESC, updated_at DESC";
         return jdbcTemplate.query(sql, sessionRowMapper, assistantId);
     }
@@ -54,7 +54,7 @@ public class SessionDao {
      */
     public List<SessionEntity> findByAssistantIdPaged(Long assistantId, String title, int offset, int limit) {
         StringBuilder sql = new StringBuilder(
-                "SELECT id, assistant_id, title, pinned, message_count, total_tokens, total_cost, created_at, updated_at " +
+                "SELECT id, assistant_id, title, pinned, message_count, total_tokens, created_at, updated_at " +
                         "FROM ai_session WHERE assistant_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(assistantId);
@@ -92,7 +92,7 @@ public class SessionDao {
      * 根据 ID 查询会话
      */
     public SessionEntity findById(Long id) {
-        String sql = "SELECT id, assistant_id, title, pinned, message_count, total_tokens, total_cost, created_at, updated_at FROM ai_session WHERE id = ?";
+        String sql = "SELECT id, assistant_id, title, pinned, message_count, total_tokens, created_at, updated_at FROM ai_session WHERE id = ?";
         List<SessionEntity> results = jdbcTemplate.query(sql, sessionSimpleRowMapper, id);
         return results.isEmpty() ? null : results.get(0);
     }

@@ -11,7 +11,7 @@ import java.math.RoundingMode;
  */
 public final class PriceCalculator {
 
-    private static final BigDecimal MILLION = new BigDecimal("1_000_000");
+    private static final BigDecimal MILLION = new BigDecimal(1_000_000);
     private static final int SCALE = 6;
 
     private PriceCalculator() {
