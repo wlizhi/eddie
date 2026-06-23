@@ -82,7 +82,6 @@ public class DashScopeModelFetcher implements RemoteModelFetcher {
 
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> dataList = (List<Map<String, Object>>) dataObj;
-            dataList.sort((o1, o2) -> Long.valueOf(o2.get("created").toString()).compareTo(Long.valueOf(o1.get("created").toString())));
             List<ModelVO> result = new ArrayList<>();
 
             for (Map<String, Object> item : dataList) {
@@ -93,6 +92,10 @@ public class DashScopeModelFetcher implements RemoteModelFetcher {
                 vo.setObject(objectObj != null ? objectObj.toString() : null);
                 Object ownedByObj = item.get("owned_by");
                 vo.setOwnedBy(ObjectUtils.isEmpty(ownedByObj) ? PROVIDER_CODE : ownedByObj.toString());
+                Object createdObj = item.get("created");
+                if (createdObj instanceof Number) {
+                    vo.setCreated(((Number) createdObj).longValue());
+                }
                 result.add(vo);
             }
             return result;

@@ -19,6 +19,11 @@ public class ModelVO {
     private String ownedBy;
 
     /**
+     * 对应 JSON 中的 created 字段（Unix 时间戳）
+     */
+    private Long created;
+
+    /**
      * 模型能力标签列表，如 [vision, function_calling, reasoning]
      */
     private List<ModelCapability> capabilities;
@@ -60,6 +65,14 @@ public class ModelVO {
 
     public void setOwnedBy(String ownedBy) {
         this.ownedBy = ownedBy;
+    }
+
+    public Long getCreated() {
+        return created;
+    }
+
+    public void setCreated(Long created) {
+        this.created = created;
     }
 
     public List<ModelCapability> getCapabilities() {

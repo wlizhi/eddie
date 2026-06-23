@@ -81,6 +81,10 @@ public class DeepSeekModelFetcher implements RemoteModelFetcher {
                 vo.setObject(objectObj != null ? objectObj.toString() : null);
                 Object ownedByObj = item.get("owned_by");
                 vo.setOwnedBy(ownedByObj != null ? ownedByObj.toString() : null);
+                Object createdObj = item.get("created");
+                if (createdObj instanceof Number) {
+                    vo.setCreated(((Number) createdObj).longValue());
+                }
                 result.add(vo);
             }
             return result;

@@ -4,6 +4,7 @@ import cc.wlizhi.eddieai.common.exception.BadRequestException;
 import cc.wlizhi.eddieai.settings.entity.response.ModelVO;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,11 @@ public class RemoteModelFetcherRouter {
         if (fetcher == null) {
             throw new BadRequestException("暂不支持远程拉取该服务商的模型列表: " + providerCode);
         }
-        return fetcher.fetchModels(baseUrl, apiKey);
+        List<ModelVO> models = fetcher.fetchModels(baseUrl, apiKey);
+        // 统一按创建时间倒序排列，最新在前；created 为 null 的排最后
+        models.sort(Comparator.nullsLast(
+                Comparator.comparingLong(ModelVO::getCreated).reversed()
+        ));
+        return models;
     }
 }
