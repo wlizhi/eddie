@@ -1,16 +1,17 @@
 package cc.wlizhi.eddie.app.config;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -41,14 +42,18 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
-@DependsOn("dataSourceScriptDatabaseInitializer")
-public class DatabaseInitExecutor {
+public class DatabaseInitExecutor implements CommandLineRunner {
 
     private static final String VERSION_KEY = "DB_INIT_VERSION";
-    private static final String INIT_DIR = "classpath:db/init/*.sql";
 
-    @jakarta.annotation.Resource
+    @Resource
     private JdbcTemplate jdbcTemplate;
+
+    @Resource
+    private ResourceLoader resourceLoader;
+
+    @Resource
+    private DatabaseInitProperties databaseInitProperties;
 
     @PostConstruct
     public void init() {
@@ -143,40 +148,30 @@ public class DatabaseInitExecutor {
         }
     }
 
-    /**
-     * 扫描 {@code classpath:db/init/} 下所有 {@code .sql} 文件，
-     * 按文件名解析版本号，返回 {@code TreeMap<版本号, SQL内容>}。
-     */
     private Map<Integer, String> scanVersionedSqlFiles() {
         Map<Integer, String> result = new TreeMap<>();
-        try {
-            PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-            Resource[] resources = resolver.getResources(INIT_DIR);
-
-            for (Resource resource : resources) {
-                String filename = resource.getFilename();
-                if (filename == null) {
-                    continue;
-                }
-
-                int version = parseVersionFromFilename(filename);
-                if (version < 0) {
-                    log.debug("跳过不匹配的 SQL 文件: {}", filename);
-                    continue;
-                }
-
-                try (var reader = new BufferedReader(
-                        new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
-                    String sql = reader.lines().collect(Collectors.joining("\n")).trim();
-                    if (sql.isEmpty()) {
-                        log.warn("初始化脚本 v{} 内容为空，跳过", version);
-                        continue;
-                    }
-                    result.put(version, sql);
-                }
+        List<String> initScripts = databaseInitProperties.getInitScripts();
+        for (String scriptPath : initScripts) {
+            String filename = scriptPath.substring(scriptPath.lastIndexOf('/') + 1);
+            int version = parseVersionFromFilename(filename);
+            if (version < 0) {
+                log.debug("跳过不匹配的 SQL 文件: {}", filename);
+                continue;
             }
-        } catch (Exception e) {
-            log.error("扫描初始化 SQL 文件失败", e);
+
+            org.springframework.core.io.Resource resource = resourceLoader.getResource("classpath:" + scriptPath);
+
+            try (var reader = new BufferedReader(
+                    new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
+                String sql = reader.lines().collect(Collectors.joining("\n")).trim();
+                if (sql.isEmpty()) {
+                    log.warn("初始化脚本 v{} 内容为空，跳过", version);
+                    continue;
+                }
+                result.put(version, sql);
+            } catch (Exception e) {
+                log.error("加载初始化脚本 {} 失败: {}", scriptPath, e.getMessage());
+            }
         }
         return result;
     }
@@ -223,5 +218,10 @@ public class DatabaseInitExecutor {
         jdbcTemplate.update(
                 "UPDATE global_config SET config_val = ?, updated_at = datetime('now', 'localtime') WHERE config_key = ?",
                 String.valueOf(version), VERSION_KEY);
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+
     }
 }

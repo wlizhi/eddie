@@ -21,3 +21,6 @@ spring:
 # 数据目录（SQLite 数据库、用户上传文件等）
 eddie:
   data-dir: ${user.home}/.eddie
+  db:
+    init-scripts:
+      - init/model_provider_init_1.sql

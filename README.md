@@ -21,17 +21,17 @@
 依赖方向自上而下，下层不依赖上层。
 
 ```
-ai-common（零依赖，被所有模块依赖）
+ai-common
     ↑           ↑            ↑
-ai-role   ai-settings   ai-memory（独立模块，自查询 DB）
+ai-role   ai-settings   ai-memory
     ↑           ↑            ↑
     └─────┬─────┘            │
           │                  │
-     ai-chat  ←──────── ai-memory（异步处理 memoryService.processAsync()）
+     ai-chat  ←──────── ai-memory
           ↑
-     ai-agent（依赖 ai-chat）
+     ai-agent
           ↑
-     ai-app（依赖所有模块，唯一启动入口）
+     ai-app
 ```
 
 ## 技术栈
