@@ -103,7 +103,7 @@ export const naiveThemeOverrides = computed(() => {
             actionTextColor: accentDefault,
         },
 
-        // ===== Modal 模态框（AssistantDialog 使用）=====
+        // ===== Modal 模态框 =====
         Modal: {
             color: bgPrimary,
             textColor: textPrimary,

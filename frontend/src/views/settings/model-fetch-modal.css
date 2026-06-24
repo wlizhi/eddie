@@ -1,0 +1,284 @@
+/* ===== NModal 内容区域 ===== */
+.fetch-modal-body {
+    padding: 10px 10px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.fetch-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* 加载状态 */
+.fetch-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 48px 24px;
+    font-size: 14px;
+    color: var(--text-quaternary);
+}
+
+.fetch-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-default);
+    border-top-color: var(--accent-default);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 错误提示 */
+.fetch-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px 24px;
+    font-size: 13px;
+    color: var(--danger-default);
+}
+
+/* 搜索栏 + 统计信息（同一行） */
+.fetch-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.fetch-search {
+    position: relative;
+    flex: 0 1 260px;
+    min-width: 0;
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    height: 32px;
+    padding: 0 10px 0 32px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.12s, background 0.12s;
+}
+
+.search-input:focus {
+    border-color: var(--accent-default);
+    background: var(--bg-primary);
+}
+
+.search-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* 统计 */
+.fetch-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.fetch-existing-count {
+    color: var(--success-default);
+    font-weight: 500;
+}
+
+/* 列表区域 */
+.fetch-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+}
+
+.fetch-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-lighter);
+    gap: 12px;
+}
+
+.fetch-row:last-child {
+    border-bottom: none;
+}
+
+.fetch-row.exists {
+    background: var(--accent-light-bg);
+}
+
+/* 单元格 */
+.fetch-cell {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fetch-cell.code {
+    font-family: Monaco, 'Fira Code', monospace;
+    flex: 1;
+    min-width: 0;
+}
+
+.fetch-cell.owned-by {
+    width: 100px;
+    flex-shrink: 0;
+    text-align: right;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.fetch-empty {
+    padding: 32px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-tertiary);
+}
+
+/* 能力标签（与 ModelProviderDetail 样式一致） */
+.model-capabilities {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.cap-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.cap-tag svg {
+    flex-shrink: 0;
+}
+
+.cap-tag.vision {
+    background: var(--tag-vision-bg);
+    color: var(--tag-vision-text);
+}
+
+.cap-tag.web_search {
+    background: var(--tag-web-bg);
+    color: var(--tag-web-text);
+}
+
+.cap-tag.reasoning {
+    background: var(--tag-reasoning-bg);
+    color: var(--tag-reasoning-text);
+}
+
+.cap-tag.function_calling {
+    background: var(--tag-fc-bg);
+    color: var(--tag-fc-text);
+}
+
+.cap-tag.rerank {
+    background: var(--tag-rerank-bg);
+    color: var(--tag-rerank-text);
+}
+
+.cap-tag.embedding {
+    background: var(--tag-embedding-bg);
+    color: var(--tag-embedding-text);
+}
+
+/* 操作按钮 */
+.fetch-action-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.fetch-action-btn.btn-add {
+    background: var(--accent-light-bg);
+    color: var(--accent-default);
+}
+
+.fetch-action-btn.btn-add:hover:not(:disabled) {
+    background: var(--accent-default);
+    color: var(--text-inverse);
+}
+
+.fetch-action-btn.btn-remove {
+    background: var(--danger-light-bg);
+    color: var(--danger-default);
+}
+
+.fetch-action-btn.btn-remove:hover:not(:disabled) {
+    background: var(--danger-default);
+    color: var(--text-inverse);
+}
+
+.fetch-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-spin {
+    animation: spin 0.7s linear infinite;
+}
+
+/* ===== footer 取消按钮 ===== */
+.btn-cancel {
+    height: 32px;
+    padding: 0 16px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    font-size: 13px;
+    color: var(--text-quaternary);
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s;
+}
+
+.btn-cancel:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}

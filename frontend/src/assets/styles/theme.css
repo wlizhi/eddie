@@ -108,28 +108,18 @@ html[data-theme] * {
     box-shadow 0.25s ease;
 }
 
-/* ===== 弹窗过渡动画（全局统一） ===== */
+/* ===== Naive UI NModal 过渡动画覆写（源码硬编码 0.25s） ===== */
 
-/* --- Naive UI NModal 覆写：默认 0.3s → 0.1s --- */
-.n-modal-motion-enter-active,
-.n-modal-motion-leave-active {
+/* 弹窗主体：fade + scale */
+.fade-in-scale-up-transition-enter-active,
+.fade-in-scale-up-transition-leave-active {
     transition-duration: 0.1s !important;
 }
 
-.n-modal-mask {
+/* 遮罩层：fade */
+.fade-in-transition-enter-active,
+.fade-in-transition-leave-active {
     transition-duration: 0.1s !important;
-}
-
-/* --- 自定义弹窗过渡（配合 Vue <Transition name="modal-fade">） --- */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-    transition: opacity 0.1s ease, transform 0.1s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-    opacity: 0;
-    transform: scale(0.97);
 }
 
 /* 为 html 设置基准，所有 rem 基于此 */
@@ -145,4 +135,9 @@ body {
    由 JS 在 body 上叠加多层背景实现 */
 .app-decoration-layer {
     display: none;
+}
+
+.n-card > .n-card-header {
+    --n-padding-top: 10px;
+    --n-padding-bottom: 10px;
 }

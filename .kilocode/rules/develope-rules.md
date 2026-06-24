@@ -1,13 +1,8 @@
 # develope-rules.md
 
-这是一些通用编码规范，其中 frontend 模块是前端代码，不适用此规范。
+此项目后端只有一个启动包 ai-app, 其他子模块都是按不同业务拆分的。
 
-
-## 代码开发规范
-
-此项目只有一个启动包 ai-app, 其他子模块都是按不同业务拆分的。
-
-### 模块说明
+## 模块说明
 
 - ai-app 启动聚合模块：全局配置、启动类 → cc.wlizhi.eddieai.app
 - ai-common 通用模块：通用实体类、常量、枚举、工具类、全量Dao操作类 → cc.wlizhi.eddieai.common
@@ -18,7 +13,7 @@
 - ai-role 角色模块：助手、智能体角色自定义 → cc.wlizhi.eddieai.role
 - frontend 前端代码（Vue.js）
 
-### 依赖关系（自上而下依赖）
+## 依赖关系（自上而下依赖）
 
 ai-common（被所有模块依赖）
 ↑ ai-role / ai-settings / ai-memory（独立模块）
@@ -26,7 +21,7 @@ ai-common（被所有模块依赖）
 ↑ ai-agent（依赖 ai-chat）
 ↑ ai-app（聚合所有模块，唯一启动入口）
 
-### 技术栈
+## 技术栈
 
 - Java 版本：25（GraalVM Native Image 打包）
 - Spring Boot 4.1.0 + Spring AI 2.0.0
@@ -39,7 +34,7 @@ ai-common（被所有模块依赖）
 - 打包方式：GraalVM Native Image（profile: native，-Os 优化）
 - 构建工具：Maven 多模块
 
-### 项目结构
+## 项目结构
 
 - 配置文件：ai-app/src/main/resources/application.yml
 - 数据库建表脚本：ai-app/src/main/resources/schema.sql
@@ -48,7 +43,9 @@ ai-common（被所有模块依赖）
 - 启动端口：11520
 - 扫描基础包：cc.wlizhi.eddie（Spring Boot scanBasePackages）
 
-### 编码规范
+## 编码规范
+
+后端：
 
 - Java代码禁止使用反射，兼容AOT。
 - 接口包名规范：`controller` -> 接口定义， `service` -> 业务逻辑接口， `service/impl` -> 业务逻辑实现，`dao` ->
@@ -58,7 +55,14 @@ ai-common（被所有模块依赖）
 - 将数据更新到数据库时，时间字段注意时区问题。
 - 查询语句禁止表关联，仅允许单表查询。
 
-### 路径规则
+前端：
+
+- UI 组件库默认使用 Naive UI，仅当此组件库没有提供对应的组件时才考虑其他方案
+- 任何关于 CSS 类名或其他对原生组件 UI 扩展的操作，必须从官方文档或github源码中查找核实，禁止编造不存在的类名。
+- 编写页面时要考虑哪些是需要全局通用的，而不是每个页面把通用逻辑都单独实现一遍。例如：样式、颜色、主题色、圆角等样式，应该从全局主题中获取，诸如此类都是如此。
+- 当发现页面内容过多或一开始就预测到当前页面内容会很多时，应当提前规划内容拆分，比如js和css分离。超过500行即视为内容过大。
+
+## 路径规则
 
 - 严禁使用 ../../ 等相对路径
 - 严禁使用 file:/ 开头的 URI 格式路径

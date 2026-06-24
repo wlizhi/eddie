@@ -1,122 +1,118 @@
 <template>
-  <Transition name="modal-fade">
-    <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
-    <div class="fetch-modal">
-      <div class="modal-header">
-        <h3>获取模型列表</h3>
-        <button class="modal-close" @click="$emit('close')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
+  <NModal
+      :show="visible"
+      preset="card"
+      title="模型列表"
+      style="max-width: 720px; width: 90%; max-height: 90vh;"
+      content-style="padding: 0; display: flex; flex-direction: column; overflow: hidden;"
+      :mask-closable="false"
+      @update:show="(v: boolean) => { if (!v) $emit('close') }"
+  >
+    <div class="fetch-modal-body">
+      <!-- 加载中 -->
+      <div v-if="loading" class="fetch-loading">
+        <span class="fetch-spinner"/>
+        正在拉取远程模型列表...
       </div>
 
-      <div class="modal-body">
-        <!-- 加载中 -->
-        <div v-if="loading" class="fetch-loading">
-          <span class="fetch-spinner"/>
-          正在拉取远程模型列表...
-        </div>
+      <!-- 错误提示 -->
+      <div v-else-if="error" class="fetch-error">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ error }}
+      </div>
 
-        <!-- 错误提示 -->
-        <div v-else-if="error" class="fetch-error">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          {{ error }}
-        </div>
-
-        <!-- 模型列表 -->
-        <template v-else>
-          <!-- 搜索栏 + 统计信息（同一行） -->
-          <div class="fetch-toolbar">
-            <div class="fetch-search">
-              <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input
-                  v-model="searchQuery"
-                  class="search-input"
-                  type="text"
-                  placeholder="搜索模型 code..."
-              />
-            </div>
-            <div class="fetch-stats">
-              <span v-if="searchQuery">
-                搜索到 {{ filteredModels.length }} / 共 {{ models.length }} 个模型
-              </span>
-              <span v-else>共 {{ models.length }} 个模型</span>
-              <span v-if="existingCount > 0" class="fetch-existing-count">
-                已添加 {{ existingCount }} 个
-              </span>
-            </div>
+      <!-- 模型列表 -->
+      <template v-else>
+        <!-- 搜索栏 + 统计信息（同一行） -->
+        <div class="fetch-toolbar">
+          <div class="fetch-search">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+                v-model="searchQuery"
+                class="search-input"
+                type="text"
+                placeholder="搜索模型 code..."
+            />
           </div>
+          <div class="fetch-stats">
+            <span v-if="searchQuery">
+              搜索到 {{ filteredModels.length }} / 共 {{ models.length }} 个模型
+            </span>
+            <span v-else>共 {{ models.length }} 个模型</span>
+            <span v-if="existingCount > 0" class="fetch-existing-count">
+              已添加 {{ existingCount }} 个
+            </span>
+          </div>
+        </div>
 
-          <!-- 列表 -->
-          <div class="fetch-list" ref="listRef">
-            <div
-                v-for="m in filteredModels"
-                :key="m.code"
-                class="fetch-row"
-                :class="{ exists: isExist(m.code) }"
-            >
-              <div class="fetch-cell code">{{ m.code }}</div>
-              <div class="model-capabilities" v-if="m.capabilities?.length">
-                <span
-                    v-for="cap in m.capabilities"
-                    :key="cap"
-                    class="cap-tag"
-                    :class="cap"
-                >
-                  <span v-html="capIcon(cap, 11)"></span>
-                  {{ CAPABILITY_LABELS[cap] || cap }}
-                </span>
-              </div>
-              <div class="fetch-cell owned-by">{{ m.ownedBy || '-' }}</div>
-              <button
-                  class="fetch-action-btn"
-                  :class="isExist(m.code) ? 'btn-remove' : 'btn-add'"
-                  :disabled="busyCodes.has(m.code)"
-                  @click="toggleModel(m)"
-                  :title="isExist(m.code) ? '移除模型' : '添加模型'"
+        <!-- 列表 -->
+        <div class="fetch-list" ref="listRef">
+          <div
+              v-for="m in filteredModels"
+              :key="m.code"
+              class="fetch-row"
+              :class="{ exists: isExist(m.code) }"
+          >
+            <div class="fetch-cell code">{{ m.code }}</div>
+            <div class="model-capabilities" v-if="m.capabilities?.length">
+              <span
+                  v-for="cap in m.capabilities"
+                  :key="cap"
+                  class="cap-tag"
+                  :class="cap"
               >
-                <svg v-if="busyCodes.has(m.code)" class="btn-spin" width="14" height="14" viewBox="0 0 24 24"
-                     fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32"/>
-                </svg>
-                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line v-if="isExist(m.code)" x1="5" y1="12" x2="19" y2="12"/>
-                  <template v-else>
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                  </template>
-                </svg>
-              </button>
+                <span v-html="capIcon(cap, 11)"></span>
+                {{ CAPABILITY_LABELS[cap] || cap }}
+              </span>
             </div>
-            <div v-if="models.length === 0" class="fetch-empty">
-              远程未返回任何模型
-            </div>
+            <div class="fetch-cell owned-by">{{ m.ownedBy || '-' }}</div>
+            <button
+                class="fetch-action-btn"
+                :class="isExist(m.code) ? 'btn-remove' : 'btn-add'"
+                :disabled="busyCodes.has(m.code)"
+                @click="toggleModel(m)"
+                :title="isExist(m.code) ? '移除模型' : '添加模型'"
+            >
+              <svg v-if="busyCodes.has(m.code)" class="btn-spin" width="14" height="14" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32"/>
+              </svg>
+              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line v-if="isExist(m.code)" x1="5" y1="12" x2="19" y2="12"/>
+                <template v-else>
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </template>
+              </svg>
+            </button>
           </div>
-        </template>
-      </div>
+          <div v-if="models.length === 0" class="fetch-empty">
+            远程未返回任何模型
+          </div>
+        </div>
+      </template>
+    </div>
 
-      <div class="modal-footer">
+    <template #footer>
+      <div class="fetch-modal-footer">
         <button class="btn-cancel" @click="$emit('close')">关闭</button>
       </div>
-    </div>
-  </div>
-  </Transition>
+    </template>
+  </NModal>
 </template>
 
 <script setup lang="ts">
+import {NModal} from 'naive-ui'
 import {computed, ref, watch} from 'vue'
 import type {ModelItem} from '@/types/modelProvider'
 import {CAPABILITY_LABELS} from '@/types/modelProvider'
@@ -220,352 +216,4 @@ async function toggleModel(m: ModelItem) {
 }
 </script>
 
-<style scoped>
-/* ===== overlay + modal 容器 ===== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--bg-mask);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.fetch-modal {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  width: 720px;
-  max-width: 90vw;
-  height: 85vh;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-}
-
-/* ===== header ===== */
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border-default);
-  flex-shrink: 0;
-}
-
-.modal-header h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.modal-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-}
-
-.modal-close:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-/* ===== body ===== */
-.modal-body {
-  padding: 16px 20px;
-  overflow-y: auto;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* 加载状态 */
-.fetch-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 48px 24px;
-  font-size: 14px;
-  color: var(--text-quaternary);
-}
-
-.fetch-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--accent-default);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* 错误提示 */
-.fetch-error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 32px 24px;
-  font-size: 13px;
-  color: var(--danger-default);
-}
-
-/* 搜索栏 + 统计信息（同一行） */
-.fetch-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-
-.fetch-search {
-  position: relative;
-  flex: 0 1 260px;
-  min-width: 0;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-tertiary);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  height: 32px;
-  padding: 0 10px 0 32px;
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.12s, background 0.12s;
-}
-
-.search-input:focus {
-  border-color: var(--accent-default);
-  background: var(--bg-primary);
-}
-
-.search-input::placeholder {
-  color: var(--text-tertiary);
-}
-
-/* 统计 */
-.fetch-stats {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.fetch-existing-count {
-  color: var(--success-default);
-  font-weight: 500;
-}
-
-/* 列表区域 */
-.fetch-list {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-}
-
-.fetch-row {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-lighter);
-  gap: 12px;
-}
-
-.fetch-row:last-child {
-  border-bottom: none;
-}
-
-.fetch-row.exists {
-  background: var(--accent-light-bg);
-}
-
-/* 单元格 */
-.fetch-cell {
-  font-size: 13px;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fetch-cell.code {
-  font-family: Monaco, 'Fira Code', monospace;
-  flex: 1;
-  min-width: 0;
-}
-
-.fetch-cell.owned-by {
-  width: 100px;
-  flex-shrink: 0;
-  text-align: right;
-  color: var(--text-tertiary);
-  font-size: 12px;
-}
-
-.fetch-empty {
-  padding: 32px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-/* 能力标签（与 ModelProviderDetail 样式一致） */
-.model-capabilities {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.cap-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  line-height: 1.4;
-  font-weight: 500;
-}
-
-.cap-tag svg {
-  flex-shrink: 0;
-}
-
-.cap-tag.vision {
-  background: var(--tag-vision-bg);
-  color: var(--tag-vision-text);
-}
-
-.cap-tag.web_search {
-  background: var(--tag-web-bg);
-  color: var(--tag-web-text);
-}
-
-.cap-tag.reasoning {
-  background: var(--tag-reasoning-bg);
-  color: var(--tag-reasoning-text);
-}
-
-.cap-tag.function_calling {
-  background: var(--tag-fc-bg);
-  color: var(--tag-fc-text);
-}
-
-.cap-tag.rerank {
-  background: var(--tag-rerank-bg);
-  color: var(--tag-rerank-text);
-}
-
-.cap-tag.embedding {
-  background: var(--tag-embedding-bg);
-  color: var(--tag-embedding-text);
-}
-
-/* 操作按钮 */
-.fetch-action-btn {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-}
-
-.fetch-action-btn.btn-add {
-  background: var(--accent-light-bg);
-  color: var(--accent-default);
-}
-
-.fetch-action-btn.btn-add:hover:not(:disabled) {
-  background: var(--accent-default);
-  color: var(--text-inverse);
-}
-
-.fetch-action-btn.btn-remove {
-  background: var(--danger-light-bg);
-  color: var(--danger-default);
-}
-
-.fetch-action-btn.btn-remove:hover:not(:disabled) {
-  background: var(--danger-default);
-  color: var(--text-inverse);
-}
-
-.fetch-action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-spin {
-  animation: spin 0.7s linear infinite;
-}
-
-/* ===== footer ===== */
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 10px 20px;
-  border-top: 1px solid var(--border-default);
-  flex-shrink: 0;
-}
-
-.btn-cancel {
-  height: 32px;
-  padding: 0 16px;
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  background: var(--bg-primary);
-  font-size: 13px;
-  color: var(--text-quaternary);
-  cursor: pointer;
-  transition: border-color 0.12s, color 0.12s;
-}
-
-.btn-cancel:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-</style>
+<style src="./model-fetch-modal.css" scoped/>
