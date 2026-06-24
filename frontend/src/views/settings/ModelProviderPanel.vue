@@ -85,6 +85,7 @@ import {
 } from '@/api/modelProvider'
 import type {ModelItem, ModelProvider} from '@/types/modelProvider'
 import {normalizeCaps} from './modelCapabilities'
+import {showToast} from '@/composables/useToast'
 
 
 import ModelProviderSidebar from './ModelProviderSidebar.vue'
@@ -128,8 +129,10 @@ async function onProviderCreated() {
     if (providers.value.length > 0) {
       selectProvider(providers.value[0])
     }
+    showToast('服务商已添加')
   } catch (e) {
     console.error('重新加载服务商列表失败', e)
+    showToast('加载服务商列表失败', 'error')
   }
 }
 
@@ -190,8 +193,10 @@ async function saveModelSettings(payload: {
       return m
     })
     closeModal()
+    showToast('模型设置已保存')
   } catch (e) {
     console.error('保存模型设置失败', e)
+    showToast('保存模型设置失败', 'error')
   }
 }
 
@@ -254,8 +259,10 @@ async function toggleProviderEnabled(p: ModelProvider) {
     if (activeProvider.value?.id === p.id) {
       activeProvider.value.enabled = newEnabled
     }
+    showToast(newEnabled ? '服务商已启用' : '服务商已禁用')
   } catch (e) {
     console.error('切换启用状态失败', e)
+    showToast('切换状态失败', 'error')
   }
 }
 
@@ -280,8 +287,10 @@ async function removeModel(code: string) {
   try {
     await batchRemoveModels(activeProvider.value.id, [code])
     activeProvider.value.models = currentModels.value.filter(m => m.code !== code)
+    showToast('模型已移除')
   } catch (e) {
     console.error('移除模型失败', e)
+    showToast('移除模型失败', 'error')
   }
 }
 
@@ -308,8 +317,10 @@ async function doDeleteProvider() {
     } else {
       activeProvider.value = null
     }
+    showToast('服务商已删除')
   } catch (e) {
     console.error('删除服务商失败', e)
+    showToast('删除服务商失败', 'error')
   }
 }
 

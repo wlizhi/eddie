@@ -1,5 +1,6 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+  <Transition name="modal-fade">
+    <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
     <div class="fetch-modal">
       <div class="modal-header">
         <h3>获取模型列表</h3>
@@ -112,6 +113,7 @@
       </div>
     </div>
   </div>
+  </Transition>
 </template>
 
 <script setup lang="ts">

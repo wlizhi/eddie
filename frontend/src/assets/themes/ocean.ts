@@ -9,6 +9,7 @@ const theme: ThemeDefinition = {
     name: '海浪',
     color: '#f0f7ff',
     darkColor: '#0a1628',
+    randomizeDecoration: true,
     variables: {
         light: {
             /* 背景色 — 柔和蓝白 */

@@ -30,7 +30,6 @@ export function useAssistantForm(
 
     const detail = ref<AssistantDetailVO | null>(null)
     const saving = ref(false)
-    const feedback = ref('')
 
     /** 字段级错误状态 */
     const fieldErrors = reactive<Record<string, string>>({})
@@ -66,7 +65,6 @@ export function useAssistantForm(
             }
             return
         }
-        feedback.value = ''
         if (chatStore.modelSelectors.length === 0) {
             await chatStore.loadModels()
         }
@@ -76,7 +74,6 @@ export function useAssistantForm(
 
     watch(() => props.createVisible, async (visible) => {
         if (visible) {
-            feedback.value = ''
             resetFormForCreate()
             if (chatStore.modelSelectors.length === 0) {
                 await chatStore.loadModels()
@@ -127,7 +124,7 @@ export function useAssistantForm(
             }
             pendingAvatarFile.value = null
         } catch (err) {
-            feedback.value = '加载助手详情失败'
+            showToast('加载助手详情失败', 'error')
             console.error(err)
             setTimeout(() => close(), 1500)
         }
@@ -309,7 +306,6 @@ export function useAssistantForm(
         // 状态
         show,
         saving,
-        feedback,
         fieldErrors,
         isCreateMode,
         showPicker,

@@ -164,7 +164,6 @@ const tipTheme = TIP_THEME_OVERRIDES
     <template #footer>
       <div class="footer">
         <button v-if="!isCreateMode" class="btn btn-delete" @click="handleDelete">🗑 删除</button>
-        <span v-if="feedback" class="feedback">{{ feedback }}</span>
         <button class="btn btn-cancel" @click="close">取消</button>
         <button class="btn btn-save" :disabled="saving" @click="handleSave">
           {{ saving ? '保存中...' : '保存' }}

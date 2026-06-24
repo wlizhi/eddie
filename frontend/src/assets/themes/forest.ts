@@ -9,6 +9,7 @@ const theme: ThemeDefinition = {
     name: '珊瑚',
     color: '#fff8f0',
     darkColor: '#1a0e08',
+    randomizeDecoration: true,
     variables: {
         light: {
             /* 背景色 — 柔和暖白 */

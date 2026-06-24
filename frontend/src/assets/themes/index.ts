@@ -22,6 +22,11 @@ export interface ThemeDefinition {
     darkColor: string
     /** 完整 CSS 变量集合 */
     variables: ThemeVariables
+    /**
+     * 每次应用主题时，是否对 --bg-decoration 的渐变位置 at X% Y% 做完全随机化
+     * 开启后每次打开页面或切换回该主题，渐变光晕的位置都会不同
+     */
+    randomizeDecoration?: boolean
 }
 
 // 自动扫描 themes/ 下所有 .ts 文件（排除 index.ts 自身）

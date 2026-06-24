@@ -9,6 +9,7 @@ const theme: ThemeDefinition = {
     name: '暮光',
     color: '#f7f5fb',
     darkColor: '#2a2040',
+    randomizeDecoration: true,
     variables: {
         light: {
             /* 背景色 — 柔和灰紫调 */

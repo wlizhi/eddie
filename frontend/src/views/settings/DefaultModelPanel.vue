@@ -41,11 +41,6 @@
       </div>
     </div>
 
-    <!-- 反馈 -->
-    <div v-if="feedback" class="feedback" :class="{ error: feedbackType === 'error' }">
-      {{ feedback }}
-    </div>
-
     <!-- 保存按钮 -->
     <div class="save-bar">
       <button class="btn-save" :disabled="saving" @click="handleSave">
@@ -62,6 +57,7 @@ import {Globe, Zap} from '@lucide/vue'
 import {useChatStore} from '@/stores/chat'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
+import {showToast} from '@/composables/useToast'
 
 // ========== 三个模型槽位定义 ==========
 interface ModelSlot {
@@ -162,8 +158,6 @@ for (const slot of modelSlots) {
 
 // ========== 状态 ==========
 const saving = ref(false)
-const feedback = ref('')
-const feedbackType = ref<'success' | 'error'>('success')
 
 // ========== 初始化加载 ==========
 onMounted(async () => {
@@ -208,14 +202,12 @@ onMounted(async () => {
       }
     }
   } catch (err: any) {
-    feedback.value = '加载配置失败: ' + (err.message || '未知错误')
-    feedbackType.value = 'error'
+    showToast('加载配置失败: ' + (err.message || '未知错误'), 'error')
   }
 })
 
 // ========== 保存 ==========
 async function handleSave() {
-  feedback.value = ''
   saving.value = true
 
   try {
@@ -246,11 +238,9 @@ async function handleSave() {
     }
 
     await updateConfigs(payload)
-    feedback.value = '✅ 配置已保存'
-    feedbackType.value = 'success'
+    showToast('配置已保存')
   } catch (err: any) {
-    feedback.value = '❌ 保存失败: ' + (err.message || '未知错误')
-    feedbackType.value = 'error'
+    showToast('保存失败: ' + (err.message || '未知错误'), 'error')
   } finally {
     saving.value = false
   }
@@ -360,17 +350,6 @@ async function handleSave() {
 
 .param-input::placeholder {
   color: var(--text-tertiary);
-}
-
-/* 反馈 */
-.feedback {
-  font-size: var(--font-size-base);
-  padding: 8px 0;
-  margin-bottom: 12px;
-}
-
-.feedback.error {
-  color: var(--danger-default);
 }
 
 /* 保存栏 */

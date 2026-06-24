@@ -9,6 +9,7 @@ const theme: ThemeDefinition = {
     name: '极光',
     color: '#f0faf3',
     darkColor: '#1a3a2a',
+    randomizeDecoration: true,
     variables: {
         light: {
             /* 背景色 — 极光白绿调 */

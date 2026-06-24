@@ -6,7 +6,7 @@ import {findTheme, getThemes, type ThemeDefinition} from '@/assets/themes/index'
 export type FontSizeLevel = 'small' | 'medium' | 'large'
 
 /** 预设字体类型 */
-export interface FontOption {
+interface FontOption {
     label: string
     value: string
 }
@@ -47,7 +47,7 @@ const FONT_FAMILY_MAP: Record<string, string> = {
 }
 
 /** 配色方案定义：每个方案的亮/深色主题值 */
-export interface ColorSchemeValue {
+interface ColorSchemeValue {
     accent: string
     hover: string
     lightBg: string
@@ -57,7 +57,7 @@ export interface ColorSchemeValue {
     textAccent: string
 }
 
-export interface ColorSchemeDefinition {
+interface ColorSchemeDefinition {
     label: string
     color: string          // 色块展示颜色
     light: ColorSchemeValue
@@ -335,7 +335,7 @@ export const displaySettings = reactive<DisplaySettings>({...defaultSettings})
 
 let loaded = false
 /** 标记主题是否已从后端加载并应用到 DOM */
-export const isReady = {value: false}
+const isReady = {value: false}
 
 /**
  * 全局自动 watch：displaySettings 的任何变化自动同步到 DOM
@@ -415,6 +415,20 @@ function getCurrentThemeVariables(): Record<string, string> | null {
     return theme.variables[displaySettings.themeMode]
 }
 
+/**
+ * 在原位置附近抖动渐变位置 — 让 at X% Y% 的坐标每次有 ±20% 的偏移
+ * 既每次打开都不同，又不脱离渐变区域，避免屏幕大面积纯色
+ * 只替换位置，不改变颜色、尺寸、透明度
+ */
+function randomizeGradientPositions(cssValue: string): string {
+    const JITTER = 20 // 抖动范围 ±20 个百分点
+    return cssValue.replace(/at\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%/g, (_match, x, y) => {
+        const newX = Math.round(parseFloat(x) + (Math.random() - 0.5) * 2 * JITTER)
+        const newY = Math.round(parseFloat(y) + (Math.random() - 0.5) * 2 * JITTER)
+        return `at ${Math.max(0, Math.min(100, newX))}% ${Math.max(0, Math.min(100, newY))}%`
+    })
+}
+
 /** 应用到 DOM */
 export function applyDisplaySettings(): void {
     const root = document.documentElement
@@ -430,12 +444,20 @@ export function applyDisplaySettings(): void {
     const fontFamily = FONT_FAMILY_MAP[displaySettings.fontFamily] ?? FONT_FAMILY_MAP.system
     root.style.setProperty('--font-family', fontFamily)
 
+    // 获取当前主题定义，判断是否需要随机化装饰渐变
+    const theme = findTheme(displaySettings.themeId)
+    const shouldRandomize = theme?.randomizeDecoration ?? false
+
     // 应用主题的全部 CSS 变量
     const themeVars = getCurrentThemeVariables()
     if (themeVars) {
         for (const [key, value] of Object.entries(themeVars)) {
             // 将多行渐变压缩为单行，确保 var(--bg-decoration) 在任何上下文中都能正确解析
-            const v = key === '--bg-decoration' ? value.replace(/\s+/g, ' ').trim() : value
+            let v = key === '--bg-decoration' ? value.replace(/\s+/g, ' ').trim() : value
+            // 对开启了随机化的主题，每次应用时随机化渐变位置
+            if (key === '--bg-decoration' && shouldRandomize && v !== 'none') {
+                v = randomizeGradientPositions(v)
+            }
             root.style.setProperty(key, v)
         }
     }
@@ -459,7 +481,11 @@ export function applyDisplaySettings(): void {
     if (backdrop) {
         if (decoRaw && decoRaw !== 'none') {
             // 将多行渐变压缩为单行
-            const deco = decoRaw.replace(/\s+/g, ' ').trim()
+            let deco = decoRaw.replace(/\s+/g, ' ').trim()
+            // 对开启了随机化的主题，同样随机化背景装饰层
+            if (shouldRandomize) {
+                deco = randomizeGradientPositions(deco)
+            }
             const bgPrimary = themeVars?.['--bg-primary'] || '#ffffff'
             backdrop.style.background = `${deco}, ${bgPrimary}`
         } else {
@@ -467,16 +493,6 @@ export function applyDisplaySettings(): void {
             backdrop.style.background = ''
         }
     }
-}
-
-/** 获取字体大小等级的显示标签 */
-export function getFontSizeLabel(level: FontSizeLevel): string {
-    const map: Record<FontSizeLevel, string> = {
-        small: '小',
-        medium: '中',
-        large: '大',
-    }
-    return map[level]
 }
 
 // 导出主题相关工具函数，方便其他组件使用

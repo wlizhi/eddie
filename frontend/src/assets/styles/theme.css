@@ -100,12 +100,36 @@
 }
 
 /* 主题切换过渡动画 — 仅在主题数据加载完成后生效，避免 FOUC
-   使用 [data-theme] 属性选择器约束，防止首次加载时触发过渡 */
+    使用 [data-theme] 属性选择器约束，防止首次加载时触发过渡 */
 html[data-theme] * {
     transition: background-color 0.25s ease,
     color 0.25s ease,
     border-color 0.25s ease,
     box-shadow 0.25s ease;
+}
+
+/* ===== 弹窗过渡动画（全局统一） ===== */
+
+/* --- Naive UI NModal 覆写：默认 0.3s → 0.1s --- */
+.n-modal-motion-enter-active,
+.n-modal-motion-leave-active {
+    transition-duration: 0.1s !important;
+}
+
+.n-modal-mask {
+    transition-duration: 0.1s !important;
+}
+
+/* --- 自定义弹窗过渡（配合 Vue <Transition name="modal-fade">） --- */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+    transition: opacity 0.1s ease, transform 0.1s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+    opacity: 0;
+    transform: scale(0.97);
 }
 
 /* 为 html 设置基准，所有 rem 基于此 */
