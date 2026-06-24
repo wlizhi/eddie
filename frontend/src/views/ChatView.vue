@@ -16,6 +16,7 @@
 import {nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
+import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
 import Toolbar from '@/views/chat/Toolbar.vue'
 import MessageList from '@/views/chat/MessageList.vue'
 import EmptyState from '@/views/chat/EmptyState.vue'
@@ -24,10 +25,6 @@ import InputArea from '@/views/chat/InputArea.vue'
 const chatStore = useChatStore()
 const assistantStore = useAssistantStore()
 
-/** 宽屏模式 */
-const isWideMode = ref(false)
-/** 聊天模式（false=问答模式左对齐） */
-const isChatMode = ref(true)
 /** 输入框文本 */
 const inputText = ref('')
 
@@ -35,8 +32,9 @@ const inputText = ref('')
 const inputAreaRef = ref<InstanceType<typeof InputArea> | null>(null)
 
 onMounted(async () => {
-  // 并行加载模型列表和助手列表，统一入口避免重复请求
+  // 并行加载显示设置、模型列表和助手列表
   await Promise.all([
+    loadDisplaySettings(),
     chatStore.loadModels(),
     assistantStore.loadList(),
   ])
@@ -80,10 +78,10 @@ function onSelectSuggestion(text: string) {
 </script>
 
 <template>
-  <div class="chat-view" :class="{ narrow: !isWideMode, 'qa-mode': !isChatMode }">
-    <Toolbar v-model:wide="isWideMode" v-model:chat="isChatMode"/>
+  <div class="chat-view" :class="{ narrow: !displaySettings.wideMode, 'qa-mode': !displaySettings.chatMode }">
+    <Toolbar/>
 
-    <MessageList v-if="chatStore.hasMessages" :qa-mode="!isChatMode"/>
+    <MessageList v-if="chatStore.hasMessages" :qa-mode="!displaySettings.chatMode"/>
 
     <EmptyState v-else @select-suggestion="onSelectSuggestion"/>
 

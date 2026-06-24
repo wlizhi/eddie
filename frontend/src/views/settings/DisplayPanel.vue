@@ -1,9 +1,9 @@
 <template>
   <div class="panel">
-    <h3 class="panel-title">显示设置</h3>
+    <!-- ===== 字体 ===== -->
+    <div class="settings-group">
+      <div class="group-label">字体</div>
 
-    <div class="settings-section">
-      <!-- 字体大小 -->
       <div class="setting-row">
         <div class="setting-info">
           <span class="setting-label">字体大小</span>
@@ -37,7 +37,6 @@
         </div>
       </div>
 
-      <!-- 字体类型 -->
       <div class="setting-row">
         <div class="setting-info">
           <span class="setting-label">字体类型</span>
@@ -52,8 +51,12 @@
           </option>
         </select>
       </div>
+    </div>
 
-      <!-- 外观（亮色/深色） -->
+    <!-- ===== 主题 ===== -->
+    <div class="settings-group">
+      <div class="group-label">主题</div>
+
       <div class="setting-row">
         <div class="setting-info">
           <span class="setting-label">外观</span>
@@ -75,7 +78,6 @@
         </div>
       </div>
 
-      <!-- 主题 -->
       <div class="setting-row">
         <div class="setting-info">
           <span class="setting-label">主题</span>
@@ -98,7 +100,6 @@
         </div>
       </div>
 
-      <!-- 强调色 -->
       <div class="setting-row">
         <div class="setting-info">
           <span class="setting-label">强调色</span>
@@ -118,11 +119,46 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== 聊天 ===== -->
+    <div class="settings-group">
+      <div class="group-label">聊天</div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">宽屏模式</span>
+          <span class="setting-hint">开启后消息区域占满可用宽度</span>
+        </div>
+        <NSwitch v-model:value="displaySettings.wideMode"/>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">消息展示</span>
+          <span class="setting-hint">聊天模式用户消息右对齐，问答模式统一左对齐</span>
+        </div>
+        <div class="size-selector">
+          <button
+              class="size-option"
+              :class="{ active: displaySettings.chatMode }"
+              @click="displaySettings.chatMode = true"
+          >💬 聊天
+          </button>
+          <button
+              class="size-option"
+              :class="{ active: !displaySettings.chatMode }"
+              @click="displaySettings.chatMode = false"
+          >📄 问答
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {computed, onMounted, ref, watch} from 'vue'
+import {NSwitch} from 'naive-ui'
 import {
   applyDisplay,
   clampFontSize,

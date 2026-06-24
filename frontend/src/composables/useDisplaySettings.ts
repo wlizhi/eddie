@@ -321,6 +321,10 @@ export interface DisplaySettings {
     colorScheme: string
     /** 自定义字体大小 px 值，设置后覆盖 fontSize 等级 */
     customFontSize?: number
+    /** 宽屏模式 */
+    wideMode: boolean
+    /** 聊天模式（false = 问答模式左对齐） */
+    chatMode: boolean
 }
 
 const defaultSettings: DisplaySettings = {
@@ -329,6 +333,8 @@ const defaultSettings: DisplaySettings = {
     themeId: 'default',
     themeMode: 'light',
     colorScheme: 'blue',
+    wideMode: true,
+    chatMode: true,
 }
 
 export const displaySettings = reactive<DisplaySettings>({...defaultSettings})
@@ -395,6 +401,8 @@ export async function saveDisplaySettings(): Promise<void> {
             themeMode: displaySettings.themeMode,
             colorScheme: displaySettings.colorScheme,
             customFontSize: displaySettings.customFontSize,
+            wideMode: displaySettings.wideMode,
+            chatMode: displaySettings.chatMode,
         }),
     }
     await updateConfigs(payload)

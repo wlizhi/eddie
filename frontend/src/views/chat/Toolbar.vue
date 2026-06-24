@@ -5,40 +5,39 @@
   - 切换宽屏/窄屏模式
   - 切换聊天模式/问答模式
 
-  与父组件通信：
-  - modelValue.wide (boolean) — 宽屏模式
-  - modelValue.chat (boolean) — 聊天模式
+  数据源：全局 displaySettings（持久化）
 -->
 <script setup lang="ts">
 import {FileText, Maximize2, MessageSquare, Minimize2} from '@lucide/vue'
+import {displaySettings, saveDisplaySettings} from '@/composables/useDisplaySettings'
 
-defineProps<{
-  wide: boolean
-  chat: boolean
-}>()
+function toggleWide() {
+  displaySettings.wideMode = !displaySettings.wideMode
+  saveDisplaySettings()
+}
 
-const emit = defineEmits<{
-  'update:wide': [value: boolean]
-  'update:chat': [value: boolean]
-}>()
+function toggleChat() {
+  displaySettings.chatMode = !displaySettings.chatMode
+  saveDisplaySettings()
+}
 </script>
 
 <template>
   <div class="view-toolbar">
     <button
         class="toolbar-btn"
-        :title="wide ? '切换窄屏' : '切换全宽'"
-        @click="emit('update:wide', !wide)"
+        :title="displaySettings.wideMode ? '切换窄屏' : '切换全宽'"
+        @click="toggleWide"
     >
-      <Maximize2 v-if="wide" :size="14" :stroke-width="1.8"/>
+      <Maximize2 v-if="displaySettings.wideMode" :size="14" :stroke-width="1.8"/>
       <Minimize2 v-else :size="14" :stroke-width="1.8"/>
     </button>
     <button
         class="toolbar-btn"
-        :title="chat ? '切换问答模式' : '切换聊天模式'"
-        @click="emit('update:chat', !chat)"
+        :title="displaySettings.chatMode ? '切换问答模式' : '切换聊天模式'"
+        @click="toggleChat"
     >
-      <MessageSquare v-if="chat" :size="14" :stroke-width="1.8"/>
+      <MessageSquare v-if="displaySettings.chatMode" :size="14" :stroke-width="1.8"/>
       <FileText v-else :size="14" :stroke-width="1.8"/>
     </button>
   </div>
