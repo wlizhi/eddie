@@ -179,7 +179,7 @@ function onScroll() {
                   class="dots-blink"><span>.</span><span>.</span><span>.</span></span></span>
             </span>
           </button>
-          <div v-if="thinkingExpanded[msg.id] && msg.thinking" class="thinking-content"
+          <div v-if="thinkingExpanded[msg.id] && msg.thinking" class="thinking-content markdown-body"
                v-html="renderMd(msg.thinking)"/>
         </div>
 
