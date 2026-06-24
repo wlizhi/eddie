@@ -1,7 +1,7 @@
 .input-area {
     flex-shrink: 0;
     padding: 10px 16px 8px;
-    background: var(--bg-primary);
+    /* 背景由 body 统一提供，此处透明避免圆角边缝 */
 }
 
 /* ===== 输入容器（flex 列布局，工具栏固定在底部） ===== */
@@ -214,29 +214,23 @@
 }
 
 .stop-btn {
-    background: var(--danger-default);
-    color: var(--text-inverse);
+    background: #ef4444;
+    color: #ffffff;
+    animation: stop-btn-pulse 1.2s ease-in-out infinite;
 }
 
 .stop-btn:hover {
-    background: var(--danger-hover);
+    background: #dc2626;
 }
 
-/* ===== 流式状态提示 ===== */
-.streaming-hint {
-    display: block;
-    font-size: var(--font-size-xs);
-    color: var(--accent-default);
-    text-align: right;
-    padding: 2px 10px 0;
-    animation: streaming-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes streaming-pulse {
+@keyframes stop-btn-pulse {
     0%, 100% {
-        opacity: 0.6;
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+        transform: scale(1);
     }
     50% {
-        opacity: 1;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+        transform: scale(1.08);
     }
 }
+

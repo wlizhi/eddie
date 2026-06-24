@@ -2,8 +2,15 @@
 import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {darkTheme, NConfigProvider} from 'naive-ui'
-import {Bot, ChevronLeft, ChevronRight, MessageSquare, Moon, Settings, Sun} from '@lucide/vue'
-import {applyDisplay, displaySettings, loadDisplaySettings, saveDisplaySettings} from '@/composables/useDisplaySettings'
+import {Bot, ChevronLeft, ChevronRight, MessageSquare, Moon, Paintbrush, Settings, Sun} from '@lucide/vue'
+import {
+  applyDisplay,
+  displaySettings,
+  findTheme,
+  getThemes,
+  loadDisplaySettings,
+  saveDisplaySettings
+} from '@/composables/useDisplaySettings'
 import ToastNotification from '@/components/common/ToastNotification.vue'
 
 onMounted(() => {
@@ -77,21 +84,38 @@ function toggleCollapse() {
   }
 }
 
-/** 循环切换主题（后续扩展只需在数组中添加新主题名） */
+/** 循环切换主题：按注册顺序轮换，亮/深色变体保持同步 */
 function cycleTheme() {
-  const themes = ['light', 'dark']
-  const current = displaySettings.themeMode
-  const idx = themes.indexOf(current)
-  displaySettings.themeMode = themes[(idx + 1) % themes.length]
+  const themes = getThemes()
+  const current = displaySettings.themeId
+  const idx = themes.findIndex((t) => t.id === current)
+  displaySettings.themeId = themes[(idx + 1) % themes.length].id
   applyDisplay()
   saveDisplaySettings().catch(() => {
   })
 }
 
+/** 切换亮/深色变体 */
+function toggleThemeVariant() {
+  displaySettings.themeMode = displaySettings.themeMode === 'light' ? 'dark' : 'light'
+  applyDisplay()
+  saveDisplaySettings().catch(() => {
+  })
+}
+
+/** 当前主题信息 */
+const currentTheme = computed(() => findTheme(displaySettings.themeId))
+
 </script>
 
 <template>
-  <NConfigProvider :theme="naiveTheme">
+  <!-- 全局背景层：承载主题渐变装饰，位于所有页面内容之下 -->
+  <div class="app-backdrop"/>
+  <NConfigProvider :theme="naiveTheme" :theme-overrides="{
+      Card: {
+          colorModal: findTheme(displaySettings.themeId)?.variables[displaySettings.themeMode]?.['--bg-primary'] ?? '#ffffff',
+      },
+  }">
   <div class="app-layout">
     <!-- Nav Rail -->
     <nav class="nav-rail">
@@ -112,15 +136,24 @@ function cycleTheme() {
       <div class="nav-rail-divider"/>
 
       <div class="nav-rail-bottom">
-        <!-- 主题切换按钮 -->
+        <!-- 主题切换按钮：点击循环切换主题 -->
         <button
             class="nav-item"
-            :title="displaySettings.themeMode === 'dark' ? '切换浅色主题' : '切换深色主题'"
+            :title="'切换主题（当前：' + (currentTheme?.name ?? '默认') + '）'"
             @click="cycleTheme"
+        >
+          <Paintbrush :size="20" :stroke-width="1.8"/>
+          <span class="nav-tooltip">{{ currentTheme?.name ?? '默认' }}</span>
+        </button>
+        <!-- 亮/深色切换 -->
+        <button
+            class="nav-item"
+            :title="displaySettings.themeMode === 'dark' ? '切换浅色' : '切换深色'"
+            @click="toggleThemeVariant"
         >
           <Sun v-if="displaySettings.themeMode === 'light'" :size="20" :stroke-width="1.8"/>
           <Moon v-else :size="20" :stroke-width="1.8"/>
-          <span class="nav-tooltip">{{ displaySettings.themeMode === 'dark' ? '浅色模式' : '深色模式' }}</span>
+          <span class="nav-tooltip">{{ displaySettings.themeMode === 'dark' ? '浅色' : '深色' }}</span>
         </button>
         <button
             v-for="item in bottomNavItems"
@@ -177,6 +210,17 @@ body {
   color: var(--text-primary);
 }
 
+/* ===== 全局背景装饰层 =====
+   承载主题渐变装饰，位于所有页面内容之下。
+   JS 在 applyDisplaySettings() 中设置其 background 属性。 */
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--bg-decoration, none), var(--bg-primary);
+}
+
 /* 确保所有表单元素继承字体设置 */
 button, input, select, textarea {
   font-family: inherit;
@@ -188,6 +232,8 @@ button, input, select, textarea {
   display: flex;
   height: 100vh;
   width: 100vw;
+  position: relative;
+  z-index: 1;
 }
 
 /* ===== Nav Rail ===== */
@@ -201,6 +247,7 @@ button, input, select, textarea {
   align-items: center;
   padding: 8px 0;
   z-index: 100;
+  position: relative;
   user-select: none;
 }
 
@@ -328,6 +375,6 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-primary);
+  /* 背景色由 body 统一提供 */
 }
 </style>

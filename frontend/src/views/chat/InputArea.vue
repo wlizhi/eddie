@@ -215,8 +215,6 @@ defineExpose({focusInput})
         </button>
       </div>
     </div>
-
-    <span v-if="chatStore.isStreaming" class="streaming-hint">正在生成...</span>
   </div>
 </template>
 

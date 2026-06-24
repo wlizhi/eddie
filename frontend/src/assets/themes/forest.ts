@@ -1,0 +1,179 @@
+/**
+ * 珊瑚主题（Coral）
+ * 暖橙/珊瑚色系，背景带有珊瑚状有机形状渐变
+ */
+import type {ThemeDefinition} from './index'
+
+const theme: ThemeDefinition = {
+    id: 'forest',
+    name: '珊瑚',
+    color: '#fff8f0',
+    darkColor: '#1a0e08',
+    variables: {
+        light: {
+            /* 背景色 — 柔和暖白 */
+            '--bg-primary': '#fff8f4',
+            '--bg-secondary': '#ffefe6',
+            '--bg-tertiary': '#ffe0d1',
+            '--bg-hover': '#ffd4bf',
+            '--bg-selected': '#ffc4a8',
+            '--bg-nav-rail': '#fdf0e8',
+            '--bg-mask': 'rgba(124, 45, 18, 0.30)',
+            '--bg-tooltip': '#7c2d12',
+
+            /* 文字色 */
+            '--text-primary': '#431407',
+            '--text-secondary': '#7c2d12',
+            '--text-tertiary': '#9a6b57',
+            '--text-quaternary': '#8c5a45',
+            '--text-muted': '#b8927e',
+            '--text-inverse': '#ffffff',
+            '--text-accent': '#ea580c',
+            '--text-disabled': '#b8927e',
+
+            /* 边框色 */
+            '--border-default': '#e8cdbf',
+            '--border-light': '#f0d9ce',
+            '--border-lighter': '#f5e4db',
+            '--border-hover': '#d4a692',
+            '--border-focus': '#ea580c',
+
+            /* 消息气泡 */
+            '--msg-user-bg': '#ea580c',
+            '--msg-user-text': '#ffffff',
+            '--msg-assistant-bg': '#ffffff',
+            '--msg-assistant-text': '#431407',
+
+            /* 主色 / 强调色 */
+            '--accent-default': '#ea580c',
+            '--accent-hover': '#c2410c',
+            '--accent-light-bg': '#fff7ed',
+            '--accent-light-border': '#fed7aa',
+            '--accent-ring': 'rgba(234, 88, 12, 0.08)',
+
+            /* 语义色 */
+            '--danger-default': '#ef4444',
+            '--danger-hover': '#dc2626',
+            '--danger-light-bg': '#fef2f2',
+            '--danger-light-border': '#fecaca',
+            '--danger-ring': 'rgba(239, 68, 68, 0.12)',
+            '--success-default': '#10b981',
+            '--success-light-bg': '#d1fae5',
+            '--success-text': '#059669',
+            '--warning-default': '#d97706',
+            '--warning-light-bg': '#fef3c7',
+
+            /* 能力标签 */
+            '--tag-vision-bg': '#ede9fe',
+            '--tag-vision-text': '#7c3aed',
+            '--tag-web-bg': '#dbeafe',
+            '--tag-web-text': '#2563eb',
+            '--tag-reasoning-bg': '#fef3c7',
+            '--tag-reasoning-text': '#d97706',
+            '--tag-fc-bg': '#d1fae5',
+            '--tag-fc-text': '#059669',
+            '--tag-rerank-bg': '#fce7f3',
+            '--tag-rerank-text': '#db2777',
+            '--tag-embedding-bg': '#e0e7ff',
+            '--tag-embedding-text': '#4f46e5',
+
+            /* 代码块 */
+            '--text-code-bg': '#1e1e1e',
+            '--text-code': '#d4d4d4',
+
+            /* 杂项 */
+            '--scrollbar-thumb': '#d4a692',
+            '--icon-muted': '#e8cdbf',
+            '--divider-light': '#f0d9ce',
+
+            /* 背景装饰 — 珊瑚状有机形状 */
+            '--bg-decoration': `
+        radial-gradient(ellipse 130% 40% at 10% 85%, rgba(234,88,12,0.45) 0%, transparent 70%),
+        radial-gradient(ellipse 80% 35% at 90% 20%, rgba(249,115,22,0.30) 0%, transparent 70%),
+        radial-gradient(circle 250px at 30% 60%, rgba(234,88,12,0.20) 0%, transparent 100%),
+        radial-gradient(circle 180px at 70% 80%, rgba(251,146,60,0.12) 0%, transparent 100%)
+      `,
+        },
+        dark: {
+            /* 背景色 — 暖褐珊瑚 */
+            '--bg-primary': '#3a2218',
+            '--bg-secondary': '#4a2e20',
+            '--bg-tertiary': '#5a3a28',
+            '--bg-hover': '#6a4630',
+            '--bg-selected': '#8a5030',
+            '--bg-nav-rail': '#3a2218',
+            '--bg-mask': 'rgba(0, 0, 0, 0.40)',
+            '--bg-tooltip': '#6a4630',
+
+            /* 文字色 */
+            '--text-primary': '#fef3ed',
+            '--text-secondary': '#fdba74',
+            '--text-tertiary': '#b07a5a',
+            '--text-quaternary': '#c08a6a',
+            '--text-muted': '#8a6048',
+            '--text-inverse': '#3a2218',
+            '--text-accent': '#fb923c',
+            '--text-disabled': '#8a6048',
+
+            /* 边框色 */
+            '--border-default': '#6a4630',
+            '--border-light': '#5a3a28',
+            '--border-lighter': '#4a2e20',
+            '--border-hover': '#b07a5a',
+            '--border-focus': '#fb923c',
+
+            /* 消息气泡 */
+            '--msg-user-bg': '#ea580c',
+            '--msg-user-text': '#ffffff',
+            '--msg-assistant-bg': '#5a3a28',
+            '--msg-assistant-text': '#fef3ed',
+
+            /* 主色 / 强调色 */
+            '--accent-default': '#c8a888',
+            '--accent-hover': '#b89878',
+            '--accent-light-bg': '#352218',
+            '--accent-light-border': '#4a3424',
+            '--accent-ring': 'rgba(200, 168, 136, 0.10)',
+
+            /* 语义色 */
+            '--danger-default': '#f87171',
+            '--danger-hover': '#ef4444',
+            '--danger-light-bg': '#3b1f1f',
+            '--danger-light-border': '#7f3d3d',
+            '--danger-ring': 'rgba(248, 113, 113, 0.15)',
+            '--success-default': '#34d399',
+            '--success-light-bg': '#1a3a2a',
+            '--success-text': '#10b981',
+            '--warning-default': '#fbbf24',
+            '--warning-light-bg': '#3a2e1a',
+
+            /* 能力标签 */
+            '--tag-vision-bg': '#2e1a4a',
+            '--tag-vision-text': '#a78bfa',
+            '--tag-web-bg': '#1a2a4a',
+            '--tag-web-text': '#60a5fa',
+            '--tag-reasoning-bg': '#3a2e1a',
+            '--tag-reasoning-text': '#fbbf24',
+            '--tag-fc-bg': '#1a3a2a',
+            '--tag-fc-text': '#34d399',
+            '--tag-rerank-bg': '#3a1a2a',
+            '--tag-rerank-text': '#f472b6',
+            '--tag-embedding-bg': '#1a1a3a',
+            '--tag-embedding-text': '#818cf8',
+
+            /* 杂项 */
+            '--scrollbar-thumb': '#b07a5a',
+            '--icon-muted': '#8a6048',
+            '--divider-light': '#5a3a28',
+
+            /* 背景装饰 */
+            '--bg-decoration': `
+        radial-gradient(ellipse 130% 40% at 10% 85%, rgba(251,146,60,0.50) 0%, transparent 70%),
+        radial-gradient(ellipse 80% 35% at 90% 20%, rgba(249,115,22,0.35) 0%, transparent 70%),
+        radial-gradient(circle 250px at 30% 60%, rgba(234,88,12,0.25) 0%, transparent 100%)
+      `,
+        },
+    },
+}
+
+export default theme

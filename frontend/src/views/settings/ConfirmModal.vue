@@ -40,7 +40,7 @@ defineEmits<{
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--bg-mask);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -48,7 +48,7 @@ defineEmits<{
 }
 
 .modal-content {
-  background: #ffffff;
+  background: var(--bg-primary);
   border-radius: 12px;
   width: 520px;
   max-height: 90vh;
@@ -66,14 +66,14 @@ defineEmits<{
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #e6e8ec;
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .modal-header h3 {
   font-size: 15px;
   font-weight: 600;
-  color: #1f1f1f;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -86,14 +86,14 @@ defineEmits<{
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
 
 .modal-close:hover {
-  background: #f0f1f3;
-  color: #1f1f1f;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -109,13 +109,13 @@ defineEmits<{
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 20px;
-  border-top: 1px solid #e6e8ec;
+  border-top: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .confirm-message {
   font-size: 14px;
-  color: #374151;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.6;
 }
@@ -123,18 +123,18 @@ defineEmits<{
 .btn-cancel {
   height: 32px;
   padding: 0 16px;
-  border: 1px solid #e6e8ec;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--bg-primary);
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-quaternary);
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s;
 }
 
 .btn-cancel:hover {
-  border-color: #d1d5db;
-  color: #1f1f1f;
+  border-color: var(--border-hover);
+  color: var(--text-primary);
 }
 
 .btn-danger {
@@ -142,14 +142,14 @@ defineEmits<{
   padding: 0 16px;
   border: none;
   border-radius: 6px;
-  background: #ef4444;
+  background: var(--danger-default);
   font-size: 13px;
-  color: #ffffff;
+  color: var(--text-inverse);
   cursor: pointer;
   transition: background 0.12s;
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  background: var(--danger-hover);
 }
 </style>

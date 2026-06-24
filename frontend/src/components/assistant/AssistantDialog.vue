@@ -38,6 +38,7 @@ const {
 
 const modelParamDefs = MODEL_PARAM_DEFS
 const tipTheme = TIP_THEME_OVERRIDES
+
 </script>
 
 <template>
@@ -46,7 +47,7 @@ const tipTheme = TIP_THEME_OVERRIDES
       :on-update:show="(v: boolean) => { if (!v) close() }"
       title="助手设置"
       preset="card"
-      style="max-width: 600px; width: 90%; max-height: 92vh;"
+      style="max-width: 600px; width: 90%; max-height: 92vh; background: var(--bg-decoration, none), var(--bg-primary);"
       :mask-closable="false"
   >
     <template #header>

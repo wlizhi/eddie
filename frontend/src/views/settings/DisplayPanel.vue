@@ -53,11 +53,11 @@
         </select>
       </div>
 
-      <!-- 主题模式 -->
+      <!-- 外观（亮色/深色） -->
       <div class="setting-row">
         <div class="setting-info">
-          <span class="setting-label">主题模式</span>
-          <span class="setting-hint">选择浅色或深色外观</span>
+          <span class="setting-label">外观</span>
+          <span class="setting-hint">选择浅色或深色模式</span>
         </div>
         <div class="size-selector">
           <button
@@ -75,11 +75,34 @@
         </div>
       </div>
 
-      <!-- 主题色 -->
+      <!-- 主题 -->
       <div class="setting-row">
         <div class="setting-info">
-          <span class="setting-label">主题色</span>
-          <span class="setting-hint">选中项背景、按钮、开关等统一色调</span>
+          <span class="setting-label">主题</span>
+          <span class="setting-hint">在当前外观下选择配色风格</span>
+        </div>
+        <div class="theme-selector">
+          <button
+              v-for="t in themeList"
+              :key="t.id"
+              class="theme-card"
+              :class="{ active: displaySettings.themeId === t.id }"
+              @click="displaySettings.themeId = t.id"
+          >
+            <div class="theme-preview">
+              <span class="theme-swatch" :style="{ background: t.color }"></span>
+              <span class="theme-swatch dark" :style="{ background: t.darkColor }"></span>
+            </div>
+            <span class="theme-name">{{ t.name }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 强调色 -->
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">强调色</span>
+          <span class="setting-hint">选中项、按钮、链接等统一色调</span>
         </div>
         <div class="color-scheme-selector">
           <button
@@ -87,11 +110,10 @@
               :key="key"
               class="color-swatch"
               :class="{ active: displaySettings.colorScheme === key }"
-              :style="{ '--swatch-color': scheme.color }"
               :title="scheme.label"
               @click="displaySettings.colorScheme = key"
+              :style="{ background: scheme.color }"
           >
-            <span class="color-swatch-inner" :style="{ background: scheme.color }"></span>
           </button>
         </div>
       </div>
@@ -100,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {
   applyDisplay,
   clampFontSize,
@@ -110,11 +132,14 @@ import {
   FONT_SIZE_MAP,
   type FontSizeLevel,
   getEffectiveFontSize,
+  getThemes,
   loadDisplaySettings,
   MAX_RECOMMENDED,
   MIN_RECOMMENDED,
   saveDisplaySettings,
 } from '@/composables/useDisplaySettings'
+
+const themeList = computed(() => getThemes())
 
 const fontOptions = FONT_OPTIONS
 
