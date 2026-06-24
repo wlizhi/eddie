@@ -61,19 +61,12 @@
         @changed="onModelsChanged"
     />
 
-    <!-- 删除确认弹窗 -->
-    <ConfirmModal
-        :visible="showDeleteConfirm"
-        title="删除服务商"
-        :message="`确认删除服务商「${deletingName}」？删除后不可恢复。`"
-        @confirm="doDeleteProvider"
-        @cancel="showDeleteConfirm = false"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import {computed, onMounted, reactive, ref, watch} from 'vue'
+import {useDialog} from 'naive-ui'
 import {Cpu} from '@lucide/vue'
 import {
   batchRemoveModels,
@@ -93,8 +86,8 @@ import ModelProviderDetail from './ModelProviderDetail.vue'
 import ModelSettingsModal from './ModelSettingsModal.vue'
 import AddProviderModal from './AddProviderModal.vue'
 import ModelFetchModal from './ModelFetchModal.vue'
-import ConfirmModal from './ConfirmModal.vue'
 
+const dialog = useDialog()
 const loading = ref(false)
 const providers = ref<ModelProvider[]>([])
 const activeProvider = ref<ModelProvider | null>(null)
@@ -294,34 +287,32 @@ async function removeModel(code: string) {
   }
 }
 
-/** 删除确认弹窗状态 */
-const showDeleteConfirm = ref(false)
-const deletingName = ref('')
-
 /** 打开删除确认弹窗 */
 function handleDeleteProvider() {
   if (!activeProvider.value) return
-  deletingName.value = activeProvider.value.name || activeProvider.value.code
-  showDeleteConfirm.value = true
-}
-
-/** 执行删除 */
-async function doDeleteProvider() {
-  if (!activeProvider.value) return
-  showDeleteConfirm.value = false
-  try {
-    await deleteProvider(activeProvider.value.id)
-    providers.value = await listProviders()
-    if (providers.value.length > 0) {
-      selectProvider(providers.value[0])
-    } else {
-      activeProvider.value = null
-    }
-    showToast('服务商已删除')
-  } catch (e) {
-    console.error('删除服务商失败', e)
-    showToast('删除服务商失败', 'error')
-  }
+  const name = activeProvider.value.name || activeProvider.value.code
+  dialog.warning({
+    title: '删除服务商',
+    content: `确认删除服务商「${name}」？删除后不可恢复。`,
+    positiveText: '确认删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      if (!activeProvider.value) return
+      try {
+        await deleteProvider(activeProvider.value.id)
+        providers.value = await listProviders()
+        if (providers.value.length > 0) {
+          selectProvider(providers.value[0])
+        } else {
+          activeProvider.value = null
+        }
+        showToast('服务商已删除')
+      } catch (e) {
+        console.error('删除服务商失败', e)
+        showToast('删除服务商失败', 'error')
+      }
+    },
+  })
 }
 
 // ===== 远程模型拉取弹窗 =====

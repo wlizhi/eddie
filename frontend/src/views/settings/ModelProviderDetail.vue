@@ -36,18 +36,20 @@
             @input="$emit('update:apiKey', ($event.target as HTMLInputElement).value)"
         />
       </div>
-      <button
-          v-if="provider.builtIn !== 1"
-          class="delete-provider-btn"
-          @click="$emit('delete-provider')"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"/>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-        </svg>
-        删除
-      </button>
+      <div class="delete-provider-row">
+        <NButton
+            v-if="provider.builtIn !== 1"
+            type="error"
+            ghost
+            size="small"
+            @click="$emit('delete-provider')"
+        >
+          <template #icon>
+            <Trash2 :size="13"/>
+          </template>
+          删除
+        </NButton>
+      </div>
     </div>
 
     <!-- 分隔线 + 操作按钮 -->
@@ -109,7 +111,8 @@
 
 <script setup lang="ts">
 import {computed} from 'vue'
-import {RefreshCw, Settings} from '@lucide/vue'
+import {NButton} from 'naive-ui'
+import {RefreshCw, Settings, Trash2} from '@lucide/vue'
 import type {ModelItem, ModelProvider} from '@/types/modelProvider'
 import {CAPABILITY_LABELS} from '@/types/modelProvider'
 import {capIcon, normalizeCaps} from './modelCapabilities'

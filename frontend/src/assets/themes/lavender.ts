@@ -87,12 +87,35 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#b3d9c8',
             '--divider-light': '#c5e3d5',
 
-            /* 背景装饰 — 极光流动光带 */
+            /*
+             * 背景装饰 — 极光幕帘
+             * 多重倾斜光带 + 垂直窄条纹模拟极光幕帘的褶皱
+             */
             '--bg-decoration': `
-        radial-gradient(ellipse 120% 45% at 50% 0%, rgba(16,185,129,0.45) 0%, transparent 70%),
-        radial-gradient(ellipse 90% 40% at 30% 50%, rgba(139,92,246,0.30) 0%, transparent 70%),
-        radial-gradient(ellipse 100% 35% at 70% 70%, rgba(16,185,129,0.20) 0%, transparent 100%),
-        radial-gradient(circle 200px at 85% 30%, rgba(139,92,246,0.12) 0%, transparent 100%)
+        radial-gradient(ellipse 3% 50% at 22% 22%,
+          rgba(16,185,129,0.10) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 55% at 35% 18%,
+          rgba(139,92,246,0.08) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 45% at 48% 20%,
+          rgba(52,211,153,0.10) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 50% at 60% 16%,
+          rgba(167,139,250,0.07) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 40% at 72% 22%,
+          rgba(16,185,129,0.08) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 45% at 85% 18%,
+          rgba(139,92,246,0.06) 0%, transparent 80%),
+        radial-gradient(ellipse 180% 18% at 45% 12%,
+          rgba(16,185,129,0.30) 0%, transparent 70%),
+        radial-gradient(ellipse 160% 14% at 55% 18%,
+          rgba(52,211,153,0.20) 0%, transparent 70%),
+        radial-gradient(ellipse 150% 16% at 35% 22%,
+          rgba(139,92,246,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 170% 12% at 60% 28%,
+          rgba(167,139,250,0.15) 0%, transparent 70%),
+        radial-gradient(ellipse 200% 10% at 50% 42%,
+          rgba(16,185,129,0.10) 0%, transparent 80%),
+        radial-gradient(ellipse 100% 30% at 50% 0%,
+          rgba(52,211,153,0.06) 0%, transparent 100%)
       `,
         },
         dark: {
@@ -167,11 +190,35 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#4a7a5a',
             '--divider-light': '#3a6a4a',
 
-            /* 背景装饰 */
+            /*
+             * 背景装饰 — 极光幕帘（深色）
+             * 多重倾斜光带 + 垂直窄条纹模拟极光幕帘的褶皱
+             */
             '--bg-decoration': `
-        radial-gradient(ellipse 120% 45% at 50% 0%, rgba(52,211,153,0.50) 0%, transparent 70%),
-        radial-gradient(ellipse 90% 40% at 30% 50%, rgba(167,139,250,0.35) 0%, transparent 70%),
-        radial-gradient(ellipse 100% 35% at 70% 70%, rgba(16,185,129,0.25) 0%, transparent 100%)
+        radial-gradient(ellipse 3% 50% at 22% 22%,
+          rgba(52,211,153,0.15) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 55% at 35% 18%,
+          rgba(167,139,250,0.12) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 45% at 48% 20%,
+          rgba(16,185,129,0.15) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 50% at 60% 16%,
+          rgba(139,92,246,0.10) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 40% at 72% 22%,
+          rgba(52,211,153,0.12) 0%, transparent 80%),
+        radial-gradient(ellipse 3% 45% at 85% 18%,
+          rgba(167,139,250,0.10) 0%, transparent 80%),
+        radial-gradient(ellipse 180% 18% at 45% 12%,
+          rgba(52,211,153,0.40) 0%, transparent 70%),
+        radial-gradient(ellipse 160% 14% at 55% 18%,
+          rgba(16,185,129,0.28) 0%, transparent 70%),
+        radial-gradient(ellipse 150% 16% at 35% 22%,
+          rgba(167,139,250,0.32) 0%, transparent 70%),
+        radial-gradient(ellipse 170% 12% at 60% 28%,
+          rgba(139,92,246,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 200% 10% at 50% 42%,
+          rgba(52,211,153,0.16) 0%, transparent 80%),
+        radial-gradient(ellipse 100% 30% at 50% 0%,
+          rgba(16,185,129,0.10) 0%, transparent 100%)
       `,
         },
     },

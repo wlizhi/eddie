@@ -162,6 +162,13 @@
     cursor: not-allowed;
 }
 
+/* ===== 删除服务商行（右对齐） ===== */
+.delete-provider-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
 /* ===== 分隔线 ===== */
 .section-divider {
     display: flex;
@@ -704,7 +711,6 @@
     border-radius: 9px;
     transition: background 0.2s;
 }
-
 .sidebar-toggle .toggle-track::before {
     content: '';
     position: absolute;
@@ -724,28 +730,4 @@
 
 .sidebar-toggle input:checked + .toggle-track::before {
     transform: translateX(14px);
-}
-
-/* ===== 删除服务商按钮 ===== */
-.delete-provider-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    align-self: flex-end;
-    height: 28px;
-    padding: 0 10px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    background: transparent;
-    font-size: var(--font-size-small);
-    color: var(--danger-default);
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: background 0.12s, border-color 0.12s;
-}
-
-.delete-provider-btn:hover {
-    background: var(--danger-light-bg);
-    border-color: var(--danger-light-border);
 }

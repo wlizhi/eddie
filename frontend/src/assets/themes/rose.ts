@@ -87,11 +87,23 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#d2c5e0',
             '--divider-light': '#ddd2e8',
 
-            /* 背景装饰 — 暮光圆形渐晕 */
+            /*
+             * 背景装饰 — 暮光地平线余晖
+             * 底部暖橙 → 中部粉紫 → 顶部冷紫，模拟日落天色过渡
+             */
             '--bg-decoration': `
-        radial-gradient(circle 400px at 85% 10%, rgba(124,58,237,0.45) 0%, transparent 70%),
-        radial-gradient(circle 300px at 15% 80%, rgba(99,102,241,0.30) 0%, transparent 70%),
-        radial-gradient(circle 250px at 50% 40%, rgba(124,58,237,0.20) 0%, transparent 100%)
+        radial-gradient(ellipse 100% 28% at 50% 100%,
+          rgba(251,146,60,0.18) 0%, transparent 80%),
+        radial-gradient(ellipse 80% 20% at 40% 82%,
+          rgba(244,114,182,0.12) 0%, transparent 80%),
+        radial-gradient(ellipse 120% 18% at 55% 58%,
+          rgba(167,139,250,0.10) 0%, transparent 80%),
+        radial-gradient(ellipse 100% 14% at 30% 48%,
+          rgba(124,58,237,0.08) 0%, transparent 80%),
+        radial-gradient(ellipse 140% 12% at 60% 38%,
+          rgba(139,92,246,0.06) 0%, transparent 80%),
+        radial-gradient(ellipse 80% 18% at 50% 10%,
+          rgba(99,102,241,0.05) 0%, transparent 80%)
       `,
         },
         dark: {
@@ -166,11 +178,23 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#6a4a8a',
             '--divider-light': '#4a3a60',
 
-            /* 背景装饰 */
+            /*
+             * 背景装饰 — 暮光地平线余晖（深色）
+             * 底部暖橙 → 中部粉紫 → 顶部冷紫，模拟日落天色过渡
+             */
             '--bg-decoration': `
-        radial-gradient(circle 400px at 85% 10%, rgba(167,139,250,0.50) 0%, transparent 70%),
-        radial-gradient(circle 300px at 15% 80%, rgba(129,140,248,0.35) 0%, transparent 70%),
-        radial-gradient(circle 250px at 50% 40%, rgba(124,58,237,0.25) 0%, transparent 100%)
+        radial-gradient(ellipse 100% 28% at 50% 100%,
+          rgba(251,146,60,0.28) 0%, transparent 80%),
+        radial-gradient(ellipse 80% 20% at 40% 82%,
+          rgba(244,114,182,0.20) 0%, transparent 80%),
+        radial-gradient(ellipse 120% 18% at 55% 58%,
+          rgba(167,139,250,0.18) 0%, transparent 80%),
+        radial-gradient(ellipse 100% 14% at 30% 48%,
+          rgba(124,58,237,0.14) 0%, transparent 80%),
+        radial-gradient(ellipse 140% 12% at 60% 38%,
+          rgba(139,92,246,0.10) 0%, transparent 80%),
+        radial-gradient(ellipse 80% 18% at 50% 10%,
+          rgba(99,102,241,0.08) 0%, transparent 80%)
       `,
         },
     },

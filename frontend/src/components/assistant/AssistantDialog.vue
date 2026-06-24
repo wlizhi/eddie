@@ -8,7 +8,8 @@
   - 保存到后端
 -->
 <script setup lang="ts">
-import {NModal, NSelect, NTooltip} from 'naive-ui'
+import {NButton, NModal, NSelect, NTooltip} from 'naive-ui'
+import {Trash2} from '@lucide/vue'
 import {useAssistantForm} from '@/composables/useAssistantForm'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 import {TIP_THEME_OVERRIDES} from '@/constants/theme'
@@ -26,9 +27,9 @@ const emit = defineEmits<{
 }>()
 
 const {
-  show, saving, feedback, fieldErrors, isCreateMode,
+  show, saving, fieldErrors, isCreateMode,
   formName, formAvatar, formDescription, formSystemPrompt,
-  formModelId, formMemoryRounds, formEnabled,
+  formMemoryRounds, formEnabled,
   formModelParams, showPicker, originalAvatar,
   clearFieldError, onModelSelect, onAvatarPicked,
   handleSave, handleDelete, close,
@@ -163,11 +164,18 @@ const tipTheme = TIP_THEME_OVERRIDES
 
     <template #footer>
       <div class="footer">
-        <button v-if="!isCreateMode" class="btn btn-delete" @click="handleDelete">🗑 删除</button>
-        <button class="btn btn-cancel" @click="close">取消</button>
-        <button class="btn btn-save" :disabled="saving" @click="handleSave">
-          {{ saving ? '保存中...' : '保存' }}
-        </button>
+        <NButton v-if="!isCreateMode" type="error" ghost size="small" @click="handleDelete">
+          <template #icon>
+            <Trash2 :size="13"/>
+          </template>
+          删除
+        </NButton>
+        <div class="footer-right">
+          <NButton quaternary @click="close">取消</NButton>
+          <NButton type="primary" :loading="saving" @click="handleSave">
+            {{ saving ? '保存中...' : '保存' }}
+          </NButton>
+        </div>
       </div>
     </template>
   </NModal>

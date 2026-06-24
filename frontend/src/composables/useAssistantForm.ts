@@ -5,6 +5,7 @@
  * 提取后组件只保留 glue code + template + style
  */
 import {computed, reactive, ref, watch} from 'vue'
+import {useDialog} from 'naive-ui'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
 import {fetchAssistantDetail, updateAssistantAvatar} from '@/api/assistant'
@@ -24,6 +25,7 @@ export function useAssistantForm(
 ) {
     const assistantStore = useAssistantStore()
     const chatStore = useChatStore()
+    const dialog = useDialog()
 
     /** 是否为创建模式 */
     const isCreateMode = computed(() => props.createVisible === true && props.assistantId === null)
@@ -284,13 +286,19 @@ export function useAssistantForm(
 
     async function handleDelete() {
         if (!detail.value) return
-        const name = formName.value || '此助手'
-        const ok = confirm(`确定删除「${name}」？删除后不可恢复。`)
-        if (!ok) return
         const id = detail.value.id
-        close()
-        await assistantStore.remove(id)
-        showToast('已删除')
+        const name = formName.value || '此助手'
+        dialog.warning({
+            title: '删除助手',
+            content: `确定删除「${name}」？删除后不可恢复。`,
+            positiveText: '确认删除',
+            negativeText: '取消',
+            onPositiveClick: async () => {
+                close()
+                await assistantStore.remove(id)
+                showToast('已删除')
+            },
+        })
     }
 
     function close() {

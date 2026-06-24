@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
-import {darkTheme, NConfigProvider} from 'naive-ui'
+import {darkTheme, NConfigProvider, NDialogProvider} from 'naive-ui'
 import {Bot, ChevronLeft, ChevronRight, MessageSquare, Moon, Paintbrush, Settings, Sun} from '@lucide/vue'
 import {
   applyDisplay,
@@ -113,75 +113,77 @@ const currentTheme = computed(() => findTheme(displaySettings.themeId))
   <!-- 全局背景层：承载主题渐变装饰，位于所有页面内容之下 -->
   <div class="app-backdrop"/>
   <NConfigProvider :theme="naiveTheme" :theme-overrides="naiveThemeOverrides">
-  <div class="app-layout">
-    <!-- Nav Rail -->
-    <nav class="nav-rail">
-      <div class="nav-rail-top">
-        <button
-            v-for="item in mainNavItems"
-            :key="item.key"
-            class="nav-item"
-            :class="{ active: activeNav === item.key }"
-            :title="item.label"
-            @click="togglePanel(item.key)"
-        >
-          <component :is="item.icon" :size="20" :stroke-width="1.8"/>
-          <span class="nav-tooltip">{{ item.label }}</span>
-        </button>
+    <NDialogProvider>
+      <div class="app-layout">
+        <!-- Nav Rail -->
+        <nav class="nav-rail">
+          <div class="nav-rail-top">
+            <button
+                v-for="item in mainNavItems"
+                :key="item.key"
+                class="nav-item"
+                :class="{ active: activeNav === item.key }"
+                :title="item.label"
+                @click="togglePanel(item.key)"
+            >
+              <component :is="item.icon" :size="20" :stroke-width="1.8"/>
+              <span class="nav-tooltip">{{ item.label }}</span>
+            </button>
+          </div>
+
+          <div class="nav-rail-divider"/>
+
+          <div class="nav-rail-bottom">
+            <!-- 主题切换按钮：点击循环切换主题 -->
+            <button
+                class="nav-item"
+                :title="'切换主题（当前：' + (currentTheme?.name ?? '默认') + '）'"
+                @click="cycleTheme"
+            >
+              <Paintbrush :size="20" :stroke-width="1.8"/>
+              <span class="nav-tooltip">{{ currentTheme?.name ?? '默认' }}</span>
+            </button>
+            <!-- 亮/深色切换 -->
+            <button
+                class="nav-item"
+                :title="displaySettings.themeMode === 'dark' ? '切换浅色' : '切换深色'"
+                @click="toggleThemeVariant"
+            >
+              <Sun v-if="displaySettings.themeMode === 'light'" :size="20" :stroke-width="1.8"/>
+              <Moon v-else :size="20" :stroke-width="1.8"/>
+              <span class="nav-tooltip">{{ displaySettings.themeMode === 'dark' ? '浅色' : '深色' }}</span>
+            </button>
+            <button
+                v-for="item in bottomNavItems"
+                :key="item.key"
+                class="nav-item"
+                :class="{ active: activeNav === item.key }"
+                :title="item.label"
+                @click="togglePanel(item.key)"
+            >
+              <component :is="item.icon" :size="20" :stroke-width="1.8"/>
+              <span class="nav-tooltip">{{ item.label }}</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- Contextual Panel -->
+        <aside class="context-panel" :class="{ collapsed: !isPanelVisible }">
+          <button class="panel-collapse-btn" :title="isPanelVisible ? '折叠侧栏' : '展开侧栏'" @click="toggleCollapse">
+            <component :is="isPanelVisible ? ChevronLeft : ChevronRight" :size="12" :stroke-width="2"/>
+          </button>
+          <div class="panel-body">
+            <router-view name="panel"/>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+          <router-view/>
+        </main>
       </div>
-
-      <div class="nav-rail-divider"/>
-
-      <div class="nav-rail-bottom">
-        <!-- 主题切换按钮：点击循环切换主题 -->
-        <button
-            class="nav-item"
-            :title="'切换主题（当前：' + (currentTheme?.name ?? '默认') + '）'"
-            @click="cycleTheme"
-        >
-          <Paintbrush :size="20" :stroke-width="1.8"/>
-          <span class="nav-tooltip">{{ currentTheme?.name ?? '默认' }}</span>
-        </button>
-        <!-- 亮/深色切换 -->
-        <button
-            class="nav-item"
-            :title="displaySettings.themeMode === 'dark' ? '切换浅色' : '切换深色'"
-            @click="toggleThemeVariant"
-        >
-          <Sun v-if="displaySettings.themeMode === 'light'" :size="20" :stroke-width="1.8"/>
-          <Moon v-else :size="20" :stroke-width="1.8"/>
-          <span class="nav-tooltip">{{ displaySettings.themeMode === 'dark' ? '浅色' : '深色' }}</span>
-        </button>
-        <button
-            v-for="item in bottomNavItems"
-            :key="item.key"
-            class="nav-item"
-            :class="{ active: activeNav === item.key }"
-            :title="item.label"
-            @click="togglePanel(item.key)"
-        >
-          <component :is="item.icon" :size="20" :stroke-width="1.8"/>
-          <span class="nav-tooltip">{{ item.label }}</span>
-        </button>
-      </div>
-    </nav>
-
-    <!-- Contextual Panel -->
-    <aside class="context-panel" :class="{ collapsed: !isPanelVisible }">
-      <button class="panel-collapse-btn" :title="isPanelVisible ? '折叠侧栏' : '展开侧栏'" @click="toggleCollapse">
-        <component :is="isPanelVisible ? ChevronLeft : ChevronRight" :size="12" :stroke-width="2"/>
-      </button>
-      <div class="panel-body">
-        <router-view name="panel"/>
-      </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-      <router-view/>
-    </main>
-  </div>
-    <ToastNotification/>
+      <ToastNotification/>
+    </NDialogProvider>
   </NConfigProvider>
 </template>
 
@@ -209,13 +211,16 @@ body {
 
 /* ===== 全局背景装饰层 =====
    承载主题渐变装饰，位于所有页面内容之下。
-   JS 在 applyDisplaySettings() 中设置其 background 属性。 */
+   JS 在 applyDisplaySettings() 中设置其 background 属性。
+   backdrop-breathe 提供极微弱的透明度脉动呼吸感。 */
 .app-backdrop {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   background: var(--bg-decoration, none), var(--bg-primary);
+  animation: backdrop-breathe 8s ease-in-out infinite,
+  backdrop-drift 25s ease-in-out infinite;
 }
 
 /* 确保所有表单元素继承字体设置 */

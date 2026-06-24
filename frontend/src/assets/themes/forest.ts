@@ -87,12 +87,39 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#e8cdbf',
             '--divider-light': '#f0d9ce',
 
-            /* 背景装饰 — 珊瑚状有机形状 */
+            /*
+             * 背景装饰 — 珊瑚分枝
+             * 弧形窄椭圆从底部向外辐射 + 硬边圆点模拟珊瑚触须
+             */
             '--bg-decoration': `
-        radial-gradient(ellipse 130% 40% at 10% 85%, rgba(234,88,12,0.45) 0%, transparent 70%),
-        radial-gradient(ellipse 80% 35% at 90% 20%, rgba(249,115,22,0.30) 0%, transparent 70%),
-        radial-gradient(circle 250px at 30% 60%, rgba(234,88,12,0.20) 0%, transparent 100%),
-        radial-gradient(circle 180px at 70% 80%, rgba(251,146,60,0.12) 0%, transparent 100%)
+        radial-gradient(circle 28px at 20% 38%,
+          rgba(251,146,60,0.20) 0%, rgba(251,146,60,0.20) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(circle 18px at 16% 34%,
+          rgba(234,88,12,0.14) 0%, rgba(234,88,12,0.14) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(circle 32px at 82% 40%,
+          rgba(249,115,22,0.18) 0%, rgba(249,115,22,0.18) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(circle 20px at 86% 35%,
+          rgba(234,88,12,0.12) 0%, rgba(234,88,12,0.12) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(circle 22px at 60% 58%,
+          rgba(251,146,60,0.14) 0%, rgba(251,146,60,0.14) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(ellipse 12% 38% at 35% 80%,
+          rgba(234,88,12,0.24) 0%, transparent 100%),
+        radial-gradient(ellipse 10% 30% at 28% 60%,
+          rgba(249,115,22,0.18) 0%, transparent 100%),
+        radial-gradient(ellipse 8% 24% at 22% 42%,
+          rgba(234,88,12,0.14) 0%, transparent 100%),
+        radial-gradient(ellipse 12% 38% at 68% 82%,
+          rgba(249,115,22,0.22) 0%, transparent 100%),
+        radial-gradient(ellipse 10% 32% at 75% 62%,
+          rgba(234,88,12,0.16) 0%, transparent 100%),
+        radial-gradient(ellipse 8% 26% at 80% 44%,
+          rgba(249,115,22,0.12) 0%, transparent 100%),
+        radial-gradient(ellipse 8% 30% at 55% 85%,
+          rgba(234,88,12,0.18) 0%, transparent 100%),
+        radial-gradient(ellipse 6% 24% at 58% 65%,
+          rgba(251,146,60,0.12) 0%, transparent 100%),
+        radial-gradient(ellipse 100% 25% at 50% 100%,
+          rgba(234,88,12,0.08) 0%, transparent 100%)
       `,
         },
         dark: {
@@ -167,11 +194,39 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#8a6048',
             '--divider-light': '#5a3a28',
 
-            /* 背景装饰 */
+            /*
+             * 背景装饰 — 珊瑚分枝（深色）
+             * 弧形窄椭圆从底部向外辐射 + 硬边圆点模拟珊瑚触须
+             */
             '--bg-decoration': `
-        radial-gradient(ellipse 130% 40% at 10% 85%, rgba(251,146,60,0.50) 0%, transparent 70%),
-        radial-gradient(ellipse 80% 35% at 90% 20%, rgba(249,115,22,0.35) 0%, transparent 70%),
-        radial-gradient(circle 250px at 30% 60%, rgba(234,88,12,0.25) 0%, transparent 100%)
+        radial-gradient(circle 28px at 20% 38%,
+          rgba(251,146,60,0.30) 0%, rgba(251,146,60,0.30) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(circle 18px at 16% 34%,
+          rgba(234,88,12,0.22) 0%, rgba(234,88,12,0.22) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(circle 32px at 82% 40%,
+          rgba(249,115,22,0.28) 0%, rgba(249,115,22,0.28) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(circle 20px at 86% 35%,
+          rgba(234,88,12,0.20) 0%, rgba(234,88,12,0.20) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(circle 22px at 60% 58%,
+          rgba(251,146,60,0.22) 0%, rgba(251,146,60,0.22) 30%, rgba(234,88,12,0.08) 55%, transparent 70%),
+        radial-gradient(ellipse 12% 38% at 35% 80%,
+          rgba(251,146,60,0.35) 0%, transparent 100%),
+        radial-gradient(ellipse 10% 30% at 28% 60%,
+          rgba(249,115,22,0.26) 0%, transparent 100%),
+        radial-gradient(ellipse 8% 24% at 22% 42%,
+          rgba(234,88,12,0.20) 0%, transparent 100%),
+        radial-gradient(ellipse 12% 38% at 68% 82%,
+          rgba(249,115,22,0.32) 0%, transparent 100%),
+        radial-gradient(ellipse 10% 32% at 75% 62%,
+          rgba(234,88,12,0.24) 0%, transparent 100%),
+        radial-gradient(ellipse 8% 26% at 80% 44%,
+          rgba(249,115,22,0.18) 0%, transparent 100%),
+        radial-gradient(ellipse 8% 30% at 55% 85%,
+          rgba(234,88,12,0.26) 0%, transparent 100%),
+        radial-gradient(ellipse 6% 24% at 58% 65%,
+          rgba(251,146,60,0.18) 0%, transparent 100%),
+        radial-gradient(ellipse 100% 25% at 50% 100%,
+          rgba(234,88,12,0.14) 0%, transparent 100%)
       `,
         },
     },
