@@ -157,7 +157,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: var(--font-size-xxs);
+    font-size: var(--font-size-xs);
     color: var(--text-tertiary);
     padding: 2px 2px 0;
     flex-wrap: wrap;
@@ -170,7 +170,7 @@
 
 .meta-divider {
     color: var(--border-hover);
-    font-size: 0.533rem;
+    font-size: 0.6rem;
 }
 
 .meta-duration {
@@ -183,7 +183,7 @@
 
 .meta-tokens-detail {
     color: var(--text-muted);
-    font-size: 0.6rem;
+    font-size: var(--font-size-xxs);
 }
 
 /* ===== 思考中占位 ===== */
