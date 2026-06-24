@@ -28,7 +28,12 @@ public enum GlobalConfigKey {
      * 显示设置（字体大小、字体类型、主题模式等）
      * value 为 JSON: {"fontSize":"medium","fontFamily":"system","themeMode":"light","colorScheme":"blue"}
      */
-    DISPLAY_SETTINGS("显示设置");
+    DISPLAY_SETTINGS("显示设置"),
+
+    /**
+     * 数据库初始化版本号（纯数字字符串，如 "0", "1", "2"）
+     */
+    DB_INIT_VERSION("数据库初始化版本号");
 
     private final String description;
 
