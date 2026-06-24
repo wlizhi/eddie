@@ -8,8 +8,8 @@ import cc.wlizhi.eddie.chat.handler.impl.ChatSseTransformer;
 import cc.wlizhi.eddie.chat.handler.impl.ChatStreamExecutor;
 import cc.wlizhi.eddie.chat.service.ChatClientFactory;
 import cc.wlizhi.eddie.chat.service.ChatClientFactoryRouter;
-import cc.wlizhi.eddie.chat.service.ChatMemoryManager;
 import cc.wlizhi.eddie.chat.service.ChatService;
+import cc.wlizhi.eddie.memory.shortterm.ShortTermMemory;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -45,7 +45,7 @@ public class ChatServiceImpl implements ChatService {
     private ChatClientFactoryRouter chatClientFactoryRouter;
 
     @Resource
-    private ChatMemoryManager chatMemoryManager;
+    private ShortTermMemory shortTermMemory;
 
     @Resource
     private ChatStreamExecutor chatStreamExecutor;
@@ -73,7 +73,7 @@ public class ChatServiceImpl implements ChatService {
         ChatClient chatClient = factory.getChatClient(ctx);
         chatClient = chatClient.mutate()
                 .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(chatMemoryManager)
+                        MessageChatMemoryAdvisor.builder(shortTermMemory)
                                 .scheduler(Schedulers.parallel())
                                 .build()
                 ).build();
