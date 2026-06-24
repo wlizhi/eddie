@@ -33,8 +33,8 @@ const navGroups: NavGroup[] = [
   {
     label: '通用设置',
     items: [
-      {key: 'general', label: '常规设置', icon: Settings},
       {key: 'display', label: '显示设置', icon: Monitor},
+      {key: 'general', label: '常规设置', icon: Settings},
     ],
   },
   {

@@ -2,10 +2,11 @@
   InputArea.vue — 底部输入区域
 
   功能：
-  - 自适应高度的文本输入框
+  - 自适应高度的文本输入框（最大 300px，超出滚动）
+  - 顶部拖拽手柄自由调整高度（48px~300px）
   - Enter 发送 / Shift+Enter 换行
   - IME 输入法组合处理
-  - 发送/中断按钮
+  - 发送/中断按钮（工具栏最右侧）
   - 模型选择器（单 NSelect 下拉，与助手弹窗风格一致）
   - 功能开关（联网搜索、深度思考，预留）
   - 流式响应状态提示
@@ -19,7 +20,7 @@
   - send — 用户点击发送或按 Enter
 -->
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {NSelect} from 'naive-ui'
 import {Send, Square} from '@lucide/vue'
@@ -39,11 +40,64 @@ const emit = defineEmits<{
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 /** IME 输入法组合状态 */
 const isComposing = ref(false)
+/** 拖拽设定的高度（48~220），拖拽时直接生效，不受内容撑高覆盖 */
+const baseHeight = ref(48)
+/** 输入框高度限制 */
+const INPUT_MIN = 48
+const INPUT_MAX = 220
 
-/** 复合键分隔符，防止不同供应商下同编号模型冲突 */
+/** 内容变化时自动撑高（受 baseHeight 下限和 INPUT_MAX 上限约束），同时同步 baseHeight */
+function autoResize() {
+  const el = inputRef.value
+  if (!el) return
+  const contentTarget = Math.min(el.scrollHeight, INPUT_MAX)
+  const target = Math.max(baseHeight.value, contentTarget)
+  el.style.height = target + 'px'
+  baseHeight.value = target
+}
+
+/** 拖拽时直接设高度，不受内容撑高逻辑干扰 */
+function applyDragHeight(h: number) {
+  const el = inputRef.value
+  if (el) el.style.height = h + 'px'
+}
+
+// 输入内容变化时自动调整高度（自动撑高，不覆盖拖拽下限）
+watch(() => props.modelValue, () => {
+  nextTick(() => autoResize())
+})
+
+onMounted(() => {
+  nextTick(() => autoResize())
+})
+
+/** 顶部拖拽手柄 —— 以 textarea 实际当前高度为起点，保证拖拽始终跟随鼠标 */
+function startResize(e: MouseEvent) {
+  e.preventDefault()
+  const startY = e.clientY
+  const el = inputRef.value
+  const startHeight = el ? el.offsetHeight : baseHeight.value
+
+  function onMouseMove(e: MouseEvent) {
+    const delta = startY - e.clientY // 向上拖为正（放大），向下拖为负（缩小）
+    const newHeight = Math.max(INPUT_MIN, Math.min(INPUT_MAX, startHeight + delta))
+    baseHeight.value = newHeight
+    applyDragHeight(newHeight)
+  }
+
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
+
+/** 复合键分隔符 */
 const MODEL_KEY_SEPARATOR = '::'
 
-/** 按供应商分组 — naive-ui NSelect 分组格式（复合键） */
+/** 按供应商分组 */
 const groupedOptions = computed(() =>
     chatStore.modelSelectors.map((selector) => ({
       type: 'group' as const,
@@ -62,7 +116,7 @@ const selectedModelKey = computed<string | null>(() => {
   return `${chatStore.currentProviderId}${MODEL_KEY_SEPARATOR}${chatStore.currentModelId}`
 })
 
-/** NSelect 选中时从复合键解析并同步 store */
+/** 模型选择 */
 function onModelSelect(compositeKey: string | null) {
   if (!compositeKey) return
   const sepIdx = compositeKey.indexOf(MODEL_KEY_SEPARATOR)
@@ -73,7 +127,7 @@ function onModelSelect(compositeKey: string | null) {
   chatStore.selectModel(modelId, providerId)
 }
 
-/** 处理输入框键盘事件 */
+/** 键盘事件 */
 function handleKeydown(e: KeyboardEvent) {
   if (e.isComposing || e.keyCode === 229) return
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -90,20 +144,10 @@ function onCompositionEnd() {
   isComposing.value = false
 }
 
-/** textarea 自适应高度 */
-function autoResize(e: Event) {
-  const el = e.target as HTMLTextAreaElement
-  el.style.height = 'auto'
-  el.style.height = Math.min(el.scrollHeight, 200) + 'px'
-}
-
-/** 输入事件处理：更新 v-model + 自适应高度 */
 function onInput(e: Event) {
   emit('update:modelValue', (e.target as HTMLTextAreaElement).value)
-  autoResize(e)
 }
 
-/** 发送后保持焦点在输入框 */
 function focusInput() {
   inputRef.value?.focus()
 }
@@ -113,40 +157,26 @@ defineExpose({focusInput})
 
 <template>
   <div class="input-area">
-    <div class="input-container" :class="{ 'is-streaming': chatStore.isStreaming }">
-      <!-- 输入框 + 发送按钮 -->
+    <div class="input-container">
       <div class="input-body">
-        <textarea
-            ref="inputRef"
-            :value="modelValue"
-            class="chat-input"
-            placeholder="输入消息..."
-            rows="1"
-            @input="onInput"
-            @keydown="handleKeydown"
-            @compositionstart="onCompositionStart"
-            @compositionend="onCompositionEnd"
-        />
-        <button
-            v-if="!chatStore.isStreaming"
-            class="send-btn"
-            :disabled="!modelValue.trim()"
-            title="发送"
-            @click="emit('send')"
-        >
-          <Send :size="16" :stroke-width="2"/>
-        </button>
-        <button
-            v-else
-            class="stop-btn"
-            title="中断"
-            @click="chatStore.abortStream()"
-        >
-          <Square :size="14" :stroke-width="2"/>
-        </button>
+        <!-- 顶部拖拽手柄 -->
+        <div class="resize-handle" @mousedown="startResize"/>
+        <div class="grow-wrap">
+          <textarea
+              ref="inputRef"
+              :value="modelValue"
+              class="chat-input"
+              placeholder="输入消息..."
+              rows="1"
+              @input="onInput"
+              @keydown="handleKeydown"
+              @compositionstart="onCompositionStart"
+              @compositionend="onCompositionEnd"
+          />
+        </div>
       </div>
 
-      <!-- 底部工具栏：模型选择 + 功能开关 -->
+      <!-- 底部工具栏（flex 列布局，固定在底部） -->
       <div class="input-toolbar">
         <NSelect
             :value="selectedModelKey"
@@ -166,6 +196,23 @@ defineExpose({focusInput})
             💡 思考
           </button>
         </div>
+        <button
+            v-if="!chatStore.isStreaming"
+            class="send-btn"
+            :disabled="!modelValue.trim()"
+            title="发送"
+            @click="emit('send')"
+        >
+          <Send :size="13" :stroke-width="2.5"/>
+        </button>
+        <button
+            v-else
+            class="stop-btn"
+            title="中断"
+            @click="chatStore.abortStream()"
+        >
+          <Square :size="11" :stroke-width="2.5"/>
+        </button>
       </div>
     </div>
 
@@ -175,7 +222,6 @@ defineExpose({focusInput})
 
 <style src="./input-area.css" scoped/>
 <style>
-/* 覆盖 NSelect 下拉菜单样式 */
 .n-base-select-menu {
   border-radius: 12px !important;
   overflow: hidden;

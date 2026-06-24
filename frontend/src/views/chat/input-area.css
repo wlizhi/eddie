@@ -1,11 +1,13 @@
 .input-area {
     flex-shrink: 0;
-    padding: 10px 16px 12px;
+    padding: 10px 16px 8px;
     background: var(--bg-primary);
 }
 
-/* ===== 输入容器（单一边框包裹内部所有元素） ===== */
+/* ===== 输入容器（flex 列布局，工具栏固定在底部） ===== */
 .input-container {
+    display: flex;
+    flex-direction: column;
     border: 1px solid var(--border-light);
     border-radius: 18px;
     background: var(--bg-secondary);
@@ -18,15 +20,82 @@
     box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
-/* ===== 底部工具栏：模型选择 + 功能开关 ===== */
+/* ===== 顶部拖拽手柄 ===== */
+.resize-handle {
+    height: 4px;
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.resize-handle::after {
+    content: '';
+    width: 32px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border-default);
+    transition: background 0.15s, width 0.15s;
+}
+
+.input-container:hover .resize-handle,
+.resize-handle:hover {
+    opacity: 1;
+}
+
+.resize-handle:hover::after {
+    background: var(--accent-default);
+    width: 40px;
+}
+
+/* ===== 输入框主体 ===== */
+.input-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 48px;
+    max-height: 240px;
+    padding: 10px 10px 0;
+    overflow: hidden;
+}
+
+/* 文本区容器 */
+.grow-wrap {
+    flex: 1;
+    min-height: 0;
+}
+
+.chat-input {
+    width: 100%;
+    padding: 4px 0;
+    border: none;
+    border-radius: 0;
+    font-size: var(--font-size-body);
+    font-family: inherit;
+    line-height: 1.5;
+    resize: none;
+    overflow-y: auto;
+    outline: none;
+    color: var(--text-primary);
+    background: transparent;
+}
+
+.chat-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* ===== 底部工具栏（固定在底部，不被挤压） ===== */
 .input-toolbar {
     display: flex;
     align-items: center;
     gap: 4px;
     padding: 0 10px 6px;
+    flex-shrink: 0;
 }
 
-/* 模型选择器 — 扁平化，无独立边框，宽度自适应内容 */
+/* ===== 模型选择器 ===== */
 .model-select {
     width: auto;
     min-width: 0;
@@ -79,7 +148,7 @@
     min-height: auto !important;
 }
 
-/* ===== 功能开关按钮 ===== */
+/* ===== 功能开关 ===== */
 .feature-toggles {
     display: flex;
     align-items: center;
@@ -114,40 +183,14 @@
     background: transparent;
 }
 
-/* ===== 输入框主体行 ===== */
-.input-body {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    padding: 8px 10px 2px;
-}
-
-.chat-input {
-    flex: 1;
-    min-height: 36px;
-    padding: 4px 0;
-    border: none;
-    border-radius: 0;
-    font-size: var(--font-size-body);
-    font-family: inherit;
-    line-height: 1.5;
-    resize: vertical;
-    outline: none;
-    color: var(--text-primary);
-    background: transparent;
-}
-
-.chat-input::placeholder {
-    color: var(--text-tertiary);
-}
-
-/* ===== 发送 / 中断按钮 ===== */
+/* ===== 发送 / 中断按钮（工具栏最右） ===== */
 .send-btn,
 .stop-btn {
-    width: 34px;
-    height: 34px;
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;

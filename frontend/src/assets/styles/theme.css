@@ -190,10 +190,8 @@
     --divider-light: #353535;
 }
 
-/* 主题切换过渡动画 */
-:root,
-::before,
-::after {
+/* 主题切换过渡动画 — * 确保所有元素都能平滑过渡 CSS 变量变化 */
+* {
     transition: background-color 0.25s ease,
     color 0.25s ease,
     border-color 0.25s ease,

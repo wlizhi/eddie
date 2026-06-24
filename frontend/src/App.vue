@@ -2,8 +2,8 @@
 import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {darkTheme, NConfigProvider} from 'naive-ui'
-import {Bot, ChevronLeft, ChevronRight, MessageSquare, Settings} from '@lucide/vue'
-import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
+import {Bot, ChevronLeft, ChevronRight, MessageSquare, Moon, Settings, Sun} from '@lucide/vue'
+import {applyDisplay, displaySettings, loadDisplaySettings, saveDisplaySettings} from '@/composables/useDisplaySettings'
 import ToastNotification from '@/components/common/ToastNotification.vue'
 
 onMounted(() => {
@@ -77,6 +77,17 @@ function toggleCollapse() {
   }
 }
 
+/** 循环切换主题（后续扩展只需在数组中添加新主题名） */
+function cycleTheme() {
+  const themes = ['light', 'dark']
+  const current = displaySettings.themeMode
+  const idx = themes.indexOf(current)
+  displaySettings.themeMode = themes[(idx + 1) % themes.length]
+  applyDisplay()
+  saveDisplaySettings().catch(() => {
+  })
+}
+
 </script>
 
 <template>
@@ -101,6 +112,16 @@ function toggleCollapse() {
       <div class="nav-rail-divider"/>
 
       <div class="nav-rail-bottom">
+        <!-- 主题切换按钮 -->
+        <button
+            class="nav-item"
+            :title="displaySettings.themeMode === 'dark' ? '切换浅色主题' : '切换深色主题'"
+            @click="cycleTheme"
+        >
+          <Sun v-if="displaySettings.themeMode === 'light'" :size="20" :stroke-width="1.8"/>
+          <Moon v-else :size="20" :stroke-width="1.8"/>
+          <span class="nav-tooltip">{{ displaySettings.themeMode === 'dark' ? '浅色模式' : '深色模式' }}</span>
+        </button>
         <button
             v-for="item in bottomNavItems"
             :key="item.key"
