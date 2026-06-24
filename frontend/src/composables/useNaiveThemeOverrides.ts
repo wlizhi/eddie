@@ -63,7 +63,7 @@ export const naiveThemeOverrides = computed(() => {
 
     const dividerLight = v('--divider-light')
     const dangerDefault = v('--danger-default')
-    const dangerHover = v('--danger-hover')
+    // const dangerHover = v('--danger-hover')
 
     return {
         // ===== 通用基础 token —— 影响所有组件 =====

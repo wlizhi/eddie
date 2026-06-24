@@ -80,8 +80,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#60a5fa',
             hover: '#3b82f6',
-            lightBg: '#1e3a5f',
-            lightBorder: '#3b5f8a',
+            lightBg: 'rgba(96,165,250,0.12)',
+            lightBorder: 'rgba(96,165,250,0.25)',
             ring: 'rgba(96,165,250,0.12)',
             borderFocus: '#60a5fa',
             textAccent: '#60a5fa'
@@ -102,8 +102,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#4ade80',
             hover: '#22c55e',
-            lightBg: '#1a3a2a',
-            lightBorder: '#2d5a3f',
+            lightBg: 'rgba(74,222,128,0.12)',
+            lightBorder: 'rgba(74,222,128,0.25)',
             ring: 'rgba(74,222,128,0.12)',
             borderFocus: '#4ade80',
             textAccent: '#4ade80'
@@ -124,8 +124,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#fb923c',
             hover: '#f97316',
-            lightBg: '#3a2a1a',
-            lightBorder: '#5a472a',
+            lightBg: 'rgba(251,146,60,0.12)',
+            lightBorder: 'rgba(251,146,60,0.25)',
             ring: 'rgba(251,146,60,0.12)',
             borderFocus: '#fb923c',
             textAccent: '#fb923c'
@@ -146,8 +146,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#c084fc',
             hover: '#a855f7',
-            lightBg: '#2e1a4a',
-            lightBorder: '#4a2d6e',
+            lightBg: 'rgba(192,132,252,0.12)',
+            lightBorder: 'rgba(192,132,252,0.25)',
             ring: 'rgba(192,132,252,0.12)',
             borderFocus: '#c084fc',
             textAccent: '#c084fc'
@@ -168,8 +168,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#f87171',
             hover: '#ef4444',
-            lightBg: '#3b1f1f',
-            lightBorder: '#7f3d3d',
+            lightBg: 'rgba(248,113,113,0.12)',
+            lightBorder: 'rgba(248,113,113,0.25)',
             ring: 'rgba(248,113,113,0.12)',
             borderFocus: '#f87171',
             textAccent: '#f87171'
@@ -190,8 +190,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#818cf8',
             hover: '#6366f1',
-            lightBg: '#1e1b4b',
-            lightBorder: '#3730a3',
+            lightBg: 'rgba(129,140,248,0.12)',
+            lightBorder: 'rgba(129,140,248,0.25)',
             ring: 'rgba(129,140,248,0.12)',
             borderFocus: '#818cf8',
             textAccent: '#818cf8',
@@ -212,8 +212,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#38bdf8',
             hover: '#0ea5e9',
-            lightBg: '#0c4a6e',
-            lightBorder: '#0369a1',
+            lightBg: 'rgba(56,189,248,0.12)',
+            lightBorder: 'rgba(56,189,248,0.25)',
             ring: 'rgba(56,189,248,0.12)',
             borderFocus: '#38bdf8',
             textAccent: '#38bdf8',
@@ -234,8 +234,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#2dd4bf',
             hover: '#14b8a6',
-            lightBg: '#134e4a',
-            lightBorder: '#0f766e',
+            lightBg: 'rgba(45,212,191,0.12)',
+            lightBorder: 'rgba(45,212,191,0.25)',
             ring: 'rgba(45,212,191,0.12)',
             borderFocus: '#2dd4bf',
             textAccent: '#2dd4bf',
@@ -256,8 +256,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#fb7185',
             hover: '#f43f5e',
-            lightBg: '#4c0519',
-            lightBorder: '#9f1239',
+            lightBg: 'rgba(251,113,133,0.12)',
+            lightBorder: 'rgba(251,113,133,0.25)',
             ring: 'rgba(251,113,133,0.12)',
             borderFocus: '#fb7185',
             textAccent: '#fb7185',
@@ -278,8 +278,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#fbbf24',
             hover: '#f59e0b',
-            lightBg: '#451a03',
-            lightBorder: '#92400e',
+            lightBg: 'rgba(251,191,36,0.12)',
+            lightBorder: 'rgba(251,191,36,0.25)',
             ring: 'rgba(251,191,36,0.12)',
             borderFocus: '#fbbf24',
             textAccent: '#fbbf24',
@@ -300,8 +300,8 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
         dark: {
             accent: '#a78bfa',
             hover: '#8b5cf6',
-            lightBg: '#2e1065',
-            lightBorder: '#5b21b6',
+            lightBg: 'rgba(167,139,250,0.12)',
+            lightBorder: 'rgba(167,139,250,0.25)',
             ring: 'rgba(167,139,250,0.12)',
             borderFocus: '#a78bfa',
             textAccent: '#a78bfa',
