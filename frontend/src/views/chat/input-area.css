@@ -214,13 +214,13 @@
 }
 
 .stop-btn {
-    background: #ef4444;
-    color: #ffffff;
+    background: var(--danger-default);
+    color: var(--text-inverse);
     animation: stop-btn-pulse 1.2s ease-in-out infinite;
 }
 
 .stop-btn:hover {
-    background: #dc2626;
+    background: var(--danger-hover);
 }
 
 @keyframes stop-btn-pulse {

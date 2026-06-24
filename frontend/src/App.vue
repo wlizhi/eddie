@@ -11,6 +11,7 @@ import {
   loadDisplaySettings,
   saveDisplaySettings
 } from '@/composables/useDisplaySettings'
+import {naiveThemeOverrides} from '@/composables/useNaiveThemeOverrides'
 import ToastNotification from '@/components/common/ToastNotification.vue'
 
 onMounted(() => {
@@ -111,11 +112,7 @@ const currentTheme = computed(() => findTheme(displaySettings.themeId))
 <template>
   <!-- 全局背景层：承载主题渐变装饰，位于所有页面内容之下 -->
   <div class="app-backdrop"/>
-  <NConfigProvider :theme="naiveTheme" :theme-overrides="{
-      Card: {
-          colorModal: findTheme(displaySettings.themeId)?.variables[displaySettings.themeMode]?.['--bg-primary'] ?? '#ffffff',
-      },
-  }">
+  <NConfigProvider :theme="naiveTheme" :theme-overrides="naiveThemeOverrides">
   <div class="app-layout">
     <!-- Nav Rail -->
     <nav class="nav-rail">

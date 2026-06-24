@@ -61,8 +61,8 @@ h2 {
 }
 
 .empty-hint {
-  color: #888;
-  font-size: 14px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-base);
 }
 
 .suggestions {
@@ -75,7 +75,7 @@ h2 {
 
 .suggestion-card {
   padding: 12px 16px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
@@ -84,6 +84,6 @@ h2 {
 }
 
 .suggestion-card:hover {
-  background: #f5f5f5;
+  background: var(--bg-hover);
 }
 </style>

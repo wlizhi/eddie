@@ -117,7 +117,7 @@
 }
 
 .config-header .translate-icon {
-    color: #8b5cf6;
+    color: var(--accent-default);
 }
 
 .config-hint {

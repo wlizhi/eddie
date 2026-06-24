@@ -1,4 +1,4 @@
-import {reactive} from 'vue'
+import {reactive, watch} from 'vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {findTheme, getThemes, type ThemeDefinition} from '@/assets/themes/index'
 
@@ -334,6 +334,20 @@ const defaultSettings: DisplaySettings = {
 export const displaySettings = reactive<DisplaySettings>({...defaultSettings})
 
 let loaded = false
+/** 标记主题是否已从后端加载并应用到 DOM */
+export const isReady = {value: false}
+
+/**
+ * 全局自动 watch：displaySettings 的任何变化自动同步到 DOM
+ * 消除各组件手动调用 applyDisplay() 的负担
+ */
+watch(
+    () => ({...displaySettings}),
+    () => {
+        applyDisplaySettings()
+    },
+    {deep: true},
+)
 
 /** 加载显示设置 */
 export async function loadDisplaySettings(): Promise<void> {
@@ -358,7 +372,9 @@ export async function loadDisplaySettings(): Promise<void> {
         // 使用默认值
     }
     loaded = true
+    // 无论是否从后端加载到数据，都确保主题应用到 DOM
     applyDisplaySettings()
+    isReady.value = true
 }
 
 /** 应用显示设置到本地（仅前端生效，不持久化） */

@@ -99,8 +99,9 @@
     --bg-decoration: none;
 }
 
-/* 主题切换过渡动画 — 确保所有元素都能平滑过渡 CSS 变量变化 */
-* {
+/* 主题切换过渡动画 — 仅在主题数据加载完成后生效，避免 FOUC
+   使用 [data-theme] 属性选择器约束，防止首次加载时触发过渡 */
+html[data-theme] * {
     transition: background-color 0.25s ease,
     color 0.25s ease,
     border-color 0.25s ease,
