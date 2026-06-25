@@ -112,6 +112,20 @@ public class ToolDefinitionDao {
     }
 
     /**
+     * 查询所有工具定义（不过滤 enabled 状态）
+     */
+    public List<ToolDefinitionEntity> findAll() {
+        String sql = """
+                SELECT id, tool_type, name, display_name, description,
+                       enabled, built_in, mcp_server_id, sort_order,
+                       created_at, updated_at
+                FROM ai_tool_definition
+                ORDER BY sort_order ASC, id ASC
+                """;
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class));
+    }
+
+    /**
      * 切换启用/禁用状态
      */
     public void updateEnabled(Long id, int enabled) {

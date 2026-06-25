@@ -3,6 +3,8 @@ package cc.wlizhi.eddie.common.dao;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import jakarta.annotation.Resource;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -91,7 +93,7 @@ public class OwnerToolBindingDao {
     }
 
     /**
-     * 批量插入绑定关系
+     * 批量插入绑定关系（使用 JDBC batchUpdate，单次网络往返）
      */
     public void batchInsert(RoleType ownerType, Long ownerId, List<Long> toolIds) {
         if (toolIds == null || toolIds.isEmpty()) return;
@@ -99,59 +101,34 @@ public class OwnerToolBindingDao {
                 INSERT INTO ai_owner_tool_binding (owner_type, owner_id, tool_id, enabled, created_at)
                 VALUES (?, ?, ?, 1, datetime('now', 'localtime'))
                 """;
-        for (Long toolId : toolIds) {
-            jdbcTemplate.update(sql, ownerType.name(), ownerId, toolId);
-        }
+        List<Object[]> batchArgs = toolIds.stream()
+                .map(toolId -> new Object[]{ownerType.name(), ownerId, toolId})
+                .toList();
+        jdbcTemplate.batchUpdate(sql, batchArgs);
+    }
+
+    /**
+     * 删除指定 Owner 下属于某个 MCP Server 的所有绑定
+     */
+    public void deleteByOwnerAndMcpServer(RoleType ownerType, Long ownerId, Long mcpServerId) {
+        String sql = """
+                DELETE FROM ai_owner_tool_binding
+                WHERE owner_type = ? AND owner_id = ?
+                AND tool_id IN (SELECT id FROM ai_tool_definition WHERE mcp_server_id = ?)
+                """;
+        jdbcTemplate.update(sql, ownerType.name(), ownerId, mcpServerId);
     }
 
     /**
      * 绑定行映射（内部使用）
      */
+    @Getter
+    @Setter
     public static class OwnerToolBindingRow {
         private Long id;
         private String ownerType;
         private Long ownerId;
         private Long toolId;
         private Integer enabled;
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getOwnerType() {
-            return ownerType;
-        }
-
-        public void setOwnerType(String ownerType) {
-            this.ownerType = ownerType;
-        }
-
-        public Long getOwnerId() {
-            return ownerId;
-        }
-
-        public void setOwnerId(Long ownerId) {
-            this.ownerId = ownerId;
-        }
-
-        public Long getToolId() {
-            return toolId;
-        }
-
-        public void setToolId(Long toolId) {
-            this.toolId = toolId;
-        }
-
-        public Integer getEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(Integer enabled) {
-            this.enabled = enabled;
-        }
     }
 }
