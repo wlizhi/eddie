@@ -1,0 +1,121 @@
+package cc.wlizhi.eddie.common.dao;
+
+import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import jakarta.annotation.Resource;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * 工具定义表 (ai_tool_definition) 数据访问层
+ */
+@RegisterReflectionForBinding(ToolDefinitionEntity.class)
+@Repository
+public class ToolDefinitionDao {
+
+    @Resource
+    private JdbcTemplate jdbcTemplate;
+
+    /**
+     * 查询所有内置工具
+     */
+    public List<ToolDefinitionEntity> findAllBuiltIn() {
+        String sql = """
+                SELECT id, tool_type, name, display_name, description,
+                       enabled, built_in, mcp_server_id, sort_order,
+                       created_at, updated_at
+                FROM ai_tool_definition
+                WHERE built_in = 1
+                ORDER BY sort_order ASC, id ASC
+                """;
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class));
+    }
+
+    /**
+     * 按 name 查询工具定义
+     */
+    public Optional<ToolDefinitionEntity> findByName(String name) {
+        String sql = """
+                SELECT id, tool_type, name, display_name, description,
+                       enabled, built_in, mcp_server_id, sort_order,
+                       created_at, updated_at
+                FROM ai_tool_definition
+                WHERE name = ?
+                """;
+        List<ToolDefinitionEntity> results = jdbcTemplate.query(
+                sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class), name);
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
+    /**
+     * 插入工具定义
+     */
+    public void insert(ToolDefinitionEntity entity) {
+        String sql = """
+                INSERT INTO ai_tool_definition
+                    (tool_type, name, display_name, description, enabled,
+                     built_in, mcp_server_id, sort_order,
+                     created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?,
+                        datetime('now', 'localtime'), datetime('now', 'localtime'))
+                """;
+        jdbcTemplate.update(sql,
+                entity.getToolType(),
+                entity.getName(),
+                entity.getDisplayName(),
+                entity.getDescription(),
+                entity.getEnabled() != null ? entity.getEnabled() : 1,
+                entity.getBuiltIn() != null ? entity.getBuiltIn() : 0,
+                entity.getMcpServerId(),
+                entity.getSortOrder() != null ? entity.getSortOrder() : 0);
+    }
+
+    /**
+     * 更新工具定义（排除创建时间）
+     */
+    public void update(ToolDefinitionEntity entity) {
+        String sql = """
+                UPDATE ai_tool_definition SET
+                    tool_type = ?, display_name = ?, description = ?,
+                    enabled = ?, built_in = ?, mcp_server_id = ?,
+                    sort_order = ?, updated_at = datetime('now', 'localtime')
+                WHERE id = ?
+                """;
+        jdbcTemplate.update(sql,
+                entity.getToolType(),
+                entity.getDisplayName(),
+                entity.getDescription(),
+                entity.getEnabled(),
+                entity.getBuiltIn(),
+                entity.getMcpServerId(),
+                entity.getSortOrder(),
+                entity.getId());
+    }
+
+    /**
+     * 查询所有启用的工具
+     */
+    public List<ToolDefinitionEntity> findAllEnabled() {
+        String sql = """
+                SELECT id, tool_type, name, display_name, description,
+                       enabled, built_in, mcp_server_id, sort_order,
+                       created_at, updated_at
+                FROM ai_tool_definition
+                WHERE enabled = 1
+                ORDER BY sort_order ASC, id ASC
+                """;
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class));
+    }
+
+    /**
+     * 切换启用/禁用状态
+     */
+    public void updateEnabled(Long id, int enabled) {
+        String sql = "UPDATE ai_tool_definition SET enabled = ?, updated_at = datetime('now', 'localtime') WHERE id = ?";
+        jdbcTemplate.update(sql, enabled, id);
+    }
+}

@@ -1,5 +1,6 @@
 package cc.wlizhi.eddie.role.tool;
 
+import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,7 +29,7 @@ import java.util.List;
  * </ul>
  */
 @Component
-public class WebFetchTools {
+public class WebFetchTools implements BuiltInToolProvider {
 
     private static final Logger log = LoggerFactory.getLogger(WebFetchTools.class);
 
@@ -47,7 +48,7 @@ public class WebFetchTools {
         this.objectMapper = new ObjectMapper();
     }
 
-    @Tool(name = "fetch_markdown",
+    @Tool(name = "built_in_fetch_markdown",
             description = "获取指定 URL 的网页内容，提取正文后返回干净的 Markdown 文本，适合 LLM 阅读")
     public String fetchMarkdown(
             @ToolParam(description = "要抓取的 URL 列表") List<String> urls,
@@ -97,7 +98,7 @@ public class WebFetchTools {
         return result.toString().strip();
     }
 
-    @Tool(name = "fetch_json",
+    @Tool(name = "built_in_fetch_json",
             description = "获取指定 URL 的 JSON 数据（API 端点专用）。URL 必须返回 application/json，否则报错")
     public String fetchJson(
             @ToolParam(description = "要获取的 JSON 数据 URL") String url) {

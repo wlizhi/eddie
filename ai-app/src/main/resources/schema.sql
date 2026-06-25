@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS ai_assistant
     enabled       INTEGER NOT NULL DEFAULT 1,
     sort_order    INTEGER NOT NULL DEFAULT 0,
 
+    -- 工具选择模式：auto（自动选择）、manual（手动选择）、none（不使用工具）
+    tool_selection_mode TEXT NOT NULL DEFAULT 'none',
+
     created_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
     updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
@@ -96,3 +99,60 @@ VALUES ('DEFAULT_MODEL', '{}', '默认对话模型'),
        ('FAST_MODEL', '{}', '快速模型'),
        ('TRANSLATE_MODEL', '{}', '翻译模型')
 ON CONFLICT(config_key) DO NOTHING;
+
+-- 工具定义表：注册系统中可用的工具（内置工具或 MCP 工具）
+CREATE TABLE IF NOT EXISTS ai_tool_definition
+(
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    tool_type     TEXT    NOT NULL DEFAULT 'BUILT_IN', -- BUILT_IN（内置）/ MCP（MCP 工具）
+    name          TEXT    NOT NULL UNIQUE,             -- 工具唯一标识名，如 'web_search', 'file_read'（全局唯一，防止冲突）
+    display_name  TEXT    NOT NULL DEFAULT '',         -- 工具显示名称
+    description   TEXT    NOT NULL DEFAULT '',         -- 工具功能描述
+    enabled       INTEGER NOT NULL DEFAULT 1,          -- 0=禁用, 1=启用
+    built_in      INTEGER NOT NULL DEFAULT 0,          -- 0=用户自定义, 1=内置（不可删除）
+    mcp_server_id INTEGER,                             -- 关联 ai_mcp_server.id（仅 MCP 类型）
+    sort_order    INTEGER NOT NULL DEFAULT 0,          -- 排序序号
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_tool_def_type ON ai_tool_definition (tool_type);
+CREATE INDEX IF NOT EXISTS idx_tool_def_enabled ON ai_tool_definition (enabled);
+CREATE INDEX IF NOT EXISTS idx_tool_def_mcp_server ON ai_tool_definition (mcp_server_id);
+
+-- 工具绑定表：助手/智能体与工具的关联关系
+CREATE TABLE IF NOT EXISTS ai_assistant_tool
+(
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_type TEXT    NOT NULL DEFAULT 'ASSISTANT', -- ASSISTANT（助手）/ AGENT（智能体）
+    owner_id   INTEGER NOT NULL,                     -- 归属方 ID（assistant_id / agent_id）
+    tool_id    INTEGER NOT NULL,                     -- 工具 ID
+    enabled    INTEGER NOT NULL DEFAULT 1,           -- 0=禁用, 1=启用
+    created_at TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    UNIQUE (owner_type, owner_id, tool_id)           -- 同一归属方不可重复绑定同一工具
+);
+CREATE INDEX IF NOT EXISTS idx_assistant_tool_owner ON ai_assistant_tool (owner_type, owner_id);
+CREATE INDEX IF NOT EXISTS idx_assistant_tool_tool ON ai_assistant_tool (tool_id);
+
+-- MCP 服务器配置表：管理 MCP 服务端连接配置
+CREATE TABLE IF NOT EXISTS ai_mcp_server
+(
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT    NOT NULL,                 -- MCP 服务端名称
+    transport_type  TEXT    NOT NULL DEFAULT 'STDIO', -- 传输方式：STDIO / SSE / STREAMABLE_HTTP
+
+    -- STDIO 专用参数
+    command         TEXT    NOT NULL DEFAULT '',      -- STDIO 启动命令，如 'npx'
+    args            TEXT    NOT NULL DEFAULT '[]',    -- STDIO 命令参数，JSON 数组
+    env             TEXT    NOT NULL DEFAULT '{}',    -- STDIO 环境变量，JSON 对象
+
+    -- SSE / Streamable HTTP 专用参数
+    url             TEXT    NOT NULL DEFAULT '',      -- SSE/HTTP 服务端 URL
+
+    timeout_seconds INTEGER NOT NULL DEFAULT 60,      -- 请求超时时间（秒）
+    enabled         INTEGER NOT NULL DEFAULT 1,       -- 0=禁用, 1=启用
+    built_in        INTEGER NOT NULL DEFAULT 0,       -- 0=用户自定义(可删除/编辑), 1=内置(不可删除)
+    sort_order      INTEGER NOT NULL DEFAULT 0,       -- 排序序号
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_server_enabled ON ai_mcp_server (enabled);
