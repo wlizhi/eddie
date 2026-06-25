@@ -233,7 +233,6 @@ function onScroll() {
         <div v-if="msg.content" class="message-actions">
           <button
               class="action-btn"
-              :class="msg.role === 'user' ? 'action-btn-user' : 'action-btn-assistant'"
               :data-copied="copiedMessageId === msg.id || undefined"
               @click="copyContent(msg.id, msg.content)"
               :title="copiedMessageId === msg.id ? '已复制' : '复制消息'"

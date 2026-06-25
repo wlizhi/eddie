@@ -11,6 +11,8 @@ import cc.wlizhi.eddie.chat.handler.ChatThinkingHandler;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.deepseek.DeepSeekAssistantMessage;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
@@ -19,7 +21,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-public class DefaultChatThinkingHandler implements ChatThinkingHandler {
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class DeepSeekChatThinkingHandler implements ChatThinkingHandler {
 
     @Override
     public boolean support(String providerCode) {
