@@ -10,10 +10,12 @@ import cc.wlizhi.eddie.chat.service.ChatClientFactory;
 import cc.wlizhi.eddie.chat.service.ChatClientFactoryRouter;
 import cc.wlizhi.eddie.chat.service.ChatService;
 import cc.wlizhi.eddie.memory.shortterm.ShortTermMemory;
+import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -54,6 +56,9 @@ public class ChatServiceImpl implements ChatService {
     private ChatSseTransformer chatSseTransformer;
 
     @Resource
+    private ToolCallbackResolver toolCallbackResolver;
+
+    @Resource
     private List<ChatPostProcessor> postProcessors;
 
     @Override
@@ -69,14 +74,28 @@ public class ChatServiceImpl implements ChatService {
         // 3. 工厂路由 + 构建 ChatClient
         ChatClientFactory factory = chatClientFactoryRouter.resolve(ctx.getProviderCode());
 
-        // 4. 注入记忆 Advisor
+        // 4. 注入工具 + 记忆 Advisor
         ChatClient chatClient = factory.getChatClient(ctx);
-        chatClient = chatClient.mutate()
+        var builder = chatClient.mutate()
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(shortTermMemory)
                                 .scheduler(Schedulers.parallel())
                                 .build()
-                ).build();
+                );
+
+        // 4.1 解析工具回调（请求参数优先，其次助手设置）
+        ChatRequest chatRequest = ctx.getOriginalRequest();
+        String toolMode = chatRequest.getToolSelectionMode();
+        if (toolMode == null) {
+            toolMode = ctx.getAssistant().getToolSelectionMode();
+        }
+        ToolCallback[] toolCallbacks = toolCallbackResolver.resolve(
+                "ASSISTANT", ctx.getAssistant().getId(), toolMode, chatRequest.getToolNames());
+        if (toolCallbacks.length > 0) {
+            builder.defaultTools(toolCallbacks);
+        }
+
+        chatClient = builder.build();
         ctx.setChatClient(chatClient);
 
         // 5. 执行流式调用

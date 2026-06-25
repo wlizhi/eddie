@@ -23,6 +23,10 @@
             <groupId>cc.wlizhi</groupId>
             <artifactId>ai-memory</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cc.wlizhi</groupId>
+            <artifactId>ai-tools</artifactId>
+        </dependency>
         <!-- 运行时依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

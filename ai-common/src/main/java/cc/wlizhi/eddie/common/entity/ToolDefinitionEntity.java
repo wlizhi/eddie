@@ -1,5 +1,6 @@
 package cc.wlizhi.eddie.common.entity;
 
+import cc.wlizhi.eddie.common.enums.ToolType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,7 +19,7 @@ public class ToolDefinitionEntity {
     /**
      * 工具类型：BUILT_IN（内置）/ MCP（MCP 工具）
      */
-    private String toolType;
+    private ToolType toolType;
 
     /**
      * 工具唯一标识名，如 'fetch_markdown', 'fetch_json'

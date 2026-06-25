@@ -5,11 +5,15 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 /**
  * 聊天请求参数
  * <p>
  * - providerId: 供应商实例 ID，用于精确查找服务商配置
  * - modelId: 具体模型 ID
+ * - toolSelectionMode: 工具选择模式，为空则使用助手的设置（最高优先级）
+ * - toolNames: 手动模式下指定的工具名称列表
  */
 @Getter
 @Setter
@@ -37,4 +41,22 @@ public class ChatRequest {
      */
     @NotBlank(message = "modelId 不能为空")
     private String modelId;
+
+    /**
+     * 工具选择模式（auto / manual / none）
+     * <p>
+     * 优先级高于助手的 tool_selection_mode 设置。
+     * 前端在聊天输入框底部临时设置，仅当前会话生效，不持久化。
+     * 为空时使用助手的设置。
+     */
+    private String toolSelectionMode;
+
+    /**
+     * 手动模式下指定的工具名称列表
+     * <p>
+     * 仅当 toolSelectionMode=manual 时有效。
+     * 列表为空表示不使用任何工具。
+     * 勾选的工具必须是助手设置中已启用的工具。
+     */
+    private List<String> toolNames;
 }

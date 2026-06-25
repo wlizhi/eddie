@@ -66,6 +66,11 @@ public class AssistantEntity {
     private Integer sortOrder;
 
     /**
+     * 工具选择模式：auto（自动选择）、manual（手动选择）、none（不使用工具）
+     */
+    private String toolSelectionMode;
+
+    /**
      * 创建时间
      */
     private String createdAt;

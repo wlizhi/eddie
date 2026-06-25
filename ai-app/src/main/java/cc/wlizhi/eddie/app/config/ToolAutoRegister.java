@@ -2,6 +2,7 @@ package cc.wlizhi.eddie.app.config;
 
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import cc.wlizhi.eddie.common.enums.ToolType;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.ToolCallback;
@@ -64,7 +65,7 @@ public class ToolAutoRegister {
                 if (entity == null) {
                     // 新增
                     entity = new ToolDefinitionEntity();
-                    entity.setToolType("BUILT_IN");
+                    entity.setToolType(ToolType.BUILT_IN);
                     entity.setName(name);
                     entity.setDisplayName(displayName);
                     entity.setDescription(description);
