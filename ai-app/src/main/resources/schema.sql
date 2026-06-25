@@ -120,8 +120,8 @@ CREATE INDEX IF NOT EXISTS idx_tool_def_type ON ai_tool_definition (tool_type);
 CREATE INDEX IF NOT EXISTS idx_tool_def_enabled ON ai_tool_definition (enabled);
 CREATE INDEX IF NOT EXISTS idx_tool_def_mcp_server ON ai_tool_definition (mcp_server_id);
 
--- 工具绑定表：助手/智能体与工具的关联关系
-CREATE TABLE IF NOT EXISTS ai_assistant_tool
+-- 工具绑定表：Owner（助手/智能体）与工具的关联关系（多态关联）
+CREATE TABLE IF NOT EXISTS ai_owner_tool_binding
 (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     owner_type TEXT    NOT NULL DEFAULT 'ASSISTANT', -- ASSISTANT（助手）/ AGENT（智能体）
@@ -131,8 +131,8 @@ CREATE TABLE IF NOT EXISTS ai_assistant_tool
     created_at TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
     UNIQUE (owner_type, owner_id, tool_id)           -- 同一归属方不可重复绑定同一工具
 );
-CREATE INDEX IF NOT EXISTS idx_assistant_tool_owner ON ai_assistant_tool (owner_type, owner_id);
-CREATE INDEX IF NOT EXISTS idx_assistant_tool_tool ON ai_assistant_tool (tool_id);
+CREATE INDEX IF NOT EXISTS idx_owner_tool_binding_owner ON ai_owner_tool_binding (owner_type, owner_id);
+CREATE INDEX IF NOT EXISTS idx_owner_tool_binding_tool ON ai_owner_tool_binding (tool_id);
 
 -- MCP 服务器配置表：管理 MCP 服务端连接配置
 CREATE TABLE IF NOT EXISTS ai_mcp_server

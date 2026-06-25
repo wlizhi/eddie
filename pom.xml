@@ -29,7 +29,7 @@
         <module>ai-common</module>
         <module>ai-chat</module>
         <module>ai-agent</module>
-        <module>ai-role</module>
+        <module>ai-tools</module>
         <module>ai-memory</module>
         <module>ai-settings</module>
         <module>ai-app</module>
@@ -72,7 +72,7 @@
             </dependency>
             <dependency>
                 <groupId>cc.wlizhi</groupId>
-                <artifactId>ai-role</artifactId>
+                <artifactId>ai-tools</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

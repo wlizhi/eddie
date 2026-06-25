@@ -10,13 +10,13 @@
 - ai-agent 智能体模块：智能体各接口入口、任务编排 → cc.wlizhi.eddieai.agent
 - ai-memory 记忆模块：三层记忆（短期，中期压缩，长期摘要） → cc.wlizhi.eddieai.memory
 - ai-settings 全局配置模块：全局配置、系统设置、模型服务管理 → cc.wlizhi.eddieai.settings
-- ai-role 角色模块：助手、智能体角色自定义 → cc.wlizhi.eddieai.role
+- ai-tools 工具模块：内置工具（WebSearch/WebFetch）注册与管理 → cc.wlizhi.eddieai.tools
 - frontend 前端代码（Vue.js）
 
 ## 依赖关系（自上而下依赖）
 
 ai-common（被所有模块依赖）
-↑ ai-role / ai-settings / ai-memory（独立模块）
+↑ ai-tools / ai-settings / ai-memory（独立模块）
 ↑ ai-chat（依赖 ai-memory 的异步处理）
 ↑ ai-agent（依赖 ai-chat）
 ↑ ai-app（聚合所有模块，唯一启动入口）

@@ -1,8 +1,8 @@
-package cc.wlizhi.eddie.role.controller;
+package cc.wlizhi.eddie.tools.controller;
 
 import cc.wlizhi.eddie.common.dto.ApiResult;
-import cc.wlizhi.eddie.role.tool.WebFetchTools;
-import cc.wlizhi.eddie.role.tool.WebSearchTools;
+import cc.wlizhi.eddie.tools.tool.WebFetchTools;
+import cc.wlizhi.eddie.tools.tool.WebSearchTools;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

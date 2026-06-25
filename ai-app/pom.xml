@@ -30,7 +30,7 @@
         </dependency>
         <dependency>
             <groupId>cc.wlizhi</groupId>
-            <artifactId>ai-role</artifactId>
+            <artifactId>ai-tools</artifactId>
         </dependency>
         <dependency>
             <groupId>cc.wlizhi</groupId>

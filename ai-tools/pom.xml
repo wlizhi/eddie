@@ -10,9 +10,9 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>ai-role</artifactId>
-    <name>Eddie AI — Role</name>
-    <description>角色管理：助手/智能体角色 CRUD</description>
+    <artifactId>ai-tools</artifactId>
+    <name>Eddie AI — Tools</name>
+    <description>工具管理：内置工具注册与管理</description>
 
     <dependencies>
         <dependency>

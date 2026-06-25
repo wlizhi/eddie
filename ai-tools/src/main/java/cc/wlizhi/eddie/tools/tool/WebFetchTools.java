@@ -1,4 +1,4 @@
-package cc.wlizhi.eddie.role.tool;
+package cc.wlizhi.eddie.tools.tool;
 
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
