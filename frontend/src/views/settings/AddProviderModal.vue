@@ -15,7 +15,7 @@
             v-model="form.code"
             class="field-input"
             :class="{ 'field-error': errors.code }"
-            placeholder="唯一标识，如 custom-openai"
+            placeholder="服务商code，如 openai"
             @input="errors.code = ''"
         />
         <span v-if="errors.code" class="field-err-msg">{{ errors.code }}</span>

@@ -4,6 +4,7 @@ import type {ChatMessage, ChatMetadata, ChatModelSelector} from '@/types/chat'
 import type {MessageVO} from '@/types/session'
 import {fetchModelList, streamChat} from '@/api/chat'
 import {createSession, fetchMessages, generateTitle} from '@/api/session'
+import {showToast} from '@/composables/useToast'
 import {useAssistantStore} from '@/stores/assistant'
 import {renderMd} from '@/utils/markdown'
 
@@ -120,7 +121,6 @@ export const useChatStore = defineStore('chat', () => {
             try {
                 const session = await createSession({assistantId: assistantStore.activeId})
                 currentConversationId.value = String(session.id)
-                sessionRefreshCounter.value++
             } catch (err) {
                 console.error('创建会话失败:', err)
                 return
@@ -190,16 +190,18 @@ export const useChatStore = defineStore('chat', () => {
             onComplete: () => {
                 isStreaming.value = false
                 abortController = null
-                sessionRefreshCounter.value++
                 // 首轮对话后生成标题
                 if (isFirstRound) {
                     generateTitleAsync()
                 }
+                // 刷新会话列表（消息数、更新时间等统计数据）
+                sessionRefreshCounter.value++
             },
             onError: (error) => {
                 console.error('流式请求出错:', error)
                 isStreaming.value = false
                 abortController = null
+                showToast(error.message, 'error')
             },
         })
     }
@@ -217,6 +219,17 @@ export const useChatStore = defineStore('chat', () => {
         } catch (err) {
             console.error('生成标题失败:', err)
         }
+    }
+
+    /**
+     * 重新生成：取指定助手消息上一条用户消息的内容重新发送
+     * @param msgIndex 当前消息在 messages 中的索引
+     */
+    function regenerate(msgIndex: number): void {
+        if (isStreaming.value) return
+        const prevMsg = messages.value[msgIndex - 1]
+        if (!prevMsg || prevMsg.role !== 'user') return
+        sendMessage(prevMsg.content)
     }
 
     function abortStream(): void {
@@ -352,6 +365,7 @@ export const useChatStore = defineStore('chat', () => {
         loadModels,
         selectModel,
         sendMessage,
+        regenerate,
         abortStream,
         newConversation,
         loadConversation,

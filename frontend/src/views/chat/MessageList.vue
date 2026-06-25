@@ -17,7 +17,7 @@
 import {nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
-import {ChevronDown, Copy, Loader} from '@lucide/vue'
+import {ChevronDown, Copy, Loader, RefreshCw} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
@@ -38,28 +38,60 @@ const thinkingExpanded = ref<Record<string, boolean>>({})
 /** 记录加载更多前的高度，用于保持滚动位置 */
 let prevScrollHeight = 0
 
-/** 自动滚动到底部 */
+/** 用户是否已手动上滑（打断自动滚动） */
+const userScrolledAway = ref(false)
+
+/** 判断滚动容器是否在底部附近（100px 阈值） */
+function isNearBottom(): boolean {
+  const el = messageListRef.value
+  if (!el) return true
+  return el.scrollTop + el.clientHeight >= el.scrollHeight - 100
+}
+
+/** 强制滚动到底部（发送新消息时无条件调用，同时恢复自动滚动） */
 async function scrollToBottom() {
+  userScrolledAway.value = false
   await nextTick()
   if (messageListRef.value) {
     messageListRef.value.scrollTop = messageListRef.value.scrollHeight
   }
 }
 
-// 消息列表变化时自动滚动
+/** 条件滚动：仅当用户没有手动上滑时才滚动 */
+async function scrollToBottomIfNeeded() {
+  if (userScrolledAway.value) return
+  await nextTick()
+  if (messageListRef.value) {
+    messageListRef.value.scrollTop = messageListRef.value.scrollHeight
+  }
+}
+
+// 消息列表变化 → 判断：用户发送新消息（isStreaming 变为 true）则强制滚动，否则条件滚动
 watch(
     () => chatStore.messages.length,
-    () => scrollToBottom(),
+    (_newLen, _oldLen) => {
+      if (chatStore.isStreaming) {
+        // 正在流式响应中 → 用户发送了新消息，无条件滚动到底部 + 恢复自动滚动
+        scrollToBottom()
+        return
+      }
+      scrollToBottomIfNeeded()
+    },
 )
-// 流式内容变化时自动滚动
+// 流式内容变化时条件滚动
 watch(
     () => chatStore.currentAnswer,
-    () => scrollToBottom(),
+    () => scrollToBottomIfNeeded(),
 )
-// 切换会话时自动滚动到底部（处理消息数量相同时 length watcher 不触发的情况）
+// 切换会话时强制滚动到底部
 watch(
     () => chatStore.currentConversationId,
     () => scrollToBottom(),
+)
+// metadata 到达时条件滚动
+watch(
+    () => chatStore.currentMetadata,
+    () => scrollToBottomIfNeeded(),
 )
 
 // 组件首次挂载时滚动到底部（v-if 条件渲染下，挂载时 messages 已有值，watcher 不会触发）
@@ -106,6 +138,11 @@ function currencySymbol(currency?: string | null): string {
 function onScroll() {
   const el = messageListRef.value
   if (!el) return
+
+  // 检测用户是否手动上滑（远离底部），打断自动滚动
+  if (!isNearBottom()) {
+    userScrolledAway.value = true
+  }
 
   // 接近顶部时触发加载
   if (el.scrollTop <= 50 && chatStore.hasMoreMessages && !chatStore.isLoadingMore) {
@@ -190,17 +227,28 @@ function onScroll() {
               class="message-content markdown-body"
               v-html="renderMd(msg.content)"
           ></div>
-          <!-- 复制按钮 -->
+        </div>
+
+        <!-- 操作栏（复制 + 重新生成） -->
+        <div v-if="msg.content" class="message-actions">
           <button
-              v-if="msg.content"
-              class="copy-btn"
-              :class="msg.role === 'user' ? 'copy-btn-user' : 'copy-btn-assistant'"
+              class="action-btn"
+              :class="msg.role === 'user' ? 'action-btn-user' : 'action-btn-assistant'"
               :data-copied="copiedMessageId === msg.id || undefined"
               @click="copyContent(msg.id, msg.content)"
               :title="copiedMessageId === msg.id ? '已复制' : '复制消息'"
           >
             <Copy v-if="copiedMessageId !== msg.id" :size="13" :stroke-width="2"/>
             <span v-else class="copied-text">已复制</span>
+          </button>
+          <button
+              v-if="msg.role === 'assistant'"
+              class="action-btn regenerate-btn"
+              :disabled="chatStore.isStreaming"
+              :title="chatStore.isStreaming ? '请在消息生成结束后操作' : '重新生成'"
+              @click="chatStore.regenerate(chatStore.messages.indexOf(msg))"
+          >
+            <RefreshCw :size="13" :stroke-width="2"/>
           </button>
         </div>
 

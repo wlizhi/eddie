@@ -64,7 +64,30 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
         })
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+            let message = `HTTP ${response.status}: ${response.statusText}`
+            try {
+                const errBody = await response.json()
+                if (errBody.message) {
+                    message = errBody.message
+                }
+            } catch {
+                // ignore parse error
+            }
+            throw new Error(message)
+        }
+
+        // 兜底：非 SSE 响应（如后端返回 JSON 错误但 HTTP 状态码为 200），直接抛异常
+        if (!response.headers.get('content-type')?.includes('text/event-stream')) {
+            try {
+                const errBody = await response.json()
+                if (errBody.code && errBody.code !== 200) {
+                    throw new Error(errBody.message || `请求失败 (${errBody.code})`)
+                }
+            } catch (e) {
+                if ((e as Error).name !== 'AbortError') {
+                    throw e
+                }
+            }
         }
 
         const reader = response.body?.getReader()
