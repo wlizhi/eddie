@@ -97,7 +97,8 @@ CREATE TABLE IF NOT EXISTS global_config
 INSERT INTO global_config (config_key, config_val, description)
 VALUES ('DEFAULT_MODEL', '{}', '默认对话模型'),
        ('FAST_MODEL', '{}', '快速模型'),
-       ('TRANSLATE_MODEL', '{}', '翻译模型')
+       ('TRANSLATE_MODEL', '{}', '翻译模型'),
+       ('SEARCH_RESULT_COUNT', '8', '搜索返回结果数量')
 ON CONFLICT(config_key) DO NOTHING;
 
 -- 工具定义表：注册系统中可用的工具（内置工具或 MCP 工具）

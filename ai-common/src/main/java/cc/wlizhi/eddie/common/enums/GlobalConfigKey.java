@@ -33,7 +33,12 @@ public enum GlobalConfigKey {
     /**
      * 数据库初始化版本号（纯数字字符串，如 "0", "1", "2"）
      */
-    DB_INIT_VERSION("数据库初始化版本号");
+    DB_INIT_VERSION("数据库初始化版本号"),
+
+    /**
+     * 内置搜索工具返回结果数量（纯数字字符串，如 "8"）
+     */
+    SEARCH_RESULT_COUNT("搜索返回结果数量");
 
     private final String description;
 
