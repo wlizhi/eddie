@@ -254,8 +254,7 @@ public class OwnerToolBindingContext implements GlobalCache {
         for (OwnerToolBindingDao.OwnerToolBindingRow row : bindings) {
             ToolDefinitionEntity toolDef = defMap.get(row.getToolId());
             if (toolDef == null) continue;
-            bMap
-                    .computeIfAbsent(row.getOwnerType(), k -> new LinkedHashMap<>())
+            bMap.computeIfAbsent(row.getOwnerType(), k -> new LinkedHashMap<>())
                     .computeIfAbsent(row.getOwnerId(), k -> new ArrayList<>())
                     .add(toolDef);
         }
