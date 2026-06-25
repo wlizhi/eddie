@@ -137,7 +137,7 @@ public class ToolAutoRegister {
         // 新建 MCP Server
         McpServerEntity entity = new McpServerEntity();
         entity.setName(mcpName);
-        entity.setTransportType("STREAMABLE_HTTP");
+        entity.setTransportType("BUILT_IN");
         entity.setUrl("http://localhost:" + serverPort + "/mcp/v1/stream");
         entity.setTimeoutSeconds(60);
         entity.setEnabled(1);
