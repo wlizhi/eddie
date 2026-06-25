@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -58,7 +59,7 @@ public class DatabaseInitExecutor implements CommandLineRunner {
     @PostConstruct
     public void init() {
         try {
-            executePendingMigrations();
+            CompletableFuture.runAsync(this::executePendingMigrations);
         } catch (Exception e) {
             log.error("数据库初始化脚本执行失败", e);
         }
