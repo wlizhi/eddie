@@ -1,5 +1,7 @@
 package cc.wlizhi.eddie.common.enums;
 
+import lombok.Getter;
+
 /**
  * 全局配置键枚举。<p>
  * DB 中 config_key 直接使用枚举名（{@link #name()}）存储。<br>
@@ -7,6 +9,7 @@ package cc.wlizhi.eddie.common.enums;
  *
  * @author Eddie
  */
+@Getter
 public enum GlobalConfigKey {
 
     /**
@@ -46,7 +49,4 @@ public enum GlobalConfigKey {
         this.description = description;
     }
 
-    public String getDescription() {
-        return description;
-    }
 }

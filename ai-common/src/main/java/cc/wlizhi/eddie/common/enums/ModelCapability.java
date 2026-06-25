@@ -1,11 +1,14 @@
 package cc.wlizhi.eddie.common.enums;
 
+import lombok.Getter;
+
 /**
  * 模型能力标签
  * <p>
  * 用于标识模型支持的功能特性，前端根据此标签渲染类型图标。
  * 能力信息存储在 model_provider.models JSON 的 capabilities 字段中。
  */
+@Getter
 public enum ModelCapability {
 
     VISION("vision", "视觉"),
@@ -21,14 +24,6 @@ public enum ModelCapability {
     ModelCapability(String code, String label) {
         this.code = code;
         this.label = label;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public String getLabel() {
-        return label;
     }
 
     /**

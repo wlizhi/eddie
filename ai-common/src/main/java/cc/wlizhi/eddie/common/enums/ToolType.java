@@ -1,11 +1,14 @@
 package cc.wlizhi.eddie.common.enums;
 
+import lombok.Getter;
+
 /**
  * 工具类型枚举
  * <p>
  * BUILT_IN — 内置工具（通过 {@code BuiltInToolProvider} Bean 注册）
  * MCP — MCP 工具（通过 MCP 客户端连接获取）
  */
+@Getter
 public enum ToolType {
 
     BUILT_IN("内置工具"),
@@ -15,10 +18,6 @@ public enum ToolType {
 
     ToolType(String label) {
         this.label = label;
-    }
-
-    public String getLabel() {
-        return label;
     }
 
     /**

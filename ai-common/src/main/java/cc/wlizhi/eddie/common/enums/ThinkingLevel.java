@@ -1,8 +1,11 @@
 package cc.wlizhi.eddie.common.enums;
 
+import lombok.Getter;
+
 /**
  * 思考等级
  */
+@Getter
 public enum ThinkingLevel {
 
     NONE("none", "无思考"),
@@ -16,13 +19,5 @@ public enum ThinkingLevel {
     ThinkingLevel(String code, String label) {
         this.code = code;
         this.label = label;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public String getLabel() {
-        return label;
     }
 }
