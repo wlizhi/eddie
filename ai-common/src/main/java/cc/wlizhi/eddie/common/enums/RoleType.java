@@ -2,22 +2,19 @@ package cc.wlizhi.eddie.common.enums;
 
 /**
  * 角色类型：助手 / 智能体
+ * <p>
+ * 枚举 name() 直接作为数据库中 owner_type 的存储值，
+ * 如 {@code RoleType.ASSISTANT.name()} → {@code "ASSISTANT"}。
  */
 public enum RoleType {
 
-    ASSISTANT("assistant", "助手"),
-    AGENT("agent", "智能体");
+    ASSISTANT("助手"),
+    AGENT("智能体");
 
-    private final String code;
     private final String label;
 
-    RoleType(String code, String label) {
-        this.code = code;
+    RoleType(String label) {
         this.label = label;
-    }
-
-    public String getCode() {
-        return code;
     }
 
     public String getLabel() {
