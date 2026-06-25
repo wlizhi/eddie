@@ -55,4 +55,11 @@ public class AssistantCreateRequest {
      * 记忆轮数，默认 20
      */
     private Integer memoryRounds;
+
+    /**
+     * 启用的 MCP Server ID 列表（可选）
+     * <p>
+     * 传入后自动为该助手绑定这些 MCP Server 下的所有工具。
+     */
+    private java.util.List<Long> enabledMcpServerIds;
 }

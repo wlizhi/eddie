@@ -65,4 +65,11 @@ public class AssistantUpdateRequest {
      * 排序序号
      */
     private Integer sortOrder;
+
+    /**
+     * 启用的 MCP Server ID 列表（可选，支持部分更新）
+     * <p>
+     * 传入后会全量替换该助手已绑定的工具源。
+     */
+    private java.util.List<Long> enabledMcpServerIds;
 }

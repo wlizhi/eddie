@@ -31,6 +31,11 @@ import java.util.List;
 @Component
 public class WebFetchTools implements BuiltInToolProvider {
 
+    @Override
+    public String getMcpServerName() {
+        return "BuiltInSearch";
+    }
+
     private static final Logger log = LoggerFactory.getLogger(WebFetchTools.class);
 
     private static final String USER_AGENT = "Mozilla/5.0 (compatible; EddieBot/1.0)";

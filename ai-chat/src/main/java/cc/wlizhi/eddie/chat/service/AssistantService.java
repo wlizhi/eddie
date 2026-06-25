@@ -4,6 +4,7 @@ import cc.wlizhi.eddie.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddie.chat.entity.request.AssistantUpdateRequest;
 import cc.wlizhi.eddie.chat.entity.response.AssistantDetailVO;
 import cc.wlizhi.eddie.chat.entity.response.AssistantVO;
+import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -61,4 +62,14 @@ public interface AssistantService {
      * 批量排序：按 ID 数组顺序，自动赋 sort_order = 1,2,3...
      */
     void batchSort(List<Long> ids);
+
+    /**
+     * 获取助手可选的工具源列表
+     * <p>
+     * 返回按 MCP Server 分组的工具列表，含哪些已绑定。
+     *
+     * @param assistantId 助手 ID（可为 null，null 时返回所有可用源，不含绑定状态）
+     * @return 工具源列表
+     */
+    List<ToolSourceVO> getToolSources(Long assistantId);
 }

@@ -118,4 +118,39 @@ public class ToolDefinitionDao {
         String sql = "UPDATE ai_tool_definition SET enabled = ?, updated_at = datetime('now', 'localtime') WHERE id = ?";
         jdbcTemplate.update(sql, enabled, id);
     }
+
+    /**
+     * 按 MCP Server ID 查询工具列表（不过滤启用状态）
+     */
+    public List<ToolDefinitionEntity> findByMcpServerId(Long mcpServerId) {
+        String sql = """
+                SELECT id, tool_type, name, display_name, description,
+                       enabled, built_in, mcp_server_id, sort_order,
+                       created_at, updated_at
+                FROM ai_tool_definition
+                WHERE mcp_server_id = ?
+                ORDER BY sort_order ASC, id ASC
+                """;
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class), mcpServerId);
+    }
+
+    /**
+     * 按 MCP Server ID 列表批量查询工具（不过滤启用状态）
+     */
+    public List<ToolDefinitionEntity> findByMcpServerIds(List<Long> mcpServerIds) {
+        if (mcpServerIds == null || mcpServerIds.isEmpty()) {
+            return List.of();
+        }
+        String placeholders = String.join(",", mcpServerIds.stream().map(id -> "?").toArray(String[]::new));
+        String sql = String.format("""
+                SELECT id, tool_type, name, display_name, description,
+                       enabled, built_in, mcp_server_id, sort_order,
+                       created_at, updated_at
+                FROM ai_tool_definition
+                WHERE mcp_server_id IN (%s)
+                ORDER BY sort_order ASC, id ASC
+                """, placeholders);
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class),
+                mcpServerIds.toArray());
+    }
 }

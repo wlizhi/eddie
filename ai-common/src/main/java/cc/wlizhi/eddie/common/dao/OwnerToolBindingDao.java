@@ -1,6 +1,7 @@
 package cc.wlizhi.eddie.common.dao;
 
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import cc.wlizhi.eddie.common.enums.RoleType;
 import jakarta.annotation.Resource;
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -12,8 +13,8 @@ import java.util.List;
 /**
  * Owner 工具绑定表 (ai_owner_tool_binding) 数据访问层
  * <p>
- * 查询 Owner（助手/智能体）已绑定的启用的工具定义列表。
  * 多态关联 {@code ai_tool_definition}，支持 BUILT_IN 和 MCP 两种类型。
+ * 绑定记录不关心工具是否启用，运行时按当前全局启用状态动态过滤。
  */
 @RegisterReflectionForBinding(ToolDefinitionEntity.class)
 @Repository
@@ -23,25 +24,38 @@ public class OwnerToolBindingDao {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * 查询指定 Owner 已启用的工具绑定（含工具定义信息）
-     *
-     * @param ownerType 归属方类型（ASSISTANT / AGENT）
-     * @param ownerId   归属方 ID
-     * @return 绑定的工具定义列表
+     * 查询指定 Owner 绑定的工具定义列表（不过滤 td.enabled）
+     * <p>
+     * 运行时再根据 {@code td.enabled = 1} 和 {@code ms.enabled = 1} 动态过滤。
      */
-    public List<ToolDefinitionEntity> findBoundTools(String ownerType, Long ownerId) {
+    public List<ToolDefinitionEntity> findBoundTools(RoleType ownerType, Long ownerId) {
         String sql = """
                 SELECT td.id, td.tool_type, td.name, td.display_name, td.description,
                        td.enabled, td.built_in, td.mcp_server_id, td.sort_order,
                        td.created_at, td.updated_at
                 FROM ai_owner_tool_binding b
                 JOIN ai_tool_definition td ON b.tool_id = td.id
-                WHERE b.owner_type = ? AND b.owner_id = ? AND b.enabled = 1 AND td.enabled = 1
+                WHERE b.owner_type = ? AND b.owner_id = ? AND b.enabled = 1
                 ORDER BY td.sort_order ASC, td.id ASC
                 """;
         return jdbcTemplate.query(sql,
                 new BeanPropertyRowMapper<>(ToolDefinitionEntity.class),
-                ownerType, ownerId);
+                ownerType.name(), ownerId);
+    }
+
+    /**
+     * 查询指定 Owner 已绑定的 MCP Server ID 列表（去重）
+     */
+    public List<Long> findBoundMcpServerIds(RoleType ownerType, Long ownerId) {
+        String sql = """
+                SELECT DISTINCT td.mcp_server_id
+                FROM ai_owner_tool_binding b
+                JOIN ai_tool_definition td ON b.tool_id = td.id
+                WHERE b.owner_type = ? AND b.owner_id = ? AND b.enabled = 1
+                      AND td.mcp_server_id IS NOT NULL
+                ORDER BY td.mcp_server_id ASC
+                """;
+        return jdbcTemplate.queryForList(sql, Long.class, ownerType.name(), ownerId);
     }
 
     /**
@@ -65,6 +79,29 @@ public class OwnerToolBindingDao {
             row.setEnabled(rs.getInt("enabled"));
             return row;
         });
+    }
+
+    /**
+     * 删除指定 Owner 的全部绑定
+     */
+    public void deleteByOwner(RoleType ownerType, Long ownerId) {
+        jdbcTemplate.update(
+                "DELETE FROM ai_owner_tool_binding WHERE owner_type = ? AND owner_id = ?",
+                ownerType.name(), ownerId);
+    }
+
+    /**
+     * 批量插入绑定关系
+     */
+    public void batchInsert(RoleType ownerType, Long ownerId, List<Long> toolIds) {
+        if (toolIds == null || toolIds.isEmpty()) return;
+        String sql = """
+                INSERT INTO ai_owner_tool_binding (owner_type, owner_id, tool_id, enabled, created_at)
+                VALUES (?, ?, ?, 1, datetime('now', 'localtime'))
+                """;
+        for (Long toolId : toolIds) {
+            jdbcTemplate.update(sql, ownerType.name(), ownerId, toolId);
+        }
     }
 
     /**

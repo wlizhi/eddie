@@ -33,4 +33,9 @@ public class AssistantDetailVO {
     private Integer sortOrder;
     private String createdAt;
     private String updatedAt;
+
+    /**
+     * 已绑定的 MCP Server ID 列表（回显用）
+     */
+    private java.util.List<Long> boundMcpServerIds;
 }

@@ -33,6 +33,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component
 public class WebSearchTools implements BuiltInToolProvider {
 
+    @Override
+    public String getMcpServerName() {
+        return "BuiltInSearch";
+    }
+
     private static final Logger log = LoggerFactory.getLogger(WebSearchTools.class);
 
     private static final String DDG_URL = "https://lite.duckduckgo.com/lite/";

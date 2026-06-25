@@ -4,6 +4,7 @@ import cc.wlizhi.eddie.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddie.chat.entity.request.AssistantUpdateRequest;
 import cc.wlizhi.eddie.chat.entity.response.AssistantDetailVO;
 import cc.wlizhi.eddie.chat.entity.response.AssistantVO;
+import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
 import cc.wlizhi.eddie.chat.service.AssistantService;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import jakarta.annotation.Resource;
@@ -82,6 +83,19 @@ public class AssistantController {
     public ApiResult<Void> delete(@PathVariable(name = "id") Long id) {
         assistantService.delete(id);
         return ApiResult.success();
+    }
+
+    /**
+     * 获取助手可选的工具源列表
+     * <p>
+     * 返回按 MCP Server 分组的工具列表，含哪些已绑定。
+     *
+     * @param id 助手 ID（可选，不传则返回所有可用源，不含绑定状态）
+     */
+    @GetMapping("/tool-sources")
+    public ApiResult<List<ToolSourceVO>> getToolSources(
+            @RequestParam(name = "assistantId", required = false) Long id) {
+        return ApiResult.success(assistantService.getToolSources(id));
     }
 
     /**
