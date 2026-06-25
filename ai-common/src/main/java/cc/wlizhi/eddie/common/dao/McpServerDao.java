@@ -132,6 +132,29 @@ public class McpServerDao {
     }
 
     /**
+     * 切换 MCP 服务器启用/禁用状态
+     */
+    public void updateEnabled(Long id, int enabled) {
+        String sql = """
+                UPDATE ai_mcp_server
+                SET enabled = ?, updated_at = datetime('now', 'localtime')
+                WHERE id = ?
+                """;
+        jdbcTemplate.update(sql, enabled, id);
+    }
+
+    /**
+     * 按 ID 删除 MCP 服务器
+     */
+    public void deleteById(Long id) {
+        String sql = """
+                DELETE FROM ai_mcp_server
+                WHERE id = ?
+                """;
+        jdbcTemplate.update(sql, id);
+    }
+
+    /**
      * 获取最后插入的自增 ID（SQLite）
      */
     public Long findLastInsertId() {

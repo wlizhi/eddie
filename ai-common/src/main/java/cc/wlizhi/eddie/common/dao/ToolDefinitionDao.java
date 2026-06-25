@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -166,5 +167,45 @@ public class ToolDefinitionDao {
                 """, placeholders);
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class),
                 mcpServerIds.toArray());
+    }
+
+    /**
+     * 按 MCP Server ID 删除所有工具定义
+     */
+    public void deleteByMcpServerId(Long mcpServerId) {
+        String sql = """
+                DELETE FROM ai_tool_definition
+                WHERE mcp_server_id = ?
+                """;
+        jdbcTemplate.update(sql, mcpServerId);
+    }
+
+    /**
+     * 批量插入工具定义
+     */
+    public void batchInsert(List<ToolDefinitionEntity> entities) {
+        if (entities == null || entities.isEmpty()) return;
+        String sql = """
+                INSERT INTO ai_tool_definition
+                    (tool_type, name, display_name, description, enabled,
+                     built_in, mcp_server_id, sort_order,
+                     created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?,
+                        datetime('now', 'localtime'), datetime('now', 'localtime'))
+                """;
+        List<Object[]> batchArgs = new ArrayList<>(entities.size());
+        for (ToolDefinitionEntity entity : entities) {
+            batchArgs.add(new Object[]{
+                    entity.getToolType() != null ? entity.getToolType().name() : "MCP",
+                    entity.getName(),
+                    entity.getDisplayName() != null ? entity.getDisplayName() : "",
+                    entity.getDescription() != null ? entity.getDescription() : "",
+                    entity.getEnabled() != null ? entity.getEnabled() : 1,
+                    entity.getBuiltIn() != null ? entity.getBuiltIn() : 0,
+                    entity.getMcpServerId(),
+                    entity.getSortOrder() != null ? entity.getSortOrder() : 0
+            });
+        }
+        jdbcTemplate.batchUpdate(sql, batchArgs);
     }
 }

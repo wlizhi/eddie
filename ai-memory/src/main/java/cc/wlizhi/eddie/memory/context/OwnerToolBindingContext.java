@@ -11,6 +11,8 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 全局工具相关缓存上下文，全应用生命周期缓存
@@ -38,6 +40,7 @@ import java.util.*;
  */
 @Component
 public class OwnerToolBindingContext implements GlobalCache {
+    private final ReentrantLock lock = new ReentrantLock();
 
     // ==================== 缓存数据（不可变 Map，volatile 保证可见性） ====================
 
@@ -84,7 +87,7 @@ public class OwnerToolBindingContext implements GlobalCache {
 
     @PostConstruct
     void init() {
-        refresh();
+        CompletableFuture.runAsync(this::refresh);
     }
 
     // ==================== 查询方法：绑定关系 ====================
@@ -223,6 +226,20 @@ public class OwnerToolBindingContext implements GlobalCache {
 
     @Override
     public void refresh() {
+        lock.lock();
+        try {
+            // 1. 全量加载 MCP 服务
+            // 2. 全量加载工具定义
+            // 3. 全量加载绑定关系
+            // 4. 构建索引
+            // 5. 更新缓存
+            doRefresh();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void doRefresh() {
         // 1. 全量加载 MCP 服务
         List<McpServerEntity> allMcpServers = mcpServerDao.findAll();
         Map<Long, McpServerEntity> mcpMap = new LinkedHashMap<>(allMcpServers.size());

@@ -2,8 +2,10 @@ package cc.wlizhi.eddie.chat.controller;
 
 import cc.wlizhi.eddie.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddie.chat.entity.request.AssistantUpdateRequest;
+import cc.wlizhi.eddie.chat.entity.request.McpBindingsUpdateRequest;
 import cc.wlizhi.eddie.chat.entity.response.AssistantDetailVO;
 import cc.wlizhi.eddie.chat.entity.response.AssistantVO;
+import cc.wlizhi.eddie.chat.entity.response.McpBindVO;
 import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
 import cc.wlizhi.eddie.chat.service.AssistantService;
 import cc.wlizhi.eddie.common.dto.ApiResult;
@@ -104,6 +106,35 @@ public class AssistantController {
     @PutMapping("/batch-sort")
     public ApiResult<Void> batchSort(@RequestBody List<Long> ids) {
         assistantService.batchSort(ids);
+        return ApiResult.success();
+    }
+
+    /**
+     * 获取助手可选的 MCP 绑定列表（仅 MCP 纬度）
+     * <p>
+     * 场景 5：助手设置弹窗中选择允许使用的 MCP 工具。
+     * 场景 6：手动模式下 MCP 工具选择器。
+     * 数据来源：OwnerToolBindingContext 缓存。
+     *
+     * @param id 助手 ID
+     */
+    @GetMapping("/{id}/mcp-bindings")
+    public ApiResult<List<McpBindVO>> getMcpBindings(@PathVariable("id") Long id) {
+        return ApiResult.success(assistantService.getMcpBindings(id));
+    }
+
+    /**
+     * 更新助手绑定的 MCP 列表（全量替换）
+     * <p>
+     * 场景 5：用户在助手设置弹窗中勾选 MCP 后提交。
+     *
+     * @param id      助手 ID
+     * @param request MCP Server ID 列表
+     */
+    @PutMapping("/{id}/mcp-bindings")
+    public ApiResult<Void> updateMcpBindings(@PathVariable("id") Long id,
+                                             @Valid @RequestBody McpBindingsUpdateRequest request) {
+        assistantService.updateMcpBindings(id, request.getMcpServerIds());
         return ApiResult.success();
     }
 }

@@ -4,10 +4,7 @@ import cc.wlizhi.eddie.chat.context.AssistantContext;
 import cc.wlizhi.eddie.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddie.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddie.chat.entity.request.AssistantUpdateRequest;
-import cc.wlizhi.eddie.chat.entity.response.AssistantDetailVO;
-import cc.wlizhi.eddie.chat.entity.response.AssistantVO;
-import cc.wlizhi.eddie.chat.entity.response.ToolItemVO;
-import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
+import cc.wlizhi.eddie.chat.entity.response.*;
 import cc.wlizhi.eddie.chat.service.AssistantService;
 import cc.wlizhi.eddie.common.dao.*;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
@@ -15,9 +12,11 @@ import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.RoleType;
+import cc.wlizhi.eddie.common.exception.BadRequestException;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
 import cc.wlizhi.eddie.common.util.FileStorageUtil;
 import cc.wlizhi.eddie.memory.context.ModelProviderContext;
+import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -61,7 +60,7 @@ public class AssistantServiceImpl implements AssistantService {
     private ToolDefinitionDao toolDefinitionDao;
 
     @Resource
-    private McpServerDao mcpServerDao;
+    private OwnerToolBindingContext ownerToolBindingContext;
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
@@ -251,30 +250,33 @@ public class AssistantServiceImpl implements AssistantService {
 
     @Override
     public List<ToolSourceVO> getToolSources(Long assistantId) {
-        // 查询所有已启用的 MCP Server
-        List<McpServerEntity> allServers = mcpServerDao.findAllEnabled();
+        // 走缓存：获取全量 MCP + 工具二层结构
+        List<OwnerToolBindingContext.McpServerWithTools> allData = ownerToolBindingContext.getAllMcpServersWithTools();
 
-        // 查询当前助手已绑定的 MCP Server ID 集合
+        // 查询当前助手已绑定的 MCP Server ID 集合（走缓存）
         Set<Long> boundServerIds = Collections.emptySet();
         if (assistantId != null) {
-            List<Long> boundIds = ownerToolBindingDao.findBoundMcpServerIds(RoleType.ASSISTANT, assistantId);
-            boundServerIds = Set.copyOf(boundIds);
+            List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools("ASSISTANT", assistantId);
+            boundServerIds = boundTools.stream()
+                    .filter(t -> t.getMcpServerId() != null)
+                    .map(ToolDefinitionEntity::getMcpServerId)
+                    .collect(Collectors.toSet());
         }
 
         List<ToolSourceVO> result = new ArrayList<>();
-        for (McpServerEntity server : allServers) {
-            // 查询该 Server 下的所有工具（不过滤启用）
-            List<ToolDefinitionEntity> tools = toolDefinitionDao.findByMcpServerId(server.getId());
+        for (OwnerToolBindingContext.McpServerWithTools item : allData) {
+            McpServerEntity server = item.mcpServer();
+            List<ToolDefinitionEntity> tools = item.tools();
 
             List<ToolItemVO> toolItems = tools.stream().map(t -> {
-                ToolItemVO item = new ToolItemVO();
-                item.setId(t.getId());
-                item.setName(t.getName());
-                item.setDisplayName(t.getDisplayName());
-                item.setDescription(t.getDescription());
-                item.setToolType(t.getToolType() != null ? t.getToolType().name() : "");
-                item.setEnabled(t.getEnabled() == 1);
-                return item;
+                ToolItemVO vo = new ToolItemVO();
+                vo.setId(t.getId());
+                vo.setName(t.getName());
+                vo.setDisplayName(t.getDisplayName());
+                vo.setDescription(t.getDescription());
+                vo.setToolType(t.getToolType() != null ? t.getToolType().name() : "");
+                vo.setEnabled(t.getEnabled() == 1);
+                return vo;
             }).collect(Collectors.toList());
 
             ToolSourceVO source = new ToolSourceVO();
@@ -289,25 +291,77 @@ public class AssistantServiceImpl implements AssistantService {
         return result;
     }
 
+    @Override
+    public List<McpBindVO> getMcpBindings(Long assistantId) {
+        // 走缓存：获取全量 MCP 列表
+        List<OwnerToolBindingContext.McpServerWithTools> allData = ownerToolBindingContext.getAllMcpServersWithTools();
+
+        // 查询当前助手已绑定的 MCP Server ID 集合（走缓存）
+        Set<Long> boundServerIds = Collections.emptySet();
+        if (assistantId != null) {
+            List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools("ASSISTANT", assistantId);
+            boundServerIds = boundTools.stream()
+                    .filter(t -> t.getMcpServerId() != null)
+                    .map(ToolDefinitionEntity::getMcpServerId)
+                    .collect(Collectors.toSet());
+        }
+
+        List<McpBindVO> result = new ArrayList<>();
+        for (OwnerToolBindingContext.McpServerWithTools item : allData) {
+            McpServerEntity server = item.mcpServer();
+            McpBindVO vo = new McpBindVO();
+            vo.setMcpServerId(server.getId());
+            vo.setMcpServerName(server.getName());
+            vo.setTransportType(server.getTransportType());
+            vo.setEnabled(server.getEnabled() == 1);
+            vo.setBound(boundServerIds.contains(server.getId()));
+            result.add(vo);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public void updateMcpBindings(Long assistantId, List<Long> mcpServerIds) {
+        // 校验助手存在（走缓存）
+        if (assistantContext.getAssistantById(assistantId) == null) {
+            throw new NotFoundException("助手不存在: " + assistantId);
+        }
+
+        // 校验 MCP Server 存在性（走缓存）
+        if (mcpServerIds != null) {
+            for (Long mcpId : mcpServerIds) {
+                if (ownerToolBindingContext.getMcpServer(mcpId) == null) {
+                    throw new BadRequestException("MCP 服务不存在: " + mcpId);
+                }
+            }
+        }
+
+        bindMcpServerTools(RoleType.ASSISTANT, assistantId, mcpServerIds);
+    }
+
     /**
      * 绑定指定 MCP Server 下的所有工具到 Owner
+     * <p>
+     * 全量替换：先清旧绑定，再插新绑定。完成后刷新 OwnerToolBindingContext 缓存。
      */
     private void bindMcpServerTools(RoleType ownerType, Long ownerId, List<Long> mcpServerIds) {
         // 先清除旧的绑定
         ownerToolBindingDao.deleteByOwner(ownerType, ownerId);
 
-        if (mcpServerIds == null || mcpServerIds.isEmpty()) {
-            return;
+        if (mcpServerIds != null && !mcpServerIds.isEmpty()) {
+            // 查询这些 MCP Server 下的所有工具 ID
+            List<ToolDefinitionEntity> tools = toolDefinitionDao.findByMcpServerIds(mcpServerIds);
+            List<Long> toolIds = tools.stream()
+                    .map(ToolDefinitionEntity::getId)
+                    .collect(Collectors.toList());
+
+            // 批量插入
+            ownerToolBindingDao.batchInsert(ownerType, ownerId, toolIds);
         }
 
-        // 查询这些 MCP Server 下的所有工具 ID
-        List<ToolDefinitionEntity> tools = toolDefinitionDao.findByMcpServerIds(mcpServerIds);
-        List<Long> toolIds = tools.stream()
-                .map(ToolDefinitionEntity::getId)
-                .collect(Collectors.toList());
-
-        // 批量插入
-        ownerToolBindingDao.batchInsert(ownerType, ownerId, toolIds);
+        // 刷新工具绑定缓存
+        ownerToolBindingContext.refresh();
     }
 
     private AssistantDetailVO toDetailVO(AssistantEntity entity) {
@@ -325,8 +379,13 @@ public class AssistantServiceImpl implements AssistantService {
         vo.setSortOrder(entity.getSortOrder());
         vo.setCreatedAt(entity.getCreatedAt());
         vo.setUpdatedAt(entity.getUpdatedAt());
-        // 回显已绑定的 MCP Server ID
-        List<Long> boundIds = ownerToolBindingDao.findBoundMcpServerIds(RoleType.ASSISTANT, entity.getId());
+        // 回显已绑定的 MCP Server ID（走缓存）
+        List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools("ASSISTANT", entity.getId());
+        List<Long> boundIds = boundTools.stream()
+                .filter(t -> t.getMcpServerId() != null)
+                .map(ToolDefinitionEntity::getMcpServerId)
+                .distinct()
+                .collect(Collectors.toList());
         vo.setBoundMcpServerIds(boundIds);
         return vo;
     }

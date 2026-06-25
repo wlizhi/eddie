@@ -108,15 +108,36 @@ public class OwnerToolBindingDao {
     }
 
     /**
-     * 删除指定 Owner 下属于某个 MCP Server 的所有绑定
+     * 删除指定 Owner 下属于指定工具 ID 列表的所有绑定
      */
-    public void deleteByOwnerAndMcpServer(RoleType ownerType, Long ownerId, Long mcpServerId) {
-        String sql = """
+    public void deleteByOwnerAndToolIds(RoleType ownerType, Long ownerId, List<Long> toolIds) {
+        if (toolIds == null || toolIds.isEmpty()) return;
+        String placeholders = String.join(",", toolIds.stream().map(id -> "?").toArray(String[]::new));
+        String sql = String.format("""
                 DELETE FROM ai_owner_tool_binding
                 WHERE owner_type = ? AND owner_id = ?
-                AND tool_id IN (SELECT id FROM ai_tool_definition WHERE mcp_server_id = ?)
-                """;
-        jdbcTemplate.update(sql, ownerType.name(), ownerId, mcpServerId);
+                AND tool_id IN (%s)
+                """, placeholders);
+        Object[] params = new Object[toolIds.size() + 2];
+        params[0] = ownerType.name();
+        params[1] = ownerId;
+        for (int i = 0; i < toolIds.size(); i++) {
+            params[i + 2] = toolIds.get(i);
+        }
+        jdbcTemplate.update(sql, params);
+    }
+
+    /**
+     * 按工具 ID 列表删除所有绑定记录（不区分 Owner）
+     */
+    public void deleteByToolIds(List<Long> toolIds) {
+        if (toolIds == null || toolIds.isEmpty()) return;
+        String placeholders = String.join(",", toolIds.stream().map(id -> "?").toArray(String[]::new));
+        String sql = String.format("""
+                DELETE FROM ai_owner_tool_binding
+                WHERE tool_id IN (%s)
+                """, placeholders);
+        jdbcTemplate.update(sql, toolIds.toArray());
     }
 
     /**

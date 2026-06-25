@@ -1,0 +1,55 @@
+package cc.wlizhi.eddie.settings.entity.request;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ * 新增 MCP 服务器请求参数
+ */
+@Getter
+@Setter
+public class McpServerCreateRequest {
+
+    /**
+     * MCP 服务端名称（全局唯一）
+     */
+    @NotBlank(message = "MCP 服务名称不能为空")
+    private String name;
+
+    /**
+     * 传输方式：STDIO / SSE / STREAMABLE_HTTP
+     */
+    @NotBlank(message = "传输方式不能为空")
+    private String transportType;
+
+    /**
+     * STDIO 启动命令，如 'npx'（STDIO 模式必填）
+     */
+    private String command;
+
+    /**
+     * STDIO 命令参数，JSON 数组
+     */
+    private String args;
+
+    /**
+     * STDIO 环境变量，JSON 对象
+     */
+    private String env;
+
+    /**
+     * SSE / Streamable HTTP 服务端 URL（SSE/HTTP 模式必填）
+     */
+    private String url;
+
+    /**
+     * 请求超时时间（秒），默认 60
+     */
+    private Integer timeoutSeconds;
+
+    /**
+     * 排序序号，默认 0
+     */
+    private Integer sortOrder;
+}
