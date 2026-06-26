@@ -54,7 +54,7 @@ public class DatabaseInitExecutor implements CommandLineRunner {
     private ResourceLoader resourceLoader;
 
     @Resource
-    private DatabaseInitProperties databaseInitProperties;
+    private EddieProperties eddieProperties;
 
     @PostConstruct
     public void init() {
@@ -151,7 +151,7 @@ public class DatabaseInitExecutor implements CommandLineRunner {
 
     private Map<Integer, String> scanVersionedSqlFiles() {
         Map<Integer, String> result = new TreeMap<>();
-        List<String> initScripts = databaseInitProperties.getInitScripts();
+        List<String> initScripts = eddieProperties.getInitScripts();
         for (String scriptPath : initScripts) {
             String filename = scriptPath.substring(scriptPath.lastIndexOf('/') + 1);
             int version = parseVersionFromFilename(filename);

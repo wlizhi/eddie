@@ -94,7 +94,7 @@
                             <buildArgs>
                                 <buildArg>-Os</buildArg>
                                 <buildArg>-H:GenerateDebugInfo=0</buildArg>
-                                <buildArg>-H:IncludeResources=prompts/.*,db\.init/.*</buildArg>
+                                <buildArg>-H:IncludeResources=prompts/.*,init/.*</buildArg>
                                 <buildArg>
                                     --initialize-at-build-time=org.sqlite.JDBC,org.sqlite.core.DB,org.sqlite.util,org.xerial.snappy,ch.qos.logback,org.slf4j,org.jsoup
                                 </buildArg>

@@ -19,6 +19,7 @@ import cc.wlizhi.eddie.common.entity.SessionEntity;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
+import cc.wlizhi.eddie.memory.context.GlobalPromptsContext;
 import cc.wlizhi.eddie.memory.context.ModelProviderContext;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,13 +28,12 @@ import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 会话管理业务实现
@@ -64,7 +64,7 @@ public class SessionServiceImpl implements SessionService {
     private ChatClientFactoryRouter chatClientFactoryRouter;
 
     @Resource
-    private ResourceLoader resourceLoader;
+    private GlobalPromptsContext globalPromptsContext;
 
     private static final int MESSAGE_PAGE_SIZE = 20;
 
@@ -224,18 +224,17 @@ public class SessionServiceImpl implements SessionService {
             return null;
         }
 
-        // 加载 prompt 模板
-        String prompt;
-        try {
-            org.springframework.core.io.Resource resource = resourceLoader.getResource("classpath:prompts/title-generation.md");
-            prompt = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            log.warn("加载标题生成 prompt 文件失败", e);
+        // 加载并解析 prompt 模板
+        String promptTemplate = globalPromptsContext.getTitleGeneration();
+        if (promptTemplate == null) {
+            log.warn("标题生成 prompt 未加载，跳过");
             return null;
         }
 
-        prompt = prompt.replace("{userMessage}", userMsg)
-                .replace("{assistantMessage}", assistantMsg != null ? assistantMsg : "");
+        String prompt = globalPromptsContext.resolvePrompt(promptTemplate, Map.of(
+                "userMessage", userMsg,
+                "assistantMessage", assistantMsg != null ? assistantMsg : ""
+        ));
 
         // 构建最小 ChatContext 用于获取 ChatClient
         ChatContext ctx = new ChatContext();

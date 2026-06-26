@@ -9,7 +9,6 @@ public class DatabaseResourceHints implements RuntimeHintsRegistrar {
     public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
         // 这里直接注册你的资源路径（支持 Ant 风格通配符）
         hints.resources().registerPattern("init/*.sql");
-        // 如果你只想包含特定文件，也可以精确指定：
-        // hints.resources().registerPattern("db/init/xx.sql");
+        hints.resources().registerPattern("prompts/*.md");
     }
 }
