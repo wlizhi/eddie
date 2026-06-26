@@ -975,11 +975,8 @@ public class EddieOpenAiChatModel implements ChatModel {
                     List<ChatCompletionChunk.Choice.Delta.ToolCall> result = new ArrayList<>(tcs1);
                     result.add(toolCall);
                     return result;
-                } else if (!tcs1.isEmpty()) {
+                } else {
                     ChatCompletionChunk.Choice.Delta.ToolCall lastFromTc1 = tcs1.get(tcs1.size() - 1);
-                    if (lastFromTc1.function().isEmpty()) {
-                        return tcs1;
-                    }
                     ChatCompletionChunk.Choice.Delta.ToolCall.Function lastFromTc1F = lastFromTc1.function().get();
 
                     var concatenatedArgs = Stream
@@ -996,7 +993,6 @@ public class EddieOpenAiChatModel implements ChatModel {
                                     .build());
                     return result;
                 }
-                return tcs1;
             }).orElse(List.of());
 
             return left.toBuilder().toolCalls(tcs).build();
@@ -1032,20 +1028,17 @@ public class EddieOpenAiChatModel implements ChatModel {
                         .refusal(cccc.delta().refusal())
                         .additionalProperties(cccc.delta()._additionalProperties());
                 cccc.delta().toolCalls().ifPresent(ccctcs -> {
-                    msgBuilder.toolCalls(ccctcs.stream()
-                            .filter(tc -> tc.id().isPresent() && tc.function().isPresent())
-                            .map(tc -> {
-                                var func = tc.function().get();
-                                ChatCompletionMessageFunctionToolCall.Builder toolCallBuilder = ChatCompletionMessageFunctionToolCall
-                                        .builder();
-                                toolCallBuilder.putAllAdditionalProperties(tc._additionalProperties());
-                                toolCallBuilder.id(tc.id().get());
-                                toolCallBuilder.function(ChatCompletionMessageFunctionToolCall.Function.builder()
-                                        .name(func.name().orElse(""))
-                                        .arguments(func.arguments().orElse(""))
-                                        .build());
-                                return ChatCompletionMessageToolCall.ofFunction(toolCallBuilder.build());
-                            }).toList());
+                    msgBuilder.toolCalls(ccctcs.stream().map(tc -> {
+                        ChatCompletionMessageFunctionToolCall.Builder toolCallBuilder = ChatCompletionMessageFunctionToolCall
+                                .builder();
+                        toolCallBuilder.putAllAdditionalProperties(tc._additionalProperties());
+                        toolCallBuilder.id(tc.id().get());
+                        toolCallBuilder.function(ChatCompletionMessageFunctionToolCall.Function.builder()
+                                .name(tc.function().get().name().get())
+                                .arguments(tc.function().get().arguments().get())
+                                .build());
+                        return ChatCompletionMessageToolCall.ofFunction(toolCallBuilder.build());
+                    }).toList());
                 });
                 choiceBuilder.message(msgBuilder.build());
                 return choiceBuilder.build();
