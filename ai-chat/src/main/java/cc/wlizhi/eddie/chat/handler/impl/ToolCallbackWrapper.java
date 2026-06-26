@@ -24,7 +24,7 @@ public class ToolCallbackWrapper implements ToolCallback {
 
     private final ToolCallback delegate;
     private final Sinks.Many<ToolExecutionEvent> sink;
-    private final int MAX_RESULT_LENGTH = 2000;
+    private final int MAX_RESULT_LENGTH = 1000;
 
     public ToolCallbackWrapper(ToolCallback delegate, Sinks.Many<ToolExecutionEvent> sink) {
         this.delegate = delegate;
@@ -52,13 +52,13 @@ public class ToolCallbackWrapper implements ToolCallback {
             // 执行实际工具——仅此一次
             String result = delegate.call(toolInput);
 
-            // 发射"完成"事件
-            emitSafe(ToolExecutionEvent.complete(toolName, truncateResult(result), false));
+            // 发射"完成"事件（携带 arguments，用于持久化）
+            emitSafe(ToolExecutionEvent.complete(toolName, toolInput, truncateResult(result), false));
 
             return result;
         } catch (Exception e) {
             log.error("[ToolCallbackWrapper] 工具执行失败: {}", toolName, e);
-            emitSafe(ToolExecutionEvent.complete(toolName, "错误: " + e.getMessage(), true));
+            emitSafe(ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true));
             throw e;
         }
     }
@@ -71,11 +71,11 @@ public class ToolCallbackWrapper implements ToolCallback {
 
         try {
             String result = delegate.call(toolInput, toolContext);
-            emitSafe(ToolExecutionEvent.complete(toolName, truncateResult(result), false));
+            emitSafe(ToolExecutionEvent.complete(toolName, toolInput, truncateResult(result), false));
             return result;
         } catch (Exception e) {
             log.error("[ToolCallbackWrapper] 工具执行失败: {}", toolName, e);
-            emitSafe(ToolExecutionEvent.complete(toolName, "错误: " + e.getMessage(), true));
+            emitSafe(ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true));
             throw e;
         }
     }

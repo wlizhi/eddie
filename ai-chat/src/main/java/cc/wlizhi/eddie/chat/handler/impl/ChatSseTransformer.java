@@ -15,6 +15,7 @@ import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
 import cc.wlizhi.eddie.chat.handler.ChatThinkingHandler;
+import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.messages.AbstractMessage;
@@ -95,8 +96,8 @@ public class ChatSseTransformer {
      * 构建工具执行 SSE 事件，同时累积到上下文用于持久化
      */
     private ServerSentEvent<String> buildToolExecutionEvent(ToolExecutionEvent event, ChatContext ctx) {
-        // 累积到上下文（仅 complete 事件才记录到持久化列表）
-        if ("complete".equals(event.getStatus())) {
+        // 累积到上下文（仅 COMPLETE 事件才记录到持久化列表）
+        if (ToolExecutionStatus.COMPLETE.equals(event.getStatus())) {
             ctx.getToolCalls().add(event);
         }
         Map<String, Object> data = new LinkedHashMap<>();

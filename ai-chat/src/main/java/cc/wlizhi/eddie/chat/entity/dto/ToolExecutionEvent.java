@@ -6,6 +6,7 @@
  */
 package cc.wlizhi.eddie.chat.entity.dto;
 
+import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,9 +15,9 @@ import lombok.Setter;
 public class ToolExecutionEvent {
 
     /**
-     * 事件状态：start / complete
+     * 事件状态：START / COMPLETE
      */
-    private String status;
+    private ToolExecutionStatus status;
 
     /**
      * 工具名称（如 built_in_search）
@@ -40,16 +41,20 @@ public class ToolExecutionEvent {
 
     public static ToolExecutionEvent start(String toolName, String arguments) {
         ToolExecutionEvent event = new ToolExecutionEvent();
-        event.setStatus("start");
+        event.setStatus(ToolExecutionStatus.START);
         event.setToolName(toolName);
         event.setArguments(arguments);
         return event;
     }
 
-    public static ToolExecutionEvent complete(String toolName, String result, boolean error) {
+    /**
+     * 创建 complete 事件，携带 arguments 以保留工具调用参数（用于持久化）
+     */
+    public static ToolExecutionEvent complete(String toolName, String arguments, String result, boolean error) {
         ToolExecutionEvent event = new ToolExecutionEvent();
-        event.setStatus("complete");
+        event.setStatus(ToolExecutionStatus.COMPLETE);
         event.setToolName(toolName);
+        event.setArguments(arguments);
         event.setResult(result);
         event.setError(error);
         return event;

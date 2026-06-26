@@ -41,7 +41,7 @@ export interface MessageVO {
  * 对应后端 ToolExecutionEvent，与 ToolExecutionRecord 的区别是使用 status 而非 done
  */
 export interface ToolExecutionEventItem {
-    status: string          // "start" | "complete"
+    status: 'start' | 'complete'
     toolName: string
     arguments?: string
     result?: string

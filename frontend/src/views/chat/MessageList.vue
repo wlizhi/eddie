@@ -39,6 +39,22 @@ function displayToolName(toolName: string): string {
       .replace(/\b\w/g, c => c.toUpperCase())
 }
 
+/** 格式化工具参数 JSON 为可读文本（截断过长内容） */
+function formatArgs(args: string): string {
+  if (!args) return ''
+  try {
+    const parsed = JSON.parse(args)
+    if (typeof parsed === 'object' && parsed !== null) {
+      // 如果是对象，取前两个 key: value 对显示
+      const entries = Object.entries(parsed).slice(0, 2)
+      return entries.map(([k, v]) => `${k}: ${String(v).slice(0, 60)}`).join(' | ')
+    }
+  } catch {
+    // 不是 JSON 字符串，原样截断显示
+  }
+  return args.length > 80 ? args.slice(0, 80) + '...' : args
+}
+
 /** 消息容器 DOM，用于自动滚动 */
 const messageListRef = ref<HTMLElement | null>(null)
 
@@ -267,6 +283,9 @@ function onScroll() {
                 <span class="tool-execution-icon">{{ tc.error ? '✕' : '✓' }}</span>
                 <span class="tool-execution-name">{{ displayToolName(tc.toolName) }}</span>
               </div>
+              <div v-if="tc.arguments" class="tool-execution-args">
+                {{ formatArgs(tc.arguments) }}
+              </div>
               <div v-if="tc.result" class="tool-execution-result markdown-body"
                    :class="{ collapsed: !toolResultExpanded['h-' + ti] }"
                    v-html="renderMd(tc.result)">
@@ -285,6 +304,9 @@ function onScroll() {
                 <span class="tool-execution-icon">{{ tool.done ? (tool.error ? '✕' : '✓') : '⟳' }}</span>
                 <span class="tool-execution-name">{{ displayToolName(tool.toolName) }}</span>
                 <span v-if="!tool.done" class="tool-execution-status">运行中...</span>
+              </div>
+              <div v-if="tool.arguments" class="tool-execution-args">
+                {{ formatArgs(tool.arguments) }}
               </div>
               <div v-if="tool.done && tool.result" class="tool-execution-result markdown-body"
                    :class="{ collapsed: !toolResultExpanded['s-' + ti] }"
