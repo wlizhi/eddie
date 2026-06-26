@@ -119,45 +119,45 @@ const theme: ThemeDefinition = {
       `,
         },
         dark: {
-            /* 背景色 — 暗绿极光 */
-            '--bg-primary': '#1a3a2a',
-            '--bg-secondary': '#2a4a3a',
-            '--bg-tertiary': '#3a5a4a',
-            '--bg-hover': '#4a6a5a',
-            '--bg-selected': '#4a7a5a',
-            '--bg-nav-rail': '#1a3a2a',
-            '--bg-mask': 'rgba(0, 0, 0, 0.40)',
-            '--bg-tooltip': '#4a6a5a',
+            /* 背景色 — 简约清新冷绿 */
+            '--bg-primary': '#26382e',
+            '--bg-secondary': '#2e4438',
+            '--bg-tertiary': '#3a5448',
+            '--bg-hover': '#486055',
+            '--bg-selected': '#387048',
+            '--bg-nav-rail': '#26382e',
+            '--bg-mask': 'rgba(0, 0, 0, 0.32)',
+            '--bg-tooltip': '#3a5448',
 
-            /* 文字色 */
-            '--text-primary': '#ecfdf5',
-            '--text-secondary': '#8adbaa',
-            '--text-tertiary': '#5a8a6a',
-            '--text-quaternary': '#6a9a7a',
-            '--text-muted': '#4a7a5a',
-            '--text-inverse': '#1a3a2a',
-            '--text-accent': '#34d399',
-            '--text-disabled': '#4a7a5a',
+            /* 文字色 — 干净清爽 */
+            '--text-primary': '#eaf5ed',
+            '--text-secondary': '#b8d4c2',
+            '--text-tertiary': '#6a9a7c',
+            '--text-quaternary': '#7aaa8c',
+            '--text-muted': '#5a8a6c',
+            '--text-inverse': '#26382e',
+            '--text-accent': '#5aea88',
+            '--text-disabled': '#5a8a6c',
 
-            /* 边框色 */
-            '--border-default': '#4a7a5a',
-            '--border-light': '#3a6a4a',
-            '--border-lighter': '#2a5a3a',
-            '--border-hover': '#6a9a7a',
-            '--border-focus': '#34d399',
+            /* 边框色 — 干净利落 */
+            '--border-default': '#48705a',
+            '--border-light': '#3a6048',
+            '--border-lighter': '#2e5038',
+            '--border-hover': '#6a9a7c',
+            '--border-focus': '#5aea88',
 
             /* 消息气泡 */
-            '--msg-user-bg': '#10b981',
+            '--msg-user-bg': '#28c860',
             '--msg-user-text': '#ffffff',
-            '--msg-assistant-bg': '#3a5a4a',
-            '--msg-assistant-text': '#ecfdf5',
+            '--msg-assistant-bg': '#2e4438',
+            '--msg-assistant-text': '#eaf5ed',
 
-            /* 主色 / 强调色 */
-            '--accent-default': '#78b898',
-            '--accent-hover': '#68a888',
-            '--accent-light-bg': '#1e3028',
+            /* 主色 / 强调色 — 清透 */
+            '--accent-default': '#8ad4a0',
+            '--accent-hover': '#6ac488',
+            '--accent-light-bg': '#26382e',
             '--accent-light-border': '#385048',
-            '--accent-ring': 'rgba(120, 184, 152, 0.10)',
+            '--accent-ring': 'rgba(138, 212, 160, 0.12)',
 
             /* 语义色 */
             '--danger-default': '#f87171',
@@ -186,9 +186,9 @@ const theme: ThemeDefinition = {
             '--tag-embedding-text': '#818cf8',
 
             /* 杂项 */
-            '--scrollbar-thumb': '#6a9a7a',
-            '--icon-muted': '#4a7a5a',
-            '--divider-light': '#3a6a4a',
+            '--scrollbar-thumb': '#6a9a7c',
+            '--icon-muted': '#5a8a6c',
+            '--divider-light': '#3a6048',
 
             /*
              * 背景装饰 — 极光幕帘（深色）
@@ -196,29 +196,29 @@ const theme: ThemeDefinition = {
              */
             '--bg-decoration': `
         radial-gradient(ellipse 3% 50% at 22% 22%,
-          rgba(52,211,153,0.15) 0%, transparent 80%),
+          rgba(90,234,136,0.16) 0%, transparent 80%),
         radial-gradient(ellipse 3% 55% at 35% 18%,
           rgba(167,139,250,0.12) 0%, transparent 80%),
         radial-gradient(ellipse 3% 45% at 48% 20%,
-          rgba(16,185,129,0.15) 0%, transparent 80%),
+          rgba(40,200,96,0.16) 0%, transparent 80%),
         radial-gradient(ellipse 3% 50% at 60% 16%,
           rgba(139,92,246,0.10) 0%, transparent 80%),
         radial-gradient(ellipse 3% 40% at 72% 22%,
-          rgba(52,211,153,0.12) 0%, transparent 80%),
+          rgba(90,234,136,0.14) 0%, transparent 80%),
         radial-gradient(ellipse 3% 45% at 85% 18%,
           rgba(167,139,250,0.10) 0%, transparent 80%),
         radial-gradient(ellipse 180% 18% at 45% 12%,
-          rgba(52,211,153,0.40) 0%, transparent 70%),
+          rgba(90,234,136,0.40) 0%, transparent 70%),
         radial-gradient(ellipse 160% 14% at 55% 18%,
-          rgba(16,185,129,0.28) 0%, transparent 70%),
+          rgba(40,200,96,0.28) 0%, transparent 70%),
         radial-gradient(ellipse 150% 16% at 35% 22%,
           rgba(167,139,250,0.32) 0%, transparent 70%),
         radial-gradient(ellipse 170% 12% at 60% 28%,
           rgba(139,92,246,0.22) 0%, transparent 70%),
         radial-gradient(ellipse 200% 10% at 50% 42%,
-          rgba(52,211,153,0.16) 0%, transparent 80%),
+          rgba(90,234,136,0.18) 0%, transparent 80%),
         radial-gradient(ellipse 100% 30% at 50% 0%,
-          rgba(16,185,129,0.10) 0%, transparent 100%)
+          rgba(40,200,96,0.10) 0%, transparent 100%)
       `,
         },
     },

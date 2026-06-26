@@ -458,7 +458,7 @@ export function applyDisplaySettings(): void {
 
     // 头像大小 = 基准字体大小 × 2.5（放大差异让不同字体等级间的头像变化有感知度）
     //   小 14px → 35px | 中 16px → 40px | 大 18px → 45px | 自定义 20px → 50px
-    const avatarSize = Math.round(basePx * 2.5)
+    const avatarSize = Math.round(basePx * 2.2)
     root.style.setProperty('--avatar-size', `${avatarSize}px`)
 
     // 字体类型

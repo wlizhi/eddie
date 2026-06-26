@@ -40,7 +40,7 @@ const thinkingExpanded = ref<Record<string, boolean>>({})
 let prevScrollHeight = 0
 
 /** 随字体大小动态变化的头像大小（基准字号 × 2.5，与 --avatar-size 保持一致） */
-const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 2.5))
+const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 2.2))
 
 /** 用户是否已手动上滑（打断自动滚动） */
 const userScrolledAway = ref(false)

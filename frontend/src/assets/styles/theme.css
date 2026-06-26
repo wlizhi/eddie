@@ -141,7 +141,7 @@ body {
    让 .app-backdrop 的背景装饰有极微弱的透明度脉动 */
 @keyframes backdrop-breathe {
     0%, 100% {
-        opacity: 0.9;
+        opacity: 0.85;
     }
     50% {
         opacity: 1;
