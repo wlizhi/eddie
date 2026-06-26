@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * 角色 API（骨架）
  */
@@ -22,9 +24,19 @@ public class RoleController {
     @Resource
     private WebSearchTools webSearchTools;
 
-    @GetMapping("/hello")
-    public ApiResult<String> hello(@RequestParam("query") String query) {
-        String content = webSearchTools.search(query, 10);
-        return ApiResult.success(content);
+    @GetMapping("/search")
+    public ApiResult<String> search(@RequestParam("query") String query
+            , @RequestParam(required = false, name = "maxResults") Integer maxResults) {
+        String result = webSearchTools.search(query, maxResults);
+        return ApiResult.success(result);
+    }
+
+    @GetMapping("/fetchMarkdown")
+    public ApiResult<String> fetchMarkdown(@RequestParam("url") String url
+            , @RequestParam(required = false, name = "maxCharacters") Integer maxCharacters
+            , @RequestParam(required = false, name = "mode") String mode
+    ) {
+        String result = webFetchTools.fetchMarkdown(List.of(url), maxCharacters, mode);
+        return ApiResult.success(result);
     }
 }
