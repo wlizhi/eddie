@@ -40,7 +40,8 @@ public class WebFetchTools implements BuiltInToolProvider {
 
     private static final String USER_AGENT = "Mozilla/5.0 (compatible; EddieBot/1.0)";
     private static final int TIMEOUT_SECONDS = 15;
-    private static final int DEFAULT_MAX_CHARS = 8_000;
+    private static final int DEFAULT_MAX_CHARS = 4_000;
+    private static final int MAX_CHARS = 15_000;
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -57,12 +58,12 @@ public class WebFetchTools implements BuiltInToolProvider {
             description = "获取指定 URL 的网页内容，提取正文后返回干净的 Markdown 文本，适合 LLM 阅读")
     public String fetchMarkdown(
             @ToolParam(description = "要抓取的 URL 列表") List<String> urls,
-            @ToolParam(required = false, description = "最大返回字符数，默认 8000") Integer maxCharacters,
+            @ToolParam(required = false, description = "最大返回字符数，默认 4000，最大 15000，超出部分会被截断") Integer maxCharacters,
             @ToolParam(required = false, description = "模式：article（提取正文）或 full（全文），默认 article") String mode) {
 
         if (urls == null || urls.isEmpty()) return "错误：未提供 URL";
 
-        int maxChars = maxCharacters != null ? maxCharacters : DEFAULT_MAX_CHARS;
+        int maxChars = maxCharacters != null ? Math.min(maxCharacters, MAX_CHARS) : DEFAULT_MAX_CHARS;
         String actualMode = mode != null ? mode : "article";
         boolean isFull = "full".equals(actualMode);
 

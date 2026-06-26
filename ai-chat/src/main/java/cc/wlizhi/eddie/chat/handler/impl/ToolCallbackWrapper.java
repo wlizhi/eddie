@@ -24,7 +24,7 @@ public class ToolCallbackWrapper implements ToolCallback {
 
     private final ToolCallback delegate;
     private final Sinks.Many<ToolExecutionEvent> sink;
-    private final int MAX_RESULT_LENGTH = 1000;
+    private final int MAX_RESULT_LENGTH = 3000;
 
     public ToolCallbackWrapper(ToolCallback delegate, Sinks.Many<ToolExecutionEvent> sink) {
         this.delegate = delegate;
@@ -96,13 +96,18 @@ public class ToolCallbackWrapper implements ToolCallback {
     }
 
     /**
-     * 截断过长结果（避免SSE数据过大）
+     * 截断过长结果（避免SSE数据过大），同时修复转义换行符
+     * <p>
+     * 某些外部工具返回的内容中可能包含字面量 {@code \n}，而非真实换行符，
+     * 导致前端 Markdown 渲染异常。此处统一替换为真实换行符。
      */
     private String truncateResult(String result) {
         if (result == null) return "";
-        if (result.length() > MAX_RESULT_LENGTH) {
-            return result.substring(0, MAX_RESULT_LENGTH) + "...（已截断）";
+        // 修复字面量 \n → 真实换行符
+        String fixed = result.replace("\\n", "\n");
+        if (fixed.length() > MAX_RESULT_LENGTH) {
+            return fixed.substring(0, MAX_RESULT_LENGTH) + "...（已截断）";
         }
-        return result;
+        return fixed;
     }
 }

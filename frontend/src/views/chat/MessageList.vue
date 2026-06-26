@@ -55,6 +55,15 @@ function formatArgs(args: string): string {
   return args.length > 80 ? args.slice(0, 80) + '...' : args
 }
 
+/**
+ * 修复内容中可能存在的转义换行符 → 真实换行符
+ * 某些外部工具返回的文本中，\n 以字面量形式存在而非真实换行符，
+ * 需要转换以便 Markdown 渲染器正确解析。
+ */
+function fixNewlines(text: string): string {
+  return text.replace(/\\n/g, '\n')
+}
+
 /** 消息容器 DOM，用于自动滚动 */
 const messageListRef = ref<HTMLElement | null>(null)
 
@@ -288,7 +297,7 @@ function onScroll() {
               </div>
               <div v-if="tc.result" class="tool-execution-result markdown-body"
                    :class="{ collapsed: !toolResultExpanded['h-' + ti] }"
-                   v-html="renderMd(tc.result)">
+                   v-html="renderMd(fixNewlines(tc.result))">
               </div>
             </div>
             <!-- 当前流式中的工具调用（仅最新消息） -->
@@ -310,7 +319,7 @@ function onScroll() {
               </div>
               <div v-if="tool.done && tool.result" class="tool-execution-result markdown-body"
                    :class="{ collapsed: !toolResultExpanded['s-' + ti] }"
-                   v-html="renderMd(tool.result)">
+                   v-html="renderMd(fixNewlines(tool.result))">
               </div>
             </div>
           </div>
