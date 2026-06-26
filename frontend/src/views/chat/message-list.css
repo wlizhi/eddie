@@ -38,8 +38,8 @@
 }
 
 .avatar {
-    width: 28px;
-    height: 28px;
+    width: var(--avatar-size, 28px);
+    height: var(--avatar-size, 28px);
     border-radius: 6px;
     display: flex;
     align-items: center;

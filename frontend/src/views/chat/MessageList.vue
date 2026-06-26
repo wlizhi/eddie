@@ -14,14 +14,14 @@
   - qaMode (boolean) — 问答模式下用户消息左对齐
 -->
 <script setup lang="ts">
-import {nextTick, onMounted, ref, watch} from 'vue'
+import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
 import {ChevronDown, Copy, Loader, RefreshCw} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
-import {displaySettings} from '@/composables/useDisplaySettings'
+import {displaySettings, getEffectiveFontSize} from '@/composables/useDisplaySettings'
 
 defineProps<{
   qaMode: boolean
@@ -38,6 +38,9 @@ const thinkingExpanded = ref<Record<string, boolean>>({})
 
 /** 记录加载更多前的高度，用于保持滚动位置 */
 let prevScrollHeight = 0
+
+/** 随字体大小动态变化的头像大小（基准字号 × 2.5，与 --avatar-size 保持一致） */
+const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 2.5))
 
 /** 用户是否已手动上滑（打断自动滚动） */
 const userScrolledAway = ref(false)
@@ -183,7 +186,7 @@ function onScroll() {
           <AssistantAvatar
               :name="displaySettings.nickname || '我'"
               :avatar="(displaySettings.avatar || null)"
-              :size="28"
+              :size="avatarSize"
           />
         </div>
         <div v-else class="avatar assistant-avatar">
@@ -191,7 +194,7 @@ function onScroll() {
               v-if="assistantStore.activeAssistant"
               :name="assistantStore.activeAssistant.name"
               :avatar="assistantStore.activeAssistant.avatar"
-              :size="28"
+              :size="avatarSize"
           />
           <span v-else class="avatar-text">AI</span>
         </div>
