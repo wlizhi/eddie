@@ -14,6 +14,7 @@ import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.chat.handler.ChatPreProcessor;
 import cc.wlizhi.eddie.common.dao.SessionDao;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
+import cc.wlizhi.eddie.common.entity.ModelPricing;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.SessionEntity;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
@@ -88,12 +89,20 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
                         .filter(m -> request.getModelId().equals(m.get("id")))
                         .findFirst()
                         .ifPresent(m -> {
+                            ModelPricing pricing = new ModelPricing();
                             Object inputPrice = m.get("input_price");
                             Object outputPrice = m.get("output_price");
-                            if (inputPrice instanceof Number) ctx.setInputPrice(((Number) inputPrice).doubleValue());
-                            if (outputPrice instanceof Number) ctx.setOutputPrice(((Number) outputPrice).doubleValue());
+                            if (inputPrice instanceof Number)
+                                pricing.setInputPrice(((Number) inputPrice).doubleValue());
+                            if (outputPrice instanceof Number)
+                                pricing.setOutputPrice(((Number) outputPrice).doubleValue());
+                            // cache_input_price 为可选字段，后续模型设置中可配置
+                            Object cacheInputPrice = m.get("cache_input_price");
+                            if (cacheInputPrice instanceof Number)
+                                pricing.setCacheInputPrice(((Number) cacheInputPrice).doubleValue());
                             Object currency = m.get("currency");
-                            if (currency instanceof String) ctx.setCurrency((String) currency);
+                            if (currency instanceof String) pricing.setCurrency((String) currency);
+                            ctx.setPricing(pricing);
                         });
             } catch (Exception e) {
                 // 价格解析失败不影响主流程，仅跳过费用计算

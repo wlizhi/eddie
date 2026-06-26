@@ -77,4 +77,14 @@ public class MessageVO {
      * 工具调用记录列表（由 JSON 字符串反序列化而来）
      */
     private List<ToolExecutionEvent> toolCalls;
+
+    /**
+     * 缓存读取的 input token 数
+     */
+    private Integer cacheReadInputTokens;
+
+    /**
+     * 缓存写入的 input token 数
+     */
+    private Integer cacheWriteInputTokens;
 }

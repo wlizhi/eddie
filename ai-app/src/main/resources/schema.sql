@@ -79,9 +79,11 @@ CREATE TABLE IF NOT EXISTS ai_session_msg
     total_tokens      INTEGER NOT NULL DEFAULT 0,   -- 总 token 数
     price_estimate    REAL    NOT NULL DEFAULT 0.0, -- 预估费用（美元）
     tool_calls TEXT NOT NULL DEFAULT '[]',          -- 工具调用记录 JSON 数组
+    cache_read_input_tokens    INTEGER NOT NULL DEFAULT 0, -- 缓存读取的 input token 数（来自 Usage）
+    cache_written_input_tokens INTEGER NOT NULL DEFAULT 0, -- 缓存写入的 input token 数（来自 Usage）
     created_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
-CREATE INDEX IF NOT EXISTS idx_msg_session ON ai_session_msg (session_id);
+CREATE INDEX IF NOT EXISTS idx_msg_session_id ON ai_session_msg (session_id, id);
 
 -- 全局配置表（key-value 结构，config_key 直接使用 GlobalConfigKey 枚举名存储）
 -- config_val 为 JSON 字符串，前端/业务模块按需反序列化

@@ -202,9 +202,9 @@ public class ChatSseTransformer {
         if (lastResponse != null) {
             ChatResponseMetadata metadata = lastResponse.getMetadata();
             Usage usage = metadata.getUsage();
-            if (usage.getPromptTokens() != null) data.put("promptTokens", usage.getPromptTokens());
-            if (usage.getCompletionTokens() != null) data.put("completionTokens", usage.getCompletionTokens());
-            if (usage.getTotalTokens() != null) data.put("totalTokens", usage.getTotalTokens());
+            data.put("promptTokens", usage.getPromptTokens());
+            data.put("completionTokens", usage.getCompletionTokens());
+            data.put("totalTokens", usage.getTotalTokens());
         }
         return data;
     }

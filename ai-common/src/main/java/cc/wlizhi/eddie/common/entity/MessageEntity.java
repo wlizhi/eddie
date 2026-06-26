@@ -81,6 +81,16 @@ public class MessageEntity {
     private String toolCalls;
 
     /**
+     * 缓存读取的 input token 数（来自 Usage.getCacheReadInputTokens()）
+     */
+    private Integer cacheReadInputTokens;
+
+    /**
+     * 缓存写入的 input token 数（来自 Usage.getCacheWriteInputTokens()）
+     */
+    private Integer cacheWriteInputTokens;
+
+    /**
      * 消息时间
      */
     private String createdAt;

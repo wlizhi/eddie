@@ -11,6 +11,7 @@ package cc.wlizhi.eddie.chat.entity.dto;
 
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
+import cc.wlizhi.eddie.common.entity.ModelPricing;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.SessionEntity;
 import lombok.Getter;
@@ -68,22 +69,12 @@ public class ChatContext {
      */
     private ChatClient chatClient;
 
-    // ==================== 阶段二.五：模型价格（预处理解析） ====================
+    // ==================== 阶段二.五：模型价格配置（预处理解析） ====================
 
     /**
-     * 当前模型的 input 单价（每百万 token）
+     * 模型价格配置（含 inputPrice / outputPrice / cacheInputPrice / currency）
      */
-    private Double inputPrice;
-
-    /**
-     * 当前模型的 output 单价（每百万 token）
-     */
-    private Double outputPrice;
-
-    /**
-     * 货币符号，如 ¥ / $
-     */
-    private String currency;
+    private ModelPricing pricing;
 
     // ==================== 阶段四：执行 & 响应 ====================
 
@@ -96,6 +87,16 @@ public class ChatContext {
      * 最后一次 ChatResponse（用于提取 token 用量等元数据）
      */
     private ChatResponse lastResponse;
+
+    /**
+     * 缓存读取的 input token 数（来自 Usage.getCacheReadInputTokens()，运行时填充）
+     */
+    private Integer cacheReadInputTokens;
+
+    /**
+     * 缓存写入的 input token 数（来自 Usage.getCacheWriteInputTokens()，运行时填充）
+     */
+    private Integer cacheWriteInputTokens;
 
     /**
      * 完整思考内容（StringBuilder，流式拼接）

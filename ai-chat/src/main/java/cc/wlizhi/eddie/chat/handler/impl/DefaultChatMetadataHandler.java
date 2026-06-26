@@ -8,6 +8,7 @@ package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
+import cc.wlizhi.eddie.common.entity.ModelPricing;
 import cc.wlizhi.eddie.common.util.PriceCalculator;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
@@ -33,19 +34,31 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
         if (lastResponse != null) {
             ChatResponseMetadata metadata = lastResponse.getMetadata();
             Usage usage = metadata.getUsage();
-            data.put("promptTokens", usage.getPromptTokens());
-            data.put("completionTokens", usage.getCompletionTokens());
+            int promptTokens = usage.getPromptTokens();
+            int completionTokens = usage.getCompletionTokens();
+            data.put("promptTokens", promptTokens);
+            data.put("completionTokens", completionTokens);
             data.put("totalTokens", usage.getTotalTokens());
-            data.put("cacheReadInputTokens", usage.getCacheReadInputTokens());
-            data.put("cacheWriteInputTokens", usage.getCacheWriteInputTokens());
+
+            // 读取缓存字段并写入上下文中（用于后处理器持久化）
+            Long cacheRead = usage.getCacheReadInputTokens();
+            Long cacheWrite = usage.getCacheWriteInputTokens();
+            int cacheReadTokens = cacheRead != null ? cacheRead.intValue() : 0;
+            int cacheWriteTokens = cacheWrite != null ? cacheWrite.intValue() : 0;
+            ctx.setCacheReadInputTokens(cacheReadTokens);
+            ctx.setCacheWriteInputTokens(cacheWriteTokens);
+            data.put("cacheReadInputTokens", cacheReadTokens);
+            data.put("cacheWriteInputTokens", cacheWriteTokens);
 
             // 预估费用（单价为每百万 token，BigDecimal 精确计算）
-            if (ctx.getInputPrice() != null) {
+            ModelPricing pricing = ctx.getPricing();
+            if (pricing != null) {
                 double cost = PriceCalculator.calculate(
-                        usage.getPromptTokens(), usage.getCompletionTokens(),
-                        ctx.getInputPrice(), ctx.getOutputPrice());
+                        promptTokens, completionTokens, cacheReadTokens,
+                        pricing.getEffectiveInputPrice(), pricing.getEffectiveOutputPrice(),
+                        pricing.getEffectiveCacheInputPrice());
                 data.put("costEstimate", cost);
-                data.put("currency", ctx.getCurrency());
+                data.put("currency", pricing.getCurrency() != null ? pricing.getCurrency() : "");
             }
         }
 

@@ -6,6 +6,7 @@ import cc.wlizhi.eddie.chat.handler.ChatPostProcessor;
 import cc.wlizhi.eddie.common.dao.MessageDao;
 import cc.wlizhi.eddie.common.dao.SessionDao;
 import cc.wlizhi.eddie.common.entity.MessageEntity;
+import cc.wlizhi.eddie.common.entity.ModelPricing;
 import cc.wlizhi.eddie.common.entity.SessionEntity;
 import cc.wlizhi.eddie.common.util.PriceCalculator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -84,6 +85,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
 
         ChatResponse lastResponse = ctx.getLastResponse();
         int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+        int cacheReadTokens = 0, cacheWriteTokens = 0;
         if (lastResponse != null) {
             ChatResponseMetadata metadata = lastResponse.getMetadata();
             Usage usage = metadata.getUsage();
@@ -98,11 +100,20 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
             assistantMsg.setCompletionTokens(0);
             assistantMsg.setTotalTokens(0);
         }
-        // 预估费用（BigDecimal 精确计算，每百万 token 单价）
+        // 读取缓存字段（兜底：null 按 0 处理）
+        cacheReadTokens = ctx.getCacheReadInputTokens() != null ? ctx.getCacheReadInputTokens() : 0;
+        cacheWriteTokens = ctx.getCacheWriteInputTokens() != null ? ctx.getCacheWriteInputTokens() : 0;
+        assistantMsg.setCacheReadInputTokens(cacheReadTokens);
+        assistantMsg.setCacheWriteInputTokens(cacheWriteTokens);
+
+        // 预估费用（含缓存折扣计算）
         double estimate = 0.0;
-        if (ctx.getInputPrice() != null && promptTokens > 0) {
-            estimate = PriceCalculator.calculate(promptTokens, completionTokens,
-                    ctx.getInputPrice(), ctx.getOutputPrice());
+        ModelPricing pricing = ctx.getPricing();
+        if (pricing != null && promptTokens > 0) {
+            estimate = PriceCalculator.calculate(
+                    promptTokens, completionTokens, cacheReadTokens,
+                    pricing.getEffectiveInputPrice(), pricing.getEffectiveOutputPrice(),
+                    pricing.getEffectiveCacheInputPrice());
         }
         assistantMsg.setPriceEstimate(estimate);
         messageDao.insert(assistantMsg);
