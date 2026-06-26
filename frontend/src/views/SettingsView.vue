@@ -33,14 +33,14 @@ const navGroups: NavGroup[] = [
   {
     label: '通用设置',
     items: [
-      {key: 'display', label: '显示设置', icon: Monitor},
       {key: 'general', label: '常规设置', icon: Settings},
+      {key: 'display', label: '显示设置', icon: Monitor},
     ],
   },
   {
     label: '扩展功能',
     items: [
-      {key: 'mcp', label: 'MCP 服务器', icon: Network},
+      {key: 'mcp', label: 'MCP 服务', icon: Network},
       {key: 'skills', label: '技能', icon: Puzzle},
       {key: 'web-search', label: '网络搜索', icon: Globe},
       {key: 'channels', label: '频道', icon: Radio},

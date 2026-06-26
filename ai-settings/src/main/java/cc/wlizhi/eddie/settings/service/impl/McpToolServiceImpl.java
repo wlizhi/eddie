@@ -16,12 +16,15 @@ import cc.wlizhi.eddie.settings.entity.response.McpServerVO;
 import cc.wlizhi.eddie.settings.entity.response.McpToolItemVO;
 import cc.wlizhi.eddie.settings.service.McpToolService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +37,7 @@ import java.util.stream.Collectors;
  *   <li>不使用子查询和表关联</li>
  * </ul>
  */
+@Slf4j
 @Service
 public class McpToolServiceImpl implements McpToolService {
 
@@ -111,30 +115,75 @@ public class McpToolServiceImpl implements McpToolService {
     public void updateStatus(McpStatusUpdateRequest request) {
         Long mcpServerId = request.getMcpServerId();
 
-        // 1. MCP 存在性校验（走缓存）
+        // 1. 从缓存获取 MCP 服务及全量工具列表（不区分启用/禁用状态）
         McpServerEntity mcp = ownerToolBindingContext.getMcpServer(mcpServerId);
         if (mcp == null) {
             throw new NotFoundException("MCP 服务不存在: " + mcpServerId);
         }
+        List<ToolDefinitionEntity> allTools = ownerToolBindingContext.getToolsByMcpServerId(mcpServerId);
+        Map<Long, ToolDefinitionEntity> toolMap = allTools.stream()
+                .collect(Collectors.toMap(ToolDefinitionEntity::getId, t -> t));
 
-        // 2. 更新工具级别状态
-        if (request.getTools() != null && !request.getTools().isEmpty()) {
-            for (McpStatusUpdateRequest.ToolStatusItem item : request.getTools()) {
-                toolDefinitionDao.updateEnabled(item.getId(), item.getEnabled() ? 1 : 0);
+        // 2. 内存计算目标状态（完全基于缓存，不查 DB）
+        Boolean mcpEnabledParam = request.getMcpEnabled();
+        boolean targetMcpEnabled;
+        // toolId → 目标 enabled 值 (0/1)
+        Map<Long, Integer> targetToolMap = new HashMap<>();
+
+        if (mcpEnabledParam != null) {
+            // 场景 A: MCP 纬度显式传递 → 以 MCP 为准，覆盖该 MCP 下所有工具为一致状态
+            log.info("MCP状态更新 - MCP纬度覆盖: mcpServerId={}, mcpEnabled={}",
+                    mcpServerId, mcpEnabledParam);
+            targetMcpEnabled = mcpEnabledParam;
+            int enabledInt = targetMcpEnabled ? 1 : 0;
+            for (ToolDefinitionEntity tool : allTools) {
+                targetToolMap.put(tool.getId(), enabledInt);
+            }
+        } else {
+            // 场景 B: MCP 纬度未传递 → 仅更新工具纬度，推导 MCP 状态
+            if (request.getTools() != null) {
+                for (McpStatusUpdateRequest.ToolStatusItem item : request.getTools()) {
+                    // 校验工具归属合法性
+                    ToolDefinitionEntity tool = toolMap.get(item.getId());
+                    if (tool == null) {
+                        throw new BadRequestException("工具不存在或不属于该 MCP: " + item.getId());
+                    }
+                    targetToolMap.put(item.getId(), item.getEnabled() ? 1 : 0);
+                }
+            }
+
+            // 推导 MCP 状态：遍历所有工具，未在 targetToolMap 中的保持原状态
+            boolean anyEnabled = false;
+            for (ToolDefinitionEntity tool : allTools) {
+                Integer target = targetToolMap.get(tool.getId());
+                int finalState = target != null ? target : tool.getEnabled();
+                if (finalState == 1) {
+                    anyEnabled = true;
+                    break;
+                }
+            }
+            targetMcpEnabled = anyEnabled;
+            log.info("MCP状态更新 - 工具纬度推导: mcpServerId={}, targetMcpEnabled={}",
+                    mcpServerId, targetMcpEnabled);
+        }
+
+        // 3. 差异比对 + 增量持久化（仅持久化有变更的项）
+        // 3a. MCP 级别
+        if (mcp.getEnabled() != (targetMcpEnabled ? 1 : 0)) {
+            mcpServerDao.updateEnabled(mcpServerId, targetMcpEnabled ? 1 : 0);
+        }
+
+        // 3b. 工具级别
+        for (Map.Entry<Long, Integer> entry : targetToolMap.entrySet()) {
+            Long toolId = entry.getKey();
+            int newEnabled = entry.getValue();
+            ToolDefinitionEntity currentTool = toolMap.get(toolId);
+            if (currentTool != null && currentTool.getEnabled() != newEnabled) {
+                toolDefinitionDao.updateEnabled(toolId, newEnabled);
             }
         }
 
-        // 3. 更新 MCP 级别状态
-        if (request.getMcpEnabled() != null) {
-            mcpServerDao.updateEnabled(mcpServerId, request.getMcpEnabled() ? 1 : 0);
-        }
-
-        // 4. 级联校验：查询该 MCP 下所有工具的 enabled 状态（从 DB 查实时数据）
-        List<ToolDefinitionEntity> allTools = toolDefinitionDao.findByMcpServerId(mcpServerId);
-        boolean anyEnabled = allTools.stream().anyMatch(t -> t.getEnabled() == 1);
-        mcpServerDao.updateEnabled(mcpServerId, anyEnabled ? 1 : 0);
-
-        // 5. 刷新缓存
+        // 4. 刷新上下文缓存
         ownerToolBindingContext.refresh();
     }
 
@@ -188,10 +237,13 @@ public class McpToolServiceImpl implements McpToolService {
 
     /**
      * 校验名称唯一性（走缓存）
+     * <p>
+     * 仅检查用户自定义的 MCP（builtIn=0），内置 MCP 允许用户创建同名副本进行自定义。
      */
     private void checkNameUnique(String name) {
         List<OwnerToolBindingContext.McpServerWithTools> allData = ownerToolBindingContext.getAllMcpServersWithTools();
         boolean exists = allData.stream()
+                .filter(item -> item.mcpServer().getBuiltIn() == 0)
                 .anyMatch(item -> item.mcpServer().getName().equalsIgnoreCase(name.trim()));
         if (exists) {
             throw new ConflictException("MCP 服务名称已存在: " + name.trim());
