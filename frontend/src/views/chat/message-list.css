@@ -362,7 +362,7 @@
 }
 
 .tool-execution-card {
-    background: var(--bg-hover);
+    /*background: var(--bg-hover);*/
     border: 1px solid var(--border-base);
     border-radius: 6px;
     padding: 4px 8px;
@@ -436,7 +436,7 @@
     padding-top: 2px;
     border-top: 1px solid var(--border-base);
     font-size: var(--font-size-small);
-    color: var(--text-muted);
+    /*color: var(--text-muted);*/
     line-height: 1.4;
     word-break: break-word;
     max-height: 200px;
