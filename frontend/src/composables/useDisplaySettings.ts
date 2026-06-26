@@ -507,11 +507,15 @@ export function applyDisplaySettings(): void {
             if (shouldRandomize) {
                 deco = randomizeGradientPositions(deco)
             }
+            // 装饰渐变存入自定义属性，供 ::before 读取（脱离底色，避免阴影影响外框）
+            backdrop.style.setProperty('--deco-instance', deco)
+            // 底色直接设置（不含装饰，不会产生边框阴影）
             const bgPrimary = themeVars?.['--bg-primary'] || '#ffffff'
-            backdrop.style.background = `${deco}, ${bgPrimary}`
+            backdrop.style.backgroundColor = bgPrimary
         } else {
             // 无装饰时清除行内样式，回退到 CSS 变量
-            backdrop.style.background = ''
+            backdrop.style.removeProperty('--deco-instance')
+            backdrop.style.backgroundColor = ''
         }
     }
 }

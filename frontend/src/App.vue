@@ -215,12 +215,21 @@ body {
    backdrop-breathe 提供极微弱的透明度脉动呼吸感。 */
 .app-backdrop {
   position: fixed;
-  inset: 0;
+  inset: -10%;
   z-index: 0;
   pointer-events: none;
-  background: var(--bg-decoration, none), var(--bg-primary);
-  animation: backdrop-breathe 8s ease-in-out infinite,
-  backdrop-drift 25s ease-in-out infinite;
+  background: var(--bg-primary);
+  animation: backdrop-drift 25s ease-in-out infinite;
+}
+
+/* 装饰层单独放在 ::before 上，用 drop-shadow 做呼吸，不影响外框 */
+.app-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--deco-instance, none);
+  animation: backdrop-breathe 8s ease-in-out infinite;
+  pointer-events: none;
 }
 
 /* 确保所有表单元素继承字体设置 */

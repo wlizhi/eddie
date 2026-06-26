@@ -137,14 +137,18 @@ body {
     display: none;
 }
 
-/* ===== 背景呼吸动画 =====
-   让 .app-backdrop 的背景装饰有极微弱的透明度脉动 */
+/* ===== 背景装饰呼吸动画 =====
+   作用于 .app-backdrop::before（装饰层），用 drop-shadow 让每个小图形
+   （星星、圆点、条纹、波纹等）各自产生阴影呼吸效果。
+   shape 本身清晰，shadow 发散/收缩。 */
 @keyframes backdrop-breathe {
     0%, 100% {
-        opacity: 0.85;
+        opacity: 1;
+        filter: drop-shadow(0 0 2px var(--text-accent, currentColor));
     }
     50% {
-        opacity: 1;
+        opacity: 0.85;
+        filter: drop-shadow(0 0 16px var(--text-accent, currentColor));
     }
 }
 
