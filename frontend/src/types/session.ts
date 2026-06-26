@@ -32,7 +32,20 @@ export interface MessageVO {
     completionTokens: number
     totalTokens: number
     priceEstimate: number
+    toolCalls?: ToolExecutionEventItem[]
     createdAt: string
+}
+
+/**
+ * 历史消息中的工具调用记录项
+ * 对应后端 ToolExecutionEvent，与 ToolExecutionRecord 的区别是使用 status 而非 done
+ */
+export interface ToolExecutionEventItem {
+    status: string          // "start" | "complete"
+    toolName: string
+    arguments?: string
+    result?: string
+    error: boolean
 }
 
 /** 创建会话请求 */

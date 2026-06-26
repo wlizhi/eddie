@@ -1,3 +1,5 @@
+/* noinspection CssUnresolvedCustomProperty — 以下 Naive UI 自定义属性由主题系统在运行时注入 */
+
 .message-list {
     flex: 1;
     overflow-y: auto;
@@ -341,4 +343,102 @@
 /* ===== 预估费用 ===== */
 .meta-cost {
     color: var(--text-tertiary);
+}
+
+/* ===== 工具执行卡片（气泡内 inline） ===== */
+.tool-calls-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 4px 0;
+}
+
+.tool-execution-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-base);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.tool-execution-card.tool-error {
+    border-color: #e53e3e;
+    color: #e53e3e;
+}
+
+.tool-execution-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.tool-execution-header:hover {
+    opacity: 0.8;
+}
+
+.tool-chevron {
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.tool-chevron.rotated {
+    transform: rotate(0deg);
+}
+
+.tool-chevron:not(.rotated) {
+    transform: rotate(-90deg);
+}
+
+.tool-execution-icon {
+    font-size: 11px;
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.tool-execution-card.tool-error .tool-execution-icon {
+    color: #e53e3e;
+}
+
+.tool-execution-name {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.tool-execution-status {
+    color: var(--text-muted);
+    font-size: var(--font-size-xxs);
+    animation: ml-tool-pulse 1s ease-in-out infinite;
+}
+
+@keyframes ml-tool-pulse {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.tool-execution-result {
+    margin-top: 2px;
+    padding-top: 2px;
+    border-top: 1px solid var(--border-base);
+    font-size: var(--font-size-xxs);
+    color: var(--text-muted);
+    line-height: 1.4;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tool-execution-result.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+    overflow: hidden;
 }

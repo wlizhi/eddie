@@ -2,6 +2,7 @@ package cc.wlizhi.eddie.chat.service.impl;
 
 import cc.wlizhi.eddie.chat.context.AssistantContext;
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.chat.entity.response.MessageVO;
 import cc.wlizhi.eddie.chat.entity.response.SessionVO;
@@ -19,6 +20,7 @@ import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
 import cc.wlizhi.eddie.memory.context.ModelProviderContext;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -296,6 +299,21 @@ public class SessionServiceImpl implements SessionService {
         vo.setTotalTokens(entity.getTotalTokens());
         vo.setPriceEstimate(entity.getPriceEstimate());
         vo.setCreatedAt(entity.getCreatedAt());
+        // 将 tool_calls JSON 字符串反序列化为 List<ToolExecutionEvent>，
+        // 避免前端收到 String 类型后需要二次 JSON.parse（双层序列化问题）
+        String toolCallsStr = entity.getToolCalls();
+        if (toolCallsStr != null && !toolCallsStr.isEmpty() && !"[]".equals(toolCallsStr)) {
+            try {
+                vo.setToolCalls(objectMapper.readValue(toolCallsStr,
+                        new TypeReference<List<ToolExecutionEvent>>() {
+                        }));
+            } catch (Exception e) {
+                log.warn("反序列化 toolCalls 失败, sessionId={}: {}", entity.getSessionId(), e.getMessage());
+                vo.setToolCalls(Collections.emptyList());
+            }
+        } else {
+            vo.setToolCalls(Collections.emptyList());
+        }
         return vo;
     }
 }

@@ -30,11 +30,23 @@ defineProps<{
 const chatStore = useChatStore()
 const assistantStore = useAssistantStore()
 
+/** 工具内部名 → 友好显示名（通用映射，新增工具无需修改） */
+function displayToolName(toolName: string): string {
+  // 去掉 built_in_ 前缀，下划线转空格，首字母大写
+  return toolName
+      .replace(/^built_in_/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
+}
+
 /** 消息容器 DOM，用于自动滚动 */
 const messageListRef = ref<HTMLElement | null>(null)
 
 /** 跟踪每条消息的 thinking 展开状态 */
 const thinkingExpanded = ref<Record<string, boolean>>({})
+
+/** 跟踪每次工具调用的结果展开状态 */
+const toolResultExpanded = ref<Record<string, boolean>>({})
 
 /** 记录加载更多前的高度，用于保持滚动位置 */
 let prevScrollHeight = 0
@@ -106,6 +118,12 @@ onMounted(() => {
 /** 切换 thinking 折叠状态 */
 function toggleThinking(msgId: string) {
   thinkingExpanded.value[msgId] = !thinkingExpanded.value[msgId]
+}
+
+/** 切换工具执行结果折叠状态 */
+function toggleToolResult(toolIndex: number) {
+  const key = String(toolIndex)
+  toolResultExpanded.value[key] = !toolResultExpanded.value[key]
 }
 
 /** 当前正在显示"已复制"提示的消息 ID */
@@ -211,29 +229,71 @@ function onScroll() {
           {{ assistantStore.activeAssistant.name }}
         </div>
 
-        <!-- thinking 内容（仅 assistant） -->
-        <div
-            v-if="msg.role === 'assistant' && (msg.thinking || (chatStore.isStreaming && msg === chatStore.messages[chatStore.messages.length - 1] && !msg.content))"
-            class="thinking-section">
-          <button class="thinking-toggle" @click="toggleThinking(msg.id)">
-            <ChevronDown
-                :size="13"
-                :stroke-width="2"
-                class="chevron"
-                :class="{ rotated: thinkingExpanded[msg.id] }"
-            />
-            <span v-if="msg.content || !chatStore.isStreaming">思考过程</span>
-            <span v-else class="thinking-pending">
-              <span class="thinking-text">思考中<span
-                  class="dots-blink"><span>.</span><span>.</span><span>.</span></span></span>
-            </span>
-          </button>
-          <div v-if="thinkingExpanded[msg.id] && msg.thinking" class="thinking-content markdown-body"
-               v-html="renderMd(msg.thinking)"/>
-        </div>
-
-        <!-- 消息正文 -->
+        <!-- 消息正文（内含 thinking → tool_calls → content） -->
         <div class="message-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'">
+          <!-- thinking（仅 assistant） -->
+          <div
+              v-if="msg.role === 'assistant' && (msg.thinking || (chatStore.isStreaming && msg === chatStore.messages[chatStore.messages.length - 1] && !msg.content))"
+              class="thinking-section">
+            <button class="thinking-toggle" @click="toggleThinking(msg.id)">
+              <ChevronDown
+                  :size="13"
+                  :stroke-width="2"
+                  class="chevron"
+                  :class="{ rotated: thinkingExpanded[msg.id] }"
+              />
+              <span v-if="msg.content || !chatStore.isStreaming">思考过程</span>
+              <span v-else class="thinking-pending">
+                <span class="thinking-text">思考中<span
+                    class="dots-blink"><span>.</span><span>.</span><span>.</span></span></span>
+              </span>
+            </button>
+            <div v-if="thinkingExpanded[msg.id] && msg.thinking" class="thinking-content markdown-body"
+                 v-html="renderMd(msg.thinking)"/>
+          </div>
+
+          <!-- tool_calls（历史消息中的 + 当前流式中的） -->
+          <div v-if="msg.role === 'assistant'" class="tool-calls-section">
+            <!-- 历史消息中的工具调用 -->
+            <div
+                v-for="(tc, ti) in msg.toolCalls"
+                :key="'h-' + ti"
+                class="tool-execution-card"
+                :class="{ 'tool-error': tc.error }"
+            >
+              <div class="tool-execution-header" @click="toggleToolResult('h-' + ti)">
+                <ChevronDown :size="12" :stroke-width="2" class="tool-chevron"
+                             :class="{ rotated: toolResultExpanded['h-' + ti] }"/>
+                <span class="tool-execution-icon">{{ tc.error ? '✕' : '✓' }}</span>
+                <span class="tool-execution-name">{{ displayToolName(tc.toolName) }}</span>
+              </div>
+              <div v-if="tc.result" class="tool-execution-result markdown-body"
+                   :class="{ collapsed: !toolResultExpanded['h-' + ti] }"
+                   v-html="renderMd(tc.result)">
+              </div>
+            </div>
+            <!-- 当前流式中的工具调用（仅最新消息） -->
+            <div
+                v-for="(tool, ti) in msg === chatStore.messages[chatStore.messages.length - 1] ? chatStore.currentToolExecutions : []"
+                :key="'s-' + ti"
+                class="tool-execution-card"
+                :class="{ 'tool-error': tool.error }"
+            >
+              <div class="tool-execution-header" @click="toggleToolResult('s-' + ti)">
+                <ChevronDown :size="12" :stroke-width="2" class="tool-chevron"
+                             :class="{ rotated: toolResultExpanded['s-' + ti] }"/>
+                <span class="tool-execution-icon">{{ tool.done ? (tool.error ? '✕' : '✓') : '⟳' }}</span>
+                <span class="tool-execution-name">{{ displayToolName(tool.toolName) }}</span>
+                <span v-if="!tool.done" class="tool-execution-status">运行中...</span>
+              </div>
+              <div v-if="tool.done && tool.result" class="tool-execution-result markdown-body"
+                   :class="{ collapsed: !toolResultExpanded['s-' + ti] }"
+                   v-html="renderMd(tool.result)">
+              </div>
+            </div>
+          </div>
+
+          <!-- content -->
           <div
               v-if="msg.content"
               class="message-content markdown-body"

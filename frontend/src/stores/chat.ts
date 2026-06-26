@@ -1,7 +1,7 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
-import type {ChatMessage, ChatMetadata, ChatModelSelector} from '@/types/chat'
-import type {MessageVO} from '@/types/session'
+import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'
+import type {MessageVO, ToolExecutionEventItem} from '@/types/session'
 import {fetchModelList, streamChat} from '@/api/chat'
 import {createSession, fetchMessages, generateTitle} from '@/api/session'
 import {showToast} from '@/composables/useToast'
@@ -42,6 +42,9 @@ export const useChatStore = defineStore('chat', () => {
 
     /** 最近消息的元数据 */
     const currentMetadata = ref<ChatMetadata | null>(null)
+
+    /** 当前流中的工具执行记录列表（每次发送消息时重置） */
+    const currentToolExecutions = ref<ToolExecutionRecord[]>([])
 
     /** AbortController，用于中断请求 */
     let abortController: AbortController | null = null
@@ -141,6 +144,7 @@ export const useChatStore = defineStore('chat', () => {
         currentThinking.value = ''
         currentAnswer.value = ''
         currentMetadata.value = null
+        currentToolExecutions.value = []
 
         // 创建 assistant 空消息占位
         const assistantMsg: ChatMessage = {
@@ -176,6 +180,31 @@ export const useChatStore = defineStore('chat', () => {
                     last.content = currentAnswer.value
                 }
             },
+            onToolExecution: (data) => {
+                if (data.status === 'start') {
+                    currentToolExecutions.value.push({
+                        toolName: data.toolName,
+                        arguments: data.arguments,
+                        done: false,
+                    })
+                } else if (data.status === 'complete') {
+                    const existing = currentToolExecutions.value.find(
+                        t => t.toolName === data.toolName && !t.done
+                    )
+                    if (existing) {
+                        existing.result = data.result
+                        existing.error = data.error
+                        existing.done = true
+                    } else {
+                        currentToolExecutions.value.push({
+                            toolName: data.toolName,
+                            result: data.result,
+                            error: data.error,
+                            done: true,
+                        })
+                    }
+                }
+            },
             onMetadata: (json) => {
                 try {
                     currentMetadata.value = JSON.parse(json) as ChatMetadata
@@ -188,6 +217,13 @@ export const useChatStore = defineStore('chat', () => {
                 }
             },
             onComplete: () => {
+                // 将流式工具执行记录赋给最后一条 assistant 消息
+                if (currentToolExecutions.value.length > 0) {
+                    const last = messages.value[messages.value.length - 1]
+                    if (last?.role === 'assistant') {
+                        last.toolCalls = [...currentToolExecutions.value]
+                    }
+                }
                 isStreaming.value = false
                 abortController = null
                 // 首轮对话后生成标题
@@ -327,6 +363,16 @@ export const useChatStore = defineStore('chat', () => {
 
     /** MessageVO → ChatMessage（同时预渲染 Markdown 内容，避免模板中重复 parse） */
     function toChatMessage(msg: MessageVO): ChatMessage {
+        let toolCalls: ToolExecutionRecord[] | undefined
+        if (msg.toolCalls && msg.toolCalls.length > 0) {
+            toolCalls = msg.toolCalls.map((tc: ToolExecutionEventItem) => ({
+                toolName: tc.toolName,
+                arguments: tc.arguments,
+                result: tc.result,
+                error: tc.error,
+                done: tc.status === 'complete',
+            }))
+        }
         return {
             id: String(msg.id),
             dbId: msg.id,
@@ -335,6 +381,7 @@ export const useChatStore = defineStore('chat', () => {
             renderedContent: renderMd(msg.content),
             thinking: msg.thinking || undefined,
             renderedThinking: msg.thinking ? renderMd(msg.thinking) : undefined,
+            toolCalls,
             timestamp: new Date(msg.createdAt).getTime(),
             metadata: {
                 timestamp: new Date(msg.createdAt).getTime(),
@@ -356,6 +403,7 @@ export const useChatStore = defineStore('chat', () => {
         currentThinking,
         currentAnswer,
         currentMetadata,
+        currentToolExecutions,
         sessionRefreshCounter,
         hasMoreMessages,
         isLoadingMore,

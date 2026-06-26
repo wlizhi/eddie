@@ -1,16 +1,18 @@
 /**
  * ChatSseTransformer — SSE 事件转换器
  * <p>
- * 职责：将 ChatResponse 流转换为 SSE 事件流，包含三类事件：
+ * 职责：将 ChatResponse 流转换为 SSE 事件流，包含四类事件：
  * <ul>
  *   <li>event: thinking — 模型思考内容，由 ChatThinkingHandler 按 providerCode 匹配提取</li>
  *   <li>event: answer — 模型回答内容，通用提取逻辑</li>
+ *   <li>event: tool_execution — 工具执行状态（开始/完成），来自 ToolCallbackWrapper 的 Sinks 旁路</li>
  *   <li>event: metadata — 流结束后构建的元数据（耗时、Token 用量等），由 ChatMetadataHandler 处理</li>
  * </ul>
  */
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
 import cc.wlizhi.eddie.chat.handler.ChatThinkingHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,12 +48,20 @@ public class ChatSseTransformer {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 将 ChatResponse 流转换为 SSE 事件流
+     * 将 ChatResponse 流转换为 SSE 事件流，并合并工具执行事件
+     *
+     * @param responseFlux  ChatResponse 流
+     * @param ctx           聊天上下文
+     * @param toolEventFlux 工具执行事件流（可选，来自 ToolCallbackWrapper 的 Sinks 旁路）
+     * @param toolEventSink 工具执行事件 Sink，在 mainSse 完成时自动关闭以释放合并流
      */
-    public Flux<ServerSentEvent<String>> transform(Flux<ChatResponse> responseFlux, ChatContext ctx) {
+    public Flux<ServerSentEvent<String>> transform(Flux<ChatResponse> responseFlux, ChatContext ctx,
+                                                   Flux<ToolExecutionEvent> toolEventFlux,
+                                                   Sinks.Many<ToolExecutionEvent> toolEventSink) {
         long startTime = ctx.getStartTime();
 
-        return responseFlux
+        // 主 SSE 流：thinking + answer
+        Flux<ServerSentEvent<String>> mainSse = responseFlux
                 .concatMap(response -> {
                     ServerSentEvent<String> thinkEvent = buildThinkEvent(response, ctx);
                     ServerSentEvent<String> answerEvent = buildAnswerEvent(response, ctx);
@@ -66,6 +77,43 @@ public class ChatSseTransformer {
                             return buildMetadataEvent(ctx, startTime, endTime);
                         })
                 );
+
+        // 工具执行事件 SSE 流（同时累积到上下文用于持久化）
+        Flux<ServerSentEvent<String>> toolSse = toolEventFlux
+                .map(event -> buildToolExecutionEvent(event, ctx));
+
+        // 合并两个流。
+        // 关键：当 mainSse 完成时关闭 Sink，使 toolSse 随之结束，
+        // 避免 toolSse 永不完成导致 Flux.merge 无法 complete 的死锁。
+        return Flux.merge(
+                mainSse.doFinally(signalType -> toolEventSink.tryEmitComplete()),
+                toolSse
+        );
+    }
+
+    /**
+     * 构建工具执行 SSE 事件，同时累积到上下文用于持久化
+     */
+    private ServerSentEvent<String> buildToolExecutionEvent(ToolExecutionEvent event, ChatContext ctx) {
+        // 累积到上下文（仅 complete 事件才记录到持久化列表）
+        if ("complete".equals(event.getStatus())) {
+            ctx.getToolCalls().add(event);
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("toolName", event.getToolName());
+        data.put("status", event.getStatus());
+        if (event.getArguments() != null) {
+            data.put("arguments", event.getArguments());
+        }
+        if (event.getResult() != null) {
+            data.put("result", event.getResult());
+        }
+        data.put("error", event.isError());
+
+        return ServerSentEvent.<String>builder()
+                .event("tool_execution")
+                .data(toJson(data))
+                .build();
     }
 
     /**

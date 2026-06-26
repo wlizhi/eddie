@@ -1,4 +1,4 @@
-import type {ApiResult, ChatModelSelector, ChatRequest} from '@/types/chat'
+import type {ApiResult, ChatModelSelector, ChatRequest, ToolExecutionData} from '@/types/chat'
 
 const BASE_URL = '/api'
 
@@ -14,6 +14,8 @@ export interface StreamChatOptions {
     onAnswer?: (chunk: string) => void
     /** 收到完整 metadata JSON 时的回调 */
     onMetadata?: (json: string) => void
+    /** 收到工具执行事件时的回调（通用展示，不做工具名映射） */
+    onToolExecution?: (data: ToolExecutionData) => void
     /** 流结束时的回调 */
     onComplete?: () => void
     /** 出错时的回调 */
@@ -53,7 +55,7 @@ function parseSSELine(line: string): { event: string; data: string } | null {
  * 否则 Markdown 的换行会丢失导致 marked 无法正确解析。
  */
 export async function streamChat(options: StreamChatOptions): Promise<void> {
-    const {request, onThinking, onAnswer, onMetadata, onComplete, onError, signal} = options
+    const {request, onThinking, onAnswer, onMetadata, onToolExecution, onComplete, onError, signal} = options
 
     try {
         const response = await fetch(`${BASE_URL}/chat/send`, {
@@ -116,6 +118,13 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
                 onAnswer?.(data)
             } else if (currentEvent === 'metadata') {
                 onMetadata?.(data)
+            } else if (currentEvent === 'tool_execution') {
+                try {
+                    const parsed = JSON.parse(data) as ToolExecutionData
+                    onToolExecution?.(parsed)
+                } catch {
+                    // ignore parse error
+                }
             }
         }
 

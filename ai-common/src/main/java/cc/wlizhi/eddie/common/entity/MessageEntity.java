@@ -76,6 +76,11 @@ public class MessageEntity {
     private Double priceEstimate;
 
     /**
+     * 工具调用记录 JSON 数组
+     */
+    private String toolCalls;
+
+    /**
      * 消息时间
      */
     private String createdAt;

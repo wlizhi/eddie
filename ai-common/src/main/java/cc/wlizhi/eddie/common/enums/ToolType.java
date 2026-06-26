@@ -12,7 +12,7 @@ import lombok.Getter;
 public enum ToolType {
 
     BUILT_IN("内置工具"),
-    MCP("MCP 工具");
+    MCP("MCP工具");
 
     private final String label;
 

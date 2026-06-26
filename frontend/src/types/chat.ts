@@ -38,9 +38,25 @@ export interface ChatRequest {
 }
 
 /**
+ * 工具执行事件数据（对应后端 ToolExecutionEvent）
+ */
+export interface ToolExecutionData {
+    /** start | complete */
+    status: string
+    /** 工具名称，如 built_in_search */
+    toolName: string
+    /** 工具调用参数（JSON 字符串） */
+    arguments?: string
+    /** 工具执行结果 */
+    result?: string
+    /** 是否执行出错 */
+    error?: boolean
+}
+
+/**
  * SSE 事件类型
  */
-export type SSESseEventType = 'thinking' | 'answer' | 'metadata'
+export type SSESseEventType = 'thinking' | 'answer' | 'metadata' | 'tool_execution'
 
 /**
  * SSE 原始事件行解析结果
@@ -56,6 +72,17 @@ export interface SSEEvent {
 export type MessageRole = 'user' | 'assistant'
 
 /**
+ * 运行时工具执行记录（附属于 ChatMessage）
+ */
+export interface ToolExecutionRecord {
+    toolName: string
+    arguments?: string
+    result?: string
+    error?: boolean
+    done: boolean
+}
+
+/**
  * 单条聊天消息
  */
 export interface ChatMessage {
@@ -65,6 +92,7 @@ export interface ChatMessage {
     role: MessageRole
     content: string
     thinking?: string
+    toolCalls?: ToolExecutionRecord[]
     timestamp: number
     metadata?: ChatMetadata | null
     /** 预渲染的 Markdown 内容 HTML，避免模板中重复 parse */

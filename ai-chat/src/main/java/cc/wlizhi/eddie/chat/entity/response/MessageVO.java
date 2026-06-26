@@ -1,7 +1,10 @@
 package cc.wlizhi.eddie.chat.entity.response;
 
+import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 /**
  * 消息记录响应 VO
@@ -69,4 +72,9 @@ public class MessageVO {
      * 消息时间
      */
     private String createdAt;
+
+    /**
+     * 工具调用记录列表（由 JSON 字符串反序列化而来）
+     */
+    private List<ToolExecutionEvent> toolCalls;
 }

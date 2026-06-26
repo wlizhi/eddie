@@ -1,25 +1,31 @@
 package cc.wlizhi.eddie.chat.service.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.chat.handler.ChatPostProcessor;
 import cc.wlizhi.eddie.chat.handler.ChatPreProcessor;
 import cc.wlizhi.eddie.chat.handler.impl.ChatSseTransformer;
 import cc.wlizhi.eddie.chat.handler.impl.ChatStreamExecutor;
+import cc.wlizhi.eddie.chat.handler.impl.ToolCallbackWrapper;
 import cc.wlizhi.eddie.chat.service.ChatClientFactory;
 import cc.wlizhi.eddie.chat.service.ChatClientFactoryRouter;
 import cc.wlizhi.eddie.chat.service.ChatService;
+import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.memory.shortterm.ShortTermMemory;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -32,7 +38,7 @@ import java.util.List;
  *   <li>{@link ChatClientFactoryRouter} 工厂路由 + {@link ChatClientFactory} 构建 ChatClient</li>
  *   <li>注入记忆 Advisor</li>
  *   <li>{@link ChatStreamExecutor} 流式执行</li>
- *   <li>{@link ChatSseTransformer} SSE 事件转换</li>
+ *   <li>{@link ChatSseTransformer} SSE 事件转换（含工具执行事件）</li>
  *   <li>{@link ChatPostProcessor} 后置处理（消息持久化等）</li>
  * </ol>
  */
@@ -88,10 +94,19 @@ public class ChatServiceImpl implements ChatService {
         if (toolMode == null) {
             toolMode = ctx.getAssistant().getToolSelectionMode();
         }
-        Object[] toolCallbacks = toolCallbackResolver.resolve(
-                "ASSISTANT", ctx.getAssistant().getId(), toolMode, chatRequest.getToolNames());
+        ToolCallback[] toolCallbacks = toolCallbackResolver.resolve(
+                RoleType.ASSISTANT.name(), ctx.getAssistant().getId(), toolMode, chatRequest.getToolNames());
+
+        // 4.2 创建工具执行事件 Sinks（旁路通道，零 token 消耗）
+        Sinks.Many<ToolExecutionEvent> toolEventSink = Sinks.many().unicast().onBackpressureBuffer();
+        Flux<ToolExecutionEvent> toolEventFlux = toolEventSink.asFlux();
+
         if (toolCallbacks.length > 0) {
-            builder.defaultTools(toolCallbacks);
+            // 用 ToolCallbackWrapper 包裹每个 ToolCallback，注入事件发射逻辑
+            ToolCallback[] wrappedCallbacks = Arrays.stream(toolCallbacks)
+                    .map(tc -> new ToolCallbackWrapper(tc, toolEventSink))
+                    .toArray(ToolCallback[]::new);
+            builder.defaultTools((Object[]) wrappedCallbacks);
         }
 
         chatClient = builder.build();
@@ -100,8 +115,8 @@ public class ChatServiceImpl implements ChatService {
         // 5. 执行流式调用
         Flux<ChatResponse> responseFlux = chatStreamExecutor.execute(ctx);
 
-        // 6. SSE 事件转换 + 7. 后置处理
-        return chatSseTransformer.transform(responseFlux, ctx)
+        // 6. SSE 事件转换（合并工具执行事件）+ 7. 后置处理
+        return chatSseTransformer.transform(responseFlux, ctx, toolEventFlux, toolEventSink)
                 .doOnComplete(() -> postProcessors.forEach(p -> p.process(ctx)));
     }
 }

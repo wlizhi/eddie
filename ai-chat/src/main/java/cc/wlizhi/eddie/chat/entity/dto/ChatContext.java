@@ -18,7 +18,9 @@ import lombok.Setter;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -104,6 +106,11 @@ public class ChatContext {
      * 完整回答内容（StringBuilder，流式拼接）
      */
     private StringBuilder fullAnswer;
+
+    /**
+     * 工具执行记录列表（用于持久化到 ai_session_msg.tool_calls）
+     */
+    private List<ToolExecutionEvent> toolCalls = new ArrayList<>();
 
     // ==================== 扩展属性 ====================
 

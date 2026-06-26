@@ -8,6 +8,8 @@ import cc.wlizhi.eddie.common.dao.SessionDao;
 import cc.wlizhi.eddie.common.entity.MessageEntity;
 import cc.wlizhi.eddie.common.entity.SessionEntity;
 import cc.wlizhi.eddie.common.util.PriceCalculator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
@@ -41,6 +43,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         Long sessionId = session.getId();
         Long assistantId = session.getAssistantId();
         ChatRequest request = ctx.getOriginalRequest();
+        String toolCallsJson = "[]";
 
         // 持久化 user 消息
         MessageEntity userMsg = new MessageEntity();
@@ -56,6 +59,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         userMsg.setCompletionTokens(0);
         userMsg.setTotalTokens(0);
         userMsg.setPriceEstimate(0.0);
+        userMsg.setToolCalls(toolCallsJson);
         messageDao.insert(userMsg);
 
         // 持久化 assistant 消息
@@ -68,6 +72,15 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         assistantMsg.setModelCode(request.getModelId());
         assistantMsg.setModelName(request.getModelId());
         assistantMsg.setThinking(ctx.getFullThinking() != null ? ctx.getFullThinking().toString() : "");
+        // 持久化工具调用记录
+        if (ctx.getToolCalls() != null && !ctx.getToolCalls().isEmpty()) {
+            try {
+                toolCallsJson = new ObjectMapper().writeValueAsString(ctx.getToolCalls());
+            } catch (JsonProcessingException e) {
+                // ignore
+            }
+        }
+        assistantMsg.setToolCalls(toolCallsJson);
 
         ChatResponse lastResponse = ctx.getLastResponse();
         int promptTokens = 0, completionTokens = 0, totalTokens = 0;
