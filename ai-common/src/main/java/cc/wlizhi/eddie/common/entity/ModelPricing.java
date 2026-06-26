@@ -30,22 +30,28 @@ public class ModelPricing {
     private Double cacheInputPrice;
 
     /**
+     * 缓存写入时的 input 价格（每百万 token）
+     * 可为 null，此时退化到 inputPrice（与未命中同价）
+     */
+    private Double cacheWriteInputPrice;
+
+    /**
      * 货币符号，如 ¥ / $
      */
     private String currency;
 
     /**
-     * 是否包含缓存折扣价
-     */
-    public boolean hasCachePrice() {
-        return cacheInputPrice != null;
-    }
-
-    /**
-     * 获取缓存 input 价格，无折扣时回退到 inputPrice
+     * 获取缓存读取 input 价格，无折扣时回退到 inputPrice
      */
     public double getEffectiveCacheInputPrice() {
         return cacheInputPrice != null ? cacheInputPrice : (inputPrice != null ? inputPrice : 0.0);
+    }
+
+    /**
+     * 获取缓存写入 input 价格，未设置时回退到 inputPrice
+     */
+    public double getEffectiveCacheWriteInputPrice() {
+        return cacheWriteInputPrice != null ? cacheWriteInputPrice : (inputPrice != null ? inputPrice : 0.0);
     }
 
     /**

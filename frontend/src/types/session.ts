@@ -32,6 +32,9 @@ export interface MessageVO {
     completionTokens: number
     totalTokens: number
     priceEstimate: number
+    cacheReadInputTokens: number
+    cacheWriteInputTokens: number
+    currency: string
     toolCalls?: ToolExecutionEventItem[]
     createdAt: string
 }

@@ -13,19 +13,21 @@ import cc.wlizhi.eddie.common.util.PriceCalculator;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.deepseek.api.DeepSeekApi;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Order
 @Component
-public class DefaultChatMetadataHandler implements ChatMetadataHandler {
+public class DeepseekChatMetadataHandler implements ChatMetadataHandler {
 
     @Override
     public boolean support(String providerCode) {
-        return true;
+        return Objects.equals(providerCode, "deepseek");
     }
 
     @Override
@@ -42,7 +44,7 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
             data.put("completionTokens", completionTokens);
             data.put("totalTokens", usage.getTotalTokens());
 
-            // 读取缓存字段并写入上下文中（用于后处理器持久化）
+
             Long cacheRead = usage.getCacheReadInputTokens();
             Long cacheWrite = usage.getCacheWriteInputTokens();
             int cacheReadTokens = cacheRead != null ? cacheRead.intValue() : 0;
@@ -51,6 +53,15 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
             ctx.setCacheWriteInputTokens(cacheWriteTokens);
             data.put("cacheReadInputTokens", cacheReadTokens);
             data.put("cacheWriteInputTokens", cacheWriteTokens);
+
+            // 读取缓存字段并写入上下文中（用于后处理器持久化）
+            Object nativeUsage = usage.getNativeUsage();
+            if (nativeUsage instanceof DeepSeekApi.Usage deepSeekUsage) {
+                DeepSeekApi.Usage.PromptTokensDetails details = deepSeekUsage.promptTokensDetails();
+                if (details != null) {
+                    data.put("cacheReadInputTokens", details.cachedTokens());
+                }
+            }
 
             // 预估费用（单价为每百万 token，BigDecimal 精确计算）
             ModelPricing pricing = ctx.getPricing();
@@ -63,7 +74,6 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
                 data.put("currency", pricing.getCurrency() != null ? pricing.getCurrency() : "");
             }
         }
-
         return data;
     }
 }

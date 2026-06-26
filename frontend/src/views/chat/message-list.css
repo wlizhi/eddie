@@ -345,6 +345,19 @@
     color: var(--text-tertiary);
 }
 
+/* ===== 缓存命中/写入 ===== */
+.meta-cache {
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.meta-cache .cache-icon {
+    width: 1em;
+    height: 1em;
+}
+
 /* ===== 工具执行卡片（气泡内 inline） ===== */
 .tool-calls-section {
     display: flex;

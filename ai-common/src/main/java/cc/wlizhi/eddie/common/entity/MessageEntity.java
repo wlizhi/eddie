@@ -91,6 +91,11 @@ public class MessageEntity {
     private Integer cacheWriteInputTokens;
 
     /**
+     * 费用货币符号，如 ¥ / $
+     */
+    private String currency;
+
+    /**
      * 消息时间
      */
     private String createdAt;

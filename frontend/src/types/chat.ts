@@ -115,6 +115,10 @@ export interface ChatMetadata {
     completionTokens?: number
     /** 总 token 数 */
     totalTokens?: number
+    /** 缓存读取的 input token 数 */
+    cacheReadInputTokens?: number
+    /** 缓存写入的 input token 数 */
+    cacheWriteInputTokens?: number
     /** 预估费用（美元） */
     costEstimate?: number
     /** 币种代码，如 USD、CNY（为空时默认 $） */

@@ -87,4 +87,9 @@ public class MessageVO {
      * 缓存写入的 input token 数
      */
     private Integer cacheWriteInputTokens;
+
+    /**
+     * 费用货币符号，如 ¥ / $
+     */
+    private String currency;
 }

@@ -17,7 +17,7 @@
 import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
-import {ChevronDown, Copy, Loader, RefreshCw} from '@lucide/vue'
+import {ChevronDown, Copy, Eye, Loader, Pen, RefreshCw} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
@@ -376,6 +376,16 @@ function onScroll() {
             <span v-if="msg.metadata.timestamp || msg.metadata.durationMs != null" class="meta-divider">|</span>
             <span class="meta-tokens">
               输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }}
+            </span>
+          </template>
+          <!-- 缓存命中/写入 -->
+          <template v-if="msg.metadata.cacheReadInputTokens != null || msg.metadata.cacheWriteInputTokens != null">
+            <span
+                v-if="msg.metadata.timestamp || msg.metadata.durationMs != null || msg.metadata.totalTokens != null || msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
+                class="meta-divider">|</span>
+            <span class="meta-cache">
+              <Eye class="cache-icon" :stroke-width="1.5"/> &nbsp; {{ msg.metadata.cacheReadInputTokens ?? 0 }} ·
+              <Pen class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheWriteInputTokens ?? 0 }}
             </span>
           </template>
           <!-- 预估费用 -->

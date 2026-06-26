@@ -60,6 +60,10 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         userMsg.setCompletionTokens(0);
         userMsg.setTotalTokens(0);
         userMsg.setPriceEstimate(0.0);
+        // 货币符号
+        ModelPricing pricing = ctx.getPricing();
+        String currency = pricing != null && pricing.getCurrency() != null ? pricing.getCurrency() : "";
+        userMsg.setCurrency(currency);
         userMsg.setToolCalls(toolCallsJson);
         messageDao.insert(userMsg);
 
@@ -108,13 +112,13 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
 
         // 预估费用（含缓存折扣计算）
         double estimate = 0.0;
-        ModelPricing pricing = ctx.getPricing();
         if (pricing != null && promptTokens > 0) {
             estimate = PriceCalculator.calculate(
-                    promptTokens, completionTokens, cacheReadTokens,
+                    promptTokens, completionTokens, cacheReadTokens, cacheWriteTokens,
                     pricing.getEffectiveInputPrice(), pricing.getEffectiveOutputPrice(),
-                    pricing.getEffectiveCacheInputPrice());
+                    pricing.getEffectiveCacheInputPrice(), pricing.getEffectiveCacheWriteInputPrice());
         }
+        assistantMsg.setCurrency(currency);
         assistantMsg.setPriceEstimate(estimate);
         messageDao.insert(assistantMsg);
 

@@ -388,7 +388,10 @@ export const useChatStore = defineStore('chat', () => {
                 ...(msg.totalTokens != null ? {totalTokens: msg.totalTokens} : {}),
                 ...(msg.promptTokens != null ? {promptTokens: msg.promptTokens} : {}),
                 ...(msg.completionTokens != null ? {completionTokens: msg.completionTokens} : {}),
+                ...(msg.cacheReadInputTokens != null ? {cacheReadInputTokens: msg.cacheReadInputTokens} : {}),
+                ...(msg.cacheWriteInputTokens != null ? {cacheWriteInputTokens: msg.cacheWriteInputTokens} : {}),
                 ...(msg.priceEstimate != null ? {costEstimate: msg.priceEstimate} : {}),
+                ...(msg.currency ? {currency: msg.currency} : {}),
             },
         }
     }
