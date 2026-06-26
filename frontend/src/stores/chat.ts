@@ -224,6 +224,8 @@ export const useChatStore = defineStore('chat', () => {
                         last.toolCalls = [...currentToolExecutions.value]
                     }
                 }
+                // 清空流式工具记录，避免 MessageList 中 Section B 重复渲染
+                currentToolExecutions.value = []
                 isStreaming.value = false
                 abortController = null
                 // 首轮对话后生成标题
