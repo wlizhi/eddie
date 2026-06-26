@@ -15,7 +15,6 @@ import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -89,7 +88,7 @@ public class ChatServiceImpl implements ChatService {
         if (toolMode == null) {
             toolMode = ctx.getAssistant().getToolSelectionMode();
         }
-        ToolCallback[] toolCallbacks = toolCallbackResolver.resolve(
+        Object[] toolCallbacks = toolCallbackResolver.resolve(
                 "ASSISTANT", ctx.getAssistant().getId(), toolMode, chatRequest.getToolNames());
         if (toolCallbacks.length > 0) {
             builder.defaultTools(toolCallbacks);

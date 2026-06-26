@@ -38,16 +38,17 @@ eddie/
 │       ├── mapper/              # 数据映射
 │       ├── dto/                 # DTO 定义
 │       └── entity/              # 实体类
-├── ai-memory/                   # 记忆模块（三层记忆）
+├── ai-memory/                     # 记忆模块（上下文记忆及缓存）
 │   └── src/main/java/cc/wlizhi/eddie/memory/
 │       ├── controller/          # 记忆接口
 │       ├── service/             # 短期 / 中期压缩 / 长期摘要
+│       ├── context/             # 上下文及缓存
 │       └── entity/              # 记忆实体
-├── ai-role/                     # 角色模块
-│   └── src/main/java/cc/wlizhi/eddie/role/
-│       ├── controller/          # 角色 CRUD 接口
-│       ├── service/             # 角色业务逻辑
-│       └── entity/              # 角色实体
+├── ai-tools/                     # 工具模块（内置工具注册与管理）
+│   └── src/main/java/cc/wlizhi/eddie/tools/
+│       ├── controller/          # 工具接口入口
+│       ├── service/             # 工具注册、回调解析
+│       └── tool/                # 内置工具实现（WebSearch、WebFetch）
 ├── ai-settings/                 # 全局配置模块
 │   └── src/main/java/cc/wlizhi/eddie/settings/
 │       ├── controller/          # 设置接口
