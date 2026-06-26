@@ -33,12 +33,14 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
         if (lastResponse != null) {
             ChatResponseMetadata metadata = lastResponse.getMetadata();
             Usage usage = metadata.getUsage();
-            if (usage.getPromptTokens() != null) data.put("promptTokens", usage.getPromptTokens());
-            if (usage.getCompletionTokens() != null) data.put("completionTokens", usage.getCompletionTokens());
-            if (usage.getTotalTokens() != null) data.put("totalTokens", usage.getTotalTokens());
+            data.put("promptTokens", usage.getPromptTokens());
+            data.put("completionTokens", usage.getCompletionTokens());
+            data.put("totalTokens", usage.getTotalTokens());
+            data.put("cacheReadInputTokens", usage.getCacheReadInputTokens());
+            data.put("cacheWriteInputTokens", usage.getCacheWriteInputTokens());
 
             // 预估费用（单价为每百万 token，BigDecimal 精确计算）
-            if (ctx.getInputPrice() != null && usage.getPromptTokens() != null) {
+            if (ctx.getInputPrice() != null) {
                 double cost = PriceCalculator.calculate(
                         usage.getPromptTokens(), usage.getCompletionTokens(),
                         ctx.getInputPrice(), ctx.getOutputPrice());
