@@ -427,7 +427,7 @@
     margin-top: 2px;
     padding-top: 2px;
     border-top: 1px solid var(--border-base);
-    font-size: var(--font-size-xxs);
+    font-size: var(--font-size-small);
     color: var(--text-muted);
     line-height: 1.4;
     word-break: break-word;
@@ -441,21 +441,4 @@
     margin-top: 0;
     border-top: none;
     overflow: hidden;
-}
-
-/* ===== 工具参数展示 ===== */
-.tool-execution-args {
-    margin-top: 2px;
-    padding: 3px 6px;
-    background: var(--bg-base, rgba(128, 128, 128, 0.06));
-    border-radius: 4px;
-    font-size: var(--font-size-xxs);
-    color: var(--text-muted);
-    line-height: 1.4;
-    word-break: break-all;
-    font-family: var(--font-mono, ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace);
-    max-height: 48px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }

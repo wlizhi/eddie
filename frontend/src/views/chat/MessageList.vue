@@ -39,20 +39,23 @@ function displayToolName(toolName: string): string {
       .replace(/\b\w/g, c => c.toUpperCase())
 }
 
-/** 格式化工具参数 JSON 为可读文本（截断过长内容） */
-function formatArgs(args: string): string {
-  if (!args) return ''
-  try {
-    const parsed = JSON.parse(args)
-    if (typeof parsed === 'object' && parsed !== null) {
-      // 如果是对象，取前两个 key: value 对显示
-      const entries = Object.entries(parsed).slice(0, 2)
-      return entries.map(([k, v]) => `${k}: ${String(v).slice(0, 60)}`).join(' | ')
+/** 构建工具调用内容的 Markdown：参数（JSON 代码块）+ 正文，中间隔空行 */
+function buildToolContent(args: string | undefined, result: string | undefined): string {
+  let content = ''
+  if (args) {
+    try {
+      const parsed = JSON.parse(args)
+      content += '```json\n' + JSON.stringify(parsed, null, 2) + '\n```'
+    } catch {
+      content += '```\n' + args + '\n```'
     }
-  } catch {
-    // 不是 JSON 字符串，原样截断显示
   }
-  return args.length > 80 ? args.slice(0, 80) + '...' : args
+  if (result) {
+    // 代码块闭合后，用标准 markdown 段落分隔（两个换行）添加空白行
+    if (content) content += '\n\n'
+    content += fixNewlines(result)
+  }
+  return content
 }
 
 /**
@@ -292,12 +295,9 @@ function onScroll() {
                 <span class="tool-execution-icon">{{ tc.error ? '✕' : '✓' }}</span>
                 <span class="tool-execution-name">{{ displayToolName(tc.toolName) }}</span>
               </div>
-              <div v-if="tc.arguments" class="tool-execution-args">
-                {{ formatArgs(tc.arguments) }}
-              </div>
-              <div v-if="tc.result" class="tool-execution-result markdown-body"
+              <div v-if="tc.arguments || tc.result" class="tool-execution-result markdown-body"
                    :class="{ collapsed: !toolResultExpanded['h-' + ti] }"
-                   v-html="renderMd(fixNewlines(tc.result))">
+                   v-html="renderMd(buildToolContent(tc.arguments, tc.result))">
               </div>
             </div>
             <!-- 当前流式中的工具调用（仅最新消息） -->
@@ -314,12 +314,9 @@ function onScroll() {
                 <span class="tool-execution-name">{{ displayToolName(tool.toolName) }}</span>
                 <span v-if="!tool.done" class="tool-execution-status">运行中...</span>
               </div>
-              <div v-if="tool.arguments" class="tool-execution-args">
-                {{ formatArgs(tool.arguments) }}
-              </div>
-              <div v-if="tool.done && tool.result" class="tool-execution-result markdown-body"
+              <div v-if="tool.done && (tool.arguments || tool.result)" class="tool-execution-result markdown-body"
                    :class="{ collapsed: !toolResultExpanded['s-' + ti] }"
-                   v-html="renderMd(fixNewlines(tool.result))">
+                   v-html="renderMd(buildToolContent(tool.arguments, tool.result))">
               </div>
             </div>
           </div>

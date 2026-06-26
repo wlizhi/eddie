@@ -51,6 +51,9 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
         if (provider == null) {
             throw new BadRequestException("providerId=" + request.getProviderId() + " 不存在的模型服务商");
         }
+        if (Objects.equals(provider.getEnabled(), 0)) {
+            throw new BadRequestException(provider.getName() + " 模型服务已禁用");
+        }
         // 1.1 校验 API Key 是否已配置
         if (ObjectUtils.isEmpty(provider.getApiKey()) && Objects.equals(provider.getBuiltIn(), 1)) {
             throw new BadRequestException("请先为 [" + provider.getName() + "] 配置 API Key");
