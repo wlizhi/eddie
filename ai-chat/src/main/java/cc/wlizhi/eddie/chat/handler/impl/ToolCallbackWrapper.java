@@ -102,12 +102,13 @@ public class ToolCallbackWrapper implements ToolCallback {
      * 导致前端 Markdown 渲染异常。此处统一替换为真实换行符。
      */
     private String truncateResult(String result) {
-        if (result == null) return "";
-        // 修复字面量 \n → 真实换行符
-        String fixed = result.replace("\\n", "\n");
-        if (fixed.length() > MAX_RESULT_LENGTH) {
-            return fixed.substring(0, MAX_RESULT_LENGTH) + "...（已截断）";
-        }
-        return fixed;
+        return result;
+//        if (result == null) return "";
+//        // 修复字面量 \n → 真实换行符
+////        String fixed = result.replace("\\n", "\n");
+//        if (result.length() > MAX_RESULT_LENGTH) {
+//            return result.substring(0, MAX_RESULT_LENGTH) + "...（已截断）";
+//        }
+//        return result;
     }
 }

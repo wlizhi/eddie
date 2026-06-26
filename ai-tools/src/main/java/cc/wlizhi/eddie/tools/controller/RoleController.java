@@ -27,8 +27,7 @@ public class RoleController {
     @GetMapping("/search")
     public ApiResult<String> search(@RequestParam("query") String query
             , @RequestParam(required = false, name = "maxResults") Integer maxResults) {
-        String result = webSearchTools.search(query, maxResults);
-        return ApiResult.success(result);
+        return webSearchTools.search(query, maxResults);
     }
 
     @GetMapping("/fetchMarkdown")
@@ -36,7 +35,6 @@ public class RoleController {
             , @RequestParam(required = false, name = "maxCharacters") Integer maxCharacters
             , @RequestParam(required = false, name = "mode") String mode
     ) {
-        String result = webFetchTools.fetchMarkdown(List.of(url), maxCharacters, mode);
-        return ApiResult.success(result);
+        return webFetchTools.fetchMarkdown(List.of(url), maxCharacters, mode);
     }
 }

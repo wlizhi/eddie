@@ -18,9 +18,14 @@ import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
 import cc.wlizhi.eddie.chat.handler.ChatThinkingHandler;
+import cc.wlizhi.eddie.common.dto.ApiResult;
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.AbstractMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -36,6 +41,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @Component
 public class ChatSseTransformer {
 
@@ -46,6 +52,9 @@ public class ChatSseTransformer {
     private List<ChatMetadataHandler> metadataHandlers;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final int MAX_TOOL_CALL_RES_LENGTH = 5000;
+
 
     /**
      * 将 ChatResponse 流转换为 SSE 事件流，并合并工具执行事件
@@ -98,6 +107,23 @@ public class ChatSseTransformer {
     private ServerSentEvent<String> buildToolExecutionEvent(ToolExecutionEvent event, ChatContext ctx) {
         // 累积到上下文（仅 COMPLETE 事件才记录到持久化列表）
         if (ToolExecutionStatus.COMPLETE.equals(event.getStatus())) {
+            String toolName = event.getToolName();
+            if (toolName != null && toolName.startsWith("built_in_")) {
+                String result = event.getResult();
+                try {
+                    ApiResult<String> apiResult = objectMapper.readValue(result, new TypeReference<ApiResult<String>>() {
+                    });
+                    if (apiResult.getCode() == ApiResultCode.SUCCESS.getCode()) {
+                        event.setResult(apiResult.getData());
+                    }
+                } catch (JsonProcessingException e) {
+                    log.warn("解析内置工具结果失败 -> " + e.getMessage(), e);
+                }
+            }
+            // 工具响应超长时截断（避免数据库存储过大）
+            if (event.getResult() != null && event.getResult().length() > MAX_TOOL_CALL_RES_LENGTH) {
+                event.setResult(event.getResult().substring(0, MAX_TOOL_CALL_RES_LENGTH) + "...（已截断）");
+            }
             ctx.getToolCalls().add(event);
         }
         return ServerSentEvent.<String>builder()

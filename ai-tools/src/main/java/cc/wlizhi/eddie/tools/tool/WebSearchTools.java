@@ -1,5 +1,7 @@
 package cc.wlizhi.eddie.tools.tool;
 
+import cc.wlizhi.eddie.common.dto.ApiResult;
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
@@ -82,7 +84,7 @@ public class WebSearchTools implements BuiltInToolProvider {
 
     @Tool(name = "built_in_search",
             description = "搜索互联网并返回网页标题、URL 和摘要。适合查找最新信息、技术文档、新闻等。如需阅读全文可再用 fetch_markdown 工具")
-    public String search(
+    public ApiResult<String> search(
             @ToolParam(description = "搜索关键词") String query,
             @ToolParam(required = false, description = "可选参数，返回结果数量（1-20），默认值 1") Integer maxResults) {
 
@@ -115,14 +117,15 @@ public class WebSearchTools implements BuiltInToolProvider {
                 return searchBing(encodedQuery, query, limit);
             } catch (Exception ex) {
                 log.error("[搜索] 降级后仍然失败", ex);
-                return "搜索失败，请检查网络连接。\n提示：你可以在设置中添加 SearXNG 等 MCP 搜索服务器。";
+                return ApiResult.error(ApiResultCode.INTERNAL_ERROR,
+                        "搜索失败，请检查网络连接。\n提示：你可以在设置中添加 SearXNG 等 MCP 搜索服务器。");
             }
         }
     }
 
     // ==================== DuckDuckGo Lite 搜索 ====================
 
-    String searchDdg(String encodedQuery, String rawQuery, int limit) throws Exception {
+    ApiResult<String> searchDdg(String encodedQuery, String rawQuery, int limit) throws Exception {
         Document doc = Jsoup.connect(DDG_URL + "?q=" + encodedQuery)
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                 .timeout(DDG_TIMEOUT_MS)
@@ -159,7 +162,7 @@ public class WebSearchTools implements BuiltInToolProvider {
             }
             if (count > 0) {
                 sb.append("---\n共找到 ").append(count).append(" 条结果。\n💡 提示：如需阅读全文，可使用 fetch_markdown 工具");
-                return sb.toString();
+                return ApiResult.success(sb.toString());
             }
         }
 
@@ -187,7 +190,7 @@ public class WebSearchTools implements BuiltInToolProvider {
             }
             if (count > 0) {
                 sb.append("---\n共找到 ").append(count).append(" 条结果。\n💡 提示：如需阅读全文，可使用 fetch_markdown 工具");
-                return sb.toString();
+                return ApiResult.success(sb.toString());
             }
         }
 
@@ -202,14 +205,14 @@ public class WebSearchTools implements BuiltInToolProvider {
             if (!href.startsWith("http")) href = "https:" + href;
             sb.append(++count).append(". **").append(text).append("**\n   🔗 ").append(href).append("\n\n");
         }
-        if (count == 0) return "未找到搜索结果。";
+        if (count == 0) return ApiResult.success("未找到搜索结果。");
         sb.append("---\n共找到 ").append(count).append(" 条结果。");
-        return sb.toString();
+        return ApiResult.success(sb.toString());
     }
 
     // ==================== Bing 搜索（国内可直连，结果干净） ====================
 
-    String searchBing(String encodedQuery, String rawQuery, int limit) throws Exception {
+    ApiResult<String> searchBing(String encodedQuery, String rawQuery, int limit) throws Exception {
         Document doc = Jsoup.connect(BING_URL + "?q=" + encodedQuery + "&cc=cn")
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                 .header("Accept-Language", "zh-CN,zh;q=0.9")
@@ -257,11 +260,11 @@ public class WebSearchTools implements BuiltInToolProvider {
                 if (!href.startsWith("http")) continue;
                 sb.append(++count).append(". **").append(text).append("**\n   🔗 ").append(href).append("\n\n");
             }
-            if (count == 0) return "未找到搜索结果。";
+            if (count == 0) return ApiResult.success("未找到搜索结果。");
         }
 
         sb.append("---\n共找到 ").append(count).append(" 条结果。\n💡 提示：如需阅读全文，可使用 fetch_markdown 工具");
-        return sb.toString();
+        return ApiResult.success(sb.toString());
     }
 
     // ==================== 后台 DDG 可达性探测 ====================
