@@ -39,7 +39,7 @@
 
 .markdown-body code {
     font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: .88em;
+    font-size: 1em;
     padding: .15em .4em;
     border-radius: 4px;
     background: var(--bg-hover);
@@ -58,7 +58,7 @@
     padding: 0;
     background: 0 0;
     color: var(--text-code);
-    font-size: .82em;
+    font-size: .97em;
     line-height: 1.6
 }
 
