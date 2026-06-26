@@ -345,17 +345,12 @@
     color: var(--text-tertiary);
 }
 
-/* ===== 缓存命中/写入 ===== */
-.meta-cache {
-    color: var(--text-tertiary);
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-}
-
-.meta-cache .cache-icon {
+/* ===== 缓存图标（内联于 tokens 详情中） ===== */
+.cache-icon {
     width: 1em;
     height: 1em;
+    display: inline;
+    vertical-align: -0.125em;
 }
 
 /* ===== 工具执行卡片（气泡内 inline） ===== */

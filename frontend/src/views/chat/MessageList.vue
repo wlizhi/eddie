@@ -368,7 +368,18 @@ function onScroll() {
               {{ msg.metadata.totalTokens }} tokens
               <span v-if="msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
                     class="meta-tokens-detail">
-                (输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }})
+                (输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }}
+                <template
+                    v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0 || (msg.metadata.cacheWriteInputTokens ?? 0) > 0">
+                  · 缓存
+                  <template v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0">
+                    <Eye class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheReadInputTokens }}
+                  </template>
+                  <template v-if="(msg.metadata.cacheWriteInputTokens ?? 0) > 0">
+                    <Pen class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheWriteInputTokens }}
+                  </template>
+                </template>
+                )
               </span>
             </span>
           </template>
@@ -376,16 +387,16 @@ function onScroll() {
             <span v-if="msg.metadata.timestamp || msg.metadata.durationMs != null" class="meta-divider">|</span>
             <span class="meta-tokens">
               输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }}
-            </span>
-          </template>
-          <!-- 缓存命中/写入 -->
-          <template v-if="msg.metadata.cacheReadInputTokens != null || msg.metadata.cacheWriteInputTokens != null">
-            <span
-                v-if="msg.metadata.timestamp || msg.metadata.durationMs != null || msg.metadata.totalTokens != null || msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
-                class="meta-divider">|</span>
-            <span class="meta-cache">
-              <Eye class="cache-icon" :stroke-width="1.5"/> &nbsp; {{ msg.metadata.cacheReadInputTokens ?? 0 }} ·
-              <Pen class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheWriteInputTokens ?? 0 }}
+              <template
+                  v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0 || (msg.metadata.cacheWriteInputTokens ?? 0) > 0">
+                · 缓存
+                <template v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0">
+                  <Eye class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheReadInputTokens }}
+                </template>
+                <template v-if="(msg.metadata.cacheWriteInputTokens ?? 0) > 0">
+                  <Pen class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheWriteInputTokens }}
+                </template>
+              </template>
             </span>
           </template>
           <!-- 预估费用 -->

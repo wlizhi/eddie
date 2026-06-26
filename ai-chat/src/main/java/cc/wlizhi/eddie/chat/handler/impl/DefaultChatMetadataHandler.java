@@ -2,11 +2,15 @@
  * DefaultChatMetadataHandler — 默认元数据处理器
  * <p>
  * 构建通用的响应元数据（耗时、Token 用量等）。
+ * 返回 MetadataInfo 实体并存入 ChatContext，作为单一数据源
+ * 同时供 SSE 事件推送和消息持久化使用。
+ * <p>
  * 匹配所有 providerCode，作为 fallback 兜底。
  */
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
 import cc.wlizhi.eddie.common.entity.ModelPricing;
 import cc.wlizhi.eddie.common.util.PriceCalculator;
@@ -15,9 +19,6 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Order
 @Component
@@ -29,8 +30,8 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
     }
 
     @Override
-    public Map<String, Object> buildMetadata(ChatContext ctx) {
-        Map<String, Object> data = new LinkedHashMap<>();
+    public MetadataInfo buildMetadata(ChatContext ctx) {
+        MetadataInfo.MetadataInfoBuilder builder = MetadataInfo.builder();
 
         ChatResponse lastResponse = ctx.getLastResponse();
         if (lastResponse != null) {
@@ -38,32 +39,35 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
             Usage usage = metadata.getUsage();
             int promptTokens = usage.getPromptTokens();
             int completionTokens = usage.getCompletionTokens();
-            data.put("promptTokens", promptTokens);
-            data.put("completionTokens", completionTokens);
-            data.put("totalTokens", usage.getTotalTokens());
+            int totalTokens = usage.getTotalTokens();
 
-            // 读取缓存字段并写入上下文中（用于后处理器持久化）
+            // 读取缓存字段
             Long cacheRead = usage.getCacheReadInputTokens();
             Long cacheWrite = usage.getCacheWriteInputTokens();
             int cacheReadTokens = cacheRead != null ? cacheRead.intValue() : 0;
             int cacheWriteTokens = cacheWrite != null ? cacheWrite.intValue() : 0;
-            ctx.setCacheReadInputTokens(cacheReadTokens);
-            ctx.setCacheWriteInputTokens(cacheWriteTokens);
-            data.put("cacheReadInputTokens", cacheReadTokens);
-            data.put("cacheWriteInputTokens", cacheWriteTokens);
 
-            // 预估费用（单价为每百万 token，BigDecimal 精确计算）
+            builder.promptTokens(promptTokens)
+                    .completionTokens(completionTokens)
+                    .totalTokens(totalTokens)
+                    .cacheReadInputTokens(cacheReadTokens)
+                    .cacheWriteInputTokens(cacheWriteTokens);
+
+            // 预估费用（含缓存折扣计算）
             ModelPricing pricing = ctx.getPricing();
             if (pricing != null) {
                 double cost = PriceCalculator.calculate(
                         promptTokens, completionTokens, cacheReadTokens, cacheWriteTokens,
                         pricing.getEffectiveInputPrice(), pricing.getEffectiveOutputPrice(),
                         pricing.getEffectiveCacheInputPrice(), pricing.getEffectiveCacheWriteInputPrice());
-                data.put("costEstimate", cost);
-                data.put("currency", pricing.getCurrency() != null ? pricing.getCurrency() : "");
+                builder.costEstimate(cost);
+                builder.currency(pricing.getCurrency() != null ? pricing.getCurrency() : "");
             }
         }
 
-        return data;
+        MetadataInfo info = builder.build();
+        // 存入上下文，作为单一数据源供持久化使用
+        ctx.setMetadata(info);
+        return info;
     }
 }

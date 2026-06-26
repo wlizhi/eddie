@@ -89,14 +89,9 @@ public class ChatContext {
     private ChatResponse lastResponse;
 
     /**
-     * 缓存读取的 input token 数（来自 Usage.getCacheReadInputTokens()，运行时填充）
+     * 响应元数据（由 ChatMetadataHandler 构建，同时供 SSE 和持久化使用）
      */
-    private Integer cacheReadInputTokens;
-
-    /**
-     * 缓存写入的 input token 数（来自 Usage.getCacheWriteInputTokens()，运行时填充）
-     */
-    private Integer cacheWriteInputTokens;
+    private MetadataInfo metadata;
 
     /**
      * 完整思考内容（StringBuilder，流式拼接）

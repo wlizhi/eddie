@@ -5,13 +5,16 @@
  * <ul>
  *   <li>event: thinking — 模型思考内容，由 ChatThinkingHandler 按 providerCode 匹配提取</li>
  *   <li>event: answer — 模型回答内容，通用提取逻辑</li>
- *   <li>event: tool_execution — 工具执行状态（开始/完成），来自 ToolCallbackWrapper 的 Sinks 旁路</li>
- *   <li>event: metadata — 流结束后构建的元数据（耗时、Token 用量等），由 ChatMetadataHandler 处理</li>
+ *   <li>event: tool_execution — 工具执行状态（开始/完成），直接序列化 ToolExecutionEvent 实体</li>
+ *   <li>event: metadata — 流结束后构建的元数据，直接序列化 MetadataInfo 实体</li>
  * </ul>
+ * <p>
+ * 所有结构化数据均通过实体类序列化，统一数据源，避免 Map 导致的数据分裂。
  */
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
 import cc.wlizhi.eddie.chat.handler.ChatThinkingHandler;
@@ -19,8 +22,6 @@ import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.messages.AbstractMessage;
-import org.springframework.ai.chat.metadata.ChatResponseMetadata;
-import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.http.codec.ServerSentEvent;
@@ -30,9 +31,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -93,27 +92,17 @@ public class ChatSseTransformer {
     }
 
     /**
-     * 构建工具执行 SSE 事件，同时累积到上下文用于持久化
+     * 构建工具执行 SSE 事件，直接序列化 ToolExecutionEvent 实体
+     * 同时累积到上下文用于持久化
      */
     private ServerSentEvent<String> buildToolExecutionEvent(ToolExecutionEvent event, ChatContext ctx) {
         // 累积到上下文（仅 COMPLETE 事件才记录到持久化列表）
         if (ToolExecutionStatus.COMPLETE.equals(event.getStatus())) {
             ctx.getToolCalls().add(event);
         }
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("toolName", event.getToolName());
-        data.put("status", event.getStatus());
-        if (event.getArguments() != null) {
-            data.put("arguments", event.getArguments());
-        }
-        if (event.getResult() != null) {
-            data.put("result", event.getResult());
-        }
-        data.put("error", event.isError());
-
         return ServerSentEvent.<String>builder()
                 .event("tool_execution")
-                .data(toJson(data))
+                .data(toJson(event))
                 .build();
     }
 
@@ -168,6 +157,10 @@ public class ChatSseTransformer {
 
     /**
      * 构建 metadata 事件
+     * <p>
+     * 优先使用 ChatMetadataHandler 构建 MetadataInfo 并存入 ctx，
+     * 然后直接从 ctx.getMetadata() 读取 MetadataInfo 实体并序列化，
+     * 确保 SSE 与持久化数据一致。
      */
     private ServerSentEvent<String> buildMetadataEvent(ChatContext ctx, long startTime, long endTime) {
         long durationMs = endTime - startTime;
@@ -175,43 +168,44 @@ public class ChatSseTransformer {
         // 优先使用 ChatMetadataHandler
         for (ChatMetadataHandler handler : metadataHandlers) {
             if (handler.support(ctx.getProviderCode())) {
-                Map<String, Object> data = handler.buildMetadata(ctx);
-                data.putIfAbsent("durationMs", durationMs);
-                data.putIfAbsent("timestamp", endTime);
+                handler.buildMetadata(ctx);
+                MetadataInfo info = ctx.getMetadata();
+                if (info != null) {
+                    info.setDurationMs(durationMs);
+                    info.setTimestamp(endTime);
+                    return ServerSentEvent.<String>builder()
+                            .event("metadata")
+                            .data(toJson(info))
+                            .build();
+                }
+                // info 为 null：回退到空 MetadataInfo
                 return ServerSentEvent.<String>builder()
                         .event("metadata")
-                        .data(toJson(data))
+                        .data(toJson(new MetadataInfo()))
                         .build();
             }
         }
 
-        // fallback：默认元数据
-        Map<String, Object> data = buildDefaultMetadata(ctx, durationMs, endTime);
+        // fallback：无匹配 handler 时从 ctx 读取 MetadataInfo
+        MetadataInfo info = ctx.getMetadata();
+        if (info != null) {
+            info.setDurationMs(durationMs);
+            info.setTimestamp(endTime);
+        } else {
+            info = MetadataInfo.builder()
+                    .durationMs(durationMs)
+                    .timestamp(endTime)
+                    .build();
+        }
         return ServerSentEvent.<String>builder()
                 .event("metadata")
-                .data(toJson(data))
+                .data(toJson(info))
                 .build();
     }
 
-    private Map<String, Object> buildDefaultMetadata(ChatContext ctx, long durationMs, long endTime) {
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("durationMs", durationMs);
-        data.put("timestamp", endTime);
-
-        ChatResponse lastResponse = ctx.getLastResponse();
-        if (lastResponse != null) {
-            ChatResponseMetadata metadata = lastResponse.getMetadata();
-            Usage usage = metadata.getUsage();
-            data.put("promptTokens", usage.getPromptTokens());
-            data.put("completionTokens", usage.getCompletionTokens());
-            data.put("totalTokens", usage.getTotalTokens());
-        }
-        return data;
-    }
-
-    private String toJson(Map<String, Object> data) {
+    private String toJson(Object obj) {
         try {
-            return objectMapper.writeValueAsString(data);
+            return objectMapper.writeValueAsString(obj);
         } catch (Exception e) {
             return "{}";
         }

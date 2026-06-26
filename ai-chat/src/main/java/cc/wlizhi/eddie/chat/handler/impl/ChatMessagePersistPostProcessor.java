@@ -1,6 +1,7 @@
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.chat.handler.ChatPostProcessor;
 import cc.wlizhi.eddie.common.dao.MessageDao;
@@ -8,13 +9,9 @@ import cc.wlizhi.eddie.common.dao.SessionDao;
 import cc.wlizhi.eddie.common.entity.MessageEntity;
 import cc.wlizhi.eddie.common.entity.ModelPricing;
 import cc.wlizhi.eddie.common.entity.SessionEntity;
-import cc.wlizhi.eddie.common.util.PriceCalculator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
-import org.springframework.ai.chat.metadata.ChatResponseMetadata;
-import org.springframework.ai.chat.metadata.Usage;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
@@ -87,39 +84,27 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         }
         assistantMsg.setToolCalls(toolCallsJson);
 
-        ChatResponse lastResponse = ctx.getLastResponse();
-        int promptTokens = 0, completionTokens = 0, totalTokens = 0;
-        int cacheReadTokens = 0, cacheWriteTokens = 0;
-        if (lastResponse != null) {
-            ChatResponseMetadata metadata = lastResponse.getMetadata();
-            Usage usage = metadata.getUsage();
-            promptTokens = usage.getPromptTokens();
-            completionTokens = usage.getCompletionTokens();
-            totalTokens = usage.getTotalTokens();
-            assistantMsg.setPromptTokens(promptTokens);
-            assistantMsg.setCompletionTokens(completionTokens);
-            assistantMsg.setTotalTokens(totalTokens);
+        // 从上下文获取经过 handler 处理的元数据（单一数据源）
+        MetadataInfo metadata = ctx.getMetadata();
+        int totalTokens = 0;
+        if (metadata != null) {
+            assistantMsg.setPromptTokens(metadata.getPromptTokens());
+            assistantMsg.setCompletionTokens(metadata.getCompletionTokens());
+            assistantMsg.setTotalTokens(metadata.getTotalTokens());
+            assistantMsg.setCacheReadInputTokens(metadata.getCacheReadInputTokens());
+            assistantMsg.setCacheWriteInputTokens(metadata.getCacheWriteInputTokens());
+            assistantMsg.setCurrency(metadata.getCurrency() != null ? metadata.getCurrency() : currency);
+            assistantMsg.setPriceEstimate(metadata.getCostEstimate());
+            totalTokens = metadata.getTotalTokens();
         } else {
             assistantMsg.setPromptTokens(0);
             assistantMsg.setCompletionTokens(0);
             assistantMsg.setTotalTokens(0);
+            assistantMsg.setCacheReadInputTokens(0);
+            assistantMsg.setCacheWriteInputTokens(0);
+            assistantMsg.setCurrency(currency);
+            assistantMsg.setPriceEstimate(0.0);
         }
-        // 读取缓存字段（兜底：null 按 0 处理）
-        cacheReadTokens = ctx.getCacheReadInputTokens() != null ? ctx.getCacheReadInputTokens() : 0;
-        cacheWriteTokens = ctx.getCacheWriteInputTokens() != null ? ctx.getCacheWriteInputTokens() : 0;
-        assistantMsg.setCacheReadInputTokens(cacheReadTokens);
-        assistantMsg.setCacheWriteInputTokens(cacheWriteTokens);
-
-        // 预估费用（含缓存折扣计算）
-        double estimate = 0.0;
-        if (pricing != null && promptTokens > 0) {
-            estimate = PriceCalculator.calculate(
-                    promptTokens, completionTokens, cacheReadTokens, cacheWriteTokens,
-                    pricing.getEffectiveInputPrice(), pricing.getEffectiveOutputPrice(),
-                    pricing.getEffectiveCacheInputPrice(), pricing.getEffectiveCacheWriteInputPrice());
-        }
-        assistantMsg.setCurrency(currency);
-        assistantMsg.setPriceEstimate(estimate);
         messageDao.insert(assistantMsg);
 
         // 更新会话活跃时间并同步消息数量、累计 token 数（合并为一条 SQL）
