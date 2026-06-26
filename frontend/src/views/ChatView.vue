@@ -110,4 +110,9 @@ function onSelectSuggestion(text: string) {
   margin: 0 auto;
   width: 100%;
 }
+
+/* ===== 全宽模式：消息行按父容器百分比自适应 ===== */
+.chat-view:not(.narrow) :deep(.message-row) {
+  max-width: min(82%, 1000px);
+}
 </style>

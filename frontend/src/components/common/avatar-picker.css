@@ -161,8 +161,8 @@
 }
 
 .preview-img {
-    width: 80px;
-    height: 80px;
+    width: 60%;
+    height: 60%;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--border-light);

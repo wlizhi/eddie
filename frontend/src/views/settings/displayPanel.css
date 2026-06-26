@@ -238,4 +238,63 @@
     line-height: 1;
 }
 
+/* ===== 个人信息 ===== */
+.profile-row {
+    align-items: center;
+}
+
+.profile-avatar-wrap {
+    position: relative;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+}
+
+.profile-avatar-wrap:hover {
+    opacity: 0.85;
+}
+
+.profile-avatar-wrap .avatar-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.profile-avatar-wrap:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.profile-nickname-input {
+    width: 180px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    flex-shrink: 0;
+}
+
+.profile-nickname-input:focus {
+    border-color: var(--border-focus);
+}
+
+.profile-nickname-input::placeholder {
+    color: var(--text-tertiary);
+    font-size: var(--font-size-small);
+}
+
 

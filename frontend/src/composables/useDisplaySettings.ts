@@ -325,6 +325,10 @@ export interface DisplaySettings {
     wideMode: boolean
     /** 聊天模式（false = 问答模式左对齐） */
     chatMode: boolean
+    /** 用户昵称（全局） */
+    nickname?: string
+    /** 用户头像（全局）：文字/emoji/图片URL */
+    avatar?: string
 }
 
 const defaultSettings: DisplaySettings = {
@@ -335,6 +339,8 @@ const defaultSettings: DisplaySettings = {
     colorScheme: 'blue',
     wideMode: true,
     chatMode: true,
+    nickname: '',
+    avatar: '',
 }
 
 export const displaySettings = reactive<DisplaySettings>({...defaultSettings})
@@ -403,6 +409,8 @@ export async function saveDisplaySettings(): Promise<void> {
             customFontSize: displaySettings.customFontSize,
             wideMode: displaySettings.wideMode,
             chatMode: displaySettings.chatMode,
+            nickname: displaySettings.nickname,
+            avatar: displaySettings.avatar,
         }),
     }
     await updateConfigs(payload)

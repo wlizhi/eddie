@@ -59,6 +59,11 @@ const croppedUrl = computed(() => {
   if (!croppedBlob.value) return ''
   return URL.createObjectURL(croppedBlob.value)
 })
+/** 当前头像是否为图片 URL */
+const currentAvatarUrl = computed(() => {
+  if (!props.currentAvatar) return null
+  return isImageUrl(props.currentAvatar) ? props.currentAvatar : null
+})
 const showCropper = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
@@ -146,8 +151,15 @@ defineExpose({reset})
 
       <div v-show="activeTab === 'upload'" class="upload-tab">
         <input ref="fileInputRef" type="file" accept="image/*" hidden @change="onFileSelected"/>
-        <div v-if="!selectedFile" class="upload-placeholder">
+        <div v-if="!selectedFile && !currentAvatarUrl" class="upload-placeholder">
           <label class="upload-btn" @click="pickImage">选择图片</label>
+        </div>
+        <div v-if="!selectedFile && currentAvatarUrl" class="cropped-preview">
+          <img :src="currentAvatarUrl" alt="当前头像" class="preview-img"/>
+          <p class="cropped-hint">当前头像</p>
+          <div class="preview-actions">
+            <button class="btn-rechoose" @click="pickImage">换张图片</button>
+          </div>
         </div>
         <ImageCropper v-if="selectedFile && showCropper" :file="selectedFile"
                       @cropped="onCropped" @cancel="onCropCancel"/>

@@ -1,5 +1,48 @@
 <template>
   <div class="panel">
+    <!-- ===== 个人信息 ===== -->
+    <div class="settings-group">
+      <div class="group-label">个人信息</div>
+
+      <div class="setting-row profile-row">
+        <div class="setting-info">
+          <span class="setting-label">头像</span>
+          <span class="setting-hint">文字、Emoji 或上传图片</span>
+        </div>
+        <div class="profile-avatar-wrap" @click="showAvatarPicker = true" title="点击修改头像">
+          <AssistantAvatar
+              :name="displaySettings.nickname || '我'"
+              :avatar="displaySettings.avatar || null"
+              :size="56"
+          />
+          <div class="avatar-overlay">编辑</div>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">昵称</span>
+          <span class="setting-hint">在所有聊天页面中显示</span>
+        </div>
+        <input
+            v-model="displaySettings.nickname"
+            class="profile-nickname-input"
+            placeholder="输入昵称"
+            maxlength="20"
+        />
+      </div>
+    </div>
+
+    <!-- 头像选择弹窗 -->
+    <NModal :show="showAvatarPicker" preset="card" title="选择头像"
+            style="max-width: 420px; width: 90%;"
+            :mask-closable="false"
+            @update:show="(v: boolean) => { if (!v) showAvatarPicker = false }">
+      <AvatarPicker :current-avatar="pickerInitialAvatar"
+                    @confirm="onAvatarPicked"
+                    @close="showAvatarPicker = false"/>
+    </NModal>
+
     <!-- ===== 字体 ===== -->
     <div class="settings-group">
       <div class="group-label">字体</div>
@@ -158,7 +201,7 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref, watch} from 'vue'
-import {NSwitch} from 'naive-ui'
+import {NModal, NSwitch} from 'naive-ui'
 import {
   applyDisplay,
   clampFontSize,
@@ -174,6 +217,9 @@ import {
   MIN_RECOMMENDED,
   saveDisplaySettings,
 } from '@/composables/useDisplaySettings'
+import {updateUserAvatar} from '@/api/settings'
+import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
+import AvatarPicker from '@/components/common/AvatarPicker.vue'
 
 const themeList = computed(() => getThemes())
 
@@ -187,6 +233,35 @@ const fontSizeLevels: { value: FontSizeLevel; label: string }[] = [
 
 /** 输入框中显示的像素值 */
 const fontSizeInput = ref<number>(getEffectiveFontSize())
+
+// ===== 个人信息 - 头像 =====
+const showAvatarPicker = ref(false)
+const pickerInitialAvatar = ref<string | null>(null)
+
+function onAvatarPicked(value: string | null, file: File | null) {
+  showAvatarPicker.value = false
+  if (!value && !file) return
+
+  // 图片上传 → 调用后端接口保存
+  if (file) {
+    updateUserAvatar(undefined, file).then((url) => {
+      displaySettings.avatar = url
+    }).catch(() => {
+      // 上传失败静默处理
+    })
+    return
+  }
+
+  // 文字/emoji → 直接存值
+  if (value) {
+    updateUserAvatar(value, undefined).then((url) => {
+      displaySettings.avatar = url
+    }).catch(() => {
+      // 也支持本地直接更新（不回退）
+      displaySettings.avatar = value
+    })
+  }
+}
 
 /** 点击预设按钮 */
 function handleFontSizeClick(level: FontSizeLevel) {

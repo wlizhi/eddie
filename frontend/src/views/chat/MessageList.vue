@@ -21,6 +21,7 @@ import {ChevronDown, Copy, Loader, RefreshCw} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
+import {displaySettings} from '@/composables/useDisplaySettings'
 
 defineProps<{
   qaMode: boolean
@@ -179,7 +180,11 @@ function onScroll() {
       <!-- 头像 -->
       <div class="avatar-col">
         <div v-if="msg.role === 'user'" class="avatar user-avatar">
-          <span class="avatar-text">我</span>
+          <AssistantAvatar
+              :name="displaySettings.nickname || '我'"
+              :avatar="(displaySettings.avatar || null)"
+              :size="28"
+          />
         </div>
         <div v-else class="avatar assistant-avatar">
           <AssistantAvatar
@@ -194,6 +199,10 @@ function onScroll() {
 
       <!-- 消息内容 -->
       <div class="msg-col">
+        <!-- 用户名称 -->
+        <div v-if="msg.role === 'user' && displaySettings.nickname" class="user-name-label">
+          {{ displaySettings.nickname }}
+        </div>
         <!-- 助手名称 -->
         <div v-if="msg.role === 'assistant' && assistantStore.activeAssistant" class="assistant-name-label">
           {{ assistantStore.activeAssistant.name }}
