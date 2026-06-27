@@ -1,7 +1,7 @@
 /**
  * 星空主题（Starry Night）
  * 深蓝/靛紫系，背景带有繁星、弯月和银河光带
- * 亮色 = 晨曦星空（蒙蒙亮的天色 + 晨星弯月）
+ * 亮色 = 清透晨空（淡蓝白 + 晨星弯月）
  * 深色 = 深夜星空（深海军蓝 + 繁星弯月）
  */
 import type {ThemeDefinition} from './index'
@@ -9,43 +9,43 @@ import type {ThemeDefinition} from './index'
 const theme: ThemeDefinition = {
     id: 'starry',
     name: '星空',
-    color: '#cad4e2',
+    color: '#f2f6fc',
     darkColor: '#0f172a',
     randomizeDecoration: true,
     variables: {
         light: {
-            /* 背景色 — 蒙蒙亮的天色（晨曦蓝灰） */
-            '--bg-primary': '#cad4e2',
-            '--bg-secondary': '#d4dee8',
-            '--bg-tertiary': '#dce3ed',
-            '--bg-hover': '#e0e8f0',
-            '--bg-selected': '#c8d8e8',
-            '--bg-nav-rail': '#d4dee8',
-            '--bg-mask': 'rgba(30, 41, 59, 0.30)',
+            /* 背景色 — 清透晨空（淡蓝白，通透清新） */
+            '--bg-primary': '#f2f6fc',
+            '--bg-secondary': '#e8edf6',
+            '--bg-tertiary': '#dce3f0',
+            '--bg-hover': '#d3dceb',
+            '--bg-selected': '#c4d0e5',
+            '--bg-nav-rail': '#eaf0f8',
+            '--bg-mask': 'rgba(30, 41, 59, 0.20)',
             '--bg-tooltip': '#1e293b',
 
-            /* 文字色 — 深蓝灰 */
-            '--text-primary': '#1e293b',
-            '--text-secondary': '#334155',
-            '--text-tertiary': '#4a5f7a',
-            '--text-quaternary': '#475569',
-            '--text-muted': '#7a8da3',
+            /* 文字色 — 清晰深灰 */
+            '--text-primary': '#1a202c',
+            '--text-secondary': '#2d3748',
+            '--text-tertiary': '#4a5568',
+            '--text-quaternary': '#718096',
+            '--text-muted': '#a0aec0',
             '--text-inverse': '#ffffff',
             '--text-accent': '#6366f1',
             '--text-disabled': '#94a3b8',
 
-            /* 边框色 */
-            '--border-default': '#c8d4e0',
-            '--border-light': '#d4dce8',
-            '--border-lighter': '#dce4ee',
-            '--border-hover': '#a8b8c8',
+            /* 边框色 — 轻柔细腻 */
+            '--border-default': '#d6dce8',
+            '--border-light': '#e2e6ee',
+            '--border-lighter': '#eaeef4',
+            '--border-hover': '#bcc6d6',
             '--border-focus': '#6366f1',
 
             /* 消息气泡 */
             '--msg-user-bg': '#6366f1',
             '--msg-user-text': '#ffffff',
             '--msg-assistant-bg': '#ffffff',
-            '--msg-assistant-text': '#1e293b',
+            '--msg-assistant-text': '#1a202c',
 
             /* 主色 / 强调色 — 靛紫 */
             '--accent-default': '#6366f1',
@@ -85,9 +85,9 @@ const theme: ThemeDefinition = {
             '--text-code': '#d4d4d4',
 
             /* 杂项 */
-            '--scrollbar-thumb': '#a8b8c8',
-            '--icon-muted': '#bcc8d8',
-            '--divider-light': '#d4dce8',
+            '--scrollbar-thumb': '#c4cedc',
+            '--icon-muted': '#c8d4e0',
+            '--divider-light': '#e2e6ee',
 
             /*
              * 背景装饰 — 晨星 + 弯月 + 晨曦
