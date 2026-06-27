@@ -21,6 +21,15 @@ public interface McpToolService {
     List<McpServerVO> listAll();
 
     /**
+     * 查询 MCP + 工具二层列表（按启用状态筛选）
+     * <p>
+     * 数据来源：OwnerToolBindingContext 缓存
+     *
+     * @param enabled null=全量，true=仅已启用，false=仅已禁用
+     */
+    List<McpServerVO> listAll(Boolean enabled);
+
+    /**
      * 新增 MCP 服务器
      * <p>
      * 自动校验参数完整性、名称唯一性，完成后自动扫描工具并刷新缓存。

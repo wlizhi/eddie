@@ -65,6 +65,29 @@ public class McpToolServiceImpl implements McpToolService {
     }
 
     @Override
+    public List<McpServerVO> listAll(Boolean enabled) {
+        if (enabled == null) {
+            // 不传 → 全量
+            return listAll();
+        }
+        if (enabled) {
+            // 仅已启用的 MCP（MCP 和工具均需启用）
+            List<OwnerToolBindingContext.McpServerWithTools> enabledData =
+                    ownerToolBindingContext.getEnabledMcpServersWithTools();
+            return enabledData.stream()
+                    .map(item -> toMcpServerVO(item.mcpServer(), item.tools()))
+                    .collect(Collectors.toList());
+        }
+        // enabled = false → 从全量中过滤出已禁用的 MCP
+        List<OwnerToolBindingContext.McpServerWithTools> allData =
+                ownerToolBindingContext.getAllMcpServersWithTools();
+        return allData.stream()
+                .filter(item -> item.mcpServer().getEnabled() != 1)
+                .map(item -> toMcpServerVO(item.mcpServer(), item.tools()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public McpServerVO create(McpServerCreateRequest request) {
         // 1. 参数校验

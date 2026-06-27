@@ -24,13 +24,16 @@ public class McpToolController {
     private McpToolService mcpToolService;
 
     /**
-     * 查询全量 MCP + 工具二层列表（含禁用）
+     * 查询 MCP + 工具二层列表
      * <p>
-     * 场景 1：全局设置页面展示已启用的 MCP 及工具。
+     * 场景 1：全局设置页面展示 MCP 及工具。
+     *
+     * @param enabled 可选，null=全量，true=仅已启用，false=仅已禁用
      */
     @GetMapping
-    public ApiResult<List<McpServerVO>> listAll() {
-        return ApiResult.success(mcpToolService.listAll());
+    public ApiResult<List<McpServerVO>> listAll(
+            @RequestParam(name = "enabled", required = false) Boolean enabled) {
+        return ApiResult.success(mcpToolService.listAll(enabled));
     }
 
     /**
