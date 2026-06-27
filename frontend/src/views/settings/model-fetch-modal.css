@@ -59,42 +59,9 @@
     flex-shrink: 0;
 }
 
-.fetch-search {
-    position: relative;
+.fetch-toolbar .n-input {
     flex: 0 1 260px;
     min-width: 0;
-}
-
-.search-icon {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-tertiary);
-    pointer-events: none;
-}
-
-.search-input {
-    width: 100%;
-    height: 32px;
-    padding: 0 10px 0 32px;
-    border: 1px solid var(--border-default);
-    border-radius: 6px;
-    font-size: 13px;
-    color: var(--text-primary);
-    background: var(--bg-secondary);
-    outline: none;
-    box-sizing: border-box;
-    transition: border-color 0.12s, background 0.12s;
-}
-
-.search-input:focus {
-    border-color: var(--accent-default);
-    background: var(--bg-primary);
-}
-
-.search-input::placeholder {
-    color: var(--text-tertiary);
 }
 
 /* 统计 */

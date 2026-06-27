@@ -43,6 +43,16 @@ public class ModelVO {
      */
     private Double outputPrice;
 
+    /**
+     * 缓存命中价格，每百万 token
+     */
+    private Double cacheInputPrice;
+
+    /**
+     * 缓存写入价格，每百万 token
+     */
+    private Double cacheWriteInputPrice;
+
     public String getCode() {
         return code;
     }
@@ -105,5 +115,21 @@ public class ModelVO {
 
     public void setOutputPrice(Double outputPrice) {
         this.outputPrice = outputPrice;
+    }
+
+    public Double getCacheInputPrice() {
+        return cacheInputPrice;
+    }
+
+    public void setCacheInputPrice(Double cacheInputPrice) {
+        this.cacheInputPrice = cacheInputPrice;
+    }
+
+    public Double getCacheWriteInputPrice() {
+        return cacheWriteInputPrice;
+    }
+
+    public void setCacheWriteInputPrice(Double cacheWriteInputPrice) {
+        this.cacheWriteInputPrice = cacheWriteInputPrice;
     }
 }

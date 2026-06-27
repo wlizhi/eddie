@@ -4,36 +4,32 @@
     <div class="props-section">
       <div class="prop-row">
         <label class="prop-label">Code</label>
-        <input
+        <n-input
             :value="provider.code"
-            class="prop-input"
             disabled
         />
       </div>
       <div class="prop-row">
         <label class="prop-label">名称</label>
-        <input
+        <n-input
             :value="name"
-            class="prop-input"
             :disabled="provider.builtIn === 1"
-            @input="$emit('update:name', ($event.target as HTMLInputElement).value)"
+            @update:value="$emit('update:name', $event)"
         />
       </div>
       <div class="prop-row">
         <label class="prop-label">Base URL</label>
-        <input
+        <n-input
             :value="baseUrl"
-            class="prop-input"
-            @input="$emit('update:baseUrl', ($event.target as HTMLInputElement).value)"
+            @update:value="$emit('update:baseUrl', $event)"
         />
       </div>
       <div class="prop-row">
         <label class="prop-label">API Key</label>
-        <input
+        <n-input
             :value="apiKey"
             type="password"
-            class="prop-input"
-            @input="$emit('update:apiKey', ($event.target as HTMLInputElement).value)"
+            @update:value="$emit('update:apiKey', $event)"
         />
       </div>
       <div class="delete-provider-row">
@@ -111,7 +107,7 @@
 
 <script setup lang="ts">
 import {computed} from 'vue'
-import {NButton} from 'naive-ui'
+import {NButton, NInput} from 'naive-ui'
 import {RefreshCw, Settings, Trash2} from '@lucide/vue'
 import type {ModelItem, ModelProvider} from '@/types/modelProvider'
 import {CAPABILITY_LABELS} from '@/types/modelProvider'

@@ -138,30 +138,6 @@
     flex-shrink: 0;
 }
 
-.prop-input {
-    flex: 1;
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid var(--border-default);
-    border-radius: 6px;
-    font-size: var(--font-size-base);
-    color: var(--text-primary);
-    background: var(--bg-primary);
-    outline: none;
-    transition: border-color 0.12s;
-}
-
-.prop-input:focus {
-    border-color: var(--accent-default);
-    box-shadow: 0 0 0 2px var(--accent-ring);
-}
-
-.prop-input:disabled {
-    background: var(--bg-tertiary);
-    color: var(--text-tertiary);
-    cursor: not-allowed;
-}
-
 /* ===== 删除服务商行（右对齐） ===== */
 .delete-provider-row {
     display: flex;
@@ -460,27 +436,6 @@
     font-size: var(--font-size-small);
     font-weight: 500;
     color: var(--text-quaternary);
-}
-
-.modal-field .field-input {
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid var(--border-default);
-    border-radius: 6px;
-    font-size: var(--font-size-base);
-    color: var(--text-primary);
-    outline: none;
-    transition: border-color 0.12s;
-}
-
-.modal-field .field-input:focus {
-    border-color: var(--accent-default);
-    box-shadow: 0 0 0 2px var(--accent-ring);
-}
-
-.modal-field .field-input:disabled {
-    background: var(--bg-tertiary);
-    color: var(--text-tertiary);
 }
 
 /* 能力选择网格 */

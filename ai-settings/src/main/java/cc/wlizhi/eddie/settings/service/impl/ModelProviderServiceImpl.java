@@ -256,6 +256,8 @@ public class ModelProviderServiceImpl implements ModelProviderService {
                 vo.setCurrency(currencyObj != null ? currencyObj.toString() : null);
                 vo.setInputPrice(parseDouble(raw.get("input_price")));
                 vo.setOutputPrice(parseDouble(raw.get("output_price")));
+                vo.setCacheInputPrice(parseDouble(raw.get("cache_input_price")));
+                vo.setCacheWriteInputPrice(parseDouble(raw.get("cache_write_input_price")));
                 result.add(vo);
             }
             return result;

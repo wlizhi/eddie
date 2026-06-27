@@ -11,12 +11,11 @@
       <!-- 服务商 Code -->
       <div class="modal-field">
         <span class="field-label">Code <span class="required">*</span></span>
-        <input
-            v-model="form.code"
-            class="field-input"
+        <n-input
+            v-model:value="form.code"
             :class="{ 'field-error': errors.code }"
             placeholder="服务商code，如 openai"
-            @input="errors.code = ''"
+            @update:value="errors.code = ''"
         />
         <span v-if="errors.code" class="field-err-msg">{{ errors.code }}</span>
       </div>
@@ -24,12 +23,11 @@
       <!-- 服务商名称 -->
       <div class="modal-field">
         <span class="field-label">名称 <span class="required">*</span></span>
-        <input
-            v-model="form.name"
-            class="field-input"
+        <n-input
+            v-model:value="form.name"
             :class="{ 'field-error': errors.name }"
             placeholder="显示名称，如 自定义 OpenAI"
-            @input="errors.name = ''"
+            @update:value="errors.name = ''"
         />
         <span v-if="errors.name" class="field-err-msg">{{ errors.name }}</span>
       </div>
@@ -37,12 +35,11 @@
       <!-- API 地址 -->
       <div class="modal-field">
         <span class="field-label">Base URL <span class="required">*</span></span>
-        <input
-            v-model="form.baseUrl"
-            class="field-input"
+        <n-input
+            v-model:value="form.baseUrl"
             :class="{ 'field-error': errors.baseUrl }"
             placeholder="https://api.openai.com/v1"
-            @input="errors.baseUrl = ''"
+            @update:value="errors.baseUrl = ''"
         />
         <span v-if="errors.baseUrl" class="field-err-msg">{{ errors.baseUrl }}</span>
       </div>
@@ -50,9 +47,8 @@
       <!-- API 密钥 -->
       <div class="modal-field">
         <span class="field-label">API Key</span>
-        <input
-            v-model="form.apiKey"
-            class="field-input"
+        <n-input
+            v-model:value="form.apiKey"
             type="password"
             placeholder="可选，可在后续修改"
         />
@@ -80,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import {NModal} from 'naive-ui'
+import {NInput, NModal} from 'naive-ui'
 import {reactive, ref} from 'vue'
 import {createProvider} from '@/api/modelProvider'
 
@@ -189,27 +185,6 @@ async function handleSubmit() {
 .required {
   color: var(--danger-default);
   margin-left: 2px;
-}
-
-.field-input {
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-  outline: none;
-  transition: border-color 0.12s, background 0.12s;
-}
-
-.field-input:focus {
-  border-color: var(--accent-default);
-  background: var(--bg-primary);
-}
-
-.field-input.field-error {
-  border-color: var(--danger-default);
 }
 
 .field-err-msg {

@@ -11,13 +11,13 @@
       <!-- 模型 ID（只读） -->
       <div class="modal-field">
         <span class="field-label">模型 ID</span>
-        <input class="field-input" :value="form.code" disabled/>
+        <n-input :value="form.code" disabled/>
       </div>
 
       <!-- 模型名称（可自定义） -->
       <div class="modal-field">
         <span class="field-label">模型名称</span>
-        <input class="field-input" v-model="form.name" placeholder="自定义名称，留空则使用模型 ID"/>
+        <n-input v-model:value="form.name" placeholder="自定义名称，留空则使用模型 ID"/>
       </div>
 
       <!-- 能力选择 -->
@@ -60,11 +60,11 @@
               @click="form.currency = 'custom'"
           >自定义
           </button>
-          <input
+          <n-input
               v-if="form.currency === 'custom'"
-              v-model="form.customCurrency"
+              v-model:value="form.customCurrency"
               class="currency-custom-input"
-              maxlength="1"
+              :maxlength="1"
               placeholder="¥"
           />
         </div>
@@ -76,7 +76,6 @@
         <div class="price-row">
           <n-input-number
               v-model:value="form.inputPrice"
-              class="field-input"
               :min="0"
               :step="0.001"
               placeholder="0"
@@ -89,7 +88,6 @@
         <div class="price-row">
           <n-input-number
               v-model:value="form.outputPrice"
-              class="field-input"
               :min="0"
               :step="0.001"
               placeholder="0"
@@ -102,7 +100,6 @@
         <div class="price-row">
           <n-input-number
               v-model:value="form.cacheInputPrice"
-              class="field-input"
               :min="0"
               :step="0.001"
               placeholder="留空则使用输入价格"
@@ -115,7 +112,6 @@
         <div class="price-row">
           <n-input-number
               v-model:value="form.cacheWriteInputPrice"
-              class="field-input"
               :min="0"
               :step="0.001"
               placeholder="留空则使用输入价格"
@@ -135,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import {NInputNumber, NModal} from 'naive-ui'
+import {NInput, NInputNumber, NModal} from 'naive-ui'
 import {computed, reactive, watch} from 'vue'
 import type {ModelItem} from '@/types/modelProvider'
 import {CAPABILITY_TYPES, capIcon, getCapStyle, normalizeCaps, toggleCapability,} from './modelCapabilities'
@@ -239,28 +235,6 @@ function handleSave() {
   color: var(--text-secondary);
 }
 
-.field-input {
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-  outline: none;
-  transition: border-color 0.12s, background 0.12s;
-}
-
-.field-input:focus {
-  border-color: var(--accent-default);
-  background: var(--bg-primary);
-}
-
-.field-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .capability-grid {
   display: flex;
   flex-wrap: wrap;
@@ -312,26 +286,13 @@ function handleSave() {
 }
 
 .currency-custom-input {
-  width: 40px;
-  height: 30px;
-  padding: 0 6px;
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-  outline: none;
-  text-align: center;
+  width: 70px;
 }
 
 .price-row {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.price-row .field-input {
-  flex: 1;
 }
 
 .price-unit {
