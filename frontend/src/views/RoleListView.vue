@@ -41,7 +41,7 @@ h2 {
 }
 
 .empty-hint {
-  color: #888;
-  font-size: 14px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-base);
 }
 </style>

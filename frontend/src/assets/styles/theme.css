@@ -97,6 +97,14 @@
 
     /* 背景装饰（由各主题定义形状渐变，默认无） */
     --bg-decoration: none;
+
+    /* 图标尺寸（由 JS 在 applyDisplaySettings 中动态覆盖，此处为后备值） */
+    --icon-size-xs: 12px;
+    --icon-size-sm: 14px;
+    --icon-size-md: 16px;
+    --icon-size-lg: 20px;
+    --icon-size-xl: 24px;
+    --icon-size-xxl: 32px;
 }
 
 /* 主题切换过渡动画 — 仅在主题数据加载完成后生效，避免 FOUC
@@ -175,4 +183,36 @@ body {
 .n-card > .n-card-header {
     --n-padding-top: 10px;
     --n-padding-bottom: 10px;
+}
+
+/* ===== NSelect / NPopselect 全局字体跟随（兜底规则） =====
+   覆盖 Naive UI 内部固定 px 字号，使用 rem 使字体跟随 html 基准字号动态变化。
+   注意：CSS 优先级低于 themeOverrides，但作为首屏渲染兜底确保字体正确。 */
+
+/* Select trigger 选中值文本（首屏渲染时 themeOverrides 可能尚未就绪） */
+.n-base-selection .n-base-selection-input,
+.n-base-selection .n-base-selection-placeholder,
+.n-base-selection .n-base-selection-label,
+.n-base-selection .n-base-selection-tags {
+    font-size: var(--font-size-base) !important;
+}
+
+/* Select 下拉菜单选项 */
+.n-base-select-menu .n-base-select-option {
+    font-size: var(--font-size-base) !important;
+}
+
+.n-base-select-menu .n-base-select-option--group-header {
+    font-size: var(--font-size-small) !important;
+    font-weight: 600;
+}
+
+/* Dropdown 菜单项字体 */
+.n-dropdown-option-body {
+    font-size: var(--font-size-base) !important;
+}
+
+/* InputNumber 组件字号 */
+.n-input-number .n-input-number-suffix {
+    font-size: var(--font-size-base) !important;
 }

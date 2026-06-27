@@ -298,6 +298,27 @@
     max-width: 30%;
 }
 
+/* MCP 模式下拉框触发区高度自适应 */
+.mcp-mode-select :deep(.n-base-selection) {
+    min-height: auto !important;
+}
+
+.mcp-mode-select :deep(.n-base-selection-label) {
+    min-height: auto !important;
+    height: auto !important;
+}
+
+/* MCP 服务 Checkbox 字号（随全局字体自适应） */
+.mcp-checkbox-item {
+    font-size: var(--font-size-base);
+}
+
+.mcp-checkbox-item :deep(.n-checkbox__label) {
+    font-size: var(--font-size-base);
+}
+
+
+
 
 
 

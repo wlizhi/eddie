@@ -27,7 +27,7 @@
           :value="localParams[def.key] as string"
           :options="def.options"
           :consistent-menu-width="false"
-          class="mps-param-input mps-select-input"
+          class="mps-param-input"
           @update:value="(v: string) => onSelectChange(def, v)"
       />
       <span v-if="errorMessages[def.key]" class="mps-error-msg">{{ errorMessages[def.key] }}</span>
@@ -175,10 +175,9 @@ defineExpose({validate, hasErrors})
   width: 100%;
 }
 
-/* 思考模式（下拉选择）维持显式高度 */
-.mps-select-input :deep(.n-base-selection) {
-  min-height: 34px;
-  height: 34px;
+/* 统一 NInputNumber 与 NSelect 底部间距，消除视觉对齐偏差 */
+.mps-param-input :deep(.n-base-selection) {
+  margin-bottom: 2px;
 }
 
 .mps-hint-icon {

@@ -12,7 +12,10 @@ import {
   saveDisplaySettings
 } from '@/composables/useDisplaySettings'
 import {naiveThemeOverrides} from '@/composables/useNaiveThemeOverrides'
+import {useIconSize} from '@/composables/useIconSize'
 import ToastNotification from '@/components/common/ToastNotification.vue'
+
+const {iconSizeLg, iconSizeXs} = useIconSize()
 
 onMounted(() => {
   loadDisplaySettings()
@@ -126,7 +129,7 @@ const currentTheme = computed(() => findTheme(displaySettings.themeId))
                 :title="item.label"
                 @click="togglePanel(item.key)"
             >
-              <component :is="item.icon" :size="20" :stroke-width="1.8"/>
+              <component :is="item.icon" :size="iconSizeLg" :stroke-width="1.8"/>
               <span class="nav-tooltip">{{ item.label }}</span>
             </button>
           </div>
@@ -140,7 +143,7 @@ const currentTheme = computed(() => findTheme(displaySettings.themeId))
                 :title="'切换主题（当前：' + (currentTheme?.name ?? '默认') + '）'"
                 @click="cycleTheme"
             >
-              <Paintbrush :size="20" :stroke-width="1.8"/>
+              <Paintbrush :size="iconSizeLg" :stroke-width="1.8"/>
               <span class="nav-tooltip">{{ currentTheme?.name ?? '默认' }}</span>
             </button>
             <!-- 亮/深色切换 -->
@@ -149,8 +152,8 @@ const currentTheme = computed(() => findTheme(displaySettings.themeId))
                 :title="displaySettings.themeMode === 'dark' ? '切换浅色' : '切换深色'"
                 @click="toggleThemeVariant"
             >
-              <Sun v-if="displaySettings.themeMode === 'light'" :size="20" :stroke-width="1.8"/>
-              <Moon v-else :size="20" :stroke-width="1.8"/>
+              <Sun v-if="displaySettings.themeMode === 'light'" :size="iconSizeLg" :stroke-width="1.8"/>
+              <Moon v-else :size="iconSizeLg" :stroke-width="1.8"/>
               <span class="nav-tooltip">{{ displaySettings.themeMode === 'dark' ? '浅色' : '深色' }}</span>
             </button>
             <button
@@ -161,7 +164,7 @@ const currentTheme = computed(() => findTheme(displaySettings.themeId))
                 :title="item.label"
                 @click="togglePanel(item.key)"
             >
-              <component :is="item.icon" :size="20" :stroke-width="1.8"/>
+              <component :is="item.icon" :size="iconSizeLg" :stroke-width="1.8"/>
               <span class="nav-tooltip">{{ item.label }}</span>
             </button>
           </div>
@@ -170,7 +173,7 @@ const currentTheme = computed(() => findTheme(displaySettings.themeId))
         <!-- Contextual Panel -->
         <aside class="context-panel" :class="{ collapsed: !isPanelVisible }">
           <button class="panel-collapse-btn" :title="isPanelVisible ? '折叠侧栏' : '展开侧栏'" @click="toggleCollapse">
-            <component :is="isPanelVisible ? ChevronLeft : ChevronRight" :size="12" :stroke-width="2"/>
+            <component :is="isPanelVisible ? ChevronLeft : ChevronRight" :size="iconSizeXs" :stroke-width="2"/>
           </button>
           <div class="panel-body">
             <router-view name="panel"/>

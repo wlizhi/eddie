@@ -1,6 +1,7 @@
 import {reactive, watch} from 'vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {findTheme, getThemes, type ThemeDefinition} from '@/assets/themes/index'
+import {getIconSizeCSSVariables} from '@/composables/useIconSize'
 
 /** 字体大小等级 */
 export type FontSizeLevel = 'small' | 'medium' | 'large'
@@ -496,6 +497,12 @@ export function applyDisplaySettings(): void {
     //   小 14px → 35px | 中 16px → 40px | 大 18px → 45px | 自定义 20px → 50px
     const avatarSize = Math.round(basePx * 2.2)
     root.style.setProperty('--avatar-size', `${avatarSize}px`)
+
+    // 图标尺寸 CSS 变量（基于基准字体的比例系数）
+    const iconCSSVars = getIconSizeCSSVariables(basePx)
+    for (const [key, value] of Object.entries(iconCSSVars)) {
+        root.style.setProperty(key, value)
+    }
 
     // 字体类型
     const fontFamily = FONT_FAMILY_MAP[displaySettings.fontFamily] ?? FONT_FAMILY_MAP.system

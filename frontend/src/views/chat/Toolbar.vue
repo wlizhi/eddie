@@ -10,6 +10,9 @@
 <script setup lang="ts">
 import {FileText, Maximize2, MessageSquare, Minimize2} from '@lucide/vue'
 import {displaySettings, saveDisplaySettings} from '@/composables/useDisplaySettings'
+import {useIconSize} from '@/composables/useIconSize'
+
+const {iconSizeSm} = useIconSize()
 
 function toggleWide() {
   displaySettings.wideMode = !displaySettings.wideMode
@@ -29,16 +32,16 @@ function toggleChat() {
         :title="displaySettings.wideMode ? '切换窄屏' : '切换全宽'"
         @click="toggleWide"
     >
-      <Maximize2 v-if="displaySettings.wideMode" :size="14" :stroke-width="1.8"/>
-      <Minimize2 v-else :size="14" :stroke-width="1.8"/>
+      <Maximize2 v-if="displaySettings.wideMode" :size="iconSizeSm" :stroke-width="1.8"/>
+      <Minimize2 v-else :size="iconSizeSm" :stroke-width="1.8"/>
     </button>
     <button
         class="toolbar-btn"
         :title="displaySettings.chatMode ? '切换问答模式' : '切换聊天模式'"
         @click="toggleChat"
     >
-      <MessageSquare v-if="displaySettings.chatMode" :size="14" :stroke-width="1.8"/>
-      <FileText v-else :size="14" :stroke-width="1.8"/>
+      <MessageSquare v-if="displaySettings.chatMode" :size="iconSizeSm" :stroke-width="1.8"/>
+      <FileText v-else :size="iconSizeSm" :stroke-width="1.8"/>
     </button>
   </div>
 </template>

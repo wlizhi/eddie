@@ -24,6 +24,9 @@ import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {NButton, NCheckbox, NCheckboxGroup, NModal, NPopselect, NSelect, NSpace} from 'naive-ui'
 import {Brain, Globe, Network, Plus, Send, Square} from '@lucide/vue'
+import {useIconSize} from '@/composables/useIconSize'
+
+const {iconSizeXs, iconSizeSm} = useIconSize()
 
 const chatStore = useChatStore()
 
@@ -229,7 +232,7 @@ defineExpose({focusInput})
       <!-- 底部工具栏（flex 列布局，固定在底部） -->
       <div class="input-toolbar">
         <button class="new-chat-btn" title="新对话" @click="chatStore.newConversation()">
-          <Plus :size="14" :stroke-width="2"/>
+          <Plus :size="iconSizeSm" :stroke-width="2"/>
         </button>
         <NSelect
             :value="selectedModelKey"
@@ -255,7 +258,7 @@ defineExpose({focusInput})
                 :class="{active: chatStore.thinkingMode !== 'auto'}"
                 title="思考模式"
             >
-              <Brain :size="12" :stroke-width="2"/>
+              <Brain :size="iconSizeXs" :stroke-width="2"/>
               {{ thinkingModeLabel }}
             </button>
           </NPopselect>
@@ -267,7 +270,7 @@ defineExpose({focusInput})
               title="联网搜索"
               @click="chatStore.webSearchEnabled = !chatStore.webSearchEnabled"
           >
-            <Globe :size="13" :stroke-width="2"/>
+            <Globe :size="iconSizeSm" :stroke-width="2"/>
             联网
           </button>
 
@@ -284,21 +287,21 @@ defineExpose({focusInput})
                 :class="{active: chatStore.mcpToolMode !== 'auto'}"
                 title="MCP 服务"
             >
-              <Network :size="12" :stroke-width="2"/>
+              <Network :size="iconSizeXs" :stroke-width="2"/>
               {{ toolModeLabel }}
             </button>
           </NPopselect>
         </div>
 
         <!-- 手动模式 MCP 选择弹窗 -->
-        <NModal v-model:show="showMcpModal" title="选择 MCP 工具" preset="card" style="width:420px">
+        <NModal v-model:show="showMcpModal" title="选择 MCP 服务" preset="card" style="width:420px">
           <NCheckboxGroup v-model:value="chatStore.selectedMcpServerIds">
             <NSpace vertical>
               <div v-for="mcp in chatStore.boundMcpTools" :key="mcp.mcpServerId" class="mcp-checkbox-item">
                 <NCheckbox :value="mcp.mcpServerId" :label="mcp.mcpServerName"/>
                 <span class="mcp-tool-count">{{ mcp.tools.length }} 个工具</span>
               </div>
-              <div v-if="chatStore.boundMcpTools.length === 0" class="mcp-empty-hint">暂无可用 MCP 工具</div>
+              <div v-if="chatStore.boundMcpTools.length === 0" class="mcp-empty-hint">暂无可用 MCP 服务</div>
             </NSpace>
           </NCheckboxGroup>
           <template #footer>
@@ -315,7 +318,7 @@ defineExpose({focusInput})
             title="发送"
             @click="emit('send')"
         >
-          <Send :size="13" :stroke-width="2.5"/>
+          <Send :size="iconSizeSm" :stroke-width="2.5"/>
         </button>
         <button
             v-else
@@ -323,7 +326,7 @@ defineExpose({focusInput})
             title="中断"
             @click="chatStore.abortStream()"
         >
-          <Square :size="11" :stroke-width="2.5"/>
+          <Square :size="iconSizeXs" :stroke-width="2.5"/>
         </button>
       </div>
     </div>

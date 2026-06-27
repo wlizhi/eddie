@@ -5,8 +5,11 @@ import {useAssistantStore} from '@/stores/assistant'
 import {batchSortAssistant} from '@/api/assistant'
 import {useDragSort} from '@/composables/useDragSort'
 import {getEffectiveFontSize} from '@/composables/useDisplaySettings'
+import {useIconSize} from '@/composables/useIconSize'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AssistantDialog from '../assistant/AssistantDialog.vue'
+
+const {iconSizeXs, iconSizeSm} = useIconSize()
 
 const assistantStore = useAssistantStore()
 
@@ -35,9 +38,10 @@ const displayedAssistants = computed(() => {
   <!-- 助手列表折叠/展开按钮 -->
   <button class="collapse-assistant-btn" @click="assistantListCollapsed = !assistantListCollapsed">
     <span class="create-trigger" title="创建助手" @click.stop="showCreateAssistant = true">
-      <Plus :size="15" :stroke-width="2.5"/>
+      <Plus :size="iconSizeSm" :stroke-width="2.5"/>
     </span>
-    <ChevronDown :size="14" :stroke-width="2" class="collapse-icon" :class="{ rotated: !assistantListCollapsed }"/>
+    <ChevronDown :size="iconSizeSm" :stroke-width="2" class="collapse-icon"
+                 :class="{ rotated: !assistantListCollapsed }"/>
     <span>{{ assistantListCollapsed ? '展开助手列表' : '收起助手列表' }}</span>
   </button>
 
@@ -61,7 +65,7 @@ const displayedAssistants = computed(() => {
           @dragend="dragIndex = null; dragOverIndex = null"
           @click="assistantStore.select(assistant.id)"
       >
-        <span class="drag-handle"><GripVertical :size="12" :stroke-width="1.5"/></span>
+        <span class="drag-handle"><GripVertical :size="iconSizeXs" :stroke-width="1.5"/></span>
         <AssistantAvatar :name="assistant.name" :avatar="assistant.avatar" :size="avatarSize"/>
         <span class="assistant-name">{{ assistant.name }}</span>
         <button
@@ -69,7 +73,7 @@ const displayedAssistants = computed(() => {
             title="助手设置"
             @click.stop="editAssistantId = assistant.id"
         >
-          <Settings :size="13" :stroke-width="2"/>
+          <Settings :size="iconSizeSm" :stroke-width="2"/>
         </button>
       </div>
 

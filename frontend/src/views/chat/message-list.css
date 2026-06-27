@@ -424,8 +424,8 @@
 }
 
 .tool-execution-icon {
-    font-size: 11px;
-    width: 14px;
+    font-size: var(--font-size-xxs);
+    width: var(--icon-size-xs);
     text-align: center;
     flex-shrink: 0;
 }

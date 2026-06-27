@@ -36,10 +36,12 @@ function accent(key: 'accent' | 'hover' | 'lightBg' | 'lightBorder' | 'ring' | '
  * 依赖 displaySettings 的响应式变化自动重新计算
  */
 export const naiveThemeOverrides = computed(() => {
-    // 显式依赖响应式属性，确保 themeId/themeMode/colorScheme 变化时重新计算
+    // 显式依赖响应式属性，确保所有变化触发重新计算
     void displaySettings.themeId
     void displaySettings.themeMode
     void displaySettings.colorScheme
+    void displaySettings.fontSize
+    void displaySettings.customFontSize
 
     const bgPrimary = v('--bg-primary')
     const bgSecondary = v('--bg-secondary')
@@ -111,6 +113,14 @@ export const naiveThemeOverrides = computed(() => {
             fontSizeMedium: fontSizeBase,
             optionFontSizeSmall: fontSizeBase,
             optionFontSizeMedium: fontSizeBase,
+            // 选项行高与内边距：基于基准字号比例缩放
+            optionHeightSmall: Math.round(basePx * 2) + 'px',
+            optionHeightMedium: Math.round(basePx * 2.2) + 'px',
+            optionPaddingSmall: `${Math.round(basePx * 0.3)}px ${Math.round(basePx * 0.8)}px`,
+            optionPaddingMedium: `${Math.round(basePx * 0.35)}px ${Math.round(basePx * 0.8)}px`,
+            menuHeight: Math.round(basePx * 15) + 'px',
+            // 下拉箭头大小
+            arrowSize: Math.round(basePx * 0.8) + 'px',
         },
 
         // ===== Modal 模态框 =====
@@ -218,14 +228,21 @@ export const naiveThemeOverrides = computed(() => {
             optionColorHover: bgHover,
             optionTextColorHover: textPrimary,
             dividerColor: dividerLight,
+            optionFontSizeSmall: fontSizeBase,
+            optionFontSizeMedium: fontSizeBase,
+            optionHeightSmall: Math.round(basePx * 2) + 'px',
+            optionHeightMedium: Math.round(basePx * 2.2) + 'px',
+            optionPaddingSmall: `${Math.round(basePx * 0.3)}px ${Math.round(basePx * 0.8)}px`,
+            optionPaddingMedium: `${Math.round(basePx * 0.35)}px ${Math.round(basePx * 0.8)}px`,
         },
 
-        // ===== Popover 弹出层 =====
+        // ===== Popover 弹出层（影响 NPopselect 等）=====
         Popover: {
             color: bgPrimary,
             textColor: textPrimary,
             boxShadow: `0 4px 16px ${bgMask}`,
             borderRadius: '10px',
+            fontSize: fontSizeBase,
         },
 
         // ===== Spin 加载 =====

@@ -55,12 +55,9 @@
       </div>
 
       <!-- 启用状态 -->
-      <div class="modal-field">
+      <div class="modal-field modal-field-switch">
         <span class="field-label">状态</span>
-        <label class="toggle-row">
-          <input type="checkbox" v-model="form.enabled" true-value="1" false-value="0"/>
-          <span class="toggle-label">{{ form.enabled === 1 ? '启用' : '禁用' }}</span>
-        </label>
+        <n-switch :value="form.enabled === 1" @update:value="(val: boolean) => form.enabled = val ? 1 : 0"/>
       </div>
     </div>
 
@@ -76,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import {NInput, NModal} from 'naive-ui'
+import {NInput, NModal, NSwitch} from 'naive-ui'
 import {reactive, ref} from 'vue'
 import {createProvider} from '@/api/modelProvider'
 
@@ -192,18 +189,6 @@ async function handleSubmit() {
   color: var(--danger-default);
 }
 
-.toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.toggle-label {
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
 .btn-cancel {
   height: 32px;
   padding: 0 16px;
@@ -240,5 +225,11 @@ async function handleSubmit() {
 .btn-save:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.modal-field-switch {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6em;
 }
 </style>

@@ -11,12 +11,15 @@
 import {NButton, NCheckbox, NCheckboxGroup, NInputNumber, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
 import {Globe, Network, Trash2} from '@lucide/vue'
 import {useAssistantForm} from '@/composables/useAssistantForm'
+import {useIconSize} from '@/composables/useIconSize'
 import {TIP_THEME_OVERRIDES} from '@/constants/theme'
 import {showToast} from '@/composables/useToast'
 import {ref} from 'vue'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AvatarPicker from '../common/AvatarPicker.vue'
 import ModelParamsInput from '../common/ModelParamsInput.vue'
+
+const {iconSizeSm} = useIconSize()
 
 const props = defineProps<{
   assistantId: number | null
@@ -64,7 +67,9 @@ function handleSaveWithValidation() {
       :mask-closable="false"
   >
     <template #header>
-      <span style="font-weight: 600; font-size: 15px;">{{ isCreateMode ? '✨ 新建助手' : '⚙️ 助手设置' }}</span>
+      <span style="font-weight: 600; font-size: var(--font-size-lg);">{{
+          isCreateMode ? '✨ 新建助手' : '⚙️ 助手设置'
+        }}</span>
     </template>
 
     <div class="form">
@@ -147,7 +152,7 @@ function handleSaveWithValidation() {
         <div class="preferences-group">
           <div class="pref-row">
             <div class="pref-row-label">
-              <Globe :size="13" :stroke-width="2"/>
+              <Globe :size="iconSizeSm" :stroke-width="2"/>
               <span>联网搜索默认</span>
             </div>
             <NSwitch
@@ -157,7 +162,7 @@ function handleSaveWithValidation() {
           </div>
           <div class="pref-row">
             <div class="pref-row-label">
-              <Network :size="13" :stroke-width="2"/>
+              <Network :size="iconSizeSm" :stroke-width="2"/>
               <span>MCP 默认模式</span>
             </div>
             <NSelect
@@ -175,9 +180,9 @@ function handleSaveWithValidation() {
         </div>
       </div>
 
-      <!-- MCP 工具选择 -->
+      <!-- MCP 服务选择 -->
       <div v-if="mcpServerList.length > 0" class="field">
-        <label class="label">MCP 工具</label>
+        <label class="label">MCP 服务</label>
         <div class="mcp-checkbox-list">
           <NCheckboxGroup v-model:value="formEnabledMcpServerIds">
             <NCheckbox
@@ -218,7 +223,7 @@ function handleSaveWithValidation() {
       <div class="footer">
         <NButton v-if="!isCreateMode" type="error" ghost size="small" @click="handleDelete">
           <template #icon>
-            <Trash2 :size="13"/>
+            <Trash2 :size="iconSizeSm"/>
           </template>
           删除
         </NButton>

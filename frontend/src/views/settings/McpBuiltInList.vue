@@ -164,7 +164,7 @@ function handleToolToggle(server: McpServer, tool: McpToolItem) {
 }
 
 .detail-value {
-  font-size: 12px;
+  font-size: var(--font-size-small);
   background: var(--bg-hover);
   padding: 2px 8px;
   border-radius: 4px;
@@ -225,7 +225,7 @@ function handleToolToggle(server: McpServer, tool: McpToolItem) {
 }
 
 .tool-meta code {
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   background: var(--bg-secondary);
   padding: 1px 5px;
   border-radius: 3px;
