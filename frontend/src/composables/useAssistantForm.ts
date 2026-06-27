@@ -47,7 +47,7 @@ export function useAssistantForm(
     const formSystemPrompt = ref('')
     const formProviderId = ref<number | null>(null)
     const formModelId = ref('')
-    const formMemoryRounds = ref(20)
+    const formMemoryRounds = ref(10)
     const formEnabled = ref<number>(1)
 
     const formModelParams = reactive<Record<string, number | null>>(
@@ -96,7 +96,7 @@ export function useAssistantForm(
         formSystemPrompt.value = ''
         formProviderId.value = null
         formModelId.value = ''
-        formMemoryRounds.value = 20
+        formMemoryRounds.value = 10
         formEnabled.value = 1
         for (const def of MODEL_PARAM_DEFS) {
             formModelParams[def.key] = null
