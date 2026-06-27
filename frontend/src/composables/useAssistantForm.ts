@@ -8,7 +8,8 @@ import {computed, reactive, ref, watch} from 'vue'
 import {useDialog} from 'naive-ui'
 import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
-import {fetchAssistantDetail, updateAssistantAvatar} from '@/api/assistant'
+import type {McpServerItem} from '@/api/assistant'
+import {fetchAssistantDetail, fetchEnabledMcpServers, updateAssistantAvatar} from '@/api/assistant'
 import type {AssistantDetailVO} from '@/types/assistant'
 import {fetchConfigs} from '@/api/settings'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
@@ -51,6 +52,10 @@ export function useAssistantForm(
     const formMemoryRounds = ref(10)
     const formEnabled = ref<number>(1)
 
+    // ========== MCP 工具选择 ==========
+    const formEnabledMcpServerIds = ref<number[]>([])
+    const mcpServerList = ref<McpServerItem[]>([])
+
     const formModelParams = reactive<Record<string, any>>(
         Object.fromEntries(MODEL_PARAM_DEFS.map(d => [d.key, d.componentType === 'select' ? 'auto' : null]))
     )
@@ -71,7 +76,10 @@ export function useAssistantForm(
         if (chatStore.modelSelectors.length === 0) {
             await chatStore.loadModels()
         }
-        await loadDetail(id)
+        await Promise.all([
+            loadDetail(id),
+            loadMcpServerList(),
+        ])
         show.value = true
     })
 
@@ -81,6 +89,8 @@ export function useAssistantForm(
             if (chatStore.modelSelectors.length === 0) {
                 await chatStore.loadModels()
             }
+            // 加载已启用的 MCP 列表
+            await loadMcpServerList()
             // 检测全局默认模型并自动选中
             await tryAutoSelectDefaultModel()
             show.value = true
@@ -101,12 +111,23 @@ export function useAssistantForm(
         formModelId.value = ''
         formMemoryRounds.value = 10
         formEnabled.value = 1
+        formEnabledMcpServerIds.value = []
         for (const def of MODEL_PARAM_DEFS) {
             formModelParams[def.key] = def.componentType === 'select' ? 'auto' : null
         }
         pendingAvatarFile.value = null
         for (const key of Object.keys(fieldErrors)) {
             delete fieldErrors[key]
+        }
+    }
+
+    /** 加载已启用的 MCP 服务列表 */
+    async function loadMcpServerList() {
+        try {
+            mcpServerList.value = await fetchEnabledMcpServers()
+        } catch (err) {
+            console.error('加载 MCP 列表失败:', err)
+            mcpServerList.value = []
         }
     }
 
@@ -123,6 +144,7 @@ export function useAssistantForm(
             formModelId.value = d.modelId
             formMemoryRounds.value = d.memoryRounds ?? 20
             formEnabled.value = d.enabled === true || d.enabled === 1 ? 1 : 0
+            formEnabledMcpServerIds.value = d.boundMcpServerIds ?? []
             const mp = d.modelParams || {}
             for (const def of MODEL_PARAM_DEFS) {
                 formModelParams[def.key] = (mp as any)[def.key] ?? null
@@ -253,6 +275,7 @@ export function useAssistantForm(
                     modelId: formModelId.value,
                     memoryRounds: formMemoryRounds.value,
                     modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
+                    enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
                 })
 
                 if (created) {
@@ -308,6 +331,7 @@ export function useAssistantForm(
                 memoryRounds: formMemoryRounds.value,
                 enabled: formEnabled.value,
                 modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
+                enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
             })
             showToast('保存成功')
             close()
@@ -373,6 +397,10 @@ export function useAssistantForm(
         formMemoryRounds,
         formEnabled,
         formModelParams,
+
+        // MCP 工具选择
+        formEnabledMcpServerIds,
+        mcpServerList,
 
         // 方法
         clearFieldError,

@@ -8,7 +8,7 @@
   - 保存到后端
 -->
 <script setup lang="ts">
-import {NButton, NInputNumber, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
+import {NButton, NCheckbox, NCheckboxGroup, NInputNumber, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
 import {Trash2} from '@lucide/vue'
 import {useAssistantForm} from '@/composables/useAssistantForm'
 import {TIP_THEME_OVERRIDES} from '@/constants/theme'
@@ -33,6 +33,7 @@ const {
   formName, formAvatar, formDescription, formSystemPrompt,
   formMemoryRounds, formEnabled,
   formModelParams, showPicker, originalAvatar,
+  formEnabledMcpServerIds, mcpServerList,
   clearFieldError, onModelSelect, onAvatarPicked,
   handleSave, handleDelete, close,
   groupedModelOptions,
@@ -149,6 +150,22 @@ function handleSaveWithValidation() {
               @update:value="(v: boolean) => formEnabled = v ? 1 : 0"
           />
           <span class="switch-label">{{ formEnabled === 1 ? '启用' : '禁用' }}</span>
+        </div>
+      </div>
+
+      <!-- MCP 工具选择 -->
+      <div v-if="mcpServerList.length > 0" class="field">
+        <label class="label">MCP 工具</label>
+        <div class="mcp-checkbox-list">
+          <NCheckboxGroup v-model:value="formEnabledMcpServerIds">
+            <NCheckbox
+                v-for="mcp in mcpServerList"
+                :key="mcp.id"
+                :value="mcp.id"
+                :label="mcp.name"
+                class="mcp-checkbox-item"
+            />
+          </NCheckboxGroup>
         </div>
       </div>
     </div>

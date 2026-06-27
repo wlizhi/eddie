@@ -7,6 +7,9 @@
  *   POST   /api/assistant          → 新建助手
  *   PUT    /api/assistant/{id}     → 更新助手
  *   DELETE /api/assistant/{id}     → 删除助手
+ *
+ * MCP Server API：
+ *   GET    /api/mcp-servers?enabled=true  → 获取所有已启用 MCP 服务
  */
 import type {ApiResult} from '@/types/chat'
 import type {AssistantCreateRequest, AssistantDetailVO, AssistantUpdateRequest, AssistantVO,} from '@/types/assistant'
@@ -110,4 +113,29 @@ export async function deleteAssistant(id: number): Promise<void> {
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
     const json: ApiResult<void> = await res.json()
     if (json.code !== 200) throw new Error(json.message || '删除助手失败')
+}
+
+// ==================== MCP Server API ====================
+
+const MCP_BASE = '/api/mcp-servers'
+
+/**
+ * MCP 服务器摘要（前端展示用）
+ */
+export interface McpServerItem {
+    id: number
+    name: string
+}
+
+/**
+ * 获取所有已启用的 MCP 服务列表
+ *
+ * GET /api/mcp-servers?enabled=true
+ */
+export async function fetchEnabledMcpServers(): Promise<McpServerItem[]> {
+    const res = await fetch(`${MCP_BASE}?enabled=true`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<McpServerItem[]> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '获取 MCP 列表失败')
+    return json.data
 }

@@ -52,6 +52,8 @@ export interface AssistantDetailVO extends Omit<AssistantVO, 'enabled'> {
     modelParams: ModelParams | null
     /** 注意：后端详情接口返回 boolean（true/false），列表接口返回 number（1/0） */
     enabled: number | boolean
+    /** 已绑定的 MCP Server ID 列表（回显用） */
+    boundMcpServerIds: number[]
 }
 
 /**
@@ -66,6 +68,8 @@ export interface AssistantCreateRequest {
     modelId: string
     modelParams?: ModelParams
     memoryRounds?: number
+    /** 启用的 MCP Server ID 列表 */
+    enabledMcpServerIds?: number[]
 }
 
 /**
@@ -82,4 +86,6 @@ export interface AssistantUpdateRequest {
     memoryRounds?: number
     enabled?: number
     sortOrder?: number
+    /** 启用的 MCP Server ID 列表（传入后全量替换） */
+    enabledMcpServerIds?: number[]
 }
