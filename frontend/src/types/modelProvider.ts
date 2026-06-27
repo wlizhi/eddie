@@ -38,6 +38,8 @@ export interface ModelItem {
     currency?: string
     inputPrice?: number
     outputPrice?: number
+    cacheInputPrice?: number
+    cacheWriteInputPrice?: number
 }
 
 /**

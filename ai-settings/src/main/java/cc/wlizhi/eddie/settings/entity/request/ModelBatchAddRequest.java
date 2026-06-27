@@ -28,5 +28,7 @@ public class ModelBatchAddRequest {
         private String currency;
         private Double inputPrice;
         private Double outputPrice;
+        private Double cacheInputPrice;
+        private Double cacheWriteInputPrice;
     }
 }

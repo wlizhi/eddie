@@ -154,6 +154,8 @@ async function saveModelSettings(payload: {
   customCurrency: string
   inputPrice: number
   outputPrice: number
+  cacheInputPrice?: number
+  cacheWriteInputPrice?: number
 }) {
   if (!activeProvider.value || !editingModel.value) return
 
@@ -169,6 +171,8 @@ async function saveModelSettings(payload: {
       currency: finalCurrency,
       inputPrice: payload.inputPrice,
       outputPrice: payload.outputPrice,
+      cacheInputPrice: payload.cacheInputPrice,
+      cacheWriteInputPrice: payload.cacheWriteInputPrice,
     })
 
     // 更新本地数据
@@ -181,6 +185,8 @@ async function saveModelSettings(payload: {
           currency: finalCurrency,
           inputPrice: payload.inputPrice,
           outputPrice: payload.outputPrice,
+          cacheInputPrice: payload.cacheInputPrice,
+          cacheWriteInputPrice: payload.cacheWriteInputPrice,
         }
       }
       return m

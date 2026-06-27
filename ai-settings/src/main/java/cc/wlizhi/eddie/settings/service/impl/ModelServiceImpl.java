@@ -65,6 +65,12 @@ public class ModelServiceImpl implements ModelService {
                 if (request.getOutputPrice() != null) {
                     model.put("output_price", request.getOutputPrice());
                 }
+                if (request.getCacheInputPrice() != null) {
+                    model.put("cache_input_price", request.getCacheInputPrice());
+                }
+                if (request.getCacheWriteInputPrice() != null) {
+                    model.put("cache_write_input_price", request.getCacheWriteInputPrice());
+                }
                 found = true;
                 break;
             }
@@ -113,6 +119,9 @@ public class ModelServiceImpl implements ModelService {
             if (item.getCurrency() != null) newModel.put("currency", item.getCurrency());
             if (item.getInputPrice() != null) newModel.put("input_price", item.getInputPrice());
             if (item.getOutputPrice() != null) newModel.put("output_price", item.getOutputPrice());
+            if (item.getCacheInputPrice() != null) newModel.put("cache_input_price", item.getCacheInputPrice());
+            if (item.getCacheWriteInputPrice() != null)
+                newModel.put("cache_write_input_price", item.getCacheWriteInputPrice());
 
             models.add(newModel);
         }

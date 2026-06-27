@@ -43,4 +43,14 @@ public class ModelUpdateRequest {
      * 输出价格，每百万 token（不传则保持原有值）
      */
     private Double outputPrice;
+
+    /**
+     * 缓存命中价格，每百万 token（不传则保持原有值）
+     */
+    private Double cacheInputPrice;
+
+    /**
+     * 缓存写入价格，每百万 token（不传则保持原有值）
+     */
+    private Double cacheWriteInputPrice;
 }

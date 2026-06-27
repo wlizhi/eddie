@@ -8,7 +8,7 @@
   - 保存到后端
 -->
 <script setup lang="ts">
-import {NButton, NModal, NSelect, NTooltip} from 'naive-ui'
+import {NButton, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
 import {Trash2} from '@lucide/vue'
 import {useAssistantForm} from '@/composables/useAssistantForm'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
@@ -142,13 +142,16 @@ const tipTheme = TIP_THEME_OVERRIDES
         </div>
       </div>
 
-      <!-- 启用/禁用（放最后） -->
+      <!-- 启用/禁用开关 -->
       <div class="field">
         <label class="label">状态</label>
-        <label class="toggle-row">
-          <input v-model.number="formEnabled" type="checkbox" :true-value="1" :false-value="0" class="toggle-input"/>
-          <span class="toggle-label">{{ formEnabled === 1 ? '启用' : '禁用' }}</span>
-        </label>
+        <div class="switch-row">
+          <NSwitch
+              :value="formEnabled === 1"
+              @update:value="(v: boolean) => formEnabled = v ? 1 : 0"
+          />
+          <span class="switch-label">{{ formEnabled === 1 ? '启用' : '禁用' }}</span>
+        </div>
       </div>
     </div>
 

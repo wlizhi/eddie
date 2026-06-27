@@ -99,6 +99,34 @@
           <span class="price-unit">{{ displayCurrency }}/百万Token</span>
         </div>
       </div>
+      <div class="modal-field">
+        <span class="field-label">缓存命中价格</span>
+        <div class="price-row">
+          <input
+              v-model.number="form.cacheInputPrice"
+              class="field-input"
+              type="number"
+              min="0"
+              step="0.001"
+              placeholder="留空则使用输入价格"
+          />
+          <span class="price-unit">{{ displayCurrency }}/百万Token</span>
+        </div>
+      </div>
+      <div class="modal-field">
+        <span class="field-label">缓存写入价格</span>
+        <div class="price-row">
+          <input
+              v-model.number="form.cacheWriteInputPrice"
+              class="field-input"
+              type="number"
+              min="0"
+              step="0.001"
+              placeholder="留空则使用输入价格"
+          />
+          <span class="price-unit">{{ displayCurrency }}/百万Token</span>
+        </div>
+      </div>
     </div>
 
     <template #footer>
@@ -131,6 +159,8 @@ const emit = defineEmits<{
     customCurrency: string
     inputPrice: number
     outputPrice: number
+    cacheInputPrice?: number
+    cacheWriteInputPrice?: number
   }]
 }>()
 
@@ -142,6 +172,8 @@ const form = reactive({
   customCurrency: '¥',
   inputPrice: 0,
   outputPrice: 0,
+  cacheInputPrice: undefined as number | undefined,
+  cacheWriteInputPrice: undefined as number | undefined,
 })
 
 /** 当前显示的币种符号 */
@@ -163,6 +195,8 @@ watch(() => props.model, (m) => {
   }
   form.inputPrice = m.inputPrice ?? 0
   form.outputPrice = m.outputPrice ?? 0
+  form.cacheInputPrice = m.cacheInputPrice ?? undefined
+  form.cacheWriteInputPrice = m.cacheWriteInputPrice ?? undefined
 }, {immediate: true})
 
 function toggle(code: string) {
@@ -178,6 +212,8 @@ function handleSave() {
     customCurrency: form.customCurrency,
     inputPrice: form.inputPrice,
     outputPrice: form.outputPrice,
+    cacheInputPrice: form.cacheInputPrice,
+    cacheWriteInputPrice: form.cacheWriteInputPrice,
   })
 }
 </script>

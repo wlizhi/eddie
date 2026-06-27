@@ -72,6 +72,9 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
         if (assistant == null) {
             throw new BadRequestException("assistantId=" + assistantId + " 不存在的助手");
         }
+        if (Objects.equals(assistant.getEnabled(), 0)) {
+            throw new BadRequestException(assistant.getName() + " 已禁用，请启用后重试");
+        }
         ctx.setAssistant(assistant);
         ctx.setSession(session);
 
@@ -100,6 +103,10 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
                             Object cacheInputPrice = m.get("cache_input_price");
                             if (cacheInputPrice instanceof Number)
                                 pricing.setCacheInputPrice(((Number) cacheInputPrice).doubleValue());
+                            // cache_write_input_price 为可选字段
+                            Object cacheWriteInputPrice = m.get("cache_write_input_price");
+                            if (cacheWriteInputPrice instanceof Number)
+                                pricing.setCacheWriteInputPrice(((Number) cacheWriteInputPrice).doubleValue());
                             Object currency = m.get("currency");
                             if (currency instanceof String) pricing.setCurrency((String) currency);
                             ctx.setPricing(pricing);

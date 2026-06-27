@@ -126,20 +126,13 @@
 }
 
 /* ===== 启用/禁用开关 ===== */
-.toggle-row {
+.switch-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    cursor: pointer;
 }
 
-.toggle-input {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.toggle-label {
+.switch-label {
     font-size: var(--font-size-base);
     color: var(--text-primary);
 }

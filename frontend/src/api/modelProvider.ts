@@ -84,6 +84,8 @@ export async function updateModel(providerId: number, payload: {
     currency?: string
     inputPrice?: number
     outputPrice?: number
+    cacheInputPrice?: number
+    cacheWriteInputPrice?: number
 }): Promise<void> {
     const res = await fetch(`${BASE}/${providerId}/model`, {
         method: 'PUT',
@@ -108,6 +110,8 @@ export async function batchAddModels(providerId: number, models: {
     currency?: string
     inputPrice?: number
     outputPrice?: number
+    cacheInputPrice?: number
+    cacheWriteInputPrice?: number
 }[]): Promise<void> {
     const res = await fetch(`${BASE}/${providerId}/models/batch-add`, {
         method: 'POST',
