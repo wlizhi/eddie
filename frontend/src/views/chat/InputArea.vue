@@ -23,7 +23,7 @@
 import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {NSelect} from 'naive-ui'
-import {Send, Square} from '@lucide/vue'
+import {Plus, Send, Square} from '@lucide/vue'
 
 const chatStore = useChatStore()
 
@@ -178,6 +178,9 @@ defineExpose({focusInput})
 
       <!-- 底部工具栏（flex 列布局，固定在底部） -->
       <div class="input-toolbar">
+        <button class="new-chat-btn" title="新对话" @click="chatStore.newConversation()">
+          <Plus :size="14" :stroke-width="2"/>
+        </button>
         <NSelect
             :value="selectedModelKey"
             :options="groupedOptions"

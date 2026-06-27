@@ -234,3 +234,24 @@
     }
 }
 
+/* ===== 新对话按钮（模型选择器左侧） ===== */
+.new-chat-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8em;
+    height: 1.8em;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-quaternary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.new-chat-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+

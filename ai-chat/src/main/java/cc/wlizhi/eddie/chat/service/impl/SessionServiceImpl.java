@@ -207,11 +207,11 @@ public class SessionServiceImpl implements SessionService {
      */
     private String callModel(JsonNode node, String userMsg, String assistantMsg) {
         Long providerId = node.get("providerId") != null ? node.get("providerId").asLong() : null;
-        String modelCode = node.get("modelCode") != null ? node.get("modelCode").asText() : null;
-        if (providerId == null || modelCode == null) {
+        String modelId = node.get("modelId") != null ? node.get("modelId").asText() : null;
+        if (providerId == null || modelId == null) {
             return null;
         }
-        return callModel(providerId, modelCode, userMsg, assistantMsg);
+        return callModel(providerId, modelId, userMsg, assistantMsg);
     }
 
     /**

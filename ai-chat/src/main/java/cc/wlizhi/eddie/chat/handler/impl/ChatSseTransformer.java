@@ -72,7 +72,9 @@ public class ChatSseTransformer {
         // 主 SSE 流：thinking + answer
         Flux<ServerSentEvent<String>> mainSse = responseFlux
                 .concatMap(response -> {
+                    // 思考内容事件
                     ServerSentEvent<String> thinkEvent = buildThinkEvent(response, ctx);
+                    // 回复内容事件
                     ServerSentEvent<String> answerEvent = buildAnswerEvent(response, ctx);
                     return Flux.fromIterable(
                             Stream.of(thinkEvent, answerEvent)
@@ -83,6 +85,7 @@ public class ChatSseTransformer {
                 .concatWith(
                         Mono.fromSupplier(() -> {
                             long endTime = System.currentTimeMillis();
+                            // 元数据事件
                             return buildMetadataEvent(ctx, startTime, endTime);
                         })
                 );
