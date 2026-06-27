@@ -53,24 +53,12 @@ public class ModelServiceImpl implements ModelService {
                 if (request.getName() != null) {
                     model.put("name", request.getName());
                 }
-                if (request.getCapabilities() != null) {
-                    model.put("capabilities", request.getCapabilities());
-                }
-                if (request.getCurrency() != null) {
-                    model.put("currency", request.getCurrency());
-                }
-                if (request.getInputPrice() != null) {
-                    model.put("input_price", request.getInputPrice());
-                }
-                if (request.getOutputPrice() != null) {
-                    model.put("output_price", request.getOutputPrice());
-                }
-                if (request.getCacheInputPrice() != null) {
-                    model.put("cache_input_price", request.getCacheInputPrice());
-                }
-                if (request.getCacheWriteInputPrice() != null) {
-                    model.put("cache_write_input_price", request.getCacheWriteInputPrice());
-                }
+                model.put("capabilities", request.getCapabilities() == null ? List.of() : request.getCapabilities());
+                model.put("currency", request.getCurrency() == null ? "" : request.getCurrency());
+                model.put("input_price", request.getInputPrice());
+                model.put("output_price", request.getOutputPrice());
+                model.put("cache_input_price", request.getCacheInputPrice());
+                model.put("cache_write_input_price", request.getCacheWriteInputPrice());
                 found = true;
                 break;
             }

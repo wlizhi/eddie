@@ -26,6 +26,7 @@
           @remove-model="removeModel"
           @open-settings="openModelSettings"
           @delete-provider="handleDeleteProvider"
+          @save="saveProvider"
       />
 
       <!-- 未选中状态 -->
@@ -65,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref, watch} from 'vue'
+import {computed, onMounted, reactive, ref} from 'vue'
 import {useDialog} from 'naive-ui'
 import {Cpu} from '@lucide/vue'
 import {
@@ -207,14 +208,7 @@ function selectProvider(p: ModelProvider) {
   editForm.apiKey = p.apiKey
 }
 
-/** 监听 editForm 变化，自动保存 */
-let saveTimer: ReturnType<typeof setTimeout> | null = null
-watch([() => editForm.name, () => editForm.baseUrl, () => editForm.apiKey], () => {
-  if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => saveProvider(), 800)
-})
-
-/** 保存当前服务商修改 */
+/** 保存当前服务商修改（输入框失焦时触发） */
 async function saveProvider() {
   if (!activeProvider.value) return
   try {

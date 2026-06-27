@@ -15,6 +15,7 @@
             :value="name"
             :disabled="provider.builtIn === 1"
             @update:value="$emit('update:name', $event)"
+            @blur="$emit('save')"
         />
       </div>
       <div class="prop-row">
@@ -22,6 +23,7 @@
         <n-input
             :value="baseUrl"
             @update:value="$emit('update:baseUrl', $event)"
+            @blur="$emit('save')"
         />
       </div>
       <div class="prop-row">
@@ -30,6 +32,7 @@
             :value="apiKey"
             type="password"
             @update:value="$emit('update:apiKey', $event)"
+            @blur="$emit('save')"
         />
       </div>
       <div class="delete-provider-row">
@@ -124,6 +127,7 @@ defineEmits<{
   'update:name': [v: string]
   'update:baseUrl': [v: string]
   'update:apiKey': [v: string]
+  'save': []
   'fetch-models': []
   'remove-model': [code: string]
   'open-settings': [m: ModelItem]
