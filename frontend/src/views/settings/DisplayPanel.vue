@@ -86,14 +86,13 @@
           <span class="setting-label">字体类型</span>
           <span class="setting-hint">选择页面使用的字体</span>
         </div>
-        <select v-model="displaySettings.fontFamily" class="font-select">
-          <option
-              v-for="opt in fontOptions"
-              :key="opt.value"
-              :value="opt.value"
-          >{{ opt.label }}
-          </option>
-        </select>
+        <n-select
+            v-model:value="displaySettings.fontFamily"
+            :options="fontOptions"
+            :consistent-menu-width="false"
+            class="font-family-select"
+            placeholder="选择字体"
+        />
       </div>
     </div>
 
@@ -236,7 +235,7 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref, watch} from 'vue'
-import {NInputNumber, NModal, NSwitch} from 'naive-ui'
+import {NInputNumber, NModal, NSelect, NSwitch} from 'naive-ui'
 import {
   applyDisplay,
   clampFontSize,

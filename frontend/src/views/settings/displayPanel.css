@@ -143,24 +143,6 @@
     user-select: none;
 }
 
-/* 字体类型下拉 */
-.font-select {
-    padding: 6px 12px;
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    background: var(--bg-primary);
-    font-size: var(--font-size-base);
-    color: var(--text-primary);
-    outline: none;
-    cursor: pointer;
-    font-family: inherit;
-    min-width: 160px;
-}
-
-.font-select:focus {
-    border-color: var(--border-focus);
-}
-
 /* ===== 主题卡片选择器 ===== */
 .theme-selector {
     display: flex;
@@ -275,6 +257,15 @@
 .profile-nickname-input::placeholder {
     color: var(--text-tertiary);
     font-size: var(--font-size-small);
+}
+
+/* ===== 字体类型选择框 ===== */
+.font-family-select {
+    max-width: 60%;
+}
+
+.font-family-select .n-base-select-menu {
+    min-width: max-content;
 }
 
 

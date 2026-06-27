@@ -104,7 +104,7 @@ public class AssistantServiceImpl implements AssistantService {
         entity.setDescription(request.getDescription() != null ? request.getDescription() : "");
         entity.setSystemPrompt(request.getSystemPrompt() != null ? request.getSystemPrompt() : "");
         entity.setProviderId(request.getProviderId());
-        entity.setModelId(request.getModelId());
+        entity.setModelId(request.getModelId() == null ? "" : request.getModelId());
         entity.setModelParams(serializeModelParams(request.getModelParams()));
         entity.setMemoryRounds(request.getMemoryRounds() != null ? request.getMemoryRounds() : 20);
         entity.setEnabled(1);

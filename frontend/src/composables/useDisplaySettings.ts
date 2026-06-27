@@ -13,10 +13,20 @@ interface FontOption {
 
 export const FONT_OPTIONS: FontOption[] = [
     {label: '系统默认', value: 'system'},
-    {label: '思源黑体', value: 'noto'},
+    {label: '思源黑体 (Noto Sans SC)', value: 'noto'},
+    {label: '思源宋体 (Noto Serif SC)', value: 'noto-serif'},
     {label: '微软雅黑', value: 'yahei'},
     {label: '宋体', value: 'songti'},
+    {label: '黑体', value: 'heiti'},
+    {label: '仿宋', value: 'fangsong'},
+    {label: '楷体', value: 'kaiti'},
     {label: '等线', value: 'dengxian'},
+    {label: '苹方 (PingFang SC)', value: 'pingfang'},
+    {label: 'HarmonyOS Sans', value: 'harmony'},
+    {label: 'MiSans', value: 'misans'},
+    {label: 'OPPO Sans', value: 'opposans'},
+    {label: '阿里巴巴普惠体', value: 'alibaba'},
+    {label: '霞鹜文楷 (LXGW WenKai)', value: 'lxgw'},
 ]
 
 /** 字体大小等级对应的基准 px（差异拉大，让切换有感知） */
@@ -41,9 +51,19 @@ export function clampFontSize(px: number): number {
 const FONT_FAMILY_MAP: Record<string, string> = {
     system: '-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans SC\', sans-serif',
     noto: '\'Noto Sans SC\', \'PingFang SC\', \'Microsoft YaHei\', sans-serif',
+    'noto-serif': '\'Noto Serif SC\', \'Source Han Serif SC\', serif',
     yahei: '\'Microsoft YaHei\', \'PingFang SC\', \'Noto Sans SC\', sans-serif',
     songti: '\'SimSun\', \'Noto Serif SC\', serif',
+    heiti: '\'SimHei\', \'Microsoft YaHei\', \'Noto Sans SC\', sans-serif',
+    fangsong: '\'FangSong\', \'STFangsong\', serif',
+    kaiti: '\'KaiTi\', \'STKaiti\', \'Noto Serif SC\', serif',
     dengxian: '\'DengXian\', \'PingFang SC\', \'Noto Sans SC\', sans-serif',
+    pingfang: '\'PingFang SC\', \'Microsoft YaHei\', \'Noto Sans SC\', sans-serif',
+    harmony: '\'HarmonyOS Sans\', \'PingFang SC\', \'Microsoft YaHei\', sans-serif',
+    misans: '\'MiSans\', \'PingFang SC\', \'Microsoft YaHei\', sans-serif',
+    opposans: '\'OPPO Sans\', \'PingFang SC\', \'Microsoft YaHei\', sans-serif',
+    alibaba: '\'Alibaba PuHuiTi\', \'PingFang SC\', \'Microsoft YaHei\', sans-serif',
+    lxgw: '\'LXGW WenKai\', \'KaiTi\', \'Noto Serif SC\', serif',
 }
 
 /** 配色方案定义：每个方案的亮/深色主题值 */

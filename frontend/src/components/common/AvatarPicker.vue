@@ -20,7 +20,7 @@ function isEmoji(s: string): boolean {
   if (s.length > 2) return false
   const cp = s.codePointAt(0) ?? 0
   return (cp >= 0x1F300 && cp <= 0x1F9FF) || (cp >= 0x2600 && cp <= 0x27BF)
-      || (cp >= 0xFE00 && cp <= 0xFE0F) || cp >= 0x200D
+      || (cp >= 0xFE00 && cp <= 0xFE0F) || cp === 0x200D
       || (cp >= 0x1FA00 && cp <= 0x1FA6F) || (cp >= 0x1F600 && cp <= 0x1F64F)
       || (cp >= 0x2702 && cp <= 0x27B0)
 }
