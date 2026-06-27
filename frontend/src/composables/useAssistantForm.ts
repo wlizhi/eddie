@@ -176,7 +176,7 @@ export function useAssistantForm(
             if (!raw || raw === '{}') return
 
             const val = JSON.parse(raw)
-            const {providerId, modelId} = val
+            const {providerId, modelId, modelParams} = val
             if (!providerId || !modelId) return
 
             const compositeKey = `${providerId}${MODEL_KEY_SEPARATOR}${modelId}`
@@ -185,6 +185,17 @@ export function useAssistantForm(
                     if (child.value === compositeKey) {
                         formProviderId.value = providerId
                         formModelId.value = modelId
+
+                        // 自动填充默认模型的参数
+                        if (modelParams && typeof modelParams === 'object') {
+                            for (const def of MODEL_PARAM_DEFS) {
+                                const v = modelParams[def.key]
+                                if (v !== undefined && v !== null) {
+                                    formModelParams[def.key] = v
+                                }
+                            }
+                        }
+
                         return
                     }
                 }

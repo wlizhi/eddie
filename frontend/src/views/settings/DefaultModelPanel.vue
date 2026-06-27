@@ -61,7 +61,7 @@ const modelSlots: ModelSlot[] = [
   {
     key: 'DEFAULT_MODEL',
     label: '默认模型',
-    hint: '创建助手时，默认选择的模型。建议选择综合能力强的模型。',
+    hint: '创建助手时，默认选中此模型并填充参数。建议选择综合能力强的模型。',
     icon: Zap,
     iconClass: '',
   },
