@@ -11,7 +11,8 @@
         </NTooltip>
       </span>
       <n-input-number
-          :value="localParams[def.key]"
+          v-if="def.componentType !== 'select'"
+          :value="localParams[def.key] as number | null"
           :step="def.step"
           :min="def.min"
           :max="def.max"
@@ -21,6 +22,14 @@
           @update:value="(v: number | null) => onValueChange(def, v)"
           @blur="onBlur(def)"
       />
+      <NSelect
+          v-else
+          :value="localParams[def.key] as string"
+          :options="def.options"
+          :consistent-menu-width="false"
+          class="mps-param-input mps-select-input"
+          @update:value="(v: string) => onSelectChange(def, v)"
+      />
       <span v-if="errorMessages[def.key]" class="mps-error-msg">{{ errorMessages[def.key] }}</span>
     </div>
   </div>
@@ -28,7 +37,7 @@
 
 <script setup lang="ts">
 import {computed, reactive, watch} from 'vue'
-import {NInputNumber, NTooltip} from 'naive-ui'
+import {NInputNumber, NSelect, NTooltip} from 'naive-ui'
 import type {ModelParamDef} from '@/constants/modelParams'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 
@@ -55,19 +64,19 @@ const TIP_THEME = {
  *   const valid = paramsRef.value?.validate() ?? true
  */
 const props = withDefaults(defineProps<{
-  params: Record<string, number | null>
+  params: Record<string, any>
   paramDefs?: ModelParamDef[]
 }>(), {
   paramDefs: () => MODEL_PARAM_DEFS,
 })
 
 const emit = defineEmits<{
-  'update:params': [value: Record<string, number | null>]
+  'update:params': [value: Record<string, any>]
   error: [hasError: boolean]
 }>()
 
 /** 内部参数副本，避免直接修改 props */
-const localParams = reactive<Record<string, number | null>>({...props.params})
+const localParams = reactive<Record<string, any>>({...props.params})
 
 /** 错误信息：key → 错误文本 */
 const errorMessages = reactive<Record<string, string | null>>({})
@@ -79,9 +88,10 @@ watch(() => props.params, (val) => {
   }
 }, {deep: true})
 
-/** 校验单个参数，返回错误文本或 null */
-function validateOne(def: ModelParamDef, value: number | null): string | null {
-  if (value === null) return null // null = 使用默认值，不校验
+/** 校验单个参数，返回错误文本或 null（仅对 number 类型生效） */
+function validateOne(def: ModelParamDef, value: any): string | null {
+  if (def.componentType === 'select') return null
+  if (value === null) return null
   if (def.min !== undefined && value < def.min) {
     return `最小值 ${def.min}`
   }
@@ -91,12 +101,12 @@ function validateOne(def: ModelParamDef, value: number | null): string | null {
   return null
 }
 
-/** 获取 n-input-number 的状态 */
+/** 获取输入框的状态 */
 function getFieldStatus(key: string): 'error' | 'default' {
   return errorMessages[key] ? 'error' : 'default'
 }
 
-/** 值变化时同步并校验 */
+/** 数字输入值变化时同步并校验 */
 function onValueChange(def: ModelParamDef, v: number | null) {
   localParams[def.key] = v
   errorMessages[def.key] = validateOne(def, v)
@@ -104,8 +114,17 @@ function onValueChange(def: ModelParamDef, v: number | null) {
   emitParams()
 }
 
-/** 失焦时重新校验（兜底） */
+/** 下拉选择变化时同步 */
+function onSelectChange(def: ModelParamDef, v: string) {
+  localParams[def.key] = v
+  errorMessages[def.key] = null
+  emitErrorState()
+  emitParams()
+}
+
+/** 失焦时重新校验（兜底，仅对 number 类型生效） */
 function onBlur(def: ModelParamDef) {
+  if (def.componentType === 'select') return
   const v = localParams[def.key]
   const msg = validateOne(def, v)
   if (msg !== errorMessages[def.key]) {
@@ -163,6 +182,11 @@ defineExpose({validate, hasErrors})
 
 .mps-param-input {
   width: 100%;
+}
+
+.mps-select-input :deep(.n-base-selection) {
+  min-height: 34px;
+  height: 34px;
 }
 
 .mps-hint-icon {

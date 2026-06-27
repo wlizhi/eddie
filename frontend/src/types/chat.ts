@@ -35,6 +35,14 @@ export interface ChatRequest {
     providerId: number
     /** 模型 ID，来自 ChatModelItemVO.modelId */
     modelId: string
+    /**
+     * 思考模式：auto / low / medium / high / max / disabled
+     * - auto: 不传递参数，让模型自己决定
+     * - low/medium/high: 对应 reasoning_effort 参数
+     * - max: 最大思考力度（DeepSeek 特有）
+     * - disabled: 禁用思考
+     */
+    thinkingMode?: string
 }
 
 /**

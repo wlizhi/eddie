@@ -20,6 +20,8 @@ export interface ModelParams {
     presencePenalty?: number
     topK?: number
     stop?: string[]
+    /** 默认思考模式：auto / low / medium / high / max / disabled */
+    thinkingMode?: string
     extensions?: Record<string, unknown>
 }
 

@@ -183,6 +183,15 @@
     background: transparent;
 }
 
+.toggle-chip.active {
+    color: var(--accent-default);
+    background: var(--acgent-subtle, rgba(99, 102, 241, 0.08));
+}
+
+.toggle-chip.active:hover {
+    background: var(--accent-bg-hover, rgba(99, 102, 241, 0.12));
+}
+
 /* ===== 发送 / 中断按钮（工具栏最右） ===== */
 .send-btn,
 .stop-btn {

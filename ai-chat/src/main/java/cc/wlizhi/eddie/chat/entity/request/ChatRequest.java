@@ -59,4 +59,16 @@ public class ChatRequest {
      * 勾选的工具必须是助手设置中已启用的工具。
      */
     private List<String> toolNames;
+
+    /**
+     * 思考模式：auto / low / medium / high / max / disabled
+     * <p>
+     * - auto: 不传递参数，让模型自己决定
+     * - low/medium/high: 对应 reasoning_effort 参数
+     * - max: 最大思考力度（DeepSeek 特有）
+     * - disabled: 禁用思考
+     * <p>
+     * 优先级高于助手的 modelParams 中的配置。
+     */
+    private String thinkingMode;
 }

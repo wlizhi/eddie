@@ -52,6 +52,9 @@ export const useChatStore = defineStore('chat', () => {
     /** 会话列表刷新计数器（事件驱动侧边栏同步） */
     const sessionRefreshCounter = ref(0)
 
+    /** 当前思考模式：auto / low / medium / high / max / disabled */
+    const thinkingMode = ref<string>('auto')
+
     /** 是否还有更早的消息可加载 */
     const hasMoreMessages = ref(false)
 
@@ -164,6 +167,7 @@ export const useChatStore = defineStore('chat', () => {
                 message: text.trim(),
                 providerId: currentProviderId.value,
                 modelId: currentModelId.value,
+                thinkingMode: thinkingMode.value !== 'auto' ? thinkingMode.value : undefined,
             },
             signal: abortController.signal,
             onThinking: (chunk) => {
@@ -409,6 +413,7 @@ export const useChatStore = defineStore('chat', () => {
         currentAnswer,
         currentMetadata,
         currentToolExecutions,
+        thinkingMode,
         sessionRefreshCounter,
         hasMoreMessages,
         isLoadingMore,

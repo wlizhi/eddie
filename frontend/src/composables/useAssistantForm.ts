@@ -50,8 +50,8 @@ export function useAssistantForm(
     const formMemoryRounds = ref(10)
     const formEnabled = ref<number>(1)
 
-    const formModelParams = reactive<Record<string, number | null>>(
-        Object.fromEntries(MODEL_PARAM_DEFS.map(d => [d.key, null]))
+    const formModelParams = reactive<Record<string, any>>(
+        Object.fromEntries(MODEL_PARAM_DEFS.map(d => [d.key, d.componentType === 'select' ? 'auto' : null]))
     )
 
     const show = ref(false)
@@ -99,7 +99,7 @@ export function useAssistantForm(
         formMemoryRounds.value = 10
         formEnabled.value = 1
         for (const def of MODEL_PARAM_DEFS) {
-            formModelParams[def.key] = null
+            formModelParams[def.key] = def.componentType === 'select' ? 'auto' : null
         }
         pendingAvatarFile.value = null
         for (const key of Object.keys(fieldErrors)) {
@@ -283,7 +283,7 @@ export function useAssistantForm(
         const modelParams: Record<string, unknown> = {}
         for (const def of MODEL_PARAM_DEFS) {
             const v = formModelParams[def.key]
-            if (v !== null) modelParams[def.key] = v
+            if (v !== null && v !== undefined) modelParams[def.key] = v
         }
         return modelParams
     }

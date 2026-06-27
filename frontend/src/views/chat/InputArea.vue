@@ -22,8 +22,8 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
-import {NSelect} from 'naive-ui'
-import {Plus, Send, Square} from '@lucide/vue'
+import {NPopselect, NSelect} from 'naive-ui'
+import {Brain, Globe, Plus, Send, Square} from '@lucide/vue'
 
 const chatStore = useChatStore()
 
@@ -148,6 +148,22 @@ function onInput(e: Event) {
   emit('update:modelValue', (e.target as HTMLTextAreaElement).value)
 }
 
+/** 思考模式选项（下拉菜单与按钮标签的单一数据源） */
+const thinkingModeOptions = [
+  {label: '自动', value: 'auto'},
+  {label: '低', value: 'low'},
+  {label: '中', value: 'medium'},
+  {label: '高', value: 'high'},
+  {label: '极限', value: 'max'},
+  {label: '禁用', value: 'disabled'},
+]
+
+/** 当前思考模式的显示标签（从 thinkingModeOptions 派生） */
+const thinkingModeLabel = computed(() => {
+  if (chatStore.thinkingMode === 'auto') return '思考'
+  return thinkingModeOptions.find(o => o.value === chatStore.thinkingMode)?.label || '思考'
+})
+
 function focusInput() {
   inputRef.value?.focus()
 }
@@ -192,11 +208,25 @@ defineExpose({focusInput})
             @update:value="onModelSelect"
         />
         <div class="feature-toggles">
+          <NPopselect
+              :value="chatStore.thinkingMode"
+              :options="thinkingModeOptions"
+              size="small"
+              trigger="click"
+              @update:value="(val: string) => chatStore.thinkingMode = val"
+          >
+            <button
+                class="toggle-chip"
+                :class="{active: chatStore.thinkingMode !== 'auto'}"
+                title="思考模式"
+            >
+              <Brain :size="12" :stroke-width="2"/>
+              {{ thinkingModeLabel }}
+            </button>
+          </NPopselect>
           <button class="toggle-chip disabled" title="联网搜索（即将上线）">
-            🌐 联网
-          </button>
-          <button class="toggle-chip disabled" title="深度思考（即将上线）">
-            💡 思考
+            <Globe :size="13" :stroke-width="2"/>
+            联网
           </button>
         </div>
         <button

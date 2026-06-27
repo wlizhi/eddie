@@ -7,12 +7,30 @@ export interface ModelParamDef {
     key: string
     label: string
     tip: string
-    step: number
-    min: number
+    /** 组件类型：number（默认）| select */
+    componentType?: 'number' | 'select'
+    /** select 类型的选项列表 */
+    options?: { label: string; value: string }[]
+    step?: number
+    min?: number
     max?: number
 }
 
 export const MODEL_PARAM_DEFS: ModelParamDef[] = [
+    {
+        key: 'thinkingMode',
+        label: 'Thinking Mode',
+        tip: 'Default reasoning effort level for the assistant. Supported models will reason at this level during conversations.',
+        componentType: 'select',
+        options: [
+            {label: '自动', value: 'auto'},
+            {label: '低', value: 'low'},
+            {label: '中', value: 'medium'},
+            {label: '高', value: 'high'},
+            {label: '极限', value: 'max'},
+            {label: '禁用', value: 'disabled'},
+        ],
+    },
     {
         key: 'temperature',
         label: 'Temperature',

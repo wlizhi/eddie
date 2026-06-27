@@ -133,7 +133,7 @@ function handleSaveWithValidation() {
         <n-input-number v-model:value="formMemoryRounds" :min="1" :max="100" :step="1" style="width: 100px"/>
       </div>
 
-      <!-- 模型参数（通用组件，含校验 + 悬浮说明） -->
+      <!-- 模型参数（含默认思考模式下拉 + 数字参数，自动校验范围） -->
       <div class="field">
         <label class="label">模型参数</label>
         <ModelParamsInput v-model:params="formModelParams" @error="(e: boolean) => paramHasError = e"/>

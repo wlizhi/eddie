@@ -6,18 +6,19 @@ import cc.wlizhi.eddie.chat.service.ChatClientFactory;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Service;
 
 import java.util.Objects;
 
+@Slf4j
 @Order
-@Service
+//@Service
 public class OpenAiChatClientFactory implements ChatClientFactory {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiChatClientFactory.class);
