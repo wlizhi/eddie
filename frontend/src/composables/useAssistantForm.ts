@@ -173,6 +173,10 @@ export function useAssistantForm(
         } else if (value) {
             formAvatar.value = value
             pendingAvatarFile.value = null
+        } else {
+            // 空白输入 → 清空头像，走默认首字显示
+            formAvatar.value = ''
+            pendingAvatarFile.value = null
         }
         showPicker.value = false
     }

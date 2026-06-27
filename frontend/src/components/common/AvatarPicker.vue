@@ -100,6 +100,9 @@ function handleConfirm() {
     emit('confirm', null, file)
   } else if (inputText.value.trim()) {
     emit('confirm', inputText.value.trim(), null)
+  } else {
+    // 空白输入 → 清空头像，走默认首字显示
+    emit('confirm', null, null)
   }
 }
 
@@ -132,8 +135,10 @@ defineExpose({reset})
       <div v-show="activeTab === 'text'" class="text-tab">
         <input v-model="inputText" class="text-input" placeholder="输入文字或 Emoji" maxlength="2"/>
         <div class="preview-row">
-          <span class="preview-label">预览：</span>
-          <span class="preview-char">{{ inputText || '?' }}</span>
+          <div class="preview-circle" :style="{ background: inputText && !isEmoji(inputText) ? '#2563eb' : '#f3f4f6' }">
+            <span v-if="isEmoji(inputText)" class="preview-emoji">{{ inputText || '?' }}</span>
+            <span v-else class="preview-char">{{ inputText || '?' }}</span>
+          </div>
         </div>
       </div>
 
@@ -176,7 +181,7 @@ defineExpose({reset})
 
     <div class="footer">
       <button class="btn btn-cancel" @click="emit('close')">取消</button>
-      <button class="btn btn-confirm" :disabled="!inputText.trim() && !croppedBlob" @click="handleConfirm">确认</button>
+      <button class="btn btn-confirm" @click="handleConfirm">确认</button>
     </div>
   </div>
 </template>

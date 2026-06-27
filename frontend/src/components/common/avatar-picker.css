@@ -42,6 +42,7 @@
     gap: 12px;
     align-items: center;
     padding: 10px 0;
+    width: 100%;
 }
 
 .text-input {
@@ -63,8 +64,10 @@
 
 .preview-row {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 8px;
+    width: 100%;
 }
 
 .preview-label {
@@ -72,9 +75,31 @@
     color: var(--text-tertiary);
 }
 
+.preview-circle {
+    width: 60%;
+    aspect-ratio: 1;
+    max-width: 220px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border-light);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
 .preview-char {
-    font-size: 36px;
+    color: #fff;
+    font-size: 80px;
+    font-weight: 600;
     line-height: 1;
+    user-select: none;
+}
+
+.preview-emoji {
+    font-size: 140px;
+    line-height: 1;
+    user-select: none;
 }
 
 .emoji-tab {

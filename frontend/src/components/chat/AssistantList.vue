@@ -22,8 +22,8 @@ const {dragIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDrop, o
       assistantStore.loadList(true, true)
     })
 
-/** 头像随字体大小自适应（1.5 倍率，适合紧凑侧边栏） */
-const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 1.5))
+/** 头像随字体大小自适应（1.8 倍率，适合紧凑侧边栏） */
+const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 1.8))
 
 const displayedAssistants = computed(() => {
   const items = assistantStore.list
