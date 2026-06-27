@@ -10,6 +10,7 @@ import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
 import {fetchAssistantDetail, updateAssistantAvatar} from '@/api/assistant'
 import type {AssistantDetailVO} from '@/types/assistant'
+import {fetchConfigs} from '@/api/settings'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 import {showToast} from '@/composables/useToast'
 
@@ -80,6 +81,8 @@ export function useAssistantForm(
             if (chatStore.modelSelectors.length === 0) {
                 await chatStore.loadModels()
             }
+            // 检测全局默认模型并自动选中
+            await tryAutoSelectDefaultModel()
             show.value = true
         } else if (props.assistantId === null) {
             show.value = false
@@ -163,6 +166,32 @@ export function useAssistantForm(
         if (!providerId || !modelId) return
         formProviderId.value = providerId
         formModelId.value = modelId
+    }
+
+    /** 新建助手时自动选中全局默认模型（若存在于候选列表中） */
+    async function tryAutoSelectDefaultModel() {
+        try {
+            const configs = await fetchConfigs()
+            const raw = configs['DEFAULT_MODEL']
+            if (!raw || raw === '{}') return
+
+            const val = JSON.parse(raw)
+            const {providerId, modelId} = val
+            if (!providerId || !modelId) return
+
+            const compositeKey = `${providerId}${MODEL_KEY_SEPARATOR}${modelId}`
+            for (const group of groupedModelOptions.value) {
+                for (const child of group.children) {
+                    if (child.value === compositeKey) {
+                        formProviderId.value = providerId
+                        formModelId.value = modelId
+                        return
+                    }
+                }
+            }
+        } catch {
+            // 配置不存在或解析失败，不做处理
+        }
     }
 
     // ========== 头像 ==========

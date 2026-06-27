@@ -136,7 +136,8 @@ function handleSaveWithValidation() {
       <!-- 模型参数（含默认思考模式下拉 + 数字参数，自动校验范围） -->
       <div class="field">
         <label class="label">模型参数</label>
-        <ModelParamsInput v-model:params="formModelParams" @error="(e: boolean) => paramHasError = e"/>
+        <ModelParamsInput :params="formModelParams" @update:params="Object.assign(formModelParams, $event)"
+                          @error="(e: boolean) => paramHasError = e"/>
       </div>
 
       <!-- 启用/禁用开关 -->

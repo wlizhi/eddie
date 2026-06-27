@@ -24,7 +24,8 @@
       <!-- 模型参数（通用组件，含校验 + 悬浮说明） -->
       <div class="config-row params-row">
         <span class="config-label">参数</span>
-        <ModelParamsInput v-model:params="slotParams[slot.key]" @error="(e: boolean) => slotErrors[slot.key] = e"/>
+        <ModelParamsInput :params="slotParams[slot.key]" @update:params="Object.assign(slotParams[slot.key], $event)"
+                          @error="(e: boolean) => slotErrors[slot.key] = e"/>
       </div>
     </div>
 
@@ -60,14 +61,14 @@ const modelSlots: ModelSlot[] = [
   {
     key: 'DEFAULT_MODEL',
     label: '默认模型',
-    hint: '创建助手时，未指定模型则使用此模型。建议选择综合能力强的模型。',
+    hint: '创建助手时，默认选择的模型。建议选择综合能力强的模型。',
     icon: Zap,
     iconClass: '',
   },
   {
     key: 'FAST_MODEL',
     label: '快速模型',
-    hint: '用于生成会话标题、中期记忆压缩、长期记忆摘要等轻量杂活。建议选择便宜快速的模型。',
+    hint: '用于生成会话标题、记忆压缩、等轻量杂活。建议选择便宜快速的模型。',
     icon: Zap,
     iconClass: 'fast-icon',
   },

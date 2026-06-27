@@ -20,7 +20,7 @@ export const MODEL_PARAM_DEFS: ModelParamDef[] = [
     {
         key: 'thinkingMode',
         label: 'Thinking Mode',
-        tip: 'Default reasoning effort level for the assistant. Supported models will reason at this level during conversations.',
+        tip: '模型默认思考深度',
         componentType: 'select',
         options: [
             {label: '自动', value: 'auto'},
