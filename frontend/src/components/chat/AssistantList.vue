@@ -4,6 +4,7 @@ import {ChevronDown, GripVertical, Plus, Settings} from '@lucide/vue'
 import {useAssistantStore} from '@/stores/assistant'
 import {batchSortAssistant} from '@/api/assistant'
 import {useDragSort} from '@/composables/useDragSort'
+import {getEffectiveFontSize} from '@/composables/useDisplaySettings'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AssistantDialog from '../assistant/AssistantDialog.vue'
 
@@ -20,6 +21,9 @@ const {dragIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDrop, o
     useDragSort(() => assistantStore.list, batchSortAssistant, () => {
       assistantStore.loadList(true, true)
     })
+
+/** 头像随字体大小自适应（1.5 倍率，适合紧凑侧边栏） */
+const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 1.5))
 
 const displayedAssistants = computed(() => {
   const items = assistantStore.list
@@ -58,7 +62,7 @@ const displayedAssistants = computed(() => {
           @click="assistantStore.select(assistant.id)"
       >
         <span class="drag-handle"><GripVertical :size="12" :stroke-width="1.5"/></span>
-        <AssistantAvatar :name="assistant.name" :avatar="assistant.avatar" :size="26"/>
+        <AssistantAvatar :name="assistant.name" :avatar="assistant.avatar" :size="avatarSize"/>
         <span class="assistant-name">{{ assistant.name }}</span>
         <button
             class="assistant-settings"
