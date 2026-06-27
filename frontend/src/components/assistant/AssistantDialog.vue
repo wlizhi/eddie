@@ -8,13 +8,15 @@
   - 保存到后端
 -->
 <script setup lang="ts">
-import {NButton, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
+import {NButton, NInputNumber, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
 import {Trash2} from '@lucide/vue'
 import {useAssistantForm} from '@/composables/useAssistantForm'
-import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 import {TIP_THEME_OVERRIDES} from '@/constants/theme'
+import {showToast} from '@/composables/useToast'
+import {ref} from 'vue'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AvatarPicker from '../common/AvatarPicker.vue'
+import ModelParamsInput from '../common/ModelParamsInput.vue'
 
 const props = defineProps<{
   assistantId: number | null
@@ -37,8 +39,17 @@ const {
   selectedModelKey,
 } = useAssistantForm(props, emit)
 
-const modelParamDefs = MODEL_PARAM_DEFS
 const tipTheme = TIP_THEME_OVERRIDES
+const paramHasError = ref(false)
+
+/** 保存前先校验参数范围 */
+function handleSaveWithValidation() {
+  if (paramHasError.value) {
+    showToast('存在标红的参数超出合法范围，请修正后再保存', 'info')
+    return
+  }
+  handleSave()
+}
 
 </script>
 
@@ -119,27 +130,13 @@ const tipTheme = TIP_THEME_OVERRIDES
             AI 能记住的对话轮数，越大记忆越久但也更耗 tokens。推荐 10~30
           </NTooltip>
         </label>
-        <input v-model.number="formMemoryRounds" type="number" class="input" min="1" max="100" style="width: 100px;"/>
+        <n-input-number v-model:value="formMemoryRounds" :min="1" :max="100" :step="1" style="width: 100px"/>
       </div>
 
-      <!-- 模型参数 -->
+      <!-- 模型参数（通用组件，含校验 + 悬浮说明） -->
       <div class="field">
         <label class="label">模型参数</label>
-        <div class="params-grid">
-          <div class="param-item" v-for="def in modelParamDefs" :key="def.key">
-            <span class="param-label">
-              {{ def.label }}
-              <NTooltip trigger="hover" placement="top" :theme-overrides="tipTheme" :show-arrow="false">
-                <template #trigger>
-                  <span class="hint-icon">ⓘ</span>
-                </template>
-                {{ def.tip }}
-              </NTooltip>
-            </span>
-            <input v-model.number="formModelParams[def.key]" type="number"
-                   :step="def.step" :min="def.min" :max="def.max" class="input param-input"/>
-          </div>
-        </div>
+        <ModelParamsInput v-model:params="formModelParams" @error="(e: boolean) => paramHasError = e"/>
       </div>
 
       <!-- 启用/禁用开关 -->
@@ -175,7 +172,7 @@ const tipTheme = TIP_THEME_OVERRIDES
         </NButton>
         <div class="footer-right">
           <NButton quaternary @click="close">取消</NButton>
-          <NButton type="primary" :loading="saving" @click="handleSave">
+          <NButton type="primary" :loading="saving" @click="handleSaveWithValidation">
             {{ saving ? '保存中...' : '保存' }}
           </NButton>
         </div>

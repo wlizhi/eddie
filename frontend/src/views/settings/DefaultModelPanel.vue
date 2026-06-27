@@ -21,29 +21,16 @@
         </div>
       </div>
 
-      <!-- 模型参数 -->
+      <!-- 模型参数（通用组件，含校验 + 悬浮说明） -->
       <div class="config-row params-row">
         <span class="config-label">参数</span>
-        <div class="params-grid">
-          <div class="param-item" v-for="def in MODEL_PARAM_DEFS" :key="def.key">
-            <span class="param-label">{{ def.label }}</span>
-            <input
-                v-model.number="slotParams[slot.key][def.key]"
-                type="number"
-                :step="def.step"
-                :min="def.min"
-                :max="def.max"
-                class="param-input"
-                placeholder="默认"
-            />
-          </div>
-        </div>
+        <ModelParamsInput v-model:params="slotParams[slot.key]" @error="(e: boolean) => slotErrors[slot.key] = e"/>
       </div>
     </div>
 
     <!-- 保存按钮 -->
     <div class="save-bar">
-      <button class="btn-save" :disabled="saving" @click="handleSave">
+      <button class="btn-save" :disabled="saving || hasAnyError" @click="handleSave">
         {{ saving ? '保存中...' : '保存配置' }}
       </button>
     </div>
@@ -58,6 +45,7 @@ import {useChatStore} from '@/stores/chat'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 import {showToast} from '@/composables/useToast'
+import ModelParamsInput from '@/components/common/ModelParamsInput.vue'
 
 // ========== 三个模型槽位定义 ==========
 interface ModelSlot {
@@ -156,6 +144,10 @@ for (const slot of modelSlots) {
   slotParams[slot.key] = Object.fromEntries(MODEL_PARAM_DEFS.map(d => [d.key, null]))
 }
 
+// ========== 每个槽位的参数校验错误标记 ==========
+const slotErrors = reactive<Record<string, boolean>>({})
+const hasAnyError = computed(() => Object.values(slotErrors).some(v => v))
+
 // ========== 状态 ==========
 const saving = ref(false)
 
@@ -208,6 +200,12 @@ onMounted(async () => {
 
 // ========== 保存 ==========
 async function handleSave() {
+  // 校验参数：若有错误则阻止提交
+  if (hasAnyError.value) {
+    showToast('存在标红的参数超出合法范围，请修正后再保存', 'info')
+    return
+  }
+
   saving.value = true
 
   try {
@@ -253,11 +251,12 @@ async function handleSave() {
 }
 
 .config-card {
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  padding: 20px 24px;
-  margin-bottom: 16px;
-  background: var(--bg-secondary);
+  margin-bottom: 20px;
+}
+
+.config-card:not(:last-child) {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-lighter);
 }
 
 .config-header {
@@ -311,45 +310,8 @@ async function handleSave() {
   gap: 8px;
 }
 
-.params-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
-  width: 100%;
-}
-
-.param-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.param-label {
-  font-size: var(--font-size-xs);
-  color: var(--text-quaternary);
-  font-weight: 500;
-}
-
-.param-input {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  font-size: var(--font-size-small);
-  color: var(--text-primary);
-  background: var(--bg-primary);
-  outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-.param-input:focus {
-  border-color: var(--accent-default);
-}
-
-.param-input::placeholder {
-  color: var(--text-tertiary);
+.params-row > .config-label {
+  padding-top: 6px;
 }
 
 /* 保存栏 */

@@ -65,14 +65,15 @@
             </button>
           </div>
           <div class="font-size-input-group">
-            <input
-                type="number"
+            <n-input-number
+                v-model:value="fontSizeInput"
                 class="font-size-input"
-                v-model.number="fontSizeInput"
                 placeholder="建议12~24"
-                min="10"
-                max="28"
-                @input="handleFontSizeInput"
+                :min="10"
+                :max="28"
+                :step="1"
+                :show-button="false"
+                @update:value="handleFontSizeInput"
                 @blur="handleFontSizeBlur"
             />
             <span class="font-size-unit">px</span>
@@ -201,7 +202,7 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref, watch} from 'vue'
-import {NModal, NSwitch} from 'naive-ui'
+import {NInputNumber, NModal, NSwitch} from 'naive-ui'
 import {
   applyDisplay,
   clampFontSize,

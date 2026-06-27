@@ -74,12 +74,11 @@
       <div class="modal-field">
         <span class="field-label">输入价格</span>
         <div class="price-row">
-          <input
-              v-model.number="form.inputPrice"
+          <n-input-number
+              v-model:value="form.inputPrice"
               class="field-input"
-              type="number"
-              min="0"
-              step="0.001"
+              :min="0"
+              :step="0.001"
               placeholder="0"
           />
           <span class="price-unit">{{ displayCurrency }}/百万Token</span>
@@ -88,12 +87,11 @@
       <div class="modal-field">
         <span class="field-label">输出价格</span>
         <div class="price-row">
-          <input
-              v-model.number="form.outputPrice"
+          <n-input-number
+              v-model:value="form.outputPrice"
               class="field-input"
-              type="number"
-              min="0"
-              step="0.001"
+              :min="0"
+              :step="0.001"
               placeholder="0"
           />
           <span class="price-unit">{{ displayCurrency }}/百万Token</span>
@@ -102,12 +100,11 @@
       <div class="modal-field">
         <span class="field-label">缓存命中价格</span>
         <div class="price-row">
-          <input
-              v-model.number="form.cacheInputPrice"
+          <n-input-number
+              v-model:value="form.cacheInputPrice"
               class="field-input"
-              type="number"
-              min="0"
-              step="0.001"
+              :min="0"
+              :step="0.001"
               placeholder="留空则使用输入价格"
           />
           <span class="price-unit">{{ displayCurrency }}/百万Token</span>
@@ -116,12 +113,11 @@
       <div class="modal-field">
         <span class="field-label">缓存写入价格</span>
         <div class="price-row">
-          <input
-              v-model.number="form.cacheWriteInputPrice"
+          <n-input-number
+              v-model:value="form.cacheWriteInputPrice"
               class="field-input"
-              type="number"
-              min="0"
-              step="0.001"
+              :min="0"
+              :step="0.001"
               placeholder="留空则使用输入价格"
           />
           <span class="price-unit">{{ displayCurrency }}/百万Token</span>
@@ -139,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import {NModal} from 'naive-ui'
+import {NInputNumber, NModal} from 'naive-ui'
 import {computed, reactive, watch} from 'vue'
 import type {ModelItem} from '@/types/modelProvider'
 import {CAPABILITY_TYPES, capIcon, getCapStyle, normalizeCaps, toggleCapability,} from './modelCapabilities'
