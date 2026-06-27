@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class DeepSeekChatThinkingHandler implements ChatThinkingHandler {
+    private static final String REASONING_CONTENT_KEY = "reasoningContent";
 
     @Override
     public boolean support(String providerCode) {
@@ -38,7 +39,8 @@ public class DeepSeekChatThinkingHandler implements ChatThinkingHandler {
                     if (msg instanceof DeepSeekAssistantMessage deepSeekAssistantMessage) {
                         return deepSeekAssistantMessage.getReasoningContent();
                     }
-                    return null;
+                    Object val = msg.getMetadata().get(REASONING_CONTENT_KEY);
+                    return (val instanceof String str && !str.isEmpty()) ? str : null;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining());

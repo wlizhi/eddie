@@ -12,11 +12,12 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.deepseek.DeepSeekChatModel;
 import org.springframework.ai.deepseek.DeepSeekChatOptions;
 import org.springframework.ai.deepseek.api.DeepSeekApi;
-import org.springframework.stereotype.Service;
+import org.springframework.core.annotation.Order;
 
 import java.util.Set;
 
-@Service
+@Order(1)
+//@Service
 public class DeepseekChatClientFactory implements ChatClientFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DeepseekChatClientFactory.class);

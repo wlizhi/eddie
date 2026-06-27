@@ -14,6 +14,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Objects;
 
 @Primary
@@ -22,7 +23,7 @@ public class EddieOpenAiChatClientFactory implements ChatClientFactory {
 
     private static final Logger log = LoggerFactory.getLogger(EddieOpenAiChatClientFactory.class);
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public boolean support(String providerCode) {
@@ -73,6 +74,7 @@ public class EddieOpenAiChatClientFactory implements ChatClientFactory {
             if (params.getStop() != null && !params.getStop().isEmpty()) {
                 builder.stop(params.getStop());
             }
+            builder.extraBody(Map.of("thinking", Map.of("type", "disabled")));
         } catch (Exception e) {
             log.warn("解析助手 modelParams JSON 失败，将使用默认参数。json={}", modelParamsJson, e);
         }

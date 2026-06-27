@@ -17,7 +17,7 @@
 import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
-import {ChevronDown, Copy, Eye, Loader, Pen, RefreshCw} from '@lucide/vue'
+import {Brain, ChevronDown, Copy, Eye, Loader, Pen, RefreshCw} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
@@ -271,9 +271,11 @@ function onScroll() {
                   class="chevron"
                   :class="{ rotated: thinkingExpanded[msg.id] }"
               />
-              <span v-if="msg.content || !chatStore.isStreaming">思考过程</span>
+              <span v-if="msg.content || !chatStore.isStreaming">
+                <Brain :size="12" :stroke-width="2" class="thinking-icon"/> 思考过程
+              </span>
               <span v-else class="thinking-pending">
-                <span class="thinking-text">思考中<span
+                <span class="thinking-text"><Brain :size="12" :stroke-width="2" class="thinking-icon thinking-pulse"/> 思考中<span
                     class="dots-blink"><span>.</span><span>.</span><span>.</span></span></span>
               </span>
             </button>

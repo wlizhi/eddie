@@ -138,6 +138,29 @@
     transition: background 0.15s, color 0.15s;
 }
 
+/* 思考图标基础样式 */
+.thinking-toggle .thinking-icon {
+    flex-shrink: 0;
+    vertical-align: -0.125em;
+}
+
+/* 思考中状态：脉动呼吸动画 */
+.thinking-pulse {
+    animation: ml-thinking-pulse 1.6s ease-in-out infinite;
+    opacity: 0.7;
+}
+
+@keyframes ml-thinking-pulse {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(0.95);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
 .thinking-toggle:hover {
     background: var(--bg-hover);
     color: var(--text-quaternary);
