@@ -24,11 +24,11 @@ export const MODEL_PARAM_DEFS: ModelParamDef[] = [
         componentType: 'select',
         options: [
             {label: '自动', value: 'auto'},
-            {label: '低', value: 'low'},
-            {label: '中', value: 'medium'},
-            {label: '高', value: 'high'},
-            {label: '极限', value: 'max'},
-            {label: '禁用', value: 'disabled'},
+            {label: '精简', value: 'low'},
+            {label: '均衡', value: 'medium'},
+            {label: '深入', value: 'high'},
+            {label: '穷举', value: 'max'},
+            {label: '关闭', value: 'disabled'},
         ],
     },
     {

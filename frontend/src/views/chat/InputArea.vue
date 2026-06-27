@@ -151,17 +151,17 @@ function onInput(e: Event) {
 /** 思考模式选项（下拉菜单与按钮标签的单一数据源） */
 const thinkingModeOptions = [
   {label: '自动', value: 'auto'},
-  {label: '低', value: 'low'},
-  {label: '中', value: 'medium'},
-  {label: '高', value: 'high'},
-  {label: '极限', value: 'max'},
-  {label: '禁用', value: 'disabled'},
+  {label: '精简', value: 'low'},
+  {label: '均衡', value: 'medium'},
+  {label: '深入', value: 'high'},
+  {label: '穷举', value: 'max'},
+  {label: '关闭', value: 'disabled'},
 ]
 
-/** 当前思考模式的显示标签（从 thinkingModeOptions 派生） */
+/** 当前思考模式的显示标签：思考 · 选中项 */
 const thinkingModeLabel = computed(() => {
-  if (chatStore.thinkingMode === 'auto') return '思考'
-  return thinkingModeOptions.find(o => o.value === chatStore.thinkingMode)?.label || '思考'
+  const selected = thinkingModeOptions.find(o => o.value === chatStore.thinkingMode)
+  return `思考 · ${selected?.label || '自动'}`
 })
 
 function focusInput() {

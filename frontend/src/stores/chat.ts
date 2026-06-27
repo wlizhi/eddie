@@ -85,6 +85,11 @@ export const useChatStore = defineStore('chat', () => {
     /** 是否为新会话（尚未创建） */
     const isNewConversation = computed(() => currentConversationId.value === '')
 
+    /** 从助手的 thinkingMode 配置同步到当前聊天输入区选择 */
+    function syncThinkingMode(mode: string | null): void {
+        thinkingMode.value = mode ?? 'auto'
+    }
+
     // ========== 方法 ==========
 
     async function loadModels(): Promise<void> {
@@ -425,6 +430,7 @@ export const useChatStore = defineStore('chat', () => {
         sendMessage,
         regenerate,
         abortStream,
+        syncThinkingMode,
         newConversation,
         loadConversation,
         loadMoreMessages,

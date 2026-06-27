@@ -16,6 +16,7 @@
 import {nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
+import {fetchAssistantDetail} from '@/api/assistant'
 import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
 import Toolbar from '@/views/chat/Toolbar.vue'
 import MessageList from '@/views/chat/MessageList.vue'
@@ -40,6 +41,8 @@ onMounted(async () => {
   ])
   // 助手列表加载完成后同步第一个助手的模型到聊天区
   syncModelFromAssistant()
+  // 同步当前助手的思考模式配置
+  await syncThinkingModeFromAssistant()
 })
 
 /**
@@ -53,9 +56,30 @@ function syncModelFromAssistant() {
   }
 }
 
-// 切换助手时自动同步模型并清空聊天状态（等同于新建会话）
-watch(() => assistantStore.activeId, () => {
+/**
+ * 从当前助手详情中同步 thinkingMode 配置
+ * 有配置则使用助手的默认值，无配置则回退 auto
+ */
+async function syncThinkingModeFromAssistant() {
+  const id = assistantStore.activeId
+  if (!id) {
+    chatStore.syncThinkingMode('auto')
+    return
+  }
+  try {
+    const detail = await fetchAssistantDetail(id)
+    const tm = detail.modelParams?.thinkingMode
+    chatStore.syncThinkingMode(tm ?? 'auto')
+  } catch (err) {
+    console.error('获取助手详情失败:', err)
+    chatStore.syncThinkingMode('auto')
+  }
+}
+
+// 切换助手时自动同步模型、思考模式并清空聊天状态（等同于新建会话）
+watch(() => assistantStore.activeId, async () => {
   syncModelFromAssistant()
+  await syncThinkingModeFromAssistant()
   chatStore.newConversation()
 })
 
