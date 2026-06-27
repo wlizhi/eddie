@@ -354,17 +354,19 @@ function onScroll() {
 
         <!-- 元数据（仅 assistant） -->
         <div v-if="msg.role === 'assistant' && msg.metadata" class="metadata">
-          <template v-if="msg.metadata.timestamp">
+          <template v-if="msg.metadata.timestamp && displaySettings.showMetaTime">
             <span class="meta-time">{{ formatTime(msg.metadata.timestamp) }}</span>
           </template>
-          <template v-if="msg.metadata.durationMs != null">
-            <span v-if="msg.metadata.timestamp" class="meta-divider">|</span>
+          <template v-if="msg.metadata.durationMs != null && displaySettings.showMetaDuration">
+            <span v-if="msg.metadata.timestamp && displaySettings.showMetaTime" class="meta-divider">|</span>
             <span class="meta-duration">
               耗时 {{ (msg.metadata.durationMs / 1000).toFixed(1) }}s
             </span>
           </template>
-          <template v-if="msg.metadata.totalTokens != null">
-            <span v-if="msg.metadata.timestamp || msg.metadata.durationMs != null" class="meta-divider">|</span>
+          <template v-if="msg.metadata.totalTokens != null && displaySettings.showMetaTokens">
+            <span
+                v-if="(msg.metadata.timestamp && displaySettings.showMetaTime) || (msg.metadata.durationMs != null && displaySettings.showMetaDuration)"
+                class="meta-divider">|</span>
             <span class="meta-tokens">
               {{ msg.metadata.totalTokens }} tokens
               <span v-if="msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
@@ -385,8 +387,10 @@ function onScroll() {
             </span>
           </template>
           <template v-else-if="msg.metadata.promptTokens != null || msg.metadata.completionTokens != null">
-            <span v-if="msg.metadata.timestamp || msg.metadata.durationMs != null" class="meta-divider">|</span>
-            <span class="meta-tokens">
+            <span
+                v-if="displaySettings.showMetaTokens && ((msg.metadata.timestamp && displaySettings.showMetaTime) || (msg.metadata.durationMs != null && displaySettings.showMetaDuration))"
+                class="meta-divider">|</span>
+            <span v-if="displaySettings.showMetaTokens" class="meta-tokens">
               输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }}
               <template
                   v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0 || (msg.metadata.cacheWriteInputTokens ?? 0) > 0">
@@ -401,9 +405,9 @@ function onScroll() {
             </span>
           </template>
           <!-- 预估费用 -->
-          <template v-if="msg.metadata.costEstimate != null">
+          <template v-if="msg.metadata.costEstimate != null && displaySettings.showMetaCost">
             <span
-                v-if="msg.metadata.timestamp || msg.metadata.durationMs != null || msg.metadata.totalTokens != null || msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
+                v-if="(msg.metadata.timestamp && displaySettings.showMetaTime) || (msg.metadata.durationMs != null && displaySettings.showMetaDuration) || (msg.metadata.totalTokens != null && displaySettings.showMetaTokens) || (msg.metadata.promptTokens != null || msg.metadata.completionTokens != null)"
                 class="meta-divider">|</span>
             <span class="meta-cost">{{ currencySymbol(msg.metadata.currency) }}{{
                 msg.metadata.costEstimate.toFixed(6)

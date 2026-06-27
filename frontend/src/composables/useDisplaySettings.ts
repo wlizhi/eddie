@@ -329,6 +329,14 @@ export interface DisplaySettings {
     nickname?: string
     /** 用户头像（全局）：文字/emoji/图片URL */
     avatar?: string
+    /** 元数据：显示时间 */
+    showMetaTime: boolean
+    /** 元数据：显示接口耗时 */
+    showMetaDuration: boolean
+    /** 元数据：显示 token 用量 */
+    showMetaTokens: boolean
+    /** 元数据：显示花费估算 */
+    showMetaCost: boolean
 }
 
 const defaultSettings: DisplaySettings = {
@@ -341,6 +349,10 @@ const defaultSettings: DisplaySettings = {
     chatMode: true,
     nickname: '',
     avatar: '',
+    showMetaTime: true,
+    showMetaDuration: true,
+    showMetaTokens: true,
+    showMetaCost: true,
 }
 
 export const displaySettings = reactive<DisplaySettings>({...defaultSettings})
@@ -411,6 +423,10 @@ export async function saveDisplaySettings(): Promise<void> {
             chatMode: displaySettings.chatMode,
             nickname: displaySettings.nickname,
             avatar: displaySettings.avatar,
+            showMetaTime: displaySettings.showMetaTime,
+            showMetaDuration: displaySettings.showMetaDuration,
+            showMetaTokens: displaySettings.showMetaTokens,
+            showMetaCost: displaySettings.showMetaCost,
         }),
     }
     await updateConfigs(payload)

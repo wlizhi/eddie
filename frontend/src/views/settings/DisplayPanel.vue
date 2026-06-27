@@ -196,6 +196,40 @@
           </button>
         </div>
       </div>
+
+      <div class="group-label" style="margin-top: 8px;">消息元数据</div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">时间</span>
+          <span class="setting-hint">显示消息发送时间</span>
+        </div>
+        <NSwitch v-model:value="displaySettings.showMetaTime"/>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">接口耗时</span>
+          <span class="setting-hint">显示每条消息的响应耗时</span>
+        </div>
+        <NSwitch v-model:value="displaySettings.showMetaDuration"/>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">Token 用量</span>
+          <span class="setting-hint">显示输入/输出 token 数量和缓存命中</span>
+        </div>
+        <NSwitch v-model:value="displaySettings.showMetaTokens"/>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">花费估算</span>
+          <span class="setting-hint">显示每次对话的预估费用</span>
+        </div>
+        <NSwitch v-model:value="displaySettings.showMetaCost"/>
+      </div>
     </div>
   </div>
 </template>
