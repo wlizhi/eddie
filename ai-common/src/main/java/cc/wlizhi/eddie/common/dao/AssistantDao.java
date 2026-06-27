@@ -26,7 +26,7 @@ public class AssistantDao {
         String sql = """
                 SELECT a.id, a.name, a.avatar, a.description, a.system_prompt,
                        a.provider_id, a.model_id, a.model_params, a.memory_rounds,
-                       a.tool_selection_mode, a.enabled, a.sort_order, a.created_at, a.updated_at
+                       a.tool_selection_mode, a.preferences, a.enabled, a.sort_order, a.created_at, a.updated_at
                 FROM ai_assistant a
                 """;
         if (!showAll) {
@@ -43,7 +43,7 @@ public class AssistantDao {
         String sql = """
                 SELECT a.id, a.name, a.avatar, a.description, a.system_prompt,
                        a.provider_id, a.model_id, a.model_params, a.memory_rounds,
-                       a.tool_selection_mode, a.enabled, a.sort_order, a.created_at, a.updated_at
+                       a.tool_selection_mode, a.preferences, a.enabled, a.sort_order, a.created_at, a.updated_at
                 FROM ai_assistant a
                 WHERE a.id = ?
                 """;
@@ -58,8 +58,8 @@ public class AssistantDao {
         String sql = """
                 INSERT INTO ai_assistant (name, avatar, description, system_prompt,
                                           provider_id, model_id, model_params, memory_rounds,
-                                          tool_selection_mode, enabled, sort_order, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                          tool_selection_mode, preferences, enabled, sort_order, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                         datetime('now', 'localtime'), datetime('now', 'localtime'))
                 """;
         jdbcTemplate.update(sql,
@@ -72,6 +72,7 @@ public class AssistantDao {
                 entity.getModelParams(),
                 entity.getMemoryRounds(),
                 entity.getToolSelectionMode() != null ? entity.getToolSelectionMode() : "none",
+                entity.getPreferences() != null ? entity.getPreferences() : "{}",
                 entity.getEnabled(),
                 entity.getSortOrder());
     }
@@ -110,6 +111,10 @@ public class AssistantDao {
         if (entity.getModelParams() != null) {
             sql.append(", model_params = ?");
             params.add(entity.getModelParams());
+        }
+        if (entity.getPreferences() != null) {
+            sql.append(", preferences = ?");
+            params.add(entity.getPreferences());
         }
         if (entity.getMemoryRounds() != null) {
             sql.append(", memory_rounds = ?");
@@ -188,6 +193,7 @@ public class AssistantDao {
         entity.setProviderId(rs.getObject("provider_id") != null ? rs.getLong("provider_id") : null);
         entity.setModelId(rs.getString("model_id"));
         entity.setModelParams(rs.getString("model_params"));
+        entity.setPreferences(rs.getString("preferences"));
         entity.setMemoryRounds(rs.getInt("memory_rounds"));
         entity.setToolSelectionMode(rs.getString("tool_selection_mode"));
         entity.setEnabled(rs.getInt("enabled"));
@@ -210,6 +216,7 @@ public class AssistantDao {
         entity.setProviderId(rs.getObject("provider_id") != null ? rs.getLong("provider_id") : null);
         entity.setModelId(rs.getString("model_id"));
         entity.setModelParams(rs.getString("model_params"));
+        entity.setPreferences(rs.getString("preferences"));
         entity.setMemoryRounds(rs.getInt("memory_rounds"));
         entity.setToolSelectionMode(rs.getString("tool_selection_mode"));
         entity.setEnabled(rs.getInt("enabled"));

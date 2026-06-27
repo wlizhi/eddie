@@ -2,10 +2,8 @@ package cc.wlizhi.eddie.chat.controller;
 
 import cc.wlizhi.eddie.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddie.chat.entity.request.AssistantUpdateRequest;
-import cc.wlizhi.eddie.chat.entity.request.McpBindingsUpdateRequest;
 import cc.wlizhi.eddie.chat.entity.response.AssistantDetailVO;
 import cc.wlizhi.eddie.chat.entity.response.AssistantVO;
-import cc.wlizhi.eddie.chat.entity.response.McpBindVO;
 import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
 import cc.wlizhi.eddie.chat.service.AssistantService;
 import cc.wlizhi.eddie.common.dto.ApiResult;
@@ -88,19 +86,6 @@ public class AssistantController {
     }
 
     /**
-     * 获取助手可选的工具源列表
-     * <p>
-     * 返回按 MCP Server 分组的工具列表，含哪些已绑定。
-     *
-     * @param id 助手 ID（可选，不传则返回所有可用源，不含绑定状态）
-     */
-    @GetMapping("/tool-sources")
-    public ApiResult<List<ToolSourceVO>> getToolSources(
-            @RequestParam(name = "assistantId", required = false) Long id) {
-        return ApiResult.success(assistantService.getToolSources(id));
-    }
-
-    /**
      * 批量排序：按 ID 数组顺序重新赋 sort_order（1,2,3...）
      */
     @PutMapping("/batch-sort")
@@ -110,31 +95,16 @@ public class AssistantController {
     }
 
     /**
-     * 获取助手可选的 MCP 绑定列表（仅 MCP 纬度）
+     * 获取助手已绑定的 MCP 工具列表（二层结构：MCP → tools）
      * <p>
-     * 场景 5：助手设置弹窗中选择允许使用的 MCP 工具。
-     * 场景 6：手动模式下 MCP 工具选择器。
-     * 数据来源：OwnerToolBindingContext 缓存。
+     * 仅返回当前助手已绑定的 MCP Server 及其下辖工具。
+     * 用于输入框手动模式选择 MCP 使用。
      *
      * @param id 助手 ID
      */
-    @GetMapping("/{id}/mcp-bindings")
-    public ApiResult<List<McpBindVO>> getMcpBindings(@PathVariable("id") Long id) {
-        return ApiResult.success(assistantService.getMcpBindings(id));
+    @GetMapping("/{id}/mcp-tools")
+    public ApiResult<List<ToolSourceVO>> getBoundMcpTools(@PathVariable("id") Long id) {
+        return ApiResult.success(assistantService.getBoundMcpTools(id));
     }
 
-    /**
-     * 更新助手绑定的 MCP 列表（全量替换）
-     * <p>
-     * 场景 5：用户在助手设置弹窗中勾选 MCP 后提交。
-     *
-     * @param id      助手 ID
-     * @param request MCP Server ID 列表
-     */
-    @PutMapping("/{id}/mcp-bindings")
-    public ApiResult<Void> updateMcpBindings(@PathVariable("id") Long id,
-                                             @Valid @RequestBody McpBindingsUpdateRequest request) {
-        assistantService.updateMcpBindings(id, request.getMcpServerIds());
-        return ApiResult.success();
-    }
 }

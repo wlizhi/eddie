@@ -43,6 +43,20 @@ export interface ChatRequest {
      * - disabled: 禁用思考
      */
     thinkingMode?: string
+
+    /**
+     * 工具选择模式：auto / manual / none
+     * - auto: AI 自主选择工具
+     * - manual: 手动指定工具
+     * - none: 禁用工具
+     */
+    toolSelectionMode?: string
+
+    /**
+     * 手动模式下指定的工具名称列表（toolSelectionMode=manual 时有效）
+     * 由前端从选中的 MCP Server 内层展开为扁平的工具名列表
+     */
+    toolNames?: string[]
 }
 
 /**

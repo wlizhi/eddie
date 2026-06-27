@@ -13,6 +13,7 @@
  */
 import type {ApiResult} from '@/types/chat'
 import type {AssistantCreateRequest, AssistantDetailVO, AssistantUpdateRequest, AssistantVO,} from '@/types/assistant'
+import type {ToolSourceVO} from '@/types/mcpServer'
 
 const BASE = '/api/assistant'
 
@@ -113,6 +114,20 @@ export async function deleteAssistant(id: number): Promise<void> {
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
     const json: ApiResult<void> = await res.json()
     if (json.code !== 200) throw new Error(json.message || '删除助手失败')
+}
+
+/**
+ * 获取助手已绑定的 MCP 工具列表（二层结构：MCP → tools）
+ *
+ * GET /api/assistant/{id}/mcp-tools
+ * 用于输入框手动模式选择 MCP 使用。
+ */
+export async function fetchBoundMcpTools(assistantId: number): Promise<ToolSourceVO[]> {
+    const res = await fetch(`${BASE}/${assistantId}/mcp-tools`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<ToolSourceVO[]> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '获取绑定 MCP 工具列表失败')
+    return json.data
 }
 
 // ==================== MCP Server API ====================

@@ -33,16 +33,13 @@ const inputText = ref('')
 const inputAreaRef = ref<InstanceType<typeof InputArea> | null>(null)
 
 onMounted(async () => {
-  // 并行加载显示设置、模型列表和助手列表
+  // 并行加载基础数据（显示设置、模型列表、助手列表）
+  // loadList() 会自动设置 activeId → 触发下面的 watch 来同步思考和 MCP 工具
   await Promise.all([
     loadDisplaySettings(),
     chatStore.loadModels(),
     assistantStore.loadList(),
   ])
-  // 助手列表加载完成后同步第一个助手的模型到聊天区
-  syncModelFromAssistant()
-  // 同步当前助手的思考模式配置
-  await syncThinkingModeFromAssistant()
 })
 
 /**
@@ -57,29 +54,41 @@ function syncModelFromAssistant() {
 }
 
 /**
- * 从当前助手详情中同步 thinkingMode 配置
- * 有配置则使用助手的默认值，无配置则回退 auto
+ * 从当前助手详情中同步 thinkingMode + preferences 配置
+ * 有配置则使用助手的默认值，无配置则回退默认
  */
-async function syncThinkingModeFromAssistant() {
+async function syncPreferredSettingsFromAssistant() {
   const id = assistantStore.activeId
   if (!id) {
     chatStore.syncThinkingMode('auto')
+    chatStore.webSearchEnabled = false
+    chatStore.mcpToolMode = 'auto'
     return
   }
   try {
     const detail = await fetchAssistantDetail(id)
+    // 思考模式
     const tm = detail.modelParams?.thinkingMode
     chatStore.syncThinkingMode(tm ?? 'auto')
+    // 助手偏好（联网、MCP 默认模式）
+    const prefs = detail.preferences ?? {}
+    chatStore.webSearchEnabled = prefs.webSearchEnabled ?? false
+    chatStore.mcpToolMode = (prefs.mcpToolMode ?? 'auto') as 'disabled' | 'auto' | 'manual'
   } catch (err) {
     console.error('获取助手详情失败:', err)
     chatStore.syncThinkingMode('auto')
+    chatStore.webSearchEnabled = false
+    chatStore.mcpToolMode = 'auto'
   }
 }
 
-// 切换助手时自动同步模型、思考模式并清空聊天状态（等同于新建会话）
-watch(() => assistantStore.activeId, async () => {
+// 切换助手时自动同步模型、偏好设置、工具列表并清空聊天状态
+watch(() => assistantStore.activeId, async (newId) => {
   syncModelFromAssistant()
-  await syncThinkingModeFromAssistant()
+  await Promise.all([
+    syncPreferredSettingsFromAssistant(),
+    newId ? chatStore.loadBoundMcpTools(newId) : Promise.resolve(),
+  ])
   chatStore.newConversation()
 })
 

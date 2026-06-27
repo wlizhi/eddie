@@ -1,8 +1,10 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'
+import type {ToolSourceVO} from '@/types/mcpServer'
 import type {MessageVO, ToolExecutionEventItem} from '@/types/session'
 import {fetchModelList, streamChat} from '@/api/chat'
+import {fetchBoundMcpTools} from '@/api/assistant'
 import {createSession, fetchMessages, generateTitle} from '@/api/session'
 import {showToast} from '@/composables/useToast'
 import {useAssistantStore} from '@/stores/assistant'
@@ -55,6 +57,18 @@ export const useChatStore = defineStore('chat', () => {
     /** 当前思考模式：auto / low / medium / high / max / disabled */
     const thinkingMode = ref<string>('auto')
 
+    /** 🌐 联网搜索开关 */
+    const webSearchEnabled = ref(false)
+
+    /** 🛠️ MCP 工具模式：disabled / auto / manual */
+    const mcpToolMode = ref<'disabled' | 'auto' | 'manual'>('auto')
+
+    /** 手动模式下勾选的 MCP Server ID 列表 */
+    const selectedMcpServerIds = ref<number[]>([])
+
+    /** 当前助手已绑定的 MCP + 工具列表缓存（按 sort_order 排序） */
+    const boundMcpTools = ref<ToolSourceVO[]>([])
+
     /** 是否还有更早的消息可加载 */
     const hasMoreMessages = ref(false)
 
@@ -90,7 +104,73 @@ export const useChatStore = defineStore('chat', () => {
         thinkingMode.value = mode ?? 'auto'
     }
 
-    // ========== 方法 ==========
+    /**
+     * 加载当前助手已绑定的 MCP 工具列表
+     */
+    async function loadBoundMcpTools(assistantId: number): Promise<void> {
+        try {
+            boundMcpTools.value = await fetchBoundMcpTools(assistantId)
+        } catch (err) {
+            console.error('加载绑定 MCP 工具列表失败:', err)
+            boundMcpTools.value = []
+        }
+    }
+
+    /**
+     * 根据当前工具模式 + 联网开关，构建发送给后端的工具参数
+     *
+     * 规则：
+     * - MCP禁用 + 联网关 → mode=none
+     * - MCP禁用 + 联网开 → mode=manual, tools=BuiltInSearch 下所有工具
+     * - MCP手动          → mode=manual, tools=选中 MCP 工具 + 联网工具（去重）
+     * - MCP自动          → mode=auto, 不传工具列表
+     */
+    function buildToolParams(): { toolSelectionMode?: string; toolNames?: string[] } {
+        const mode = mcpToolMode.value
+        const searchOn = webSearchEnabled.value
+        const selectedIds = selectedMcpServerIds.value
+
+        // 查找 BuiltInSearch MCP Server ID（内置搜索）
+        const builtInSearch = boundMcpTools.value.find(
+            t => t.mcpServerName === 'BuiltInSearch' || t.transportType === 'BUILT_IN'
+        )
+        const builtInSearchId = builtInSearch?.mcpServerId
+
+        /** 获取指定 MCP Server ID 下的所有工具名称 */
+        function getToolNamesByServerId(serverId: number): string[] {
+            const server = boundMcpTools.value.find(s => s.mcpServerId === serverId)
+            if (!server) return []
+            return server.tools.map(t => t.name)
+        }
+
+        if (mode === 'disabled') {
+            if (searchOn && builtInSearchId != null) {
+                // MCP禁用 + 联网开 → 升级为 manual，只传 BuiltInSearch 工具
+                return {
+                    toolSelectionMode: 'manual',
+                    toolNames: getToolNamesByServerId(builtInSearchId),
+                }
+            }
+            return {toolSelectionMode: 'none', toolNames: []}
+        }
+
+        if (mode === 'manual') {
+            // 合并选中 MCP 的工具 + 联网工具（如果联网开）
+            const idsToUse = [...selectedIds]
+            if (searchOn && builtInSearchId != null && !idsToUse.includes(builtInSearchId)) {
+                idsToUse.push(builtInSearchId)
+            }
+            const toolNames = idsToUse.flatMap(id => getToolNamesByServerId(id))
+            // 去重
+            return {
+                toolSelectionMode: 'manual',
+                toolNames: [...new Set(toolNames)],
+            }
+        }
+
+        // mode === 'auto' → 不传工具列表，AI 自主决定
+        return {toolSelectionMode: 'auto'}
+    }
 
     async function loadModels(): Promise<void> {
         try {
@@ -166,6 +246,9 @@ export const useChatStore = defineStore('chat', () => {
 
         abortController = new AbortController()
 
+        // 构建工具参数
+        const toolParams = buildToolParams()
+
         await streamChat({
             request: {
                 conversationId: currentConversationId.value,
@@ -173,6 +256,7 @@ export const useChatStore = defineStore('chat', () => {
                 providerId: currentProviderId.value,
                 modelId: currentModelId.value,
                 thinkingMode: thinkingMode.value !== 'auto' ? thinkingMode.value : undefined,
+                ...toolParams,
             },
             signal: abortController.signal,
             onThinking: (chunk) => {
@@ -419,6 +503,10 @@ export const useChatStore = defineStore('chat', () => {
         currentMetadata,
         currentToolExecutions,
         thinkingMode,
+        webSearchEnabled,
+        mcpToolMode,
+        selectedMcpServerIds,
+        boundMcpTools,
         sessionRefreshCounter,
         hasMoreMessages,
         isLoadingMore,
@@ -434,5 +522,6 @@ export const useChatStore = defineStore('chat', () => {
         newConversation,
         loadConversation,
         loadMoreMessages,
+        loadBoundMcpTools,
     }
 })

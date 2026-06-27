@@ -52,6 +52,11 @@ public class AssistantUpdateRequest {
     private ModelParams modelParams;
 
     /**
+     * 助手偏好设置 JSON（可选），如 {"webSearchEnabled":true, "mcpToolMode":"auto"}
+     */
+    private java.util.Map<String, Object> preferences;
+
+    /**
      * 记忆轮数
      */
     private Integer memoryRounds;

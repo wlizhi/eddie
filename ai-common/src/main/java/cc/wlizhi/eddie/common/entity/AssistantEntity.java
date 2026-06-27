@@ -51,6 +51,12 @@ public class AssistantEntity {
     private String modelParams;
 
     /**
+     * 助手偏好设置 JSON：{"webSearchEnabled":true, "mcpToolMode":"auto", ...}
+     * 用于控制前端 UI 默认状态（联网搜索、MCP 模式等）
+     */
+    private String preferences;
+
+    /**
      * 记忆轮数
      */
     private Integer memoryRounds;

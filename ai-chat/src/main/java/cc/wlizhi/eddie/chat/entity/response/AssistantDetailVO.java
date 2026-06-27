@@ -26,6 +26,9 @@ public class AssistantDetailVO {
     // 模型参数回显
     private ModelParams modelParams;
 
+    // 助手偏好设置回显（JSON → Map）
+    private java.util.Map<String, Object> preferences;
+
     // 记忆
     private Integer memoryRounds;
 

@@ -156,6 +156,9 @@
 }
 
 .toggle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     padding: 3px 8px;
     font-size: var(--font-size-small);
     font-family: inherit;
@@ -262,5 +265,43 @@
 .new-chat-btn:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
+}
+
+/* ===== MCP 手动模式选择弹窗 ===== */
+.mcp-checkbox-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    transition: background 0.15s;
+}
+
+.mcp-checkbox-item:hover {
+    background: var(--bg-hover);
+}
+
+.mcp-tool-count {
+    font-size: var(--font-size-small);
+    color: var(--text-tertiary);
+}
+
+.mcp-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mcp-modal-hint {
+    font-size: var(--font-size-small);
+    color: var(--text-tertiary);
+}
+
+.mcp-empty-hint {
+    padding: 24px 0;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-small);
 }
 

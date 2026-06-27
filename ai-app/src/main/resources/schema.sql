@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS ai_assistant
     -- 模型参数 JSON：{"temperature":0.7, "maxTokens":2048, "topP":0.9, ...}
     model_params  TEXT    NOT NULL DEFAULT '{}',
 
+    -- 助手偏好设置 JSON：{"webSearchEnabled":true, "mcpToolMode":"auto", ...}
+    preferences TEXT NOT NULL DEFAULT '{}',
+
     -- 记忆轮数
     memory_rounds INTEGER NOT NULL DEFAULT 20,
 

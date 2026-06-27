@@ -10,7 +10,7 @@
  * 新增 Naive UI 组件时，在此文件补充对应的 token 映射即可。
  */
 import {computed} from 'vue'
-import {COLOR_SCHEMES, displaySettings, findTheme} from '@/composables/useDisplaySettings'
+import {COLOR_SCHEMES, displaySettings, findTheme, getEffectiveFontSize} from '@/composables/useDisplaySettings'
 
 /**
  * 从主题定义中读取 CSS 变量值，取不到时返回空字符串
@@ -65,6 +65,11 @@ export const naiveThemeOverrides = computed(() => {
     const dangerDefault = v('--danger-default')
     // const dangerHover = v('--danger-hover')
 
+    // ==== 基于全局基准字号计算实际 px 值（Naive UI 需要 px 数值而非 CSS 变量）====
+    const basePx = getEffectiveFontSize()
+    const fontSizeSmall = Math.round(basePx * 0.8) + 'px'   // --font-size-small: 0.8rem
+    const fontSizeBase = Math.round(basePx * 0.867) + 'px'  // --font-size-base: 0.867rem
+
     return {
         // ===== 通用基础 token —— 影响所有组件 =====
         common: {
@@ -101,6 +106,11 @@ export const naiveThemeOverrides = computed(() => {
             boxShadowFocus: `0 0 0 2px ${accentRing}`,
             placeholderColor: textTertiary,
             actionTextColor: accentDefault,
+            fontSizeTiny: fontSizeSmall,
+            fontSizeSmall: fontSizeBase,
+            fontSizeMedium: fontSizeBase,
+            optionFontSizeSmall: fontSizeBase,
+            optionFontSizeMedium: fontSizeBase,
         },
 
         // ===== Modal 模态框 =====
@@ -139,6 +149,9 @@ export const naiveThemeOverrides = computed(() => {
             border: `1px solid ${accentDefault}`,
             borderHover: `1px solid ${accentHover}`,
             borderRadius: '8px',
+            fontSizeTiny: fontSizeSmall,
+            fontSizeSmall: fontSizeBase,
+            fontSizeMedium: fontSizeBase,
         },
 
         // ===== Input 输入框 =====
@@ -151,6 +164,9 @@ export const naiveThemeOverrides = computed(() => {
             boxShadowFocus: `0 0 0 2px ${accentRing}`,
             placeholderColor: textTertiary,
             caretColor: accentDefault,
+            fontSizeTiny: fontSizeSmall,
+            fontSizeSmall: fontSizeBase,
+            fontSizeMedium: fontSizeBase,
         },
 
         // ===== Message 消息提示 =====
@@ -185,6 +201,8 @@ export const naiveThemeOverrides = computed(() => {
             colorChecked: accentDefault,
             colorCheckedHover: accentHover,
             textColor: textPrimary,
+            fontSize: fontSizeBase,
+            labelLineHeight: '1.5',
         },
 
         // ===== Tag 标签 =====

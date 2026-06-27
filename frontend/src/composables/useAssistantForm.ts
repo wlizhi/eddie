@@ -10,7 +10,7 @@ import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
 import type {McpServerItem} from '@/api/assistant'
 import {fetchAssistantDetail, fetchEnabledMcpServers, updateAssistantAvatar} from '@/api/assistant'
-import type {AssistantDetailVO} from '@/types/assistant'
+import type {AssistantDetailVO, AssistantPreferences} from '@/types/assistant'
 import {fetchConfigs} from '@/api/settings'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 import {showToast} from '@/composables/useToast'
@@ -59,6 +59,12 @@ export function useAssistantForm(
     const formModelParams = reactive<Record<string, any>>(
         Object.fromEntries(MODEL_PARAM_DEFS.map(d => [d.key, d.componentType === 'select' ? 'auto' : null]))
     )
+
+    /** 助手偏好设置（UI 默认状态） */
+    const formPreferences = reactive<AssistantPreferences>({
+        webSearchEnabled: false,
+        mcpToolMode: 'auto',
+    })
 
     const show = ref(false)
     const showPicker = ref(false)
@@ -112,6 +118,8 @@ export function useAssistantForm(
         formMemoryRounds.value = 10
         formEnabled.value = 1
         formEnabledMcpServerIds.value = []
+        formPreferences.webSearchEnabled = false
+        formPreferences.mcpToolMode = 'auto'
         for (const def of MODEL_PARAM_DEFS) {
             formModelParams[def.key] = def.componentType === 'select' ? 'auto' : null
         }
@@ -149,6 +157,10 @@ export function useAssistantForm(
             for (const def of MODEL_PARAM_DEFS) {
                 formModelParams[def.key] = (mp as any)[def.key] ?? null
             }
+            // 加载助手偏好设置
+            const prefs = d.preferences ?? {}
+            formPreferences.webSearchEnabled = prefs.webSearchEnabled ?? false
+            formPreferences.mcpToolMode = prefs.mcpToolMode ?? 'auto'
             pendingAvatarFile.value = null
         } catch (err) {
             showToast('加载助手详情失败', 'error')
@@ -265,6 +277,7 @@ export function useAssistantForm(
             saving.value = true
             try {
                 const modelParams = buildModelParams()
+                const preferences = buildPreferences()
 
                 const created = await assistantStore.create({
                     name: formName.value,
@@ -275,6 +288,7 @@ export function useAssistantForm(
                     modelId: formModelId.value,
                     memoryRounds: formMemoryRounds.value,
                     modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
+                    preferences: Object.keys(preferences).length > 0 ? preferences : undefined,
                     enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
                 })
 
@@ -320,6 +334,7 @@ export function useAssistantForm(
             }
 
             const modelParams = buildModelParams()
+            const preferences = buildPreferences()
 
             await assistantStore.update(detail.value.id, {
                 name: formName.value,
@@ -331,6 +346,7 @@ export function useAssistantForm(
                 memoryRounds: formMemoryRounds.value,
                 enabled: formEnabled.value,
                 modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
+                preferences: Object.keys(preferences).length > 0 ? preferences : undefined,
                 enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
             })
             showToast('保存成功')
@@ -350,6 +366,14 @@ export function useAssistantForm(
             if (v !== null && v !== undefined) modelParams[def.key] = v
         }
         return modelParams
+    }
+
+    function buildPreferences(): Record<string, unknown> {
+        // 始终返回完整偏好，包括默认值，确保后端能覆盖旧值
+        return {
+            webSearchEnabled: formPreferences.webSearchEnabled ?? false,
+            mcpToolMode: formPreferences.mcpToolMode ?? 'auto',
+        }
     }
 
     async function handleDelete() {
@@ -397,6 +421,7 @@ export function useAssistantForm(
         formMemoryRounds,
         formEnabled,
         formModelParams,
+        formPreferences,
 
         // MCP 工具选择
         formEnabledMcpServerIds,

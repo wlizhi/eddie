@@ -4,7 +4,6 @@ import cc.wlizhi.eddie.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddie.chat.entity.request.AssistantUpdateRequest;
 import cc.wlizhi.eddie.chat.entity.response.AssistantDetailVO;
 import cc.wlizhi.eddie.chat.entity.response.AssistantVO;
-import cc.wlizhi.eddie.chat.entity.response.McpBindVO;
 import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -65,36 +64,14 @@ public interface AssistantService {
     void batchSort(List<Long> ids);
 
     /**
-     * 获取助手可选的工具源列表
+     * 获取助手已绑定的 MCP 工具列表（二层结构：MCP → tools）
      * <p>
-     * 返回按 MCP Server 分组的工具列表，含哪些已绑定。
-     *
-     * @param assistantId 助手 ID（可为 null，null 时返回所有可用源，不含绑定状态）
-     * @return 工具源列表
-     */
-    List<ToolSourceVO> getToolSources(Long assistantId);
-
-    /**
-     * 获取助手可选的 MCP 绑定列表（仅 MCP 纬度）
-     * <p>
-     * 场景 5：助手设置弹窗中选择允许使用的 MCP 工具。
-     * 场景 6：手动模式下 MCP 工具选择器。
-     * <p>
-     * 数据来源：OwnerToolBindingContext 缓存。
+     * 仅返回当前助手已绑定的 MCP Server 及其下辖工具。
+     * 按 MCP sort_order 排序，供输入框手动模式选择 MCP 使用。
      *
      * @param assistantId 助手 ID
-     * @return MCP 绑定列表
+     * @return 已绑定的 MCP + 工具列表，无绑定返回空列表
      */
-    List<McpBindVO> getMcpBindings(Long assistantId);
+    List<ToolSourceVO> getBoundMcpTools(Long assistantId);
 
-    /**
-     * 更新助手绑定的 MCP 列表（全量替换）
-     * <p>
-     * 场景 5：用户在助手设置弹窗中勾选 MCP 后提交。
-     * 增删绑定关系后自动刷新 OwnerToolBindingContext 缓存。
-     *
-     * @param assistantId  助手 ID
-     * @param mcpServerIds 新的 MCP Server ID 列表
-     */
-    void updateMcpBindings(Long assistantId, List<Long> mcpServerIds);
 }

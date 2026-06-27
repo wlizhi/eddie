@@ -4,7 +4,10 @@ import cc.wlizhi.eddie.chat.context.AssistantContext;
 import cc.wlizhi.eddie.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddie.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddie.chat.entity.request.AssistantUpdateRequest;
-import cc.wlizhi.eddie.chat.entity.response.*;
+import cc.wlizhi.eddie.chat.entity.response.AssistantDetailVO;
+import cc.wlizhi.eddie.chat.entity.response.AssistantVO;
+import cc.wlizhi.eddie.chat.entity.response.ToolItemVO;
+import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
 import cc.wlizhi.eddie.chat.service.AssistantService;
 import cc.wlizhi.eddie.common.dao.*;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
@@ -12,12 +15,12 @@ import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.RoleType;
-import cc.wlizhi.eddie.common.exception.BadRequestException;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
 import cc.wlizhi.eddie.common.util.FileStorageUtil;
 import cc.wlizhi.eddie.memory.context.ModelProviderContext;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.annotation.Resource;
@@ -26,10 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -106,6 +106,7 @@ public class AssistantServiceImpl implements AssistantService {
         entity.setProviderId(request.getProviderId());
         entity.setModelId(request.getModelId() == null ? "" : request.getModelId());
         entity.setModelParams(serializeModelParams(request.getModelParams()));
+        entity.setPreferences(serializePreferences(request.getPreferences()));
         entity.setMemoryRounds(request.getMemoryRounds() != null ? request.getMemoryRounds() : 20);
         entity.setEnabled(1);
         entity.setSortOrder(0);
@@ -114,7 +115,7 @@ public class AssistantServiceImpl implements AssistantService {
         Long assistantId = assistantDao.findLastInsertId();
 
         // 处理工具绑定
-        bindMcpServerTools(RoleType.ASSISTANT, assistantId, request.getEnabledMcpServerIds());
+        bindMcpServerTools(assistantId, request.getEnabledMcpServerIds());
 
         // 刷新全局缓存
         assistantContext.refresh();
@@ -140,6 +141,7 @@ public class AssistantServiceImpl implements AssistantService {
         entity.setProviderId(request.getProviderId());
         entity.setModelId(request.getModelId());
         entity.setModelParams(serializeModelParams(request.getModelParams()));
+        entity.setPreferences(serializePreferences(request.getPreferences()));
         entity.setMemoryRounds(request.getMemoryRounds());
         entity.setEnabled(request.getEnabled());
         entity.setSortOrder(request.getSortOrder());
@@ -147,9 +149,7 @@ public class AssistantServiceImpl implements AssistantService {
         assistantDao.update(entity);
 
         // 处理工具绑定（全量替换）
-        if (request.getEnabledMcpServerIds() != null) {
-            bindMcpServerTools(RoleType.ASSISTANT, id, request.getEnabledMcpServerIds());
-        }
+        bindMcpServerTools(id, request.getEnabledMcpServerIds());
 
         assistantContext.refresh();
 
@@ -215,8 +215,10 @@ public class AssistantServiceImpl implements AssistantService {
         messageDao.deleteByAssistantId(id);
         sessionDao.deleteByAssistantId(id);
         assistantDao.deleteById(id);
+        ownerToolBindingDao.deleteByOwner(RoleType.ASSISTANT, id);
         // 刷新缓存
         assistantContext.refresh();
+        ownerToolBindingContext.refresh();
     }
 
     @Override
@@ -247,24 +249,37 @@ public class AssistantServiceImpl implements AssistantService {
     }
 
     @Override
-    public List<ToolSourceVO> getToolSources(Long assistantId) {
-        // 走缓存：获取全量 MCP + 工具二层结构
-        List<OwnerToolBindingContext.McpServerWithTools> allData = ownerToolBindingContext.getAllMcpServersWithTools();
-
-        // 查询当前助手已绑定的 MCP Server ID 集合（走缓存）
-        Set<Long> boundServerIds = Collections.emptySet();
-        if (assistantId != null) {
-            List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools("ASSISTANT", assistantId);
-            boundServerIds = boundTools.stream()
-                    .filter(t -> t.getMcpServerId() != null)
-                    .map(ToolDefinitionEntity::getMcpServerId)
-                    .collect(Collectors.toSet());
+    public List<ToolSourceVO> getBoundMcpTools(Long assistantId) {
+        // 1. 获取助手绑定的工具列表（已过滤全局启用 + MCP 服务启用）
+        List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools(RoleType.ASSISTANT.name(), assistantId);
+        if (boundTools.isEmpty()) {
+            return List.of();
         }
 
-        List<ToolSourceVO> result = new ArrayList<>();
-        for (OwnerToolBindingContext.McpServerWithTools item : allData) {
-            McpServerEntity server = item.mcpServer();
-            List<ToolDefinitionEntity> tools = item.tools();
+        // 2. 提取 MCP Server ID，构建工具映射：mcpServerId → 工具列表
+        Map<Long, List<ToolDefinitionEntity>> mcpToolsMap = new LinkedHashMap<>();
+        for (ToolDefinitionEntity tool : boundTools) {
+            Long mcpServerId = tool.getMcpServerId();
+            if (mcpServerId == null) continue; // 跳过无关联 MCP 的内置工具
+            mcpToolsMap.computeIfAbsent(mcpServerId, k -> new ArrayList<>()).add(tool);
+        }
+
+        if (mcpToolsMap.isEmpty()) {
+            return List.of();
+        }
+
+        // 3. 获取 MCP Server 实体并排序（按 sortOrder）
+        List<McpServerEntity> mcpServers = mcpToolsMap.keySet().stream()
+                .map(ownerToolBindingContext::getMcpServer)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparingInt(m -> m.getSortOrder() != null ? m.getSortOrder() : 0))
+                .toList();
+
+        // 4. 组装二层 VO
+        List<ToolSourceVO> result = new ArrayList<>(mcpServers.size());
+        for (McpServerEntity server : mcpServers) {
+            List<ToolDefinitionEntity> tools = mcpToolsMap.get(server.getId());
+            if (tools == null || tools.isEmpty()) continue;
 
             List<ToolItemVO> toolItems = tools.stream().map(t -> {
                 ToolItemVO vo = new ToolItemVO();
@@ -283,59 +298,10 @@ public class AssistantServiceImpl implements AssistantService {
             source.setTransportType(server.getTransportType());
             source.setEnabled(server.getEnabled() == 1);
             source.setTools(toolItems);
-            source.setBound(boundServerIds.contains(server.getId()));
+            source.setBound(true); // 此接口返回的必定已绑定
             result.add(source);
         }
         return result;
-    }
-
-    @Override
-    public List<McpBindVO> getMcpBindings(Long assistantId) {
-        // 走缓存：获取全量 MCP 列表
-        List<OwnerToolBindingContext.McpServerWithTools> allData = ownerToolBindingContext.getAllMcpServersWithTools();
-
-        // 查询当前助手已绑定的 MCP Server ID 集合（走缓存）
-        Set<Long> boundServerIds = Collections.emptySet();
-        if (assistantId != null) {
-            List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools("ASSISTANT", assistantId);
-            boundServerIds = boundTools.stream()
-                    .filter(t -> t.getMcpServerId() != null)
-                    .map(ToolDefinitionEntity::getMcpServerId)
-                    .collect(Collectors.toSet());
-        }
-
-        List<McpBindVO> result = new ArrayList<>();
-        for (OwnerToolBindingContext.McpServerWithTools item : allData) {
-            McpServerEntity server = item.mcpServer();
-            McpBindVO vo = new McpBindVO();
-            vo.setMcpServerId(server.getId());
-            vo.setMcpServerName(server.getName());
-            vo.setTransportType(server.getTransportType());
-            vo.setEnabled(server.getEnabled() == 1);
-            vo.setBound(boundServerIds.contains(server.getId()));
-            result.add(vo);
-        }
-        return result;
-    }
-
-    @Override
-    @Transactional
-    public void updateMcpBindings(Long assistantId, List<Long> mcpServerIds) {
-        // 校验助手存在（走缓存）
-        if (assistantContext.getAssistantById(assistantId) == null) {
-            throw new NotFoundException("助手不存在: " + assistantId);
-        }
-
-        // 校验 MCP Server 存在性（走缓存）
-        if (mcpServerIds != null) {
-            for (Long mcpId : mcpServerIds) {
-                if (ownerToolBindingContext.getMcpServer(mcpId) == null) {
-                    throw new BadRequestException("MCP 服务不存在: " + mcpId);
-                }
-            }
-        }
-
-        bindMcpServerTools(RoleType.ASSISTANT, assistantId, mcpServerIds);
     }
 
     /**
@@ -343,21 +309,23 @@ public class AssistantServiceImpl implements AssistantService {
      * <p>
      * 全量替换：先清旧绑定，再插新绑定。完成后刷新 OwnerToolBindingContext 缓存。
      */
-    private void bindMcpServerTools(RoleType ownerType, Long ownerId, List<Long> mcpServerIds) {
+    private void bindMcpServerTools(Long ownerId, List<Long> mcpServerIds) {
         // 先清除旧的绑定
-        ownerToolBindingDao.deleteByOwner(ownerType, ownerId);
+        ownerToolBindingDao.deleteByOwner(RoleType.ASSISTANT, ownerId);
 
         if (mcpServerIds != null && !mcpServerIds.isEmpty()) {
-            // 查询这些 MCP Server 下的所有工具 ID
-            List<ToolDefinitionEntity> tools = toolDefinitionDao.findByMcpServerIds(mcpServerIds);
-            List<Long> toolIds = tools.stream()
-                    .map(ToolDefinitionEntity::getId)
-                    .collect(Collectors.toList());
-
-            // 批量插入
-            ownerToolBindingDao.batchInsert(ownerType, ownerId, toolIds);
+            List<Long> toolIds = new ArrayList<>();
+            for (Long mcpServerId : mcpServerIds) {
+                List<ToolDefinitionEntity> tools = ownerToolBindingContext.getToolsByMcpServerId(mcpServerId);
+                if (tools != null) {
+                    toolIds.addAll(tools.stream().map(ToolDefinitionEntity::getId).toList());
+                }
+            }
+            if (!toolIds.isEmpty()) {
+                // 批量插入
+                ownerToolBindingDao.batchInsert(RoleType.ASSISTANT, ownerId, toolIds);
+            }
         }
-
         // 刷新工具绑定缓存
         ownerToolBindingContext.refresh();
     }
@@ -372,6 +340,7 @@ public class AssistantServiceImpl implements AssistantService {
         vo.setProviderId(entity.getProviderId());
         vo.setModelId(entity.getModelId());
         vo.setModelParams(deserializeModelParams(entity.getModelParams()));
+        vo.setPreferences(deserializePreferences(entity.getPreferences()));
         vo.setMemoryRounds(entity.getMemoryRounds());
         vo.setEnabled(entity.getEnabled() == 1);
         vo.setSortOrder(entity.getSortOrder());
@@ -407,6 +376,29 @@ public class AssistantServiceImpl implements AssistantService {
             return objectMapper.readValue(json, ModelParams.class);
         } catch (JsonProcessingException e) {
             return new ModelParams();
+        }
+    }
+
+    private String serializePreferences(java.util.Map<String, Object> preferences) {
+        if (preferences == null || preferences.isEmpty()) {
+            return "{}";
+        }
+        try {
+            return objectMapper.writeValueAsString(preferences);
+        } catch (JsonProcessingException e) {
+            return "{}";
+        }
+    }
+
+    private java.util.Map<String, Object> deserializePreferences(String json) {
+        if (json == null || json.isEmpty() || "{}".equals(json)) {
+            return new java.util.HashMap<>();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<java.util.Map<String, Object>>() {
+            });
+        } catch (JsonProcessingException e) {
+            return new java.util.HashMap<>();
         }
     }
 }

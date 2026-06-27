@@ -47,6 +47,30 @@ export interface McpServerCreateRequest {
 }
 
 /**
+ * 对应后端 ToolItemVO — MCP Server 下的单个工具
+ */
+export interface ToolItemVO {
+    id: number
+    name: string
+    displayName: string
+    description: string
+    toolType: string
+    enabled: boolean
+}
+
+/**
+ * 对应后端 ToolSourceVO — MCP Server + 下辖工具二层结构
+ */
+export interface ToolSourceVO {
+    mcpServerId: number
+    mcpServerName: string
+    transportType: string
+    enabled: boolean
+    tools: ToolItemVO[]
+    bound: boolean
+}
+
+/**
  * 传输方式显示配置
  */
 export const TRANSPORT_LABELS: Record<string, string> = {

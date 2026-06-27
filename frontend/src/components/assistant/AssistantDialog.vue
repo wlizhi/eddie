@@ -9,7 +9,7 @@
 -->
 <script setup lang="ts">
 import {NButton, NCheckbox, NCheckboxGroup, NInputNumber, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
-import {Trash2} from '@lucide/vue'
+import {Globe, Network, Trash2} from '@lucide/vue'
 import {useAssistantForm} from '@/composables/useAssistantForm'
 import {TIP_THEME_OVERRIDES} from '@/constants/theme'
 import {showToast} from '@/composables/useToast'
@@ -32,7 +32,7 @@ const {
   show, saving, fieldErrors, isCreateMode,
   formName, formAvatar, formDescription, formSystemPrompt,
   formMemoryRounds, formEnabled,
-  formModelParams, showPicker, originalAvatar,
+  formModelParams, formPreferences, showPicker, originalAvatar,
   formEnabledMcpServerIds, mcpServerList,
   clearFieldError, onModelSelect, onAvatarPicked,
   handleSave, handleDelete, close,
@@ -141,15 +141,37 @@ function handleSaveWithValidation() {
                           @error="(e: boolean) => paramHasError = e"/>
       </div>
 
-      <!-- 启用/禁用开关 -->
+      <!-- 助手偏好（UI 默认状态） -->
       <div class="field">
-        <label class="label">状态</label>
-        <div class="switch-row">
-          <NSwitch
-              :value="formEnabled === 1"
-              @update:value="(v: boolean) => formEnabled = v ? 1 : 0"
-          />
-          <span class="switch-label">{{ formEnabled === 1 ? '启用' : '禁用' }}</span>
+        <label class="label">助手偏好</label>
+        <div class="preferences-group">
+          <div class="pref-row">
+            <div class="pref-row-label">
+              <Globe :size="13" :stroke-width="2"/>
+              <span>联网搜索默认</span>
+            </div>
+            <NSwitch
+                :value="!!formPreferences.webSearchEnabled"
+                @update:value="(v: boolean) => formPreferences.webSearchEnabled = v"
+            />
+          </div>
+          <div class="pref-row">
+            <div class="pref-row-label">
+              <Network :size="13" :stroke-width="2"/>
+              <span>MCP 默认模式</span>
+            </div>
+            <NSelect
+                :value="formPreferences.mcpToolMode ?? 'auto'"
+                :options="[
+                  { label: '禁用', value: 'disabled' },
+                  { label: '自动', value: 'auto' },
+                  { label: '手动', value: 'manual' },
+                ]"
+                size="tiny"
+                class="mcp-mode-select"
+                @update:value="(v: string) => formPreferences.mcpToolMode = v"
+            />
+          </div>
         </div>
       </div>
 
@@ -166,6 +188,18 @@ function handleSaveWithValidation() {
                 class="mcp-checkbox-item"
             />
           </NCheckboxGroup>
+        </div>
+      </div>
+
+      <!-- ===== 启用/禁用开关 — 此按钮应放在页面最下方位置 ===== -->
+      <div class="field">
+        <label class="label">状态</label>
+        <div class="switch-row">
+          <NSwitch
+              :value="formEnabled === 1"
+              @update:value="(v: boolean) => formEnabled = v ? 1 : 0"
+          />
+          <span class="switch-label">{{ formEnabled === 1 ? '启用' : '禁用' }}</span>
         </div>
       </div>
     </div>

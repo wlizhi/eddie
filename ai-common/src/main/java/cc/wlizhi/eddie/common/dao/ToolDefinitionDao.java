@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 工具定义表 (ai_tool_definition) 数据访问层
@@ -34,22 +33,6 @@ public class ToolDefinitionDao {
                 ORDER BY sort_order ASC, id ASC
                 """;
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class));
-    }
-
-    /**
-     * 按 name 查询工具定义
-     */
-    public Optional<ToolDefinitionEntity> findByName(String name) {
-        String sql = """
-                SELECT id, tool_type, name, display_name, description,
-                       enabled, built_in, mcp_server_id, sort_order,
-                       created_at, updated_at
-                FROM ai_tool_definition
-                WHERE name = ?
-                """;
-        List<ToolDefinitionEntity> results = jdbcTemplate.query(
-                sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class), name);
-        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     /**
@@ -98,21 +81,6 @@ public class ToolDefinitionDao {
     }
 
     /**
-     * 查询所有启用的工具
-     */
-    public List<ToolDefinitionEntity> findAllEnabled() {
-        String sql = """
-                SELECT id, tool_type, name, display_name, description,
-                       enabled, built_in, mcp_server_id, sort_order,
-                       created_at, updated_at
-                FROM ai_tool_definition
-                WHERE enabled = 1
-                ORDER BY sort_order ASC, id ASC
-                """;
-        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class));
-    }
-
-    /**
      * 查询所有工具定义（不过滤 enabled 状态）
      */
     public List<ToolDefinitionEntity> findAll() {
@@ -147,26 +115,6 @@ public class ToolDefinitionDao {
                 ORDER BY sort_order ASC, id ASC
                 """;
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class), mcpServerId);
-    }
-
-    /**
-     * 按 MCP Server ID 列表批量查询工具（不过滤启用状态）
-     */
-    public List<ToolDefinitionEntity> findByMcpServerIds(List<Long> mcpServerIds) {
-        if (mcpServerIds == null || mcpServerIds.isEmpty()) {
-            return List.of();
-        }
-        String placeholders = String.join(",", mcpServerIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = String.format("""
-                SELECT id, tool_type, name, display_name, description,
-                       enabled, built_in, mcp_server_id, sort_order,
-                       created_at, updated_at
-                FROM ai_tool_definition
-                WHERE mcp_server_id IN (%s)
-                ORDER BY sort_order ASC, id ASC
-                """, placeholders);
-        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class),
-                mcpServerIds.toArray());
     }
 
     /**

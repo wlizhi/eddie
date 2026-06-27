@@ -22,14 +22,48 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
-import {NPopselect, NSelect} from 'naive-ui'
-import {Brain, Globe, Plus, Send, Square} from '@lucide/vue'
+import {NButton, NCheckbox, NCheckboxGroup, NModal, NPopselect, NSelect, NSpace} from 'naive-ui'
+import {Brain, Globe, Network, Plus, Send, Square} from '@lucide/vue'
 
 const chatStore = useChatStore()
 
 const props = defineProps<{
   modelValue: string
 }>()
+
+/** MCP 工具模式选项 */
+const toolModeOptions = [
+  {label: '禁用', value: 'disabled'},
+  {label: '自动', value: 'auto'},
+  {label: '手动', value: 'manual'},
+]
+
+/** 当前工具模式的显示标签 */
+const toolModeLabel = computed(() => {
+  const selected = toolModeOptions.find(o => o.value === chatStore.mcpToolMode)
+  return `MCP · ${selected?.label || '自动'}`
+})
+
+/** 手动模式 MCP 选择弹窗 */
+const showMcpModal = ref(false)
+
+/** 打开手动模式 MCP 选择弹窗 */
+function openMcpSelector() {
+  showMcpModal.value = true
+}
+
+/** 确认 MCP 选择 */
+function confirmMcpSelection() {
+  showMcpModal.value = false
+}
+
+/** 工具模式切换时，如果切到手动则弹出 MCP 选择器 */
+function onToolModeChange(val: string) {
+  chatStore.mcpToolMode = val as 'disabled' | 'auto' | 'manual'
+  if (val === 'manual') {
+    openMcpSelector()
+  }
+}
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
@@ -208,6 +242,7 @@ defineExpose({focusInput})
             @update:value="onModelSelect"
         />
         <div class="feature-toggles">
+          <!-- 思考模式 -->
           <NPopselect
               :value="chatStore.thinkingMode"
               :options="thinkingModeOptions"
@@ -224,11 +259,55 @@ defineExpose({focusInput})
               {{ thinkingModeLabel }}
             </button>
           </NPopselect>
-          <button class="toggle-chip disabled" title="联网搜索（即将上线）">
+
+          <!-- 🌐 联网搜索 toggle -->
+          <button
+              class="toggle-chip"
+              :class="{active: chatStore.webSearchEnabled}"
+              title="联网搜索"
+              @click="chatStore.webSearchEnabled = !chatStore.webSearchEnabled"
+          >
             <Globe :size="13" :stroke-width="2"/>
             联网
           </button>
+
+          <!-- 🛠️ MCP 工具模式 -->
+          <NPopselect
+              :value="chatStore.mcpToolMode"
+              :options="toolModeOptions"
+              size="small"
+              trigger="click"
+              @update:value="onToolModeChange"
+          >
+            <button
+                class="toggle-chip"
+                :class="{active: chatStore.mcpToolMode !== 'auto'}"
+                title="MCP 服务"
+            >
+              <Network :size="12" :stroke-width="2"/>
+              {{ toolModeLabel }}
+            </button>
+          </NPopselect>
         </div>
+
+        <!-- 手动模式 MCP 选择弹窗 -->
+        <NModal v-model:show="showMcpModal" title="选择 MCP 工具" preset="card" style="width:420px">
+          <NCheckboxGroup v-model:value="chatStore.selectedMcpServerIds">
+            <NSpace vertical>
+              <div v-for="mcp in chatStore.boundMcpTools" :key="mcp.mcpServerId" class="mcp-checkbox-item">
+                <NCheckbox :value="mcp.mcpServerId" :label="mcp.mcpServerName"/>
+                <span class="mcp-tool-count">{{ mcp.tools.length }} 个工具</span>
+              </div>
+              <div v-if="chatStore.boundMcpTools.length === 0" class="mcp-empty-hint">暂无可用 MCP 工具</div>
+            </NSpace>
+          </NCheckboxGroup>
+          <template #footer>
+            <div class="mcp-modal-footer">
+              <span class="mcp-modal-hint">选择 MCP 后将启用其下所有工具</span>
+              <n-button type="primary" size="small" @click="confirmMcpSelection">确定</n-button>
+            </div>
+          </template>
+        </NModal>
         <button
             v-if="!chatStore.isStreaming"
             class="send-btn"

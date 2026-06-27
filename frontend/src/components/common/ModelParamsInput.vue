@@ -41,15 +41,6 @@ import {NInputNumber, NSelect, NTooltip} from 'naive-ui'
 import type {ModelParamDef} from '@/constants/modelParams'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 
-const TIP_THEME = {
-  peers: {
-    popover: {
-      padding: '5px 9px',
-      fontSize: '12px',
-      borderRadius: '5px',
-    },
-  },
-}
 
 /**
  * 模型参数输入通用组件
@@ -184,6 +175,7 @@ defineExpose({validate, hasErrors})
   width: 100%;
 }
 
+/* 思考模式（下拉选择）维持显式高度 */
 .mps-select-input :deep(.n-base-selection) {
   min-height: 34px;
   height: 34px;
