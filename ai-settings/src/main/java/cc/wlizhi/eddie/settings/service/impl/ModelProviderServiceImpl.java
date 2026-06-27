@@ -21,10 +21,13 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.stereotype.Service;
 
+import java.lang.ref.WeakReference;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +44,8 @@ public class ModelProviderServiceImpl implements ModelProviderService {
 
     @Resource
     private ModelCapabilityResolver modelCapabilityResolver;
+
+    private volatile WeakReference<Map<Long, ModelCache>> remoteModelsCache = new WeakReference<>(new ConcurrentHashMap<>());
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -197,12 +202,25 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         if (entity == null) {
             throw new NotFoundException("服务商不存在: " + providerId);
         }
+
+        Map<Long, ModelCache> cacheMap = remoteModelsCache.get();
+        if (cacheMap == null) {
+            cacheMap = new ConcurrentHashMap<>();
+        }
+        ModelCache modelCache = cacheMap.get(providerId);
+        if (modelCache != null && modelCache.expireTime + Duration.ofMinutes(30).toMillis() > System.currentTimeMillis()) {
+            return modelCache.models;
+        }
+
         List<ModelVO> models = remoteModelFetcherRouter.fetchModels(entity.getCode(), entity.getBaseUrl(), entity.getApiKey());
         // 填充能力标签：查映射表 → 兜底关键词推断
         String providerCode = entity.getCode();
         for (ModelVO model : models) {
             model.setCapabilities(modelCapabilityResolver.resolve(providerCode, model.getCode()));
         }
+
+        cacheMap.put(providerId, new ModelCache(System.currentTimeMillis(), models));
+        remoteModelsCache = new WeakReference<>(cacheMap);
         return models;
     }
 
@@ -338,5 +356,8 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    public record ModelCache(long expireTime, List<ModelVO> models) {
     }
 }
