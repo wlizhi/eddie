@@ -160,13 +160,13 @@ public class AssistantServiceImpl implements AssistantService {
     @Override
     public AssistantVO updateAvatar(Long id, String avatarText, MultipartFile file) {
         // 1. 校验助手存在
-        AssistantEntity old = assistantDao.findById(id);
+        AssistantEntity old = assistantContext.getAssistantById(id);
         if (old == null) {
             throw new NotFoundException("助手不存在: " + id);
         }
 
         // 2. 计算新头像值
-        String newAvatar;
+        String newAvatar = "";
         if (file != null && !file.isEmpty()) {
             // 上传图片 → 保存到磁盘
             try {
@@ -188,8 +188,6 @@ public class AssistantServiceImpl implements AssistantService {
         } else if (avatarText != null && !avatarText.isEmpty()) {
             // 文字/emoji → 直接存
             newAvatar = avatarText;
-        } else {
-            throw new IllegalArgumentException("请提供头像文字或图片");
         }
 
         // 3. 旧头像如果是图片路径 → 删除旧文件
