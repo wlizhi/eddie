@@ -1,0 +1,83 @@
+/* ===== 全局 Reset 与布局基础 =====
+   从 App.vue 提取的全局样式，由 main.ts 导入 */
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body, #app {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* 确保所有表单元素继承字体设置 */
+button, input, select, textarea {
+    font-family: inherit;
+}
+
+/* ===== 全局背景装饰层 =====
+   承载主题渐变装饰，位于所有页面内容之下。
+   JS 在 applyDisplaySettings() 中设置其 background 属性。
+   backdrop-breathe 提供极微弱的透明度脉动呼吸感。 */
+.app-backdrop {
+    position: fixed;
+    inset: -10%;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--bg-primary);
+    animation: backdrop-drift 25s ease-in-out infinite;
+}
+
+/* 装饰层单独放在 ::before 上，用 drop-shadow 做呼吸，不影响外框 */
+.app-backdrop::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--deco-instance, none);
+    animation: backdrop-breathe 8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* ===== 面板遮罩层（移动端 overlay） ===== */
+.panel-backdrop {
+    display: none;
+}
+
+@media (max-width: 48rem) {
+    .panel-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: var(--bg-mask);
+        z-index: 250;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* 暗色模式下移动端面板阴影 */
+@media (max-width: 48rem) {
+    .context-panel {
+        box-shadow: 2px 0 12px var(--bg-mask);
+    }
+}
+
+/* 移动端导航展开时，主布局增加底部内边距
+   （此选择器跨组件边界，需放在全局 CSS 中） */
+@media (max-width: 48rem) {
+    .nav-rail.nav-expanded + .app-layout {
+        padding-bottom: 3.75rem;
+    }
+}

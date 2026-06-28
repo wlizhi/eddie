@@ -198,6 +198,7 @@ html[data-theme] * {
 /* 为 html 设置基准，所有 rem 基于此 */
 html {
     font-size: var(--base-font-size);
+    touch-action: manipulation;
 }
 
 body {
