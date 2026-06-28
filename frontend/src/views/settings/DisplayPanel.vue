@@ -151,15 +151,28 @@
         </div>
         <div class="color-scheme-selector">
           <button
-              v-for="(scheme, key) in COLOR_SCHEMES"
-              :key="key"
+              v-for="scheme in COLOR_SCHEMES"
+              :key="scheme.color"
               class="color-swatch"
-              :class="{ active: displaySettings.colorScheme === key }"
+              :class="{ active: displaySettings.colorScheme === scheme.color }"
               :title="scheme.label"
-              @click="displaySettings.colorScheme = key"
+              @click="displaySettings.colorScheme = scheme.color"
               :style="{ background: scheme.color }"
           >
           </button>
+          <div class="color-picker-wrap"
+               :class="{ active: !isPresetColor(displaySettings.colorScheme) }"
+               :style="{ background: !isPresetColor(displaySettings.colorScheme) ? displaySettings.colorScheme : '' }">
+            <input
+                type="color"
+                :value="displaySettings.colorScheme"
+                @input="onColorPickerInput"
+                class="color-picker-input"
+                title="自定义颜色"
+            />
+            <span class="color-picker-icon"
+                  :class="{ 'is-custom': !isPresetColor(displaySettings.colorScheme) }">🎨</span>
+          </div>
         </div>
       </div>
     </div>
@@ -247,6 +260,7 @@ import {
   type FontSizeLevel,
   getEffectiveFontSize,
   getThemes,
+  isPresetColor,
   loadDisplaySettings,
   MAX_RECOMMENDED,
   MIN_RECOMMENDED,
@@ -338,6 +352,14 @@ function handleFontSizeBlur() {
       .find(([, px]) => px === clamped)
   if (matchLevel) {
     displaySettings.fontSize = matchLevel[0]
+  }
+}
+
+/** 调色盘输入处理 */
+function onColorPickerInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.value) {
+    displaySettings.colorScheme = target.value
   }
 }
 

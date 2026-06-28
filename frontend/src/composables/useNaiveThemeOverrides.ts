@@ -10,7 +10,13 @@
  * 新增 Naive UI 组件时，在此文件补充对应的 token 映射即可。
  */
 import {computed} from 'vue'
-import {COLOR_SCHEMES, displaySettings, findTheme, getEffectiveFontSize} from '@/composables/useDisplaySettings'
+import {
+    displaySettings,
+    findColorScheme,
+    findTheme,
+    generateAccentVariants,
+    getEffectiveFontSize
+} from '@/composables/useDisplaySettings'
 
 /**
  * 从主题定义中读取 CSS 变量值，取不到时返回空字符串
@@ -25,9 +31,16 @@ function v(name: string): string {
  * 获取当前强调色的对应值
  */
 function accent(key: 'accent' | 'hover' | 'lightBg' | 'lightBorder' | 'ring' | 'borderFocus' | 'textAccent'): string {
-    const scheme = COLOR_SCHEMES[displaySettings.colorScheme]
-    if (!scheme) return ''
-    const vars = displaySettings.themeMode === 'dark' ? scheme.dark : scheme.light
+    const colorVal = displaySettings.colorScheme
+    if (!colorVal || !/^#/.test(colorVal)) return ''
+    // 先按 hex 匹配预设
+    const preset = findColorScheme(colorVal)
+    if (preset) {
+        const vars = displaySettings.themeMode === 'dark' ? preset.dark : preset.light
+        return vars[key]
+    }
+    // 自定义颜色，用生成的变体
+    const vars = generateAccentVariants(colorVal, displaySettings.themeMode === 'dark')
     return vars[key]
 }
 

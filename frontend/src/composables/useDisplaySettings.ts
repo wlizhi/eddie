@@ -68,7 +68,7 @@ const FONT_FAMILY_MAP: Record<string, string> = {
 }
 
 /** 配色方案定义：每个方案的亮/深色主题值 */
-interface ColorSchemeValue {
+export interface ColorSchemeValue {
     accent: string
     hover: string
     lightBg: string
@@ -78,213 +78,19 @@ interface ColorSchemeValue {
     textAccent: string
 }
 
-interface ColorSchemeDefinition {
+export interface ColorSchemeDefinition {
     label: string
-    color: string          // 色块展示颜色
+    color: string          // 色块展示颜色（hex）
     light: ColorSchemeValue
     dark: ColorSchemeValue
 }
 
-export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
-    blue: {
-        label: '蓝色',
-        color: '#3b82f6',
-        light: {
-            accent: '#2563eb',
-            hover: '#1d4ed8',
-            lightBg: '#e8f0fe',
-            lightBorder: '#bfdbfe',
-            ring: 'rgba(37,99,235,0.08)',
-            borderFocus: '#2563eb',
-            textAccent: '#2563eb'
-        },
-        dark: {
-            accent: '#60a5fa',
-            hover: '#3b82f6',
-            lightBg: 'rgba(96,165,250,0.12)',
-            lightBorder: 'rgba(96,165,250,0.25)',
-            ring: 'rgba(96,165,250,0.12)',
-            borderFocus: '#60a5fa',
-            textAccent: '#60a5fa'
-        },
-    },
-    green: {
-        label: '绿色',
-        color: '#22c55e',
-        light: {
-            accent: '#16a34a',
-            hover: '#15803d',
-            lightBg: '#dcfce7',
-            lightBorder: '#bbf7d0',
-            ring: 'rgba(22,163,74,0.08)',
-            borderFocus: '#16a34a',
-            textAccent: '#16a34a'
-        },
-        dark: {
-            accent: '#4ade80',
-            hover: '#22c55e',
-            lightBg: 'rgba(74,222,128,0.12)',
-            lightBorder: 'rgba(74,222,128,0.25)',
-            ring: 'rgba(74,222,128,0.12)',
-            borderFocus: '#4ade80',
-            textAccent: '#4ade80'
-        },
-    },
-    orange: {
-        label: '橙色',
-        color: '#f97316',
-        light: {
-            accent: '#ea580c',
-            hover: '#c2410c',
-            lightBg: '#fff7ed',
-            lightBorder: '#fed7aa',
-            ring: 'rgba(234,88,12,0.08)',
-            borderFocus: '#ea580c',
-            textAccent: '#ea580c'
-        },
-        dark: {
-            accent: '#fb923c',
-            hover: '#f97316',
-            lightBg: 'rgba(251,146,60,0.12)',
-            lightBorder: 'rgba(251,146,60,0.25)',
-            ring: 'rgba(251,146,60,0.12)',
-            borderFocus: '#fb923c',
-            textAccent: '#fb923c'
-        },
-    },
-    purple: {
-        label: '紫色',
-        color: '#a855f7',
-        light: {
-            accent: '#9333ea',
-            hover: '#7e22ce',
-            lightBg: '#f3e8ff',
-            lightBorder: '#e9d5ff',
-            ring: 'rgba(147,51,234,0.08)',
-            borderFocus: '#9333ea',
-            textAccent: '#9333ea'
-        },
-        dark: {
-            accent: '#c084fc',
-            hover: '#a855f7',
-            lightBg: 'rgba(192,132,252,0.12)',
-            lightBorder: 'rgba(192,132,252,0.25)',
-            ring: 'rgba(192,132,252,0.12)',
-            borderFocus: '#c084fc',
-            textAccent: '#c084fc'
-        },
-    },
-    red: {
-        label: '红色',
-        color: '#ef4444',
-        light: {
-            accent: '#ef4444',
-            hover: '#dc2626',
-            lightBg: '#fef2f2',
-            lightBorder: '#fecaca',
-            ring: 'rgba(239,68,68,0.08)',
-            borderFocus: '#ef4444',
-            textAccent: '#ef4444'
-        },
-        dark: {
-            accent: '#f87171',
-            hover: '#ef4444',
-            lightBg: 'rgba(248,113,113,0.12)',
-            lightBorder: 'rgba(248,113,113,0.25)',
-            ring: 'rgba(248,113,113,0.12)',
-            borderFocus: '#f87171',
-            textAccent: '#f87171'
-        },
-    },
-    indigo: {
-        label: '靛蓝',
-        color: '#6366f1',
-        light: {
-            accent: '#4f46e5',
-            hover: '#4338ca',
-            lightBg: '#eef2ff',
-            lightBorder: '#c7d2fe',
-            ring: 'rgba(79,70,229,0.08)',
-            borderFocus: '#4f46e5',
-            textAccent: '#4f46e5',
-        },
-        dark: {
-            accent: '#818cf8',
-            hover: '#6366f1',
-            lightBg: 'rgba(129,140,248,0.12)',
-            lightBorder: 'rgba(129,140,248,0.25)',
-            ring: 'rgba(129,140,248,0.12)',
-            borderFocus: '#818cf8',
-            textAccent: '#818cf8',
-        },
-    },
-    sky: {
-        label: '天蓝',
-        color: '#38bdf8',
-        light: {
-            accent: '#0ea5e9',
-            hover: '#0284c7',
-            lightBg: '#f0f9ff',
-            lightBorder: '#bae6fd',
-            ring: 'rgba(14,165,233,0.08)',
-            borderFocus: '#0ea5e9',
-            textAccent: '#0ea5e9',
-        },
-        dark: {
-            accent: '#38bdf8',
-            hover: '#0ea5e9',
-            lightBg: 'rgba(56,189,248,0.12)',
-            lightBorder: 'rgba(56,189,248,0.25)',
-            ring: 'rgba(56,189,248,0.12)',
-            borderFocus: '#38bdf8',
-            textAccent: '#38bdf8',
-        },
-    },
-    teal: {
-        label: '青色',
-        color: '#14b8a6',
-        light: {
-            accent: '#0d9488',
-            hover: '#0f766e',
-            lightBg: '#f0fdfa',
-            lightBorder: '#99f6e4',
-            ring: 'rgba(13,148,136,0.08)',
-            borderFocus: '#0d9488',
-            textAccent: '#0d9488',
-        },
-        dark: {
-            accent: '#2dd4bf',
-            hover: '#14b8a6',
-            lightBg: 'rgba(45,212,191,0.12)',
-            lightBorder: 'rgba(45,212,191,0.25)',
-            ring: 'rgba(45,212,191,0.12)',
-            borderFocus: '#2dd4bf',
-            textAccent: '#2dd4bf',
-        },
-    },
-    rose: {
-        label: '玫瑰红',
-        color: '#f43f5e',
-        light: {
-            accent: '#e11d48',
-            hover: '#be123c',
-            lightBg: '#fff1f2',
-            lightBorder: '#fecdd3',
-            ring: 'rgba(225,29,72,0.08)',
-            borderFocus: '#e11d48',
-            textAccent: '#e11d48',
-        },
-        dark: {
-            accent: '#fb7185',
-            hover: '#f43f5e',
-            lightBg: 'rgba(251,113,133,0.12)',
-            lightBorder: 'rgba(251,113,133,0.25)',
-            ring: 'rgba(251,113,133,0.12)',
-            borderFocus: '#fb7185',
-            textAccent: '#fb7185',
-        },
-    },
-    amber: {
+/**
+ * 预设强调色列表（按展示顺序）
+ * 只保留用户选择的 7 个：琥珀、紫罗兰、绿色、蓝色、天蓝、玫瑰红、橙色
+ */
+export const COLOR_SCHEMES: ColorSchemeDefinition[] = [
+    {
         label: '琥珀',
         color: '#f59e0b',
         light: {
@@ -306,7 +112,7 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
             textAccent: '#fbbf24',
         },
     },
-    violet: {
+    {
         label: '紫罗兰',
         color: '#8b5cf6',
         light: {
@@ -328,6 +134,179 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeDefinition> = {
             textAccent: '#a78bfa',
         },
     },
+    {
+        label: '绿色',
+        color: '#22c55e',
+        light: {
+            accent: '#16a34a',
+            hover: '#15803d',
+            lightBg: '#dcfce7',
+            lightBorder: '#bbf7d0',
+            ring: 'rgba(22,163,74,0.08)',
+            borderFocus: '#16a34a',
+            textAccent: '#16a34a'
+        },
+        dark: {
+            accent: '#4ade80',
+            hover: '#22c55e',
+            lightBg: 'rgba(74,222,128,0.12)',
+            lightBorder: 'rgba(74,222,128,0.25)',
+            ring: 'rgba(74,222,128,0.12)',
+            borderFocus: '#4ade80',
+            textAccent: '#4ade80'
+        },
+    },
+    {
+        label: '蓝色',
+        color: '#3b82f6',
+        light: {
+            accent: '#2563eb',
+            hover: '#1d4ed8',
+            lightBg: '#e8f0fe',
+            lightBorder: '#bfdbfe',
+            ring: 'rgba(37,99,235,0.08)',
+            borderFocus: '#2563eb',
+            textAccent: '#2563eb'
+        },
+        dark: {
+            accent: '#60a5fa',
+            hover: '#3b82f6',
+            lightBg: 'rgba(96,165,250,0.12)',
+            lightBorder: 'rgba(96,165,250,0.25)',
+            ring: 'rgba(96,165,250,0.12)',
+            borderFocus: '#60a5fa',
+            textAccent: '#60a5fa'
+        },
+    },
+    {
+        label: '天蓝',
+        color: '#38bdf8',
+        light: {
+            accent: '#0ea5e9',
+            hover: '#0284c7',
+            lightBg: '#f0f9ff',
+            lightBorder: '#bae6fd',
+            ring: 'rgba(14,165,233,0.08)',
+            borderFocus: '#0ea5e9',
+            textAccent: '#0ea5e9',
+        },
+        dark: {
+            accent: '#38bdf8',
+            hover: '#0ea5e9',
+            lightBg: 'rgba(56,189,248,0.12)',
+            lightBorder: 'rgba(56,189,248,0.25)',
+            ring: 'rgba(56,189,248,0.12)',
+            borderFocus: '#38bdf8',
+            textAccent: '#38bdf8',
+        },
+    },
+    {
+        label: '玫瑰红',
+        color: '#f43f5e',
+        light: {
+            accent: '#e11d48',
+            hover: '#be123c',
+            lightBg: '#fff1f2',
+            lightBorder: '#fecdd3',
+            ring: 'rgba(225,29,72,0.08)',
+            borderFocus: '#e11d48',
+            textAccent: '#e11d48',
+        },
+        dark: {
+            accent: '#fb7185',
+            hover: '#f43f5e',
+            lightBg: 'rgba(251,113,133,0.12)',
+            lightBorder: 'rgba(251,113,133,0.25)',
+            ring: 'rgba(251,113,133,0.12)',
+            borderFocus: '#fb7185',
+            textAccent: '#fb7185',
+        },
+    },
+    {
+        label: '橙色',
+        color: '#f97316',
+        light: {
+            accent: '#ea580c',
+            hover: '#c2410c',
+            lightBg: '#fff7ed',
+            lightBorder: '#fed7aa',
+            ring: 'rgba(234,88,12,0.08)',
+            borderFocus: '#ea580c',
+            textAccent: '#ea580c'
+        },
+        dark: {
+            accent: '#fb923c',
+            hover: '#f97316',
+            lightBg: 'rgba(251,146,60,0.12)',
+            lightBorder: 'rgba(251,146,60,0.25)',
+            ring: 'rgba(251,146,60,0.12)',
+            borderFocus: '#fb923c',
+            textAccent: '#fb923c'
+        },
+    },
+]
+
+/** 默认强调色（列表第一个） */
+export const DEFAULT_ACCENT_COLOR = COLOR_SCHEMES[0].color
+
+/**
+ * 根据 hex 颜色值查找匹配的预设强调色定义
+ */
+export function findColorScheme(hex: string): ColorSchemeDefinition | undefined {
+    const normalized = hex.toLowerCase()
+    return COLOR_SCHEMES.find((s) => s.color.toLowerCase() === normalized)
+}
+
+/**
+ * 判断给定 hex 是否为已知预设色
+ */
+export function isPresetColor(hex: string): boolean {
+    return !!findColorScheme(hex)
+}
+
+// ===== 颜色工具函数 =====
+
+/** 将 hex 颜色(#rrggbb)解析为 RGB 数值 */
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    if (!m) return null
+    return {r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16)}
+}
+
+/** 将 RGB 数值转回 hex 字符串 */
+function rgbToHex(r: number, g: number, b: number): string {
+    return '#' + [r, g, b].map((c) => Math.round(Math.max(0, Math.min(255, c))).toString(16).padStart(2, '0')).join('')
+}
+
+/** 按百分比加深颜色（负数即变浅） */
+function shadeColor(hex: string, percent: number): string {
+    const rgb = hexToRgb(hex)
+    if (!rgb) return hex
+    return rgbToHex(rgb.r * (1 - percent / 100), rgb.g * (1 - percent / 100), rgb.b * (1 - percent / 100))
+}
+
+/** 生成 rgba 字符串 */
+function toRgba(hex: string, alpha: number): string {
+    const rgb = hexToRgb(hex)
+    if (!rgb) return hex
+    return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`
+}
+
+/**
+ * 从单一 hex 颜色自动生成全套强调色变体
+ * @param hex  用户选中的强调色
+ * @param isDark  是否为深色模式
+ */
+export function generateAccentVariants(hex: string, isDark: boolean): ColorSchemeValue {
+    return {
+        accent: hex,
+        hover: shadeColor(hex, isDark ? 10 : 15),
+        lightBg: isDark ? toRgba(hex, 0.12) : shadeColor(hex, -92),
+        lightBorder: isDark ? toRgba(hex, 0.25) : shadeColor(hex, -75),
+        ring: toRgba(hex, 0.08),
+        borderFocus: hex,
+        textAccent: isDark ? shadeColor(hex, -30) : hex,
+    }
 }
 
 const DISPLAY_CONFIG_KEY = 'DISPLAY_SETTINGS'
@@ -365,7 +344,7 @@ const defaultSettings: DisplaySettings = {
     fontFamily: 'system',
     themeId: 'default',
     themeMode: 'light',
-    colorScheme: 'blue',
+    colorScheme: DEFAULT_ACCENT_COLOR,
     wideMode: true,
     chatMode: true,
     nickname: '',
@@ -406,6 +385,38 @@ export async function loadDisplaySettings(): Promise<void> {
             // 向后兼容：旧数据只有 themeMode（'light'|'dark'），没有 themeId
             if (!('themeId' in parsed) && parsed.themeMode) {
                 parsed.themeId = 'default'
+            }
+
+            // 向后兼容：旧数据 colorScheme 存的是 key（如 'blue'），现改为存 hex 值
+            if (parsed.colorScheme && !/^#/.test(parsed.colorScheme)) {
+                // 尝试按旧 key 查找，找到则用其 color 值
+                const oldKey = parsed.colorScheme
+                // 旧 key → hex 映射
+                const LEGACY_KEYS: Record<string, string> = {
+                    blue: '#3b82f6',
+                    green: '#22c55e',
+                    orange: '#f97316',
+                    purple: '#a855f7',
+                    red: '#ef4444',
+                    indigo: '#6366f1',
+                    sky: '#38bdf8',
+                    teal: '#14b8a6',
+                    rose: '#f43f5e',
+                    amber: '#f59e0b',
+                    violet: '#8b5cf6',
+                }
+                const hex = LEGACY_KEYS[oldKey]
+                if (hex) {
+                    parsed.colorScheme = hex
+                } else {
+                    // 无法识别的旧 key，回退到默认
+                    parsed.colorScheme = DEFAULT_ACCENT_COLOR
+                }
+            }
+
+            // 如果后端返回 null 或空字符串，默认使用第一个预设色
+            if (!parsed.colorScheme) {
+                parsed.colorScheme = DEFAULT_ACCENT_COLOR
             }
 
             Object.assign(displaySettings, {
@@ -533,9 +544,20 @@ export function applyDisplaySettings(): void {
     }
 
     // 配色方案（叠加覆盖主题中的 accent 相关变量）
-    const scheme = COLOR_SCHEMES[displaySettings.colorScheme]
-    if (scheme) {
-        const vars = displaySettings.themeMode === 'dark' ? scheme.dark : scheme.light
+    const colorVal = displaySettings.colorScheme
+    let vars: ColorSchemeValue | null = null
+    if (colorVal) {
+        // 先按 hex 匹配预设色
+        const preset = findColorScheme(colorVal)
+        if (preset) {
+            vars = displaySettings.themeMode === 'dark' ? preset.dark : preset.light
+        } else if (/^#/.test(colorVal)) {
+            // hex 值但非预设 → 自定义颜色，自动生成变体
+            vars = generateAccentVariants(colorVal, displaySettings.themeMode === 'dark')
+        }
+    }
+    // 无有效值则跳过（使用主题自身的 accent 变量）
+    if (vars) {
         root.style.setProperty('--accent-default', vars.accent)
         root.style.setProperty('--accent-hover', vars.hover)
         root.style.setProperty('--accent-light-bg', vars.lightBg)

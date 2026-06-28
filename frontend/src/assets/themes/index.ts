@@ -44,7 +44,13 @@ export function findTheme(id: string): ThemeDefinition | undefined {
     return themeRegistry.find((t) => t.id === id)
 }
 
-/** 获取主题列表（按注册顺序） */
+/** 获取主题列表（默认主题始终排第一，其余保持自然顺序） */
 export function getThemes(): ThemeDefinition[] {
-    return [...themeRegistry]
+    const defaultIdx = themeRegistry.findIndex((t) => t.id === 'default')
+    if (defaultIdx <= 0) return [...themeRegistry]
+    return [
+        themeRegistry[defaultIdx],
+        ...themeRegistry.slice(0, defaultIdx),
+        ...themeRegistry.slice(defaultIdx + 1),
+    ]
 }
