@@ -7,8 +7,6 @@ import cc.wlizhi.eddie.common.entity.AssistantEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -21,9 +19,7 @@ import java.util.Objects;
 //@Service
 public class OpenAiChatClientFactory implements ChatClientFactory {
 
-    private static final Logger log = LoggerFactory.getLogger(OpenAiChatClientFactory.class);
-
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public boolean support(String providerCode) {

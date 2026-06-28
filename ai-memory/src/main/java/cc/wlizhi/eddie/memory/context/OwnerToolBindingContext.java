@@ -6,12 +6,12 @@ import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -38,6 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * 查询 100% 走内存，刷新时全量重建后原子替换（copy-on-write），无需加锁。
  * 数据量 MCP < 10，工具 < 100，绑定 < 500，全量加载开销可忽略。
  */
+@Slf4j
 @Component
 public class OwnerToolBindingContext implements GlobalCache {
     private final ReentrantLock lock = new ReentrantLock();
@@ -84,11 +85,6 @@ public class OwnerToolBindingContext implements GlobalCache {
 
     @Resource
     private OwnerToolBindingDao ownerToolBindingDao;
-
-    @PostConstruct
-    void init() {
-        CompletableFuture.runAsync(this::refresh);
-    }
 
     // ==================== 查询方法：绑定关系 ====================
 
@@ -233,7 +229,10 @@ public class OwnerToolBindingContext implements GlobalCache {
             // 3. 全量加载绑定关系
             // 4. 构建索引
             // 5. 更新缓存
+            log.info("开始刷新内置工具缓存");
             doRefresh();
+            log.info("刷新内置工具缓存完成");
+            log.info(new ObjectMapper().writeValueAsString(getAllMcpServersWithTools()));
         } finally {
             lock.unlock();
         }

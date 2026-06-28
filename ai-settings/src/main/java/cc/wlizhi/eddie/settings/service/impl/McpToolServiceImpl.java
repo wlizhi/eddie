@@ -5,6 +5,7 @@ import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import cc.wlizhi.eddie.common.enums.McpTransportType;
 import cc.wlizhi.eddie.common.enums.ToolType;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
 import cc.wlizhi.eddie.common.exception.ConflictException;
@@ -15,6 +16,7 @@ import cc.wlizhi.eddie.settings.entity.request.McpStatusUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.response.McpServerVO;
 import cc.wlizhi.eddie.settings.entity.response.McpToolItemVO;
 import cc.wlizhi.eddie.settings.service.McpToolService;
+import cc.wlizhi.eddie.tools.service.McpClientRegistry;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.UncategorizedSQLException;
@@ -52,6 +54,9 @@ public class McpToolServiceImpl implements McpToolService {
 
     @Resource
     private OwnerToolBindingDao ownerToolBindingDao;
+
+    @Resource
+    private McpClientRegistry mcpClientRegistry;
 
     @Override
     public List<McpServerVO> listAll() {
@@ -99,15 +104,19 @@ public class McpToolServiceImpl implements McpToolService {
         // 3. 构建实体
         McpServerEntity entity = new McpServerEntity();
         entity.setName(request.getName().trim());
+        entity.setDescription(request.getDescription() != null ? request.getDescription() : "");
         entity.setTransportType(request.getTransportType());
         entity.setCommand(request.getCommand() != null ? request.getCommand() : "");
         entity.setArgs(request.getArgs() != null ? request.getArgs() : "[]");
         entity.setEnv(request.getEnv() != null ? request.getEnv() : "{}");
         entity.setUrl(request.getUrl() != null ? request.getUrl() : "");
+        entity.setHeaders(request.getHeaders() != null ? request.getHeaders() : "{}");
         entity.setTimeoutSeconds(request.getTimeoutSeconds() != null ? request.getTimeoutSeconds() : 60);
         entity.setEnabled(1);
         entity.setBuiltIn(0);
         entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
+        entity.setReconnectIntervalSec(request.getReconnectIntervalSec());
+        entity.setMaxReconnectAttempts(request.getMaxReconnectAttempts());
 
         // 4. 插入 DB
         try {
@@ -127,8 +136,13 @@ public class McpToolServiceImpl implements McpToolService {
         // 7. 刷新缓存
         ownerToolBindingContext.refresh();
 
-        // 8. 返回完整 VO
+        // 8. 注册 MCP 客户端连接
         McpServerEntity saved = mcpServerDao.findById(mcpServerId).orElse(null);
+        if (saved != null) {
+            mcpClientRegistry.register(saved);
+        }
+
+        // 9. 返回完整 VO
         List<ToolDefinitionEntity> tools = toolDefinitionDao.findByMcpServerId(mcpServerId);
         return toMcpServerVO(saved, tools);
     }
@@ -208,6 +222,18 @@ public class McpToolServiceImpl implements McpToolService {
 
         // 4. 刷新上下文缓存
         ownerToolBindingContext.refresh();
+
+        // 5. 联动 MCP 客户端连接管理
+        if (targetMcpEnabled) {
+            // 启用 → 注册连接
+            McpServerEntity server = mcpServerDao.findById(mcpServerId).orElse(null);
+            if (server != null) {
+                mcpClientRegistry.register(server);
+            }
+        } else {
+            // 禁用 → 断开连接
+            mcpClientRegistry.unregister(mcpServerId);
+        }
     }
 
     @Override
@@ -235,7 +261,10 @@ public class McpToolServiceImpl implements McpToolService {
         toolDefinitionDao.deleteByMcpServerId(id);
         mcpServerDao.deleteById(id);
 
-        // 4. 刷新缓存
+        // 4. 断开 MCP 客户端连接
+        mcpClientRegistry.unregister(id);
+
+        // 5. 刷新缓存
         ownerToolBindingContext.refresh();
     }
 
@@ -245,15 +274,20 @@ public class McpToolServiceImpl implements McpToolService {
      * 校验新增请求的参数完整性
      */
     private void validateCreateRequest(McpServerCreateRequest request) {
-        String transportType = request.getTransportType();
-        if ("STDIO".equalsIgnoreCase(transportType)) {
-            if (request.getCommand() == null || request.getCommand().isBlank()) {
-                throw new BadRequestException("STDIO 模式下 command 不能为空");
+        McpTransportType transportType = McpTransportType.fromCode(request.getTransportType());
+        if (transportType == null) {
+            throw new BadRequestException("不支持的传输类型: " + request.getTransportType());
+        }
+        switch (transportType) {
+            case STDIO -> {
+                if (request.getCommand() == null || request.getCommand().isBlank()) {
+                    throw new BadRequestException("STDIO 模式下 command 不能为空");
+                }
             }
-        } else if ("SSE".equalsIgnoreCase(transportType)
-                || "STREAMABLE_HTTP".equalsIgnoreCase(transportType)) {
-            if (request.getUrl() == null || request.getUrl().isBlank()) {
-                throw new BadRequestException("SSE/HTTP 模式下 url 不能为空");
+            case SSE, STREAMABLE_HTTP -> {
+                if (request.getUrl() == null || request.getUrl().isBlank()) {
+                    throw new BadRequestException("SSE/HTTP 模式下 url 不能为空");
+                }
             }
         }
     }
@@ -281,15 +315,19 @@ public class McpToolServiceImpl implements McpToolService {
         McpServerVO vo = new McpServerVO();
         vo.setId(entity.getId());
         vo.setName(entity.getName());
+        vo.setDescription(entity.getDescription());
         vo.setTransportType(entity.getTransportType());
         vo.setCommand(entity.getCommand());
         vo.setArgs(entity.getArgs());
         vo.setEnv(entity.getEnv());
         vo.setUrl(entity.getUrl());
+        vo.setHeaders(entity.getHeaders());
         vo.setTimeoutSeconds(entity.getTimeoutSeconds());
         vo.setEnabled(entity.getEnabled() == 1);
         vo.setBuiltIn(entity.getBuiltIn() == 1);
         vo.setSortOrder(entity.getSortOrder());
+        vo.setReconnectIntervalSec(entity.getReconnectIntervalSec());
+        vo.setMaxReconnectAttempts(entity.getMaxReconnectAttempts());
         vo.setCreatedAt(entity.getCreatedAt());
         vo.setUpdatedAt(entity.getUpdatedAt());
 

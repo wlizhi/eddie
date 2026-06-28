@@ -21,16 +21,20 @@ public class McpServerDao {
     private JdbcTemplate jdbcTemplate;
 
     /**
+     * 全字段查询列（不含关联表）
+     */
+    private static final String ALL_COLUMNS = """
+            id, name, description, transport_type, command, args, env, url, headers,
+            timeout_seconds, enabled, built_in, sort_order,
+            reconnect_interval_sec, max_reconnect_attempts,
+            created_at, updated_at
+            """;
+
+    /**
      * 按名称查询 MCP 服务器
      */
     public Optional<McpServerEntity> findByName(String name) {
-        String sql = """
-                SELECT id, name, transport_type, command, args, env, url,
-                       timeout_seconds, enabled, built_in, sort_order,
-                       created_at, updated_at
-                FROM ai_mcp_server
-                WHERE name = ?
-                """;
+        String sql = "SELECT " + ALL_COLUMNS + " FROM ai_mcp_server WHERE name = ?";
         List<McpServerEntity> results = jdbcTemplate.query(
                 sql, new BeanPropertyRowMapper<>(McpServerEntity.class), name);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
@@ -40,13 +44,7 @@ public class McpServerDao {
      * 按 ID 查询 MCP 服务器
      */
     public Optional<McpServerEntity> findById(Long id) {
-        String sql = """
-                SELECT id, name, transport_type, command, args, env, url,
-                       timeout_seconds, enabled, built_in, sort_order,
-                       created_at, updated_at
-                FROM ai_mcp_server
-                WHERE id = ?
-                """;
+        String sql = "SELECT " + ALL_COLUMNS + " FROM ai_mcp_server WHERE id = ?";
         List<McpServerEntity> results = jdbcTemplate.query(
                 sql, new BeanPropertyRowMapper<>(McpServerEntity.class), id);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
@@ -56,14 +54,8 @@ public class McpServerDao {
      * 查询所有已启用的 MCP 服务器
      */
     public List<McpServerEntity> findAllEnabled() {
-        String sql = """
-                SELECT id, name, transport_type, command, args, env, url,
-                       timeout_seconds, enabled, built_in, sort_order,
-                       created_at, updated_at
-                FROM ai_mcp_server
-                WHERE enabled = 1
-                ORDER BY sort_order ASC, id ASC
-                """;
+        String sql = "SELECT " + ALL_COLUMNS
+                + " FROM ai_mcp_server WHERE enabled = 1 ORDER BY sort_order ASC, id ASC";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(McpServerEntity.class));
     }
 
@@ -71,13 +63,8 @@ public class McpServerDao {
      * 查询所有 MCP 服务器
      */
     public List<McpServerEntity> findAll() {
-        String sql = """
-                SELECT id, name, transport_type, command, args, env, url,
-                       timeout_seconds, enabled, built_in, sort_order,
-                       created_at, updated_at
-                FROM ai_mcp_server
-                ORDER BY sort_order ASC, id ASC
-                """;
+        String sql = "SELECT " + ALL_COLUMNS
+                + " FROM ai_mcp_server ORDER BY sort_order ASC, id ASC";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(McpServerEntity.class));
     }
 
@@ -87,23 +74,29 @@ public class McpServerDao {
     public void insert(McpServerEntity entity) {
         String sql = """
                 INSERT INTO ai_mcp_server
-                    (name, transport_type, command, args, env, url,
+                    (name, description, transport_type, command, args, env, url, headers,
                      timeout_seconds, enabled, built_in, sort_order,
+                     reconnect_interval_sec, max_reconnect_attempts,
                      created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        ?, ?,
                         datetime('now', 'localtime'), datetime('now', 'localtime'))
                 """;
         jdbcTemplate.update(sql,
                 entity.getName(),
+                entity.getDescription() != null ? entity.getDescription() : "",
                 entity.getTransportType() != null ? entity.getTransportType() : "STREAMABLE_HTTP",
                 entity.getCommand() != null ? entity.getCommand() : "",
                 entity.getArgs() != null ? entity.getArgs() : "[]",
                 entity.getEnv() != null ? entity.getEnv() : "{}",
                 entity.getUrl() != null ? entity.getUrl() : "",
+                entity.getHeaders() != null ? entity.getHeaders() : "{}",
                 entity.getTimeoutSeconds() != null ? entity.getTimeoutSeconds() : 60,
                 entity.getEnabled() != null ? entity.getEnabled() : 1,
                 entity.getBuiltIn() != null ? entity.getBuiltIn() : 0,
-                entity.getSortOrder() != null ? entity.getSortOrder() : 0);
+                entity.getSortOrder() != null ? entity.getSortOrder() : 0,
+                entity.getReconnectIntervalSec(),
+                entity.getMaxReconnectAttempts());
     }
 
     /**
@@ -112,22 +105,28 @@ public class McpServerDao {
     public void update(McpServerEntity entity) {
         String sql = """
                 UPDATE ai_mcp_server SET
-                    name = ?, transport_type = ?, command = ?, args = ?, env = ?, url = ?,
+                    name = ?, description = ?, transport_type = ?, command = ?, args = ?,
+                    env = ?, url = ?, headers = ?,
                     timeout_seconds = ?, enabled = ?, built_in = ?, sort_order = ?,
+                    reconnect_interval_sec = ?, max_reconnect_attempts = ?,
                     updated_at = datetime('now', 'localtime')
                 WHERE id = ?
                 """;
         jdbcTemplate.update(sql,
                 entity.getName(),
+                entity.getDescription(),
                 entity.getTransportType(),
                 entity.getCommand(),
                 entity.getArgs(),
                 entity.getEnv(),
                 entity.getUrl(),
+                entity.getHeaders(),
                 entity.getTimeoutSeconds(),
                 entity.getEnabled(),
                 entity.getBuiltIn(),
                 entity.getSortOrder(),
+                entity.getReconnectIntervalSec(),
+                entity.getMaxReconnectAttempts(),
                 entity.getId());
     }
 
@@ -147,10 +146,7 @@ public class McpServerDao {
      * 按 ID 删除 MCP 服务器
      */
     public void deleteById(Long id) {
-        String sql = """
-                DELETE FROM ai_mcp_server
-                WHERE id = ?
-                """;
+        String sql = "DELETE FROM ai_mcp_server WHERE id = ?";
         jdbcTemplate.update(sql, id);
     }
 

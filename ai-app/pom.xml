@@ -45,6 +45,12 @@
             <groupId>cc.wlizhi</groupId>
             <artifactId>ai-settings</artifactId>
         </dependency>
+
+        <!-- MCP Server：将内置 @Tool 暴露为 MCP 协议，供其他软件调用 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

@@ -6,11 +6,14 @@ import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.ToolType;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
+import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +33,7 @@ import java.util.stream.Collectors;
  * 对应的 MCP Server 记录，工具注册时关联该 MCP Server ID。
  */
 @Slf4j
+@DependsOn("dataSourceScriptDatabaseInitializer") // 指定依赖的Bean名称
 @Component
 public class ToolAutoRegister {
 
@@ -37,6 +41,8 @@ public class ToolAutoRegister {
     private final ToolDefinitionDao toolDefinitionDao;
     private final McpServerDao mcpServerDao;
     private final String serverPort;
+    @Resource
+    private OwnerToolBindingContext ownerToolBindingContext;
 
     public ToolAutoRegister(List<BuiltInToolProvider> toolProviders,
                             ToolDefinitionDao toolDefinitionDao,
@@ -123,6 +129,7 @@ public class ToolAutoRegister {
         } else {
             log.debug("[工具自动注册] 无变更");
         }
+        ownerToolBindingContext.refresh();
     }
 
     /**
@@ -138,7 +145,7 @@ public class ToolAutoRegister {
         McpServerEntity entity = new McpServerEntity();
         entity.setName(mcpName);
         entity.setTransportType("BUILT_IN");
-        entity.setUrl("http://localhost:" + serverPort + "/mcp/v1/stream");
+//        entity.setUrl("http://localhost:" + serverPort + "/mcp/v1/stream");
         entity.setTimeoutSeconds(60);
         entity.setEnabled(1);
         entity.setBuiltIn(1);

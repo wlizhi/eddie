@@ -18,6 +18,11 @@ public class McpServerCreateRequest {
     private String name;
 
     /**
+     * MCP 服务描述
+     */
+    private String description;
+
+    /**
      * 传输方式：STDIO / SSE / STREAMABLE_HTTP
      */
     @NotBlank(message = "传输方式不能为空")
@@ -44,6 +49,11 @@ public class McpServerCreateRequest {
     private String url;
 
     /**
+     * SSE / Streamable HTTP 自定义请求头，JSON 对象
+     */
+    private String headers;
+
+    /**
      * 请求超时时间（秒），默认 60
      */
     private Integer timeoutSeconds;
@@ -52,4 +62,14 @@ public class McpServerCreateRequest {
      * 排序序号，默认 0
      */
     private Integer sortOrder;
+
+    /**
+     * 重连间隔(秒)，NULL/0=使用默认5秒
+     */
+    private Integer reconnectIntervalSec;
+
+    /**
+     * 最大重试次数，NULL/0=无限重试
+     */
+    private Integer maxReconnectAttempts;
 }

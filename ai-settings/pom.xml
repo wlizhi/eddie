@@ -23,5 +23,9 @@
             <groupId>cc.wlizhi</groupId>
             <artifactId>ai-memory</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cc.wlizhi</groupId>
+            <artifactId>ai-tools</artifactId>
+        </dependency>
     </dependencies>
 </project>

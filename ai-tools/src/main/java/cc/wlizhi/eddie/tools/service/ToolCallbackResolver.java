@@ -23,10 +23,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * 解析策略按 {@link ToolType} 分支：
  * <ul>
  *   <li>{@link ToolType#BUILT_IN} — 从内存中的 {@link BuiltInToolProvider} Bean 通过 {@code ToolCallbacks.from()} 获取</li>
- *   <li>{@link ToolType#MCP} — 暂未实现，预留扩展点（后续通过 MCP 客户端获取）</li>
+ *   <li>{@link ToolType#MCP} — 从 {@link McpClientRegistry} 获取已连接的远程 MCP 工具</li>
  * </ul>
  * <p>
  * 缓存策略：BUILT_IN 的 ToolCallback 在 Bean 初始化时构建一次，后续仅做名称匹配查找。
+ * MCP 的 ToolCallback 由 {@link McpClientRegistry} 管理，连接建立时自动注册，断开时自动移除。
  */
 @Service
 public class ToolCallbackResolver {
@@ -38,6 +39,9 @@ public class ToolCallbackResolver {
 
     @Resource
     private OwnerToolBindingContext ownerToolBindingContext;
+
+    @Resource
+    private McpClientRegistry mcpClientRegistry;
 
     /**
      * BUILT_IN 工具名 → ToolCallback 的缓存（应用生命周期内不变）
@@ -114,13 +118,35 @@ public class ToolCallbackResolver {
     }
 
     /**
-     * 解析 MCP 工具（预留）
+     * 解析 MCP 工具
      * <p>
-     * TODO: 后续实现通过 MCP 客户端连接获取 ToolCallback
+     * 从 {@link McpClientRegistry} 获取已连接的 MCP 客户端工具回调，
+     * 按工具名称匹配返回。
      */
     private Optional<ToolCallback> resolveMcp(ToolDefinitionEntity toolDef) {
-        log.warn("[ToolCallbackResolver] MCP 工具解析暂未实现: {} (mcpServerId={})",
-                toolDef.getName(), toolDef.getMcpServerId());
+        Long mcpServerId = toolDef.getMcpServerId();
+        if (mcpServerId == null) {
+            log.warn("[ToolCallbackResolver] MCP 工具缺少 mcpServerId: {}", toolDef.getName());
+            return Optional.empty();
+        }
+
+        List<McpToolCallback> callbacks = mcpClientRegistry.getToolCallbacks(mcpServerId);
+        if (callbacks.isEmpty()) {
+            log.warn("[ToolCallbackResolver] MCP 客户端未连接或无可用工具: mcpServerId={}, tool={}",
+                    mcpServerId, toolDef.getName());
+            return Optional.empty();
+        }
+
+        // 按工具名称匹配
+        for (McpToolCallback callback : callbacks) {
+            if (callback.getToolDefinition().name().equals(toolDef.getName())) {
+                return Optional.of(callback);
+            }
+        }
+
+        log.warn("[ToolCallbackResolver] MCP 工具未找到: {} (mcpServerId={}), 可用工具: {}",
+                toolDef.getName(), mcpServerId,
+                callbacks.stream().map(c -> c.getToolDefinition().name()).toList());
         return Optional.empty();
     }
 

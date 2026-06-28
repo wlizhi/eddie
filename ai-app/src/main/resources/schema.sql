@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS ai_mcp_server
 (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     name            TEXT    NOT NULL,                 -- MCP 服务端名称
+    description            TEXT NOT NULL DEFAULT '',  -- MCP 服务描述
     transport_type  TEXT    NOT NULL DEFAULT 'STDIO', -- 传输方式：STDIO / SSE / STREAMABLE_HTTP
 
     -- STDIO 专用参数
@@ -156,11 +157,17 @@ CREATE TABLE IF NOT EXISTS ai_mcp_server
 
     -- SSE / Streamable HTTP 专用参数
     url             TEXT    NOT NULL DEFAULT '',      -- SSE/HTTP 服务端 URL
+    headers                TEXT NOT NULL DEFAULT '{}', -- SSE/HTTP 自定义请求头，JSON 对象
 
     timeout_seconds INTEGER NOT NULL DEFAULT 60,      -- 请求超时时间（秒）
     enabled         INTEGER NOT NULL DEFAULT 1,       -- 0=禁用, 1=启用
     built_in        INTEGER NOT NULL DEFAULT 0,       -- 0=用户自定义(可删除/编辑), 1=内置(不可删除)
     sort_order      INTEGER NOT NULL DEFAULT 0,       -- 排序序号
+
+    -- 断开重连配置
+    reconnect_interval_sec INTEGER, -- 重连间隔(秒)，NULL/0=默认5秒
+    max_reconnect_attempts INTEGER, -- 最大重试次数，NULL/0=无限重试
+
     created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
     updated_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
