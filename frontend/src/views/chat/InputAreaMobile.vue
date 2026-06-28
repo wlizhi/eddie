@@ -16,7 +16,7 @@ import MobileModelSheet from './MobileModelSheet.vue'
 import MobileThinkingSheet from './MobileThinkingSheet.vue'
 import MobileMcpSheet from './MobileMcpSheet.vue'
 
-const {iconSizeSm} = useIconSize()
+const {iconSizeMd} = useIconSize()
 
 const chatStore = useChatStore()
 
@@ -48,11 +48,9 @@ function onInput(e: Event) {
 }
 
 function handleKeydown(e: KeyboardEvent) {
+  // 移动端：Enter 换行，发送由右侧按钮触发
+  // 桌面端 Ctrl+Enter / Shift+Enter 换行由原生行为处理
   if (e.isComposing || e.keyCode === 229) return
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    emit('send')
-  }
 }
 
 function onCompositionStart() {
@@ -106,60 +104,67 @@ const showMcpSheet = ref(false)
 <template>
   <div class="input-area-mobile">
     <div class="input-container-mobile">
-      <div class="input-body-mobile">
-        <textarea
-            ref="inputRef"
-            :value="modelValue"
-            class="chat-input-mobile"
-            placeholder="输入消息..."
-            rows="1"
-            enterkeyhint="send"
-            @input="onInput"
-            @keydown="handleKeydown"
-            @compositionstart="onCompositionStart"
-            @compositionend="onCompositionEnd"
-        />
+      <!-- 可水平滑动的工具栏行 -->
+      <div class="toolbar-scroll-row">
+        <div class="toolbar-scroll-content">
+          <button class="toolbar-chip toolbar-chip-label" title="选择模型" @click="showModelSheet = true">
+            <span class="model-name-mobile">{{ currentModelName }}</span>
+            <ChevronDown :size="14"/>
+          </button>
+
+          <button
+              class="toolbar-chip"
+              :class="{active: chatStore.thinkingMode !== 'auto'}"
+              title="思考模式"
+              @click="showThinkingSheet = true"
+          >
+            <Brain :size="iconSizeMd"/>
+            <span>思考</span>
+          </button>
+
+          <button
+              class="toolbar-chip"
+              :class="{active: chatStore.webSearchEnabled}"
+              title="联网搜索"
+              @click="chatStore.webSearchEnabled = !chatStore.webSearchEnabled"
+          >
+            <Globe :size="iconSizeMd"/>
+            <span>联网</span>
+          </button>
+
+          <button
+              class="toolbar-chip"
+              :class="{active: chatStore.mcpToolMode !== 'auto'}"
+              title="MCP 服务"
+              @click="showMcpSheet = true"
+          >
+            <Network :size="iconSizeMd"/>
+            <span>MCP</span>
+          </button>
+
+          <button class="toolbar-chip" title="新对话" @click="chatStore.newConversation()">
+            <Plus :size="iconSizeMd"/>
+            <span>新对话</span>
+          </button>
+        </div>
       </div>
 
-      <!-- 底部工具栏 -->
-      <div class="input-toolbar-mobile">
-        <button class="toolbar-btn-mobile" title="新对话" @click="chatStore.newConversation()">
-          <Plus :size="iconSizeSm" :stroke-width="2"/>
-        </button>
-
-        <button class="toolbar-btn-mobile toolbar-btn-label" title="选择模型" @click="showModelSheet = true">
-          <span class="model-name-mobile">{{ currentModelName }}</span>
-          <ChevronDown :size="14" :stroke-width="2"/>
-        </button>
-
-        <div class="toolbar-spacer-mobile"/>
-
-        <button
-            class="toolbar-btn-mobile"
-            :class="{active: chatStore.thinkingMode !== 'auto'}"
-            title="思考模式"
-            @click="showThinkingSheet = true"
-        >
-          <Brain :size="iconSizeSm" :stroke-width="2"/>
-        </button>
-
-        <button
-            class="toolbar-btn-mobile"
-            :class="{active: chatStore.webSearchEnabled}"
-            title="联网搜索"
-            @click="chatStore.webSearchEnabled = !chatStore.webSearchEnabled"
-        >
-          <Globe :size="iconSizeSm" :stroke-width="2"/>
-        </button>
-
-        <button
-            class="toolbar-btn-mobile"
-            :class="{active: chatStore.mcpToolMode !== 'auto'}"
-            title="MCP 服务"
-            @click="showMcpSheet = true"
-        >
-          <Network :size="iconSizeSm" :stroke-width="2"/>
-        </button>
+      <!-- 输入框 + 发送按钮行 -->
+      <div class="input-row-mobile">
+        <div class="input-body-mobile">
+          <textarea
+              ref="inputRef"
+              :value="modelValue"
+              class="chat-input-mobile"
+              placeholder="输入消息..."
+              rows="1"
+              enterkeyhint="enter"
+              @input="onInput"
+              @keydown="handleKeydown"
+              @compositionstart="onCompositionStart"
+              @compositionend="onCompositionEnd"
+          />
+        </div>
 
         <button
             v-if="!chatStore.isStreaming"
@@ -168,7 +173,7 @@ const showMcpSheet = ref(false)
             title="发送"
             @click="emit('send')"
         >
-          <Send :size="iconSizeSm" :stroke-width="2.5"/>
+          <Send :size="iconSizeMd"/>
         </button>
         <button
             v-else
@@ -176,7 +181,7 @@ const showMcpSheet = ref(false)
             title="中断"
             @click="chatStore.abortStream()"
         >
-          <Square :size="iconSizeSm" :stroke-width="2.5"/>
+          <Square :size="iconSizeMd"/>
         </button>
       </div>
     </div>
@@ -216,11 +221,87 @@ const showMcpSheet = ref(false)
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
-.input-body-mobile {
+/* ===== 可水平滑动的工具栏行 ===== */
+.toolbar-scroll-row {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: var(--space-2) var(--space-3) 0;
+}
+
+.toolbar-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+
+.toolbar-scroll-content {
   display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+/* Chip 样式工具栏项 */
+.toolbar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-small);
+  font-family: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.toolbar-chip:active {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.toolbar-chip.active {
+  color: var(--accent-default);
+  background: var(--accent-light-bg);
+  border-color: var(--accent-light-border);
+}
+
+.toolbar-chip-label {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--text-quaternary);
+}
+
+.toolbar-chip-label:active {
+  background: var(--bg-hover);
+}
+
+.model-name-mobile {
+  max-width: 5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 输入框 + 发送按钮行 ===== */
+.input-row-mobile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-2);
+}
+
+.input-body-mobile {
+  flex: 1;
   min-height: var(--space-24);
   max-height: 9.375rem;
-  padding: var(--space-3) var(--space-3) 0;
   overflow: hidden;
 }
 
@@ -230,7 +311,7 @@ const showMcpSheet = ref(false)
   padding: var(--space-1) 0;
   border: none;
   border-radius: 0;
-  font-size: max(var(--font-size-body), 16px); /* max 确保 ≥ 16px，阻止 iOS Safari 自动缩放 */
+  font-size: max(var(--font-size-body), 16px);
   font-family: inherit;
   line-height: 1.5;
   resize: none;
@@ -244,72 +325,18 @@ const showMcpSheet = ref(false)
   color: var(--text-tertiary);
 }
 
-.input-toolbar-mobile {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-2) var(--space-2);
-  flex-shrink: 0;
-}
-
-.toolbar-spacer-mobile {
-  flex: 1;
-}
-
-.toolbar-btn-mobile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-10);
-  height: var(--space-10);
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-quaternary);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.toolbar-btn-mobile:active {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.toolbar-btn-mobile.active {
-  color: var(--accent-default);
-  background: var(--accent-light-bg);
-}
-
-.toolbar-btn-label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  width: auto;
-  padding: 0 var(--space-3);
-  white-space: nowrap;
-  font-size: var(--font-size-small);
-  font-family: inherit;
-  color: var(--text-tertiary);
-}
-
-.model-name-mobile {
-  max-width: 5rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+/* ===== 发送/停止按钮（增大触摸目标） ===== */
 .send-btn-mobile,
 .stop-btn-mobile {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-10);
-  height: var(--space-10);
+  width: var(--size-btn-lg);
+  height: var(--size-btn-lg);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s, opacity 0.15s;
