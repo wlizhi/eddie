@@ -268,10 +268,20 @@ function selectSession(session: SessionVO) {
   min-height: 44px;
   height: auto;
   box-sizing: border-box;
+  touch-action: manipulation;
 }
 
-.session-item:hover {
-  background: var(--bg-tertiary);
+@media (hover: hover) {
+  .session-item:hover {
+    background: var(--bg-tertiary);
+  }
+}
+
+/* 触屏设备：操作按钮常显，并给右侧预留按钮空间避免遮挡 */
+@media (hover: none) {
+  .session-item {
+    padding-right: 96px;
+  }
 }
 
 .session-item.active {
@@ -372,9 +382,19 @@ function selectSession(session: SessionVO) {
   padding: 2px 0;
 }
 
-.session-item:hover .session-actions {
-  opacity: 1;
-  pointer-events: auto;
+@media (hover: hover) {
+  .session-item:hover .session-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* 触屏设备：操作按钮始终可见 */
+@media (hover: none) {
+  .session-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .session-rename,

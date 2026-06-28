@@ -19,7 +19,7 @@ import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
 import {Brain, ChevronDown, Copy, Eye, Loader, Pen, RefreshCw} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
-import {formatTime} from '@/utils/format'
+import {formatShortTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
 import {displaySettings, getEffectiveFontSize} from '@/composables/useDisplaySettings'
 
@@ -157,6 +157,14 @@ function toggleToolResult(toolIndex: number) {
 
 /** 当前正在显示"已复制"提示的消息 ID */
 const copiedMessageId = ref<string | null>(null)
+
+/** 跟踪每条消息的 metadata 展开状态（移动端折叠详情） */
+const metaExpanded = ref<Record<string, boolean>>({})
+
+/** 切换 metadata 展开/折叠 */
+function toggleMetaExpanded(msgId: string) {
+  metaExpanded.value[msgId] = !metaExpanded.value[msgId]
+}
 
 /** 复制消息内容到剪贴板（去除 SSE 协议引入的首部换行） */
 function copyContent(msgId: string, content: string) {
@@ -332,89 +340,102 @@ function onScroll() {
           ></div>
         </div>
 
-        <!-- 操作栏（复制 + 重新生成） -->
-        <div v-if="msg.content" class="message-actions">
-          <button
-              class="action-btn"
-              :data-copied="copiedMessageId === msg.id || undefined"
-              @click="copyContent(msg.id, msg.content)"
-              :title="copiedMessageId === msg.id ? '已复制' : '复制消息'"
-          >
-            <Copy v-if="copiedMessageId !== msg.id" :size="13" :stroke-width="2"/>
-            <span v-else class="copied-text">已复制</span>
-          </button>
-          <button
-              v-if="msg.role === 'assistant'"
-              class="action-btn regenerate-btn"
-              :disabled="chatStore.isStreaming"
-              :title="chatStore.isStreaming ? '请在消息生成结束后操作' : '重新生成'"
-              @click="chatStore.regenerate(chatStore.messages.indexOf(msg))"
-          >
-            <RefreshCw :size="13" :stroke-width="2"/>
-          </button>
-        </div>
-
-        <!-- 元数据（仅 assistant） -->
-        <div v-if="msg.role === 'assistant' && msg.metadata" class="metadata">
-          <template v-if="msg.metadata.timestamp && displaySettings.showMetaTime">
-            <span class="meta-time">{{ formatTime(msg.metadata.timestamp) }}</span>
-          </template>
-          <template v-if="msg.metadata.durationMs != null && displaySettings.showMetaDuration">
-            <span v-if="msg.metadata.timestamp && displaySettings.showMetaTime" class="meta-divider">|</span>
-            <span class="meta-duration">
-              耗时 {{ (msg.metadata.durationMs / 1000).toFixed(1) }}s
-            </span>
-          </template>
-          <template v-if="msg.metadata.totalTokens != null && displaySettings.showMetaTokens">
-            <span
-                v-if="(msg.metadata.timestamp && displaySettings.showMetaTime) || (msg.metadata.durationMs != null && displaySettings.showMetaDuration)"
-                class="meta-divider">|</span>
-            <span class="meta-tokens">
-              {{ msg.metadata.totalTokens }} tokens
-              <span v-if="msg.metadata.promptTokens != null || msg.metadata.completionTokens != null"
-                    class="meta-tokens-detail">
-                (输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }}
-                <template
-                    v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0 || (msg.metadata.cacheWriteInputTokens ?? 0) > 0">
-                  · 缓存
-                  <template v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0">
-                    <Eye class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheReadInputTokens }}
-                  </template>
-                  <template v-if="(msg.metadata.cacheWriteInputTokens ?? 0) > 0">
-                    <Pen class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheWriteInputTokens }}
-                  </template>
-                </template>
-                )
+        <!-- 底部区域：元数据 + 操作按钮合并 -->
+        <div v-if="msg.content" class="msg-footer">
+          <!-- 元数据（仅 assistant）— 桌面端完整版 -->
+          <div v-if="msg.role === 'assistant' && msg.metadata"
+               class="metadata-desktop">
+            <template v-if="msg.metadata.timestamp && displaySettings.showMetaTime">
+              <span class="meta-time">{{ formatShortTime(msg.metadata.timestamp) }}</span>
+            </template>
+            <template v-if="msg.metadata.durationMs != null && displaySettings.showMetaDuration">
+              <span v-if="msg.metadata.timestamp && displaySettings.showMetaTime" class="meta-divider">|</span>
+              <span class="meta-duration">
+                {{ (msg.metadata.durationMs / 1000).toFixed(1) }}s
               </span>
-            </span>
-          </template>
-          <template v-else-if="msg.metadata.promptTokens != null || msg.metadata.completionTokens != null">
+            </template>
+            <template
+                v-if="displaySettings.showMetaTokens && (msg.metadata.totalTokens != null || msg.metadata.promptTokens != null)">
+              <span
+                  v-if="(msg.metadata.timestamp && displaySettings.showMetaTime) || (msg.metadata.durationMs != null && displaySettings.showMetaDuration)"
+                  class="meta-divider">|</span>
+              <span class="meta-tokens">
+                <template v-if="msg.metadata.totalTokens != null">{{ msg.metadata.totalTokens }} tokens</template>
+                <span v-if="msg.metadata.promptTokens != null" class="meta-tokens-prefix"> ←{{
+                    msg.metadata.promptTokens
+                  }}</span>
+                <span
+                    v-if="msg.metadata.completionTokens != null || (msg.metadata.cacheReadInputTokens ?? 0) > 0 || (msg.metadata.cacheWriteInputTokens ?? 0) > 0"
+                    class="meta-tokens-detail">
+                  <template v-if="msg.metadata.completionTokens != null"> →{{
+                      msg.metadata.completionTokens
+                    }}</template>
+                  <template
+                      v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0 || (msg.metadata.cacheWriteInputTokens ?? 0) > 0">
+                    <template v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0">
+                      <Eye class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheReadInputTokens }}
+                    </template>
+                    <template v-if="(msg.metadata.cacheWriteInputTokens ?? 0) > 0">
+                      <Pen class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheWriteInputTokens }}
+                    </template>
+                  </template>
+                </span>
+              </span>
+            </template>
+            <!-- 预估费用 -->
+            <template v-if="msg.metadata.costEstimate != null && displaySettings.showMetaCost">
+              <span
+                  v-if="(msg.metadata.timestamp && displaySettings.showMetaTime) || (msg.metadata.durationMs != null && displaySettings.showMetaDuration) || (msg.metadata.totalTokens != null && displaySettings.showMetaTokens) || (msg.metadata.promptTokens != null)"
+                  class="meta-divider">|</span>
+              <span class="meta-cost">{{ currencySymbol(msg.metadata.currency) }}{{
+                  msg.metadata.costEstimate.toFixed(6)
+                }}</span>
+            </template>
+          </div>
+
+          <!-- 元数据（仅 assistant）— 移动端精简版 -->
+          <div v-if="msg.role === 'assistant' && msg.metadata"
+               class="metadata-compact">
+            <span v-if="msg.metadata.totalTokens != null && displaySettings.showMetaTokens"
+                  class="meta-tokens">{{ msg.metadata.totalTokens }}tokens</span>
             <span
-                v-if="displaySettings.showMetaTokens && ((msg.metadata.timestamp && displaySettings.showMetaTime) || (msg.metadata.durationMs != null && displaySettings.showMetaDuration))"
-                class="meta-divider">|</span>
-            <span v-if="displaySettings.showMetaTokens" class="meta-tokens">
-              输入 {{ msg.metadata.promptTokens ?? '?' }} · 输出 {{ msg.metadata.completionTokens ?? '?' }}
-              <template
-                  v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0 || (msg.metadata.cacheWriteInputTokens ?? 0) > 0">
-                · 缓存
-                <template v-if="(msg.metadata.cacheReadInputTokens ?? 0) > 0">
-                  <Eye class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheReadInputTokens }}
-                </template>
-                <template v-if="(msg.metadata.cacheWriteInputTokens ?? 0) > 0">
-                  <Pen class="cache-icon" :stroke-width="1.5"/> {{ msg.metadata.cacheWriteInputTokens }}
-                </template>
-              </template>
-            </span>
-          </template>
-          <!-- 预估费用 -->
-          <template v-if="msg.metadata.costEstimate != null && displaySettings.showMetaCost">
-            <span
-                v-if="(msg.metadata.timestamp && displaySettings.showMetaTime) || (msg.metadata.durationMs != null && displaySettings.showMetaDuration) || (msg.metadata.totalTokens != null && displaySettings.showMetaTokens) || (msg.metadata.promptTokens != null || msg.metadata.completionTokens != null)"
-                class="meta-divider">|</span>
-            <span class="meta-cost">{{ currencySymbol(msg.metadata.currency) }}{{
+                v-if="msg.metadata.totalTokens != null && displaySettings.showMetaTokens && msg.metadata.costEstimate != null && displaySettings.showMetaCost"
+                class="meta-cdivider">｜</span>
+            <span v-if="msg.metadata.costEstimate != null && displaySettings.showMetaCost"
+                  class="meta-cost">{{ currencySymbol(msg.metadata.currency) }}{{
                 msg.metadata.costEstimate.toFixed(6)
               }}</span>
-          </template>
+            <button
+                class="meta-expand-btn"
+                :class="{ rotated: metaExpanded[msg.id] }"
+                @click.stop="toggleMetaExpanded(msg.id)"
+                :title="metaExpanded[msg.id] ? '收起详情' : '展开详情'"
+            >
+              <ChevronDown :size="10" :stroke-width="2"/>
+            </button>
+          </div>
+
+          <!-- 操作栏（复制 + 重新生成） -->
+          <div class="message-actions">
+            <button
+                class="action-btn"
+                :data-copied="copiedMessageId === msg.id || undefined"
+                @click="copyContent(msg.id, msg.content)"
+                :title="copiedMessageId === msg.id ? '已复制' : '复制消息'"
+            >
+              <Copy v-if="copiedMessageId !== msg.id" :size="13" :stroke-width="2"/>
+              <span v-else class="copied-text">已复制</span>
+            </button>
+            <button
+                v-if="msg.role === 'assistant'"
+                class="action-btn regenerate-btn"
+                :disabled="chatStore.isStreaming"
+                :title="chatStore.isStreaming ? '请在消息生成结束后操作' : '重新生成'"
+                @click="chatStore.regenerate(chatStore.messages.indexOf(msg))"
+            >
+              <RefreshCw :size="13" :stroke-width="2"/>
+            </button>
+          </div>
         </div>
       </div>
     </div>

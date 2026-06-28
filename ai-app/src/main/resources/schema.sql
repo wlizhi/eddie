@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS ai_session_msg
     cache_read_input_tokens INTEGER NOT NULL DEFAULT 0, -- 缓存读取的 input token 数（来自 Usage）
     cache_written_input_tokens INTEGER NOT NULL DEFAULT 0, -- 缓存写入的 input token 数（来自 Usage）
     currency                TEXT    NOT NULL DEFAULT '', -- 费用货币符号，如 ¥ / $
+    duration_ms INTEGER NOT NULL DEFAULT 0, -- 接口耗时（毫秒）
     created_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_msg_session_id ON ai_session_msg (session_id, id);

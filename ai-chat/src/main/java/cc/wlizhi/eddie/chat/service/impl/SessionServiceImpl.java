@@ -300,6 +300,7 @@ public class SessionServiceImpl implements SessionService {
         vo.setCacheReadInputTokens(entity.getCacheReadInputTokens());
         vo.setCacheWriteInputTokens(entity.getCacheWriteInputTokens());
         vo.setCurrency(entity.getCurrency());
+        vo.setDurationMs(entity.getDurationMs());
         vo.setCreatedAt(entity.getCreatedAt());
         // 将 tool_calls JSON 字符串反序列化为 List<ToolExecutionEvent>，
         // 避免前端收到 String 类型后需要二次 JSON.parse（双层序列化问题）

@@ -26,8 +26,8 @@ public class MessageDao {
                 "INSERT INTO ai_session_msg (session_id, assistant_id, role, provider_id, " +
                         "model_code, model_name, thinking, content, prompt_tokens, completion_tokens, " +
                         "total_tokens, price_estimate, tool_calls, " +
-                        "cache_read_input_tokens, cache_written_input_tokens, currency, created_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))",
+                        "cache_read_input_tokens, cache_written_input_tokens, currency, duration_ms, created_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))",
                 entity.getSessionId(),
                 entity.getAssistantId(),
                 entity.getRole(),
@@ -43,7 +43,8 @@ public class MessageDao {
                 entity.getToolCalls(),
                 entity.getCacheReadInputTokens() != null ? entity.getCacheReadInputTokens() : 0,
                 entity.getCacheWriteInputTokens() != null ? entity.getCacheWriteInputTokens() : 0,
-                entity.getCurrency() != null ? entity.getCurrency() : "");
+                entity.getCurrency() != null ? entity.getCurrency() : "",
+                entity.getDurationMs() != null ? entity.getDurationMs() : 0);
     }
 
     /**
@@ -58,7 +59,7 @@ public class MessageDao {
                 "SELECT id, session_id, assistant_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
-                        "currency, created_at FROM ai_session_msg WHERE session_id = ?");
+                        "currency, duration_ms, created_at FROM ai_session_msg WHERE session_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(sessionId);
 
@@ -81,7 +82,7 @@ public class MessageDao {
                 "SELECT id, session_id, assistant_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
-                        "currency, created_at FROM ai_session_msg WHERE session_id = ? " +
+                        "currency, duration_ms, created_at FROM ai_session_msg WHERE session_id = ? " +
                         "ORDER BY id ASC LIMIT 2",
                 messageRowMapper, sessionId);
     }
@@ -128,6 +129,7 @@ public class MessageDao {
         entity.setCacheReadInputTokens(rs.getInt("cache_read_input_tokens"));
         entity.setCacheWriteInputTokens(rs.getInt("cache_written_input_tokens"));
         entity.setCurrency(rs.getString("currency"));
+        entity.setDurationMs(rs.getInt("duration_ms"));
         entity.setCreatedAt(rs.getString("created_at"));
         return entity;
     };

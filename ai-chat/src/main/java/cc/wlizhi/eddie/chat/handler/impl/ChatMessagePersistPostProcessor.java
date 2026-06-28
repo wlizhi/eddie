@@ -95,6 +95,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
             assistantMsg.setCacheWriteInputTokens(metadata.getCacheWriteInputTokens());
             assistantMsg.setCurrency(metadata.getCurrency() != null ? metadata.getCurrency() : currency);
             assistantMsg.setPriceEstimate(metadata.getCostEstimate());
+            assistantMsg.setDurationMs((int) metadata.getDurationMs());
             totalTokens = metadata.getTotalTokens();
         } else {
             assistantMsg.setPromptTokens(0);

@@ -186,16 +186,90 @@
     padding: var(--space-2) var(--space-3);
 }
 
-/* ===== 元数据 ===== */
-.metadata {
+/* ===== 消息底部区域（元数据 + 操作按钮合并） ===== */
+.msg-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-1) 0;
+    min-height: 0;
+}
+
+/* 无元数据时（用户消息），按钮推到右侧 */
+.msg-footer > .message-actions:only-child {
+    margin-left: auto;
+}
+
+/* ===== 元数据 — 桌面端完整版 ===== */
+.metadata-desktop {
     display: flex;
     align-items: center;
     gap: var(--space-2);
     font-size: var(--font-size-xs);
     color: var(--text-tertiary);
-    padding: var(--space-1) var(--space-1) 0;
+    flex: 1;
+    min-width: 0;
     flex-wrap: wrap;
     user-select: none;
+}
+
+/* 桌面端：输入/输出/缓存等详情使用灰色，字号统一为小号 */
+.metadata-desktop .meta-tokens-prefix,
+.metadata-desktop .meta-tokens-detail {
+    font-size: var(--font-size-xxs);
+    color: var(--text-muted);
+}
+
+.metadata-desktop .cache-icon {
+    color: var(--text-muted);
+}
+
+/* ===== 元数据 — 移动端精简版 ===== */
+.metadata-compact {
+    display: none;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    flex: 1;
+    min-width: 0;
+    user-select: none;
+}
+
+.metadata-compact .meta-cdivider {
+    color: var(--border-hover);
+    font-size: 0.6rem;
+}
+
+/* 展开/折叠详情按钮 */
+.meta-expand-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-tertiary);
+    transition: background 0.15s, transform 0.2s;
+}
+
+.meta-expand-btn:hover {
+    background: var(--bg-hover);
+}
+
+.meta-expand-btn.rotated {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 48rem) {
+    .meta-expand-btn {
+        display: inline-flex;
+    }
 }
 
 .meta-time {
@@ -216,6 +290,9 @@
 }
 
 .meta-tokens-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
     color: var(--text-muted);
     font-size: var(--font-size-xxs);
 }
@@ -301,17 +378,18 @@
     user-select: none;
 }
 
-/* ===== 消息操作栏（复制 + 重新生成） ===== */
-.message-actions {
+/* ===== 消息操作栏（复制 + 重新生成，嵌入 msg-footer） ===== */
+.msg-footer .message-actions {
     display: flex;
     align-items: center;
     gap: var(--space-1);
-    padding: var(--space-1) var(--space-1) 0;
+    padding: 0;
     opacity: 0;
     transition: opacity 0.15s;
+    flex-shrink: 0;
 }
 
-.message-row:hover .message-actions {
+.message-row:hover .msg-footer .message-actions {
     opacity: 1;
 }
 
@@ -495,9 +573,18 @@
         height: var(--touch-btn-size, 2.25rem);
     }
 
-    .message-actions {
+    .msg-footer .message-actions {
         opacity: 1;
         transition: none;
+    }
+
+    /* 移动端：隐藏桌面端完整版，显示精简版 */
+    .metadata-desktop {
+        display: none;
+    }
+
+    .metadata-compact {
+        display: flex;
     }
 
     .tool-execution-result {

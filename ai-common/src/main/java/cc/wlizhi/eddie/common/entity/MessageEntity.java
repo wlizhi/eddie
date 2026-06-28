@@ -96,6 +96,11 @@ public class MessageEntity {
     private String currency;
 
     /**
+     * 接口耗时（毫秒）
+     */
+    private Integer durationMs;
+
+    /**
      * 消息时间
      */
     private String createdAt;

@@ -35,6 +35,7 @@ export interface MessageVO {
     cacheReadInputTokens: number
     cacheWriteInputTokens: number
     currency: string
+    durationMs?: number
     toolCalls?: ToolExecutionEventItem[]
     createdAt: string
 }

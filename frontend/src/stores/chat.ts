@@ -501,6 +501,7 @@ export const useChatStore = defineStore('chat', () => {
                 ...(msg.cacheWriteInputTokens != null ? {cacheWriteInputTokens: msg.cacheWriteInputTokens} : {}),
                 ...(msg.priceEstimate != null ? {costEstimate: msg.priceEstimate} : {}),
                 ...(msg.currency ? {currency: msg.currency} : {}),
+                ...(msg.durationMs != null ? {durationMs: msg.durationMs} : {}),
             },
         }
     }

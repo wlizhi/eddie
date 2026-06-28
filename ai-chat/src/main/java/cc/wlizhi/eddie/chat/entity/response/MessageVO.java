@@ -92,4 +92,9 @@ public class MessageVO {
      * 费用货币符号，如 ¥ / $
      */
     private String currency;
+
+    /**
+     * 接口耗时（毫秒）
+     */
+    private Integer durationMs;
 }

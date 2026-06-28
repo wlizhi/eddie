@@ -20,7 +20,7 @@ const editAssistantId = ref<number | null>(null)
 const showCreateAssistant = ref(false)
 
 // 拖拽排序
-const {dragIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd} =
+const {dragIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDrop} =
     useDragSort(() => assistantStore.list, batchSortAssistant, () => {
       assistantStore.loadList(true, true)
     })
@@ -113,9 +113,11 @@ const displayedAssistants = computed(() => {
   border-bottom: 1px solid var(--border-default);
 }
 
-.collapse-assistant-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-quaternary);
+@media (hover: hover) {
+  .collapse-assistant-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-quaternary);
+  }
 }
 
 /* ===== 新建按钮（绝对定位在折叠按钮最左侧） ===== */
@@ -137,9 +139,11 @@ const displayedAssistants = computed(() => {
   transition: background 0.1s, color 0.1s;
 }
 
-.create-trigger:hover {
-  background: var(--accent-light-bg);
-  color: var(--accent-default);
+@media (hover: hover) {
+  .create-trigger:hover {
+    background: var(--accent-light-bg);
+    color: var(--accent-default);
+  }
 }
 
 .collapse-icon {
@@ -174,10 +178,13 @@ const displayedAssistants = computed(() => {
   width: 100%;
   text-align: left;
   transition: background 0.15s;
+  touch-action: manipulation;
 }
 
-.assistant-item:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .assistant-item:hover {
+    background: var(--bg-hover);
+  }
 }
 
 .assistant-item.active {
@@ -189,8 +196,10 @@ const displayedAssistants = computed(() => {
   opacity: 0.55;
 }
 
-.assistant-item.disabled:hover {
-  background: #f9fafb;
+@media (hover: hover) {
+  .assistant-item.disabled:hover {
+    background: #f9fafb;
+  }
 }
 
 /* 拖拽排序 */
@@ -204,8 +213,10 @@ const displayedAssistants = computed(() => {
   margin-right: -2px;
 }
 
-.assistant-item:hover .drag-handle {
-  color: var(--text-secondary);
+@media (hover: hover) {
+  .assistant-item:hover .drag-handle {
+    color: var(--text-secondary);
+  }
 }
 
 .assistant-item.drag-over {
@@ -240,13 +251,24 @@ const displayedAssistants = computed(() => {
   flex-shrink: 0;
 }
 
-.assistant-item:hover .assistant-settings {
-  opacity: 1;
+@media (hover: hover) {
+  .assistant-item:hover .assistant-settings {
+    opacity: 1;
+  }
 }
 
-.assistant-settings:hover {
-  color: var(--text-secondary);
-  background: var(--bg-hover);
+/* 触屏设备：设置按钮始终可见 */
+@media (hover: none) {
+  .assistant-settings {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) {
+  .assistant-settings:hover {
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+  }
 }
 
 /* 展开/收起按钮 */
@@ -264,8 +286,10 @@ const displayedAssistants = computed(() => {
   transition: background 0.15s, color 0.15s;
 }
 
-.toggle-btn:hover {
-  background: var(--bg-hover);
-  color: var(--accent-default);
+@media (hover: hover) {
+  .toggle-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-default);
+  }
 }
 </style>
