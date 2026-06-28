@@ -1,0 +1,145 @@
+/* ===== 移动端设置页面公用样式 ===== */
+
+/* 全屏容器 */
+.settings-mobile {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-primary);
+}
+
+/* ===== 顶部导航栏 ===== */
+.settings-mobile-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-4);
+    border-bottom: 1px solid var(--border-lighter);
+    flex-shrink: 0;
+    min-height: 3.25rem;
+}
+
+.settings-mobile-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--touch-btn-size);
+    height: var(--touch-btn-size);
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.settings-mobile-back:active {
+    background: var(--bg-hover);
+}
+
+.settings-mobile-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+/* ===== 内容区域（列表或面板） ===== */
+.settings-mobile-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 列表式导航 ===== */
+.settings-nav-group-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: var(--space-6) var(--space-5) var(--space-2);
+}
+
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    color: var(--text-primary);
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s;
+}
+
+.settings-nav-item:active {
+    background: var(--bg-hover);
+}
+
+.settings-nav-item-icon {
+    flex-shrink: 0;
+    color: var(--accent-default);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-nav-item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.settings-nav-item-arrow {
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+}
+
+/* ===== 面板容器 ===== */
+.settings-panel-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-5);
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 通用面板样式 ===== */
+.mobile-panel-title {
+    font-size: var(--font-size-title);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+}
+
+.mobile-panel-desc {
+    font-size: var(--font-size-base);
+    color: var(--text-quaternary);
+    margin-bottom: var(--space-7);
+    line-height: 1.5;
+}
+
+/* ===== 过渡动画 ===== */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+    transition: all 0.25s ease;
+}
+
+.slide-fade-enter-from {
+    transform: translateX(30%);
+    opacity: 0;
+}
+
+.slide-fade-leave-to {
+    transform: translateX(-15%);
+    opacity: 0;
+}

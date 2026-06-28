@@ -1,0 +1,304 @@
+/* ===== 移动端模型服务管理 ===== */
+
+/* 服务商卡片列表 */
+.provider-list-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.provider-card-mobile {
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    padding: var(--space-4) var(--space-5);
+    background: var(--bg-secondary);
+    transition: border-color 0.15s;
+}
+
+.provider-card-mobile:active {
+    border-color: var(--accent-light-border);
+}
+
+.provider-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.provider-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.provider-card-name {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.provider-card-name.disabled {
+    color: var(--text-tertiary);
+}
+
+.provider-card-code {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    margin-top: 1px;
+}
+
+.provider-card-toggle {
+    flex-shrink: 0;
+}
+
+/* 展开的详情 */
+.provider-detail-mobile {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-lighter);
+}
+
+.prop-row-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-bottom: var(--space-3);
+}
+
+.prop-row-mobile:last-child {
+    margin-bottom: 0;
+}
+
+.prop-label-mobile {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--text-tertiary);
+}
+
+.prop-value-mobile {
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+/* 操作按钮行 */
+.provider-actions-mobile {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+
+.action-btn-mobile {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: var(--touch-btn-size);
+    border-radius: 10px;
+    font-size: var(--font-size-small);
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.action-btn-mobile:active {
+    opacity: 0.8;
+}
+
+.action-btn-primary {
+    border: none;
+    background: var(--accent-default);
+    color: var(--text-inverse);
+}
+
+.action-btn-primary:active {
+    background: var(--accent-hover);
+}
+
+.action-btn-outline {
+    border: 1px solid var(--border-default);
+    background: var(--bg-primary);
+    color: var(--text-quaternary);
+}
+
+.action-btn-outline:active {
+    background: var(--bg-hover);
+}
+
+.action-btn-danger {
+    border: 1px solid var(--danger-light-border);
+    background: var(--danger-light-bg);
+    color: var(--danger-default);
+}
+
+/* 分隔线 + 获取模型按钮 */
+.section-divider-mobile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: var(--space-5) 0;
+}
+
+.section-divider-mobile .divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border-default);
+}
+
+.fetch-btn-mobile {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: var(--touch-btn-size);
+    padding: 0 var(--space-5);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    background: var(--bg-primary);
+    font-size: var(--font-size-small);
+    font-family: inherit;
+    color: var(--text-quaternary);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.12s, color 0.12s;
+}
+
+.fetch-btn-mobile:active {
+    border-color: var(--accent-default);
+    color: var(--accent-default);
+}
+
+.fetch-btn-mobile:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 模型列表 */
+.model-list-mobile {
+    display: flex;
+    flex-direction: column;
+}
+
+.model-item-mobile {
+    display: flex;
+    align-items: center;
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border-lighter);
+    gap: var(--space-3);
+}
+
+.model-item-mobile:last-child {
+    border-bottom: none;
+}
+
+.model-name-mobile {
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    font-family: Monaco, 'Fira Code', monospace;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.model-caps-mobile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+.model-cap-tag-mobile {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-1) var(--space-2);
+    border-radius: 4px;
+    font-size: var(--font-size-xxs);
+    line-height: 1.3;
+    font-weight: 500;
+}
+
+.model-cap-tag-mobile.vision {
+    background: var(--tag-vision-bg);
+    color: var(--tag-vision-text);
+}
+
+.model-cap-tag-mobile.web_search {
+    background: var(--tag-web-bg);
+    color: var(--tag-web-text);
+}
+
+.model-cap-tag-mobile.reasoning {
+    background: var(--tag-reasoning-bg);
+    color: var(--tag-reasoning-text);
+}
+
+.model-cap-tag-mobile.function_calling {
+    background: var(--tag-fc-bg);
+    color: var(--tag-fc-text);
+}
+
+.model-cap-tag-mobile.rerank {
+    background: var(--tag-rerank-bg);
+    color: var(--tag-rerank-text);
+}
+
+.model-cap-tag-mobile.embedding {
+    background: var(--tag-embedding-bg);
+    color: var(--tag-embedding-text);
+}
+
+.model-item-actions-mobile {
+    display: flex;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+.model-icon-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--touch-btn-size);
+    height: var(--touch-btn-size);
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s, color 0.12s;
+}
+
+.model-icon-btn-mobile:active {
+    background: var(--bg-hover);
+}
+
+.model-icon-btn-mobile.settings:active {
+    color: var(--accent-default);
+}
+
+.model-icon-btn-mobile.remove:active {
+    color: var(--danger-default);
+}
+
+.models-empty-mobile {
+    padding: var(--space-6) 0;
+    text-align: center;
+    font-size: var(--font-size-base);
+    color: var(--text-tertiary);
+}
+
+.loading-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12);
+    font-size: var(--font-size-base);
+    color: var(--text-tertiary);
+}

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
+import {useMobile} from '@/composables/useMobile'
 import {Clock, Cpu, Globe, Monitor, Network, Puzzle, Radio, Settings, Zap} from '@lucide/vue'
 import ModelProviderPanel from './settings/ModelProviderPanel.vue'
 import DefaultModelPanel from './settings/DefaultModelPanel.vue'
@@ -10,6 +11,9 @@ import SkillsPanel from './settings/SkillsPanel.vue'
 import WebSearchPanel from './settings/WebSearchPanel.vue'
 import ChannelsPanel from './settings/ChannelsPanel.vue'
 import ScheduledTasksPanel from './settings/ScheduledTasksPanel.vue'
+import SettingsViewMobile from './settings/SettingsViewMobile.vue'
+
+const {isMobile} = useMobile()
 
 interface NavSection {
   key: string
@@ -66,27 +70,33 @@ const currentPanel = computed(() => panelMap[activeKey.value])
 </script>
 
 <template>
-  <div class="settings-layout">
-    <nav class="settings-nav">
-      <template v-for="(group, gi) in navGroups" :key="gi">
-        <div v-if="group.label" class="nav-group-label">{{ group.label }}</div>
-        <button
-            v-for="item in group.items"
-            :key="item.key"
-            class="nav-btn"
-            :class="{ active: activeKey === item.key }"
-            @click="activeKey = item.key"
-        >
-          <component :is="item.icon" :size="16" :stroke-width="1.8" class="nav-btn-icon"/>
-          <span>{{ item.label }}</span>
-        </button>
-        <div v-if="gi < navGroups.length - 1" class="nav-divider"/>
-      </template>
-    </nav>
-    <div class="settings-content">
-      <component :is="currentPanel"/>
+  <!-- 移动端：独立 mobile 组件 -->
+  <SettingsViewMobile v-if="isMobile"/>
+
+  <!-- 桌面端：保持现有布局不变 -->
+  <template v-else>
+    <div class="settings-layout">
+      <nav class="settings-nav">
+        <template v-for="(group, gi) in navGroups" :key="gi">
+          <div v-if="group.label" class="nav-group-label">{{ group.label }}</div>
+          <button
+              v-for="item in group.items"
+              :key="item.key"
+              class="nav-btn"
+              :class="{ active: activeKey === item.key }"
+              @click="activeKey = item.key"
+          >
+            <component :is="item.icon" :size="16" :stroke-width="1.8" class="nav-btn-icon"/>
+            <span>{{ item.label }}</span>
+          </button>
+          <div v-if="gi < navGroups.length - 1" class="nav-divider"/>
+        </template>
+      </nav>
+      <div class="settings-content">
+        <component :is="currentPanel"/>
+      </div>
     </div>
-  </div>
+  </template>
 </template>
 
 <style src="./settings/settings.css" scoped/>
