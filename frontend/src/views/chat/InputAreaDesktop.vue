@@ -103,15 +103,36 @@ onMounted(() => {
 /** 顶部拖拽手柄 —— 以 textarea 实际当前高度为起点，保证拖拽始终跟随鼠标 */
 function startResize(e: MouseEvent) {
   e.preventDefault()
-  const startY = e.clientY
-  const el = inputRef.value
-  const startHeight = el ? el.offsetHeight : baseHeight.value
+  let startY = e.clientY
+  let startHeight = inputRef.value?.offsetHeight ?? baseHeight.value
+
+  // 缓存工具栏元素和原始位置
+  const toolbarEl = document.querySelector('.input-toolbar') as HTMLElement | null
+  const toolbarOriginalBottom = toolbarEl?.getBoundingClientRect().bottom ?? 0
+
+  // 记录最近一次验证安全的高度
+  let safeHeight = startHeight
 
   function onMouseMove(e: MouseEvent) {
     const delta = startY - e.clientY // 向上拖为正（放大），向下拖为负（缩小）
-    const newHeight = Math.max(INPUT_MIN, Math.min(INPUT_MAX, startHeight + delta))
-    baseHeight.value = newHeight
-    applyDragHeight(newHeight)
+    const candidate = Math.min(INPUT_MAX, Math.max(INPUT_MIN, startHeight + delta))
+
+    // 先应用高度
+    applyDragHeight(candidate)
+
+    // 检测工具栏是否向下偏移 —— 只要下移了立刻回退
+    const toolbarCurrentBottom = toolbarEl?.getBoundingClientRect().bottom ?? 0
+    if (toolbarCurrentBottom > toolbarOriginalBottom) {
+      // 工具栏下移了：回退 + 重置起始点，避免下次又尝试大高度
+      applyDragHeight(safeHeight)
+      baseHeight.value = safeHeight
+      startY = e.clientY
+      startHeight = safeHeight
+    } else {
+      // 安全，更新基准
+      safeHeight = candidate
+      baseHeight.value = candidate
+    }
   }
 
   function onMouseUp() {

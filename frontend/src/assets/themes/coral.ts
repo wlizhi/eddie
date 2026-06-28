@@ -5,7 +5,7 @@
 import type {ThemeDefinition} from './index'
 
 const theme: ThemeDefinition = {
-    id: 'forest',
+    id: 'coral',
     name: '珊瑚',
     color: '#fff8f0',
     darkColor: '#1a0e08',
