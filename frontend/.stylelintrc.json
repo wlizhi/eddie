@@ -16,8 +16,10 @@
       }
     ],
     "color-no-hex": true,
-    "alpha-value-notation": ["number", {
-      "exceptProperties": ["opacity"]
-    }]
+    "color-function-notation": "legacy",
+    "color-function-alias-notation": "legacy",
+    "alpha-value-notation": "number",
+    "comment-empty-line-before": null,
+    "media-feature-range-notation": "prefix"
   }
 }

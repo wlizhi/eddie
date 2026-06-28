@@ -305,3 +305,29 @@
     font-size: var(--font-size-small);
 }
 
+/* ===== 移动端触摸优化 ===== */
+@media (max-width: 48rem) {
+    .input-area {
+        padding: var(--space-3) var(--space-3) var(--space-2);
+    }
+
+    .input-body {
+        min-height: var(--input-min-height, 2.5rem);
+    }
+
+    .input-toolbar {
+        gap: var(--space-1);
+        padding: 0 var(--space-3) var(--space-2);
+    }
+
+    .toggle-chip {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .send-btn,
+    .stop-btn {
+        width: var(--touch-btn-size, 2.25rem);
+        height: var(--touch-btn-size, 2.25rem);
+    }
+}
+

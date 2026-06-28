@@ -164,6 +164,37 @@ html[data-theme] * {
     transition-duration: 0.1s !important;
 }
 
+/* ===== 移动端响应式断点 =====
+   基于 rem 的断点，跟随基准字号自动缩放
+   48rem @ 16px = 768px（平板竖屏以下触发）
+   ========================================== */
+@media (max-width: 48rem) {
+    :root {
+        /* 缩小基准字号使所有 rem 值同比例缩小 */
+        --base-font-size: 14px;
+
+        /* 移动端布局变量 */
+        --nav-rail-width: 0;
+        --panel-width: 85vw;
+        --msg-max-width: 100%;
+        --input-min-height: 2.5rem;
+        --touch-btn-size: 2.25rem;
+    }
+}
+
+/* 平板及以上：恢复桌面布局 */
+@media (min-width: 48.0625rem) {
+    :root {
+        --nav-rail-width: 3rem; /* 48px @ 16px */
+        --panel-overlay: static;
+        --panel-width: 16.25rem; /* 260px @ 16px */
+        --panel-z: auto;
+        --msg-max-width: 50rem;
+        --input-min-height: 3rem;
+        --touch-btn-size: auto;
+    }
+}
+
 /* 为 html 设置基准，所有 rem 基于此 */
 html {
     font-size: var(--base-font-size);

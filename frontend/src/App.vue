@@ -180,6 +180,13 @@ const currentTheme = computed(() => findTheme(displaySettings.themeId))
           </div>
         </aside>
 
+        <!-- Mobile panel backdrop (tap to close) -->
+        <div
+            v-if="isPanelVisible"
+            class="panel-backdrop"
+            @click="toggleCollapse"
+        />
+
         <!-- Main Content -->
         <main class="main-content">
           <router-view/>
@@ -252,14 +259,14 @@ button, input, select, textarea {
 
 /* ===== Nav Rail ===== */
 .nav-rail {
-  width: 48px;
-  min-width: 48px;
+  width: 3rem;
+  min-width: 3rem;
   background: var(--bg-nav-rail);
   border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 0;
+  padding: var(--space-4) 0;
   z-index: 100;
   position: relative;
   user-select: none;
@@ -269,15 +276,15 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   flex: 1;
 }
 
 .nav-rail-divider {
-  width: 24px;
-  height: 1px;
+  width: 1.5rem;
+  height: .0625rem;
   background: var(--divider-light);
-  margin: 4px 0;
+  margin: var(--space-2) 0;
   flex-shrink: 0;
 }
 
@@ -285,12 +292,12 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .nav-item {
-  width: 36px;
-  height: 36px;
+  width: var(--size-btn-lg);
+  height: var(--size-btn-lg);
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -311,21 +318,21 @@ button, input, select, textarea {
 .nav-item.active {
   background: var(--bg-primary);
   color: var(--accent-default);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px var(--accent-ring);
 }
 
 /* Tooltip */
 .nav-tooltip {
   display: none;
   position: absolute;
-  left: 44px;
+  left: calc(100% + var(--space-2));
   top: 50%;
   transform: translateY(-50%);
   background: var(--bg-tooltip);
   color: var(--text-inverse);
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-5);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--font-size-xxs);
   font-weight: 500;
   white-space: nowrap;
   pointer-events: none;
@@ -338,8 +345,8 @@ button, input, select, textarea {
 
 /* ===== Context Panel ===== */
 .context-panel {
-  width: 260px;
-  min-width: 260px;
+  width: 16.25rem;
+  min-width: 16.25rem;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-default);
   display: flex;
@@ -357,10 +364,10 @@ button, input, select, textarea {
 
 .panel-collapse-btn {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 1.375rem;
+  height: 1.375rem;
   border: none;
   border-radius: 4px;
   background: transparent;
@@ -390,5 +397,113 @@ button, input, select, textarea {
   flex-direction: column;
   overflow: hidden;
   /* 背景色由 body 统一提供 */
+}
+
+
+/* ===== 移动端响应式：< 768px ===== */
+@media (max-width: 48rem) {
+  .app-layout {
+    flex-direction: column;
+  }
+
+  /* Nav Rail → 底部 Tab 栏 */
+  .nav-rail {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-width: 0;
+    height: 3rem;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 0 var(--space-4);
+    border-right: none;
+    border-top: 1px solid var(--border-default);
+    z-index: 200;
+    order: 2;
+  }
+
+  .nav-rail-top,
+  .nav-rail-bottom {
+    flex-direction: row;
+    gap: var(--space-3);
+    flex: none;
+  }
+
+  .nav-rail-divider {
+    width: .0625rem;
+    height: 1.5rem;
+    margin: 0 var(--space-2);
+  }
+
+  .nav-item {
+    width: var(--touch-btn-size, 2.25rem);
+    height: var(--touch-btn-size, 2.25rem);
+  }
+
+  .nav-tooltip {
+    display: none !important;
+  }
+
+  /* Context Panel → 覆盖层抽屉 */
+  .context-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 3rem;
+    width: 85vw;
+    min-width: 0;
+    z-index: 300;
+    border-right: 1px solid var(--border-default);
+    box-shadow: 2px 0 12px var(--accent-ring);
+    transition: transform 0.2s ease;
+    transform: translateX(0);
+  }
+
+  .context-panel.collapsed {
+    width: 85vw;
+    min-width: 0;
+    opacity: 1;
+    transform: translateX(-100%);
+  }
+
+  .panel-collapse-btn {
+    display: none;
+  }
+
+  /* 遮罩层：点击关闭面板 */
+  .panel-backdrop {
+    display: block;
+  }
+
+  .main-content {
+    padding-bottom: 3rem;
+  }
+}
+
+/* 桌面端隐藏遮罩层 */
+.panel-backdrop {
+  display: none;
+}
+
+/* 移动端遮罩层 */
+@media (max-width: 48rem) {
+  .panel-backdrop {
+    position: fixed;
+    inset: 0;
+    bottom: 3rem;
+    background: var(--bg-mask);
+    z-index: 250;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* 暗色模式下移动端面板阴影 */
+@media (max-width: 48rem) {
+  .context-panel {
+    box-shadow: 2px 0 12px var(--bg-mask);
+  }
 }
 </style>
