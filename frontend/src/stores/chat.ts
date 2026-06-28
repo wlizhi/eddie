@@ -11,6 +11,20 @@ import {useAssistantStore} from '@/stores/assistant'
 import {renderMd} from '@/utils/markdown'
 
 /**
+ * 生成唯一 ID（兼容 Safari 15.4 以下不支持 crypto.randomUUID）
+ */
+function generateId(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID()
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = Math.random() * 16 | 0
+        const v = c === 'x' ? r : (r & 0x3 | 0x8)
+        return v.toString(16)
+    })
+}
+
+/**
  * 聊天 Store
  *
  * 管理：消息列表、模型列表、流式状态、会话生命周期
@@ -220,7 +234,7 @@ export const useChatStore = defineStore('chat', () => {
 
         // 添加用户消息
         const userMsg: ChatMessage = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'user',
             content: text.trim(),
             timestamp: Date.now(),
@@ -236,7 +250,7 @@ export const useChatStore = defineStore('chat', () => {
 
         // 创建 assistant 空消息占位
         const assistantMsg: ChatMessage = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'assistant',
             content: '',
             thinking: '',

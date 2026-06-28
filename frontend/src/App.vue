@@ -252,6 +252,7 @@ button, input, select, textarea {
 .app-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
   position: relative;
   z-index: 1;

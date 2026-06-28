@@ -482,6 +482,9 @@ function randomizeGradientPositions(cssValue: string): string {
     })
 }
 
+/** 移动端字号缩放系数（768px 以下视口生效） */
+const MOBILE_FONT_SCALE = 1.25
+
 /** 应用到 DOM */
 export function applyDisplaySettings(): void {
     const root = document.documentElement
@@ -489,8 +492,11 @@ export function applyDisplaySettings(): void {
     // 主题模式（设置 data-theme 属性，供 CSS 选择器使用）
     root.dataset.theme = displaySettings.themeMode
 
-    // 基准字号
-    const basePx = getEffectiveFontSize()
+    // 基准字号（移动端自动放大，使阅读体验与桌面端一致）
+    let basePx = getEffectiveFontSize()
+    if (window.innerWidth < 768) {
+        basePx = Math.round(basePx * MOBILE_FONT_SCALE)
+    }
     root.style.setProperty('--base-font-size', `${basePx}px`)
 
     // 头像大小 = 基准字体大小 × 2.5（放大差异让不同字体等级间的头像变化有感知度）
