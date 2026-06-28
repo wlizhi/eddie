@@ -240,7 +240,7 @@ function onScroll() {
         <div v-if="msg.role === 'user'" class="avatar user-avatar">
           <AssistantAvatar
               :name="displaySettings.nickname || '我'"
-              :avatar="(displaySettings.avatar || null)"
+              :avatar="displaySettings.avatar"
               :size="avatarSize"
           />
         </div>

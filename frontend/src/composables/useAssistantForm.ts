@@ -71,6 +71,9 @@ export function useAssistantForm(
     const originalAvatar = ref('')
     const pendingAvatarFile = ref<File | null>(null)
 
+    /** System Prompt textarea 的 DOM 引用（用于光标位置插入变量） */
+    const systemPromptRef = ref<HTMLTextAreaElement | null>(null)
+
     // ========== Watchers ==========
     watch(() => props.assistantId, async (id) => {
         if (id === null) {
@@ -255,6 +258,30 @@ export function useAssistantForm(
         showPicker.value = false
     }
 
+    /**
+     * 在 System Prompt textarea 光标位置插入变量模板
+     * 无焦点或 textarea 不可用时，追加到末尾
+     */
+    function insertVariable(template: string) {
+        const ta = systemPromptRef.value
+        if (ta) {
+            const start = ta.selectionStart
+            const end = ta.selectionEnd
+            formSystemPrompt.value =
+                formSystemPrompt.value.slice(0, start) +
+                template +
+                formSystemPrompt.value.slice(end)
+            // 下一帧将光标定位到插入内容之后并聚焦
+            requestAnimationFrame(() => {
+                const pos = start + template.length
+                ta.setSelectionRange(pos, pos)
+                ta.focus()
+            })
+        } else {
+            formSystemPrompt.value += template
+        }
+    }
+
     // ========== 保存 ==========
     async function handleSave() {
         for (const key of Object.keys(fieldErrors)) {
@@ -416,6 +443,7 @@ export function useAssistantForm(
         formAvatar,
         formDescription,
         formSystemPrompt,
+        systemPromptRef,
         formProviderId,
         formModelId,
         formMemoryRounds,
@@ -432,6 +460,7 @@ export function useAssistantForm(
         loadDetail,
         onModelSelect,
         onAvatarPicked,
+        insertVariable,
         handleSave,
         handleDelete,
         close,

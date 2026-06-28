@@ -18,6 +18,7 @@ import {ref} from 'vue'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AvatarPicker from '../common/AvatarPicker.vue'
 import ModelParamsInput from '../common/ModelParamsInput.vue'
+import PromptVariablePanel from '../common/PromptVariablePanel.vue'
 
 const {iconSizeSm} = useIconSize()
 
@@ -38,6 +39,7 @@ const {
   formModelParams, formPreferences, showPicker, originalAvatar,
   formEnabledMcpServerIds, mcpServerList,
   clearFieldError, onModelSelect, onAvatarPicked,
+  insertVariable, systemPromptRef,
   handleSave, handleDelete, close,
   groupedModelOptions,
   selectedModelKey,
@@ -104,7 +106,9 @@ function handleSaveWithValidation() {
       <!-- System Prompt -->
       <div class="field">
         <label class="label">System Prompt</label>
-        <textarea v-model="formSystemPrompt" class="textarea" rows="4" placeholder="系统提示词"/>
+        <textarea ref="systemPromptRef" v-model="formSystemPrompt" class="textarea" rows="4"
+                  placeholder="系统提示词 — 可使用 ${变量名} 嵌入动态内容"/>
+        <PromptVariablePanel @insert="insertVariable"/>
       </div>
 
       <!-- 模型选择 -->
@@ -174,7 +178,7 @@ function handleSaveWithValidation() {
                 ]"
                 size="tiny"
                 class="mcp-mode-select"
-                @update:value="(v: string) => formPreferences.mcpToolMode = v"
+                @update:value="(v: 'disabled' | 'auto' | 'manual') => formPreferences.mcpToolMode = v"
             />
           </div>
         </div>

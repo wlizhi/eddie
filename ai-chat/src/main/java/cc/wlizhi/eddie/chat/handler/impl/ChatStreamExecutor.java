@@ -8,12 +8,17 @@
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.common.util.PromptVariableResolver;
+import jakarta.annotation.Resource;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 @Component
 public class ChatStreamExecutor {
+
+    @Resource
+    private PromptVariableResolver promptVariableResolver;
 
     /**
      * 执行流式聊天调用
@@ -23,7 +28,7 @@ public class ChatStreamExecutor {
      */
     public Flux<ChatResponse> execute(ChatContext ctx) {
         return ctx.getChatClient().prompt()
-                .system(ctx.getAssistant().getSystemPrompt())
+                .system(promptVariableResolver.resolve(ctx.getAssistant().getSystemPrompt()))
                 .user(ctx.getUserMessage())
                 .advisors(advisor -> advisor
                         .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId()))

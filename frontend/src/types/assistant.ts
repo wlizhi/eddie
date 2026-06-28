@@ -10,6 +10,20 @@
  */
 
 /**
+ * 系统提示词模板变量信息（对应后端 VariableInfo）
+ */
+export interface PromptVariableInfo {
+    /** 变量名，如 "datetime" */
+    key: string
+    /** 模板字符串，如 "${datetime}" */
+    template: string
+    /** 示例值，如 "2026-06-28 19:57" */
+    example: string
+    /** 描述，如 "当前日期和时间" */
+    description: string
+}
+
+/**
  * 模型参数（对应后端 ModelParams）
  */
 export interface ModelParams {

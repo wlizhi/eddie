@@ -13,7 +13,7 @@
              title="点击修改头像">
           <AssistantAvatar
               :name="displaySettings.nickname || '我'"
-              :avatar="displaySettings.avatar || null"
+              :avatar="displaySettings.avatar"
               :size="56"
           />
           <div class="avatar-overlay">编辑</div>

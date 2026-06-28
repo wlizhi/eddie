@@ -113,19 +113,20 @@ public class EddieOpenAiChatClientFactory implements ChatClientFactory {
                     builder.extraBody(Map.of("thinking", Map.of("type", "disabled")));
                 }
             }
-            case "low" -> builder.reasoningEffort("low");
-            case "medium" -> builder.reasoningEffort("medium");
-            case "high" -> builder.reasoningEffort("high");
-            case "max" -> {
-                if (isDeepSeek(providerCode)) {
-                    builder.reasoningEffort("max");
-                    if (isDeepSeek(providerCode)) {
-                        builder.extraBody(Map.of("thinking", Map.of("type", "enabled")));
-                    }
-                } else {
-                    builder.reasoningEffort("high");
-                }
-            }
+            case "low" -> applyReasoningEffort(builder, "low", providerCode);
+            case "medium" -> applyReasoningEffort(builder, "medium", providerCode);
+            case "high" -> applyReasoningEffort(builder, "high", providerCode);
+            case "max" -> applyReasoningEffort(builder, "max", providerCode);
+        }
+    }
+
+    /**
+     * 设置 reasoningEffort，如果是 DeepSeek 协议还需同时传 thinking.type=enabled
+     */
+    private void applyReasoningEffort(EddieOpenAiChatOptions.Builder builder, String effort, String providerCode) {
+        builder.reasoningEffort(effort);
+        if (isDeepSeek(providerCode)) {
+            builder.extraBody(Map.of("thinking", Map.of("type", "enabled")));
         }
     }
 

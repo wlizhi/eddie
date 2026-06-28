@@ -1,0 +1,51 @@
+/* ===== PromptVariablePanel 样式 ===== */
+
+/* NCollapse 面板边框适配全局主题 */
+.pv-panel {
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* 面板头部 */
+.pv-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.pv-header svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.pv-count {
+    color: var(--text-muted);
+    font-size: var(--font-size-xxs);
+}
+
+/* 变量标签列表容器 */
+.pv-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* 变量标签 — 使用等宽字体突出模板语法 */
+.pv-tag {
+    font-family: var(--font-mono, 'SF Mono', 'Menlo', monospace);
+    font-size: var(--font-size-xs);
+}
+
+/* Tooltip 内容 */
+.pv-tooltip-body {
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+}
+
+.pv-tooltip-example {
+    color: var(--text-muted);
+    margin-top: 2px;
+}

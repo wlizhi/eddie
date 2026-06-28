@@ -12,7 +12,13 @@
  *   GET    /api/mcp-servers?enabled=true  → 获取所有已启用 MCP 服务
  */
 import type {ApiResult} from '@/types/chat'
-import type {AssistantCreateRequest, AssistantDetailVO, AssistantUpdateRequest, AssistantVO,} from '@/types/assistant'
+import type {
+    AssistantCreateRequest,
+    AssistantDetailVO,
+    AssistantUpdateRequest,
+    AssistantVO,
+    PromptVariableInfo
+} from '@/types/assistant'
 import type {ToolSourceVO} from '@/types/mcpServer'
 
 const BASE = '/api/assistant'
@@ -127,6 +133,24 @@ export async function fetchBoundMcpTools(assistantId: number): Promise<ToolSourc
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
     const json: ApiResult<ToolSourceVO[]> = await res.json()
     if (json.code !== 200) throw new Error(json.message || '获取绑定 MCP 工具列表失败')
+    return json.data
+}
+
+// ==================== System Prompt Variables API ====================
+
+const SYSTEM_BASE = '/api/system'
+
+/**
+ * 获取系统提示词支持的模板变量列表
+ *
+ * GET /api/system/prompt-variables
+ * 返回 PromptVariableResolver 中注册的所有变量（key / template / example / description）
+ */
+export async function fetchPromptVariables(): Promise<PromptVariableInfo[]> {
+    const res = await fetch(`${SYSTEM_BASE}/prompt-variables`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<PromptVariableInfo[]> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '获取变量列表失败')
     return json.data
 }
 

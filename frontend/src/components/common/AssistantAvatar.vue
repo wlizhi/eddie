@@ -26,7 +26,8 @@ function isEmojiChar(s: string): boolean {
 }
 
 /** 判断是否为单字符（非 emoji 的普通文字） */
-function isSingleChar(s: string): boolean {
+function isSingleChar(s: string | null | undefined): boolean {
+  if (!s) return false
   return [...s].length === 1
 }
 
