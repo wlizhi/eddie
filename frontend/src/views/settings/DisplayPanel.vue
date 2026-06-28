@@ -9,7 +9,8 @@
           <span class="setting-label">头像</span>
           <span class="setting-hint">文字、Emoji 或上传图片</span>
         </div>
-        <div class="profile-avatar-wrap" @click="showAvatarPicker = true" title="点击修改头像">
+        <div class="profile-avatar-wrap" @click="pickerInitialAvatar = displaySettings.avatar; showAvatarPicker = true"
+             title="点击修改头像">
           <AssistantAvatar
               :name="displaySettings.nickname || '我'"
               :avatar="displaySettings.avatar || null"

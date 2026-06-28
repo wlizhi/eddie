@@ -90,7 +90,6 @@
 }
 
 .action-btn-mobile {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -103,6 +102,11 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: background 0.15s, opacity 0.15s;
+}
+
+/* 在操作按钮行内等宽分配 */
+.provider-actions-mobile .action-btn-mobile {
+    flex: 1;
 }
 
 .action-btn-mobile:active {

@@ -115,7 +115,7 @@
 
 <script setup lang="ts">
 import {NInput, NModal} from 'naive-ui'
-import {computed, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import type {ModelItem} from '@/types/modelProvider'
 import {CAPABILITY_LABELS} from '@/types/modelProvider'
 import {batchAddModels, batchRemoveModels, fetchRemoteModels} from '@/api/modelProvider'
@@ -165,9 +165,8 @@ function isExist(code: string): boolean {
   return existingSet.value.has(code)
 }
 
-/** 打开弹窗时自动拉取 */
-watch(() => props.visible, async (v) => {
-  if (!v) return
+/** 拉取远程模型列表 */
+async function loadModels() {
   error.value = ''
   loading.value = true
   models.value = []
@@ -178,6 +177,20 @@ watch(() => props.visible, async (v) => {
     error.value = e.message || '拉取失败'
   } finally {
     loading.value = false
+  }
+}
+
+/** 首次挂载时拉取（兼容 v-if 创建组件时 visible 已为 true 的场景） */
+onMounted(() => {
+  if (props.visible) {
+    loadModels()
+  }
+})
+
+/** visible 变化时拉取 */
+watch(() => props.visible, (v) => {
+  if (v) {
+    loadModels()
   }
 })
 

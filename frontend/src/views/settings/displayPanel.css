@@ -268,4 +268,62 @@
     min-width: max-content;
 }
 
+/* ===== 移动端适配 =====
+   窄屏下设置行改为上下结构：label/hint 在上，控件在下 */
+@media (max-width: 48rem) {
+    .setting-row {
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    .setting-info {
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    .setting-hint {
+        line-height: 1.4;
+    }
+
+    .font-size-controls {
+        flex-shrink: 1;
+        width: 100%;
+    }
+
+    .font-family-select {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .size-selector {
+        flex-shrink: 1;
+        align-self: flex-start;
+    }
+
+    .color-scheme-selector {
+        flex-shrink: 1;
+        gap: 8px;
+    }
+
+    .theme-selector {
+        flex-shrink: 1;
+        gap: 8px;
+    }
+
+    /* ── 手机端：个人信息头像 - 隐藏文字，居中大头像 ── */
+    .profile-row .setting-info {
+        display: none;
+    }
+
+    .profile-row {
+        justify-content: center;
+        padding: var(--space-10) 0;
+    }
+
+    .profile-avatar-wrap :deep(.avatar) {
+        width: 5rem !important;
+        height: 5rem !important;
+    }
+}
+
 

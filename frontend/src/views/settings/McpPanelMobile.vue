@@ -4,12 +4,13 @@
   功能：
   - 内置 MCP 服务和用户自定义服务统一列表展示
   - 每个服务显示名称、类型标签、工具数量
+  - 点击卡片可展开查看工具列表
   - 启用/禁用切换
   - 无新增/编辑/删除功能（桌面端做）
 -->
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
-import {Network} from '@lucide/vue'
+import {ChevronDown, Network} from '@lucide/vue'
 import {useIconSize} from '@/composables/useIconSize'
 import {listMcpServers, updateMcpStatus} from '@/api/mcpServer'
 import type {McpServer} from '@/types/mcpServer'
@@ -20,6 +21,7 @@ const {iconSizeSm} = useIconSize()
 
 const loading = ref(false)
 const servers = ref<McpServer[]>([])
+const expandedId = ref<number | null>(null)
 
 /** 已排序：内置服务在前，自定义在后 */
 const sortedServers = computed(() => {
@@ -43,6 +45,11 @@ async function loadData() {
   } finally {
     loading.value = false
   }
+}
+
+/** 展开/收起服务卡片 */
+function toggleExpand(id: number) {
+  expandedId.value = expandedId.value === id ? null : id
 }
 
 /** 启用/禁用切换 */
@@ -83,9 +90,10 @@ onMounted(loadData)
       <div
           v-for="server in sortedServers"
           :key="server.id"
-          style="border:1px solid var(--border-default);border-radius:12px;padding:var(--space-4);background:var(--bg-secondary)"
+          class="mcp-card-mobile"
+          :class="{ expanded: expandedId === server.id }"
       >
-        <div style="display:flex;align-items:center;gap:var(--space-3)">
+        <div class="mcp-card-header" @click="toggleExpand(server.id)">
           <Network :size="iconSizeSm" :stroke-width="1.5"
                    style="flex-shrink:0;color:var(--accent-default)"/>
           <div style="flex:1;min-width:0">
@@ -94,17 +102,20 @@ onMounted(loadData)
               {{ server.name }}
             </div>
             <div style="display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-1)">
-                            <span class="mcp-tag-mobile" :class="transportClass(server.transportType)">
-                                {{ transportLabel(server.transportType) }}
-                            </span>
+              <span class="mcp-tag-mobile" :class="transportClass(server.transportType)">
+                {{ transportLabel(server.transportType) }}
+              </span>
               <span v-if="server.builtIn" class="mcp-tag-mobile built-in">内置</span>
               <span v-if="server.tools?.length" style="font-size:var(--font-size-xs);color:var(--text-tertiary)">
-                                {{ server.tools.length }} 工具
-                            </span>
+                {{ server.tools.length }} 工具
+              </span>
             </div>
           </div>
+          <ChevronDown :size="16" :stroke-width="2"
+                       class="mcp-chevron"
+                       :class="{ expanded: expandedId === server.id }"/>
           <label style="flex-shrink:0;display:flex;align-items:center;cursor:pointer"
-                 @click.prevent="toggleServer(server)">
+                 @click.stop="toggleServer(server)">
             <input
                 type="checkbox"
                 :checked="server.enabled"
@@ -115,12 +126,23 @@ onMounted(loadData)
             <span style="position:relative;display:inline-flex;width:2.25rem;height:1.25rem;
                              background:var(--border-hover);border-radius:10px;transition:background 0.2s"
                   :style="{background: server.enabled ? 'var(--accent-default)' : 'var(--border-hover)'}">
-                            <span style="position:absolute;top:var(--space-1);left:var(--space-1);
-                                 width:1rem;height:1rem;background:var(--bg-primary);border-radius:50%;
-                                 transition:transform 0.2s;box-shadow:0 1px 3px var(--accent-ring)"
-                                  :style="{transform: server.enabled ? 'translateX(1rem)' : 'translateX(0)'}"/>
-                        </span>
+              <span style="position:absolute;top:var(--space-1);left:var(--space-1);
+                   width:1rem;height:1rem;background:var(--bg-primary);border-radius:50%;
+                   transition:transform 0.2s;box-shadow:0 1px 3px var(--accent-ring)"
+                    :style="{transform: server.enabled ? 'translateX(1rem)' : 'translateX(0)'}"/>
+            </span>
           </label>
+        </div>
+
+        <!-- 展开的工具列表 -->
+        <div v-if="expandedId === server.id" class="mcp-detail-mobile">
+          <div v-if="server.tools?.length" class="mcp-tool-list-mobile">
+            <div v-for="tool in server.tools" :key="tool.id" class="mcp-tool-item-mobile">
+              <div class="mcp-tool-name-mobile">{{ tool.name }}</div>
+              <div v-if="tool.description" class="mcp-tool-desc-mobile">{{ tool.description }}</div>
+            </div>
+          </div>
+          <div v-else class="mcp-tool-empty-mobile">暂无工具</div>
         </div>
       </div>
 
@@ -135,6 +157,77 @@ onMounted(loadData)
 </template>
 
 <style scoped>
+.mcp-card-mobile {
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  transition: border-color 0.15s;
+}
+
+.mcp-card-mobile:active {
+  border-color: var(--accent-light-border);
+}
+
+.mcp-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mcp-chevron {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: transform 0.2s;
+}
+
+.mcp-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+/* 展开详情 */
+.mcp-detail-mobile {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-lighter);
+}
+
+.mcp-tool-list-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mcp-tool-item-mobile {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-lighter);
+  border-radius: 8px;
+}
+
+.mcp-tool-name-mobile {
+  font-size: var(--font-size-small);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: Monaco, 'Fira Code', monospace;
+}
+
+.mcp-tool-desc-mobile {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-1);
+  line-height: 1.4;
+}
+
+.mcp-tool-empty-mobile {
+  padding: var(--space-4) 0;
+  text-align: center;
+  font-size: var(--font-size-small);
+  color: var(--text-tertiary);
+}
+
 .mcp-tag-mobile {
   display: inline-flex;
   align-items: center;
