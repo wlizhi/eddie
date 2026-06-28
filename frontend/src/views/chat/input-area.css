@@ -126,7 +126,7 @@
     color: var(--text-quaternary) !important;
     height: auto !important;
     min-height: auto !important;
-    padding: 2px 4px !important;
+    padding: .1em 1.1em .1em .1em !important;
 }
 
 .model-select :deep(.n-base-selection-placeholder) {

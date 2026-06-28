@@ -248,7 +248,7 @@ async function handleSave() {
 
 <style scoped>
 .panel {
-  max-width: 640px;
+  max-width: 30rem;
 }
 
 .config-card {

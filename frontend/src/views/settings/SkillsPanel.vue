@@ -15,7 +15,7 @@ import {Puzzle} from '@lucide/vue'
 
 <style scoped>
 .panel {
-  max-width: 640px;
+  max-width: 40rem;
 }
 
 .panel-title {
