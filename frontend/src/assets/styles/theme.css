@@ -1,21 +1,25 @@
 /* ===== 主题变量系统 ===== */
 
-/* 基准字号层级 */
+/* 基准字号：由 JS 在 applyDisplaySettings() 中动态设置，此处为后备值
+   预设等级：small = 14px | medium = 16px | large = 18px
+   用户还可自定义任意 px 值（安全范围 10~28） */
 :root {
-    --base-font-size: 15px; /* medium 默认 */
+    --base-font-size: 16px; /* medium 默认后备 */
 }
 
 /* 字体大小语义变量（基于 --base-font-size 的 rem 值）
-   small  base=14px  |  medium  base=15px  |  large  base=16px
-   ------             |  ------             |  ------
-   13px → 0.929rem    |  13px → 0.867rem   |  13px → 0.813rem
-   13.5px → 0.964rem  |  13.5px → 0.9rem   |  13.5px → 0.844rem
-   12px → 0.857rem    |  12px → 0.8rem     |  12px → 0.75rem
-   11px → 0.786rem    |  11px → 0.733rem   |  11px → 0.688rem
-   10px → 0.714rem    |  10px → 0.667rem   |  10px → 0.625rem
-   14px → 1rem        |  14px → 0.933rem   |  14px → 0.875rem
-   15px → 1.071rem    |  15px → 1rem       |  15px → 0.938rem
-   22px → 1.571rem    |  22px → 1.467rem   |  22px → 1.375rem
+   以下为各预设等级下的换算对照（仅供参考，实际以 JS 设置值为准）：
+   small base=14px  |  medium base=16px  |  large base=18px
+   ------            |  ------            |  ------
+   13px → 0.929rem   |  13px → 0.813rem  |  13px → 0.722rem
+   13.5px → 0.964rem |  13.5px → 0.844rem|  13.5px → 0.75rem
+   12px → 0.857rem   |  12px → 0.75rem   |  12px → 0.667rem
+   11px → 0.786rem   |  11px → 0.688rem  |  11px → 0.611rem
+   10px → 0.714rem   |  10px → 0.625rem  |  10px → 0.556rem
+   14px → 1rem       |  14px → 0.875rem  |  14px → 0.778rem
+   16px → 1.143rem   |  16px → 1rem      |  16px → 0.889rem
+   18px → 1.286rem   |  18px → 1.125rem  |  18px → 1rem
+   22px → 1.571rem   |  22px → 1.375rem  |  22px → 1.222rem
  */
 :root {
     /* 正文/输入 */
@@ -98,13 +102,43 @@
     /* 背景装饰（由各主题定义形状渐变，默认无） */
     --bg-decoration: none;
 
-    /* 图标尺寸（由 JS 在 applyDisplaySettings 中动态覆盖，此处为后备值） */
-    --icon-size-xs: 12px;
-    --icon-size-sm: 14px;
-    --icon-size-md: 16px;
-    --icon-size-lg: 20px;
-    --icon-size-xl: 24px;
-    --icon-size-xxl: 32px;
+    /* ===== 间距尺寸语义变量（基于 rem） =====
+       使用此系列变量替代 padding/margin/gap/width/height 等属性中的 px 值
+       换算基准：1rem = --base-font-size（由 JS 动态设置，16px 于 medium 等级）
+       2px=.125rem | 4px=.25rem | 6px=.375rem | 8px=.5rem | 10px=.625rem
+       12px=.75rem | 14px=.875rem | 16px=1rem | 20px=1.25rem | 24px=1.5rem
+       28px=1.75rem | 32px=2rem | 40px=2.5rem | 48px=3rem | 64px=4rem */
+    --space-0: 0;
+    --space-1: .125rem; /*  2px */
+    --space-2: .25rem; /*  4px */
+    --space-3: .375rem; /*  6px */
+    --space-4: .5rem; /*  8px */
+    --space-5: .625rem; /* 10px */
+    --space-6: .75rem; /* 12px */
+    --space-7: .875rem; /* 14px */
+    --space-8: 1rem; /* 16px */
+    --space-10: 1.25rem; /* 20px */
+    --space-12: 1.5rem; /* 24px */
+    --space-14: 1.75rem; /* 28px */
+    --space-16: 2rem; /* 32px */
+    --space-20: 2.5rem; /* 40px */
+    --space-24: 3rem; /* 48px */
+    --space-32: 4rem; /* 64px */
+
+    /* 元素尺寸语义变量 */
+    --size-btn-xs: 1.25rem; /* 20px */
+    --size-btn-sm: 1.5rem; /* 24px */
+    --size-btn-md: 1.75rem; /* 28px */
+    --size-btn-lg: 2rem; /* 32px */
+
+    /* 图标尺寸（由 JS 在 applyDisplaySettings 中动态覆盖，此处为后备值）
+       已统一为 rem 单位，以跟随基准字号自适应 */
+    --icon-size-xs: .75rem; /* 12px @ base=16px */
+    --icon-size-sm: .875rem; /* 14px */
+    --icon-size-md: 1rem; /* 16px */
+    --icon-size-lg: 1.25rem; /* 20px */
+    --icon-size-xl: 1.5rem; /* 24px */
+    --icon-size-xxl: 2rem; /* 32px */
 }
 
 /* 主题切换过渡动画 — 仅在主题数据加载完成后生效，避免 FOUC

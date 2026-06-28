@@ -1,0 +1,23 @@
+{
+  "extends": "stylelint-config-standard",
+  "customSyntax": "postcss-html",
+  "rules": {
+    "declaration-property-unit-disallowed-list": [
+      {
+        "/^(padding|margin|gap|row-gap|column-gap|width|min-width|max-width|height|min-height|max-height|top|right|bottom|left|inset)/": ["px"],
+        "font-size": ["px"],
+        "line-height": ["px", "rem", "em"]
+      }
+    ],
+    "selector-pseudo-class-no-unknown": [
+      true,
+      {
+        "ignorePseudoClasses": ["deep", "global", "slotted"]
+      }
+    ],
+    "color-no-hex": true,
+    "alpha-value-notation": ["number", {
+      "exceptProperties": ["opacity"]
+    }]
+  }
+}

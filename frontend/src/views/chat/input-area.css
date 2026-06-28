@@ -1,6 +1,6 @@
 .input-area {
     flex-shrink: 0;
-    padding: 10px 16px 8px;
+    padding: var(--space-5) var(--space-8) var(--space-4);
     /* 背景由 body 统一提供，此处透明避免圆角边缝 */
 }
 
@@ -22,7 +22,7 @@
 
 /* ===== 顶部拖拽手柄 ===== */
 .resize-handle {
-    height: 4px;
+    height: var(--space-2);
     cursor: ns-resize;
     display: flex;
     align-items: center;
@@ -34,8 +34,8 @@
 
 .resize-handle::after {
     content: '';
-    width: 32px;
-    height: 3px;
+    width: var(--space-16);
+    height: .1875rem;
     border-radius: 2px;
     background: var(--border-default);
     transition: background 0.15s, width 0.15s;
@@ -48,16 +48,16 @@
 
 .resize-handle:hover::after {
     background: var(--accent-default);
-    width: 40px;
+    width: var(--space-20);
 }
 
 /* ===== 输入框主体 ===== */
 .input-body {
     display: flex;
     flex-direction: column;
-    min-height: 48px;
-    max-height: 240px;
-    padding: 10px 10px 0;
+    min-height: var(--space-24);
+    max-height: 15rem;
+    padding: var(--space-5) var(--space-5) 0;
     overflow: hidden;
 }
 
@@ -69,7 +69,7 @@
 
 .chat-input {
     width: 100%;
-    padding: 4px 0;
+    padding: var(--space-2) 0;
     border: none;
     border-radius: 0;
     font-size: var(--font-size-body);
@@ -90,8 +90,8 @@
 .input-toolbar {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 0 10px 6px;
+    gap: var(--space-2);
+    padding: 0 var(--space-5) var(--space-3);
     flex-shrink: 0;
 }
 
@@ -107,7 +107,7 @@
     background: transparent !important;
     border-radius: 8px !important;
     min-height: auto !important;
-    padding: 0 4px;
+    padding: 0 var(--space-2);
     transition: background 0.15s;
 }
 
@@ -118,7 +118,7 @@
 .model-select :deep(.n-base-selection-label) {
     min-height: auto !important;
     height: auto !important;
-    padding: 0 2px;
+    padding: 0 var(--space-1);
 }
 
 .model-select :deep(.n-base-selection-input) {
@@ -152,14 +152,14 @@
 .feature-toggles {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--space-1);
 }
 
 .toggle-chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-4);
     font-size: var(--font-size-small);
     font-family: inherit;
     line-height: 1.4;
@@ -188,19 +188,19 @@
 
 .toggle-chip.active {
     color: var(--accent-default);
-    background: var(--acgent-subtle, rgba(99, 102, 241, 0.08));
+    background: var(--accent-light-bg);
 }
 
 .toggle-chip.active:hover {
-    background: var(--accent-bg-hover, rgba(99, 102, 241, 0.12));
+    background: var(--accent-light-bg);
 }
 
 /* ===== 发送 / 中断按钮（工具栏最右） ===== */
 .send-btn,
 .stop-btn {
     margin-left: auto;
-    width: 28px;
-    height: 28px;
+    width: var(--size-btn-md);
+    height: var(--size-btn-md);
     border: none;
     border-radius: 6px;
     display: flex;
@@ -237,11 +237,11 @@
 
 @keyframes stop-btn-pulse {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+        box-shadow: 0 0 0 0 var(--danger-ring);
         transform: scale(1);
     }
     50% {
-        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+        box-shadow: 0 0 0 4px var(--danger-ring);
         transform: scale(1.08);
     }
 }
@@ -272,7 +272,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: var(--space-4) var(--space-6);
     border-radius: 8px;
     background: var(--bg-secondary);
     transition: background 0.15s;
@@ -299,7 +299,7 @@
 }
 
 .mcp-empty-hint {
-    padding: 24px 0;
+    padding: var(--space-12) 0;
     text-align: center;
     color: var(--text-tertiary);
     font-size: var(--font-size-small);

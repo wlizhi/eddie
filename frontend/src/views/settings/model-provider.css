@@ -16,8 +16,8 @@
 
 /* ===== 左侧服务商列表 ===== */
 .provider-sidebar {
-    width: 200px;
-    min-width: 200px;
+    width: 12.5rem;
+    min-width: 12.5rem;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-default);
     flex-shrink: 0;
@@ -33,7 +33,7 @@
 }
 
 .provider-item {
-    padding: 10px 14px;
+    padding: var(--space-5) var(--space-7);
     cursor: pointer;
     border-bottom: 1px solid var(--border-lighter);
     transition: background 0.12s;
@@ -65,7 +65,7 @@
 
 .sidebar-empty,
 .sidebar-loading {
-    padding: 24px 14px;
+    padding: var(--space-12) var(--space-7);
     text-align: center;
     font-size: var(--font-size-base);
     color: var(--text-tertiary);
@@ -77,8 +77,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    height: 40px;
+    gap: var(--space-3);
+    height: var(--space-20);
     border: none;
     border-top: 1px solid var(--border-default);
     background: var(--bg-secondary);
@@ -95,7 +95,7 @@
 /* ===== 右侧详情区 ===== */
 .provider-detail {
     flex: 1;
-    padding: 24px 28px;
+    padding: var(--space-12) var(--space-14);
     overflow-y: auto;
     min-height: 0;
 }
@@ -132,7 +132,7 @@
 }
 
 .prop-label {
-    width: 72px;
+    width: 4.5rem;
     font-size: var(--font-size-base);
     color: var(--text-quaternary);
     flex-shrink: 0;
@@ -149,8 +149,8 @@
 .section-divider {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 20px 0;
+    gap: var(--space-6);
+    margin: var(--space-10) 0;
 }
 
 .divider-line {
@@ -209,9 +209,9 @@
 .model-row {
     display: flex;
     align-items: center;
-    padding: 8px 0;
+    padding: var(--space-4) 0;
     border-bottom: 1px solid var(--border-lighter);
-    gap: 8px;
+    gap: var(--space-4);
 }
 
 .model-row:last-child {
@@ -289,8 +289,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: var(--size-btn-md);
+    height: var(--size-btn-md);
     border: 1px solid transparent;
     border-radius: 6px;
     background: transparent;
@@ -333,7 +333,7 @@
 .modal-content {
     background: var(--bg-primary);
     border-radius: 12px;
-    width: 520px;
+    width: 32.5rem;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
@@ -344,7 +344,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: var(--space-8) var(--space-10);
     border-bottom: 1px solid var(--border-default);
     flex-shrink: 0;
 }
@@ -376,25 +376,25 @@
 }
 
 .modal-body {
-    padding: 24px;
+    padding: var(--space-12);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 1.125rem;
 }
 
 .modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 14px 20px;
+    gap: var(--space-5);
+    padding: var(--space-7) var(--space-10);
     border-top: 1px solid var(--border-default);
     flex-shrink: 0;
 }
 
 .btn-cancel {
-    height: 32px;
-    padding: 0 16px;
+    height: var(--size-btn-lg);
+    padding: 0 var(--space-8);
     border: 1px solid var(--border-default);
     border-radius: 6px;
     background: var(--bg-primary);
@@ -410,8 +410,8 @@
 }
 
 .btn-save {
-    height: 32px;
-    padding: 0 16px;
+    height: var(--size-btn-lg);
+    padding: 0 var(--space-8);
     border: none;
     border-radius: 6px;
     background: var(--accent-default);
@@ -448,8 +448,8 @@
 .cap-option {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
     border: 1px solid var(--border-default);
     border-radius: 6px;
     font-size: var(--font-size-small);
@@ -490,9 +490,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
-    padding: 0 10px;
-    height: 34px;
+    min-width: 2.25rem;
+    padding: 0 var(--space-5);
+    height: 2.125rem;
     border: 1px solid var(--border-default);
     border-radius: 6px;
     font-size: var(--font-size-base);
@@ -509,9 +509,9 @@
 }
 
 .currency-custom-input {
-    width: 40px;
-    height: 34px;
-    padding: 0 6px;
+    width: 2.5rem;
+    height: 2.125rem;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border-default);
     border-radius: 6px;
     font-size: var(--font-size-base);
@@ -530,11 +530,11 @@
 .price-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-6);
 }
 
 .price-row .field-input {
-    width: 160px;
+    width: 10rem;
 }
 
 .price-unit {
@@ -564,7 +564,7 @@
 .toggle-row {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-5);
     cursor: pointer;
     user-select: none;
 }
@@ -575,8 +575,8 @@
 
 .toggle-switch {
     position: relative;
-    width: 36px;
-    height: 20px;
+    width: 2.25rem;
+    height: 1.25rem;
     background: var(--border-hover);
     border-radius: 10px;
     transition: background 0.2s;
@@ -586,14 +586,14 @@
 .toggle-switch::after {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 16px;
-    height: 16px;
+    top: var(--space-1);
+    left: var(--space-1);
+    width: 1rem;
+    height: 1rem;
     background: var(--bg-primary);
     border-radius: 50%;
     transition: transform 0.2s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 1px 3px var(--accent-ring);
 }
 
 .toggle-row input:checked + .toggle-switch {
@@ -601,7 +601,7 @@
 }
 
 .toggle-row input:checked + .toggle-switch::after {
-    transform: translateX(16px);
+    transform: translateX(1rem);
 }
 
 .toggle-label {
@@ -613,7 +613,7 @@
 .provider-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-4);
 }
 
 .provider-info {
@@ -645,8 +645,8 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    width: 32px;
-    height: 18px;
+    width: 2rem;
+    height: 1.125rem;
     cursor: pointer;
     flex-shrink: 0;
     margin-left: auto;
@@ -669,14 +669,14 @@
 .sidebar-toggle .toggle-track::before {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 14px;
-    height: 14px;
+    top: var(--space-1);
+    left: var(--space-1);
+    width: .875rem;
+    height: .875rem;
     background: var(--bg-primary);
     border-radius: 50%;
     transition: transform 0.2s;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 1px 2px var(--accent-ring);
 }
 
 .sidebar-toggle input:checked + .toggle-track {
@@ -684,5 +684,5 @@
 }
 
 .sidebar-toggle input:checked + .toggle-track::before {
-    transform: translateX(14px);
+    transform: translateX(.875rem);
 }
