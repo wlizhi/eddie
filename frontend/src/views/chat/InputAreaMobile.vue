@@ -16,7 +16,7 @@ import MobileModelSheet from './MobileModelSheet.vue'
 import MobileThinkingSheet from './MobileThinkingSheet.vue'
 import MobileMcpSheet from './MobileMcpSheet.vue'
 
-const {iconSizeMd} = useIconSize()
+const {iconSizeSm} = useIconSize()
 
 const chatStore = useChatStore()
 
@@ -36,7 +36,7 @@ const isComposing = ref(false)
 function autoResize() {
   const el = inputRef.value
   if (!el) return
-  el.style.height = '2.75rem'
+  el.style.height = '2.25rem'
   el.style.height = Math.min(el.scrollHeight, 150) + 'px'
 }
 
@@ -107,9 +107,15 @@ const showMcpSheet = ref(false)
       <!-- 可水平滑动的工具栏行 -->
       <div class="toolbar-scroll-row">
         <div class="toolbar-scroll-content">
+          <!-- 新对话放在最左侧 -->
+          <button class="toolbar-chip toolbar-chip-label" title="新对话" @click="chatStore.newConversation()">
+            <Plus :size="iconSizeSm"/>
+            <!--            <span>新对话</span>-->
+          </button>
+
           <button class="toolbar-chip toolbar-chip-label" title="选择模型" @click="showModelSheet = true">
             <span class="model-name-mobile">{{ currentModelName }}</span>
-            <ChevronDown :size="14"/>
+            <ChevronDown :size="12"/>
           </button>
 
           <button
@@ -118,7 +124,7 @@ const showMcpSheet = ref(false)
               title="思考模式"
               @click="showThinkingSheet = true"
           >
-            <Brain :size="iconSizeMd"/>
+            <Brain :size="iconSizeSm"/>
             <span>思考</span>
           </button>
 
@@ -128,7 +134,7 @@ const showMcpSheet = ref(false)
               title="联网搜索"
               @click="chatStore.webSearchEnabled = !chatStore.webSearchEnabled"
           >
-            <Globe :size="iconSizeMd"/>
+            <Globe :size="iconSizeSm"/>
             <span>联网</span>
           </button>
 
@@ -138,13 +144,8 @@ const showMcpSheet = ref(false)
               title="MCP 服务"
               @click="showMcpSheet = true"
           >
-            <Network :size="iconSizeMd"/>
+            <Network :size="iconSizeSm"/>
             <span>MCP</span>
-          </button>
-
-          <button class="toolbar-chip" title="新对话" @click="chatStore.newConversation()">
-            <Plus :size="iconSizeMd"/>
-            <span>新对话</span>
           </button>
         </div>
       </div>
@@ -173,7 +174,7 @@ const showMcpSheet = ref(false)
             title="发送"
             @click="emit('send')"
         >
-          <Send :size="iconSizeMd"/>
+          <Send :size="iconSizeSm"/>
         </button>
         <button
             v-else
@@ -181,7 +182,7 @@ const showMcpSheet = ref(false)
             title="中断"
             @click="chatStore.abortStream()"
         >
-          <Square :size="iconSizeMd"/>
+          <Square :size="iconSizeSm"/>
         </button>
       </div>
     </div>
@@ -246,12 +247,12 @@ const showMcpSheet = ref(false)
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--bg-primary);
   color: var(--text-tertiary);
-  font-size: var(--font-size-small);
+  font-size: var(--font-size-xs);
   font-family: inherit;
   line-height: 1.4;
   cursor: pointer;
@@ -273,7 +274,7 @@ const showMcpSheet = ref(false)
 }
 
 .toolbar-chip-label {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   border: none;
   background: transparent;
   color: var(--text-quaternary);
@@ -284,7 +285,7 @@ const showMcpSheet = ref(false)
 }
 
 .model-name-mobile {
-  max-width: 5rem;
+  max-width: 8rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -300,14 +301,14 @@ const showMcpSheet = ref(false)
 
 .input-body-mobile {
   flex: 1;
-  min-height: var(--space-24);
+  min-height: var(--touch-btn-size);
   max-height: 9.375rem;
   overflow: hidden;
 }
 
 .chat-input-mobile {
   width: 100%;
-  min-height: var(--space-24);
+  min-height: var(--touch-btn-size);
   padding: var(--space-1) 0;
   border: none;
   border-radius: 0;
@@ -331,10 +332,10 @@ const showMcpSheet = ref(false)
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--size-btn-lg);
-  height: var(--size-btn-lg);
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  width: var(--touch-btn-size);
+  height: var(--touch-btn-size);
+  min-width: var(--touch-btn-size);
+  min-height: var(--touch-btn-size);
   border: none;
   border-radius: 10px;
   cursor: pointer;

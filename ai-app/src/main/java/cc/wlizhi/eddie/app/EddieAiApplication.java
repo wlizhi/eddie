@@ -34,7 +34,7 @@ public class EddieAiApplication {
         Integer port = event.getApplicationContext().getEnvironment().getProperty("server.port", Integer.class);
         String url = "http://localhost:" + port;
         try {
-            Runtime.getRuntime().exec(new String[]{"open", url});
+//            Runtime.getRuntime().exec(new String[]{"open", url});
         } catch (Exception ignored) {
         }
     }

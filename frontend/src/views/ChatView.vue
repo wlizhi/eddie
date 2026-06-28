@@ -18,6 +18,7 @@ import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
 import {fetchAssistantDetail} from '@/api/assistant'
 import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
+import {useMobile} from '@/composables/useMobile'
 import Toolbar from '@/views/chat/Toolbar.vue'
 import MessageList from '@/views/chat/MessageList.vue'
 import EmptyState from '@/views/chat/EmptyState.vue'
@@ -28,6 +29,8 @@ const assistantStore = useAssistantStore()
 
 /** 输入框文本 */
 const inputText = ref('')
+
+const {isMobile} = useMobile()
 
 /** InputArea 组件引用，用于发送后保持焦点 */
 const inputAreaRef = ref<InstanceType<typeof InputArea> | null>(null)
@@ -98,10 +101,12 @@ function handleSend() {
   if (!text.trim() || chatStore.isStreaming) return
   inputText.value = ''
   chatStore.sendMessage(text)
-  // 发送后保持输入框焦点
-  nextTick(() => {
-    inputAreaRef.value?.focusInput()
-  })
+  // 桌面端发送后保持输入框焦点，移动端不聚焦以避免唤起键盘
+  if (!isMobile.value) {
+    nextTick(() => {
+      inputAreaRef.value?.focusInput()
+    })
+  }
 }
 
 /** 空状态建议问题点击 */
