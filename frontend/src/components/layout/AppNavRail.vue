@@ -10,7 +10,7 @@ import {
 } from '@/composables/useDisplaySettings'
 import {useIconSize} from '@/composables/useIconSize'
 
-const {iconSizeLg, iconSizeXs} = useIconSize()
+const {iconSizeLg} = useIconSize()
 
 defineProps<{
   activeNav: string
