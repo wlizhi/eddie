@@ -14,6 +14,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jspecify.annotations.Nullable;
@@ -931,6 +932,7 @@ public class EddieOpenAiChatModel implements ChatModel {
         }
     }
 
+    @Slf4j
     private static final class ChunkMerger {
 
         static boolean hasToolCall(ChatCompletionChunk chunk) {
@@ -1028,17 +1030,38 @@ public class EddieOpenAiChatModel implements ChatModel {
                         .refusal(cccc.delta().refusal())
                         .additionalProperties(cccc.delta()._additionalProperties());
                 cccc.delta().toolCalls().ifPresent(ccctcs -> {
-                    msgBuilder.toolCalls(ccctcs.stream().map(tc -> {
-                        ChatCompletionMessageFunctionToolCall.Builder toolCallBuilder = ChatCompletionMessageFunctionToolCall
-                                .builder();
-                        toolCallBuilder.putAllAdditionalProperties(tc._additionalProperties());
-                        toolCallBuilder.id(tc.id().get());
-                        toolCallBuilder.function(ChatCompletionMessageFunctionToolCall.Function.builder()
-                                .name(tc.function().get().name().get())
-                                .arguments(tc.function().get().arguments().get())
-                                .build());
-                        return ChatCompletionMessageToolCall.ofFunction(toolCallBuilder.build());
-                    }).toList());
+                    List<ChatCompletionMessageToolCall> validToolCalls = new ArrayList<>();
+                    for (var tc : ccctcs) {
+                        if (tc.id().isEmpty()) {
+                            log.warn("工具调用缺少 id 字段, chunkId={}, choiceIndex={}, 跳过此工具调用",
+                                    chunk.id(), cccc.index());
+                            continue;
+                        }
+                        if (tc.function().isEmpty()) {
+                            log.warn("工具调用缺少 function 字段, id={}, chunkId={}, 跳过此工具调用",
+                                    tc.id().get(), chunk.id());
+                            continue;
+                        }
+                        var funcTc = tc.function().get();
+                        if (funcTc.name().isEmpty()) {
+                            log.warn("工具调用缺少 function.name 字段, id={}, chunkId={}, 跳过此工具调用",
+                                    tc.id().get(), chunk.id());
+                            continue;
+                        }
+                        ChatCompletionMessageFunctionToolCall.Function function =
+                                ChatCompletionMessageFunctionToolCall.Function.builder()
+                                        .name(funcTc.name().get())
+                                        .arguments(funcTc.arguments().orElse(""))
+                                        .build();
+                        ChatCompletionMessageFunctionToolCall toolCall =
+                                ChatCompletionMessageFunctionToolCall.builder()
+                                        .id(tc.id().get())
+                                        .putAllAdditionalProperties(tc._additionalProperties())
+                                        .function(function)
+                                        .build();
+                        validToolCalls.add(ChatCompletionMessageToolCall.ofFunction(toolCall));
+                    }
+                    msgBuilder.toolCalls(validToolCalls);
                 });
                 choiceBuilder.message(msgBuilder.build());
                 return choiceBuilder.build();
