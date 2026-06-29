@@ -1,7 +1,9 @@
-package cc.wlizhi.eddie.app.config;
+package cc.wlizhi.eddie.app.init;
 
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.util.FileStorageUtil;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,13 +14,15 @@ import org.springframework.context.annotation.Configuration;
  * 初始化 {@link FileStorageUtil} 的存储目录。
  */
 @Configuration
-public class FileStorageConfig {
+public class FileStorageInitializer {
+    @Resource
+    private InitScheduler initScheduler;
 
     @Value("${eddie.data-dir}")
     private String dataDir;
 
     @PostConstruct
     public void init() {
-        FileStorageUtil.init(dataDir);
+        initScheduler.addTask(this.getClass().getSimpleName(), 0, () -> FileStorageUtil.init(dataDir));
     }
 }

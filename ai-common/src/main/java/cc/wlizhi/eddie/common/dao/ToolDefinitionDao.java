@@ -2,7 +2,6 @@ package cc.wlizhi.eddie.common.dao;
 
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import jakarta.annotation.Resource;
-import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -13,7 +12,6 @@ import java.util.List;
 /**
  * 工具定义表 (ai_tool_definition) 数据访问层
  */
-@RegisterReflectionForBinding(ToolDefinitionEntity.class)
 @Repository
 public class ToolDefinitionDao {
 

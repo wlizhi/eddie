@@ -8,6 +8,7 @@ import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatOptions;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -26,7 +27,8 @@ public class EddieOpenAiChatClientFactory implements ChatClientFactory {
 
     private static final Set<String> DEEPSEEK_CODES = Set.of("deepseek", "dashscope", "openai");
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public boolean support(String providerCode) {

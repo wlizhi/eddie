@@ -1,6 +1,7 @@
 package cc.wlizhi.eddie.memory.context;
 
 import cc.wlizhi.eddie.common.cache.GlobalCache;
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.memory.dao.GlobalConfigDao;
@@ -29,9 +30,12 @@ public class GlobalConfigContext implements GlobalCache {
     @Resource
     private GlobalConfigDao globalConfigDao;
 
+    @Resource
+    private InitScheduler initScheduler;
+
     @PostConstruct
     void init() {
-        refresh();
+        initScheduler.addTask(this.getClass().getSimpleName(), 1000, this::refresh);
     }
 
     /**

@@ -22,7 +22,6 @@ import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,8 +61,8 @@ public class AssistantServiceImpl implements AssistantService {
     @Resource
     private OwnerToolBindingContext ownerToolBindingContext;
 
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public List<AssistantVO> list(boolean showAll) {

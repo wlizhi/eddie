@@ -3,7 +3,6 @@ package cc.wlizhi.eddie.memory.dao;
 import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
 import jakarta.annotation.Resource;
-import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -21,7 +20,6 @@ import java.util.Map;
  *
  * @author Eddie
  */
-@RegisterReflectionForBinding(GlobalConfigEntity.class)
 @Repository
 public class GlobalConfigDao {
 

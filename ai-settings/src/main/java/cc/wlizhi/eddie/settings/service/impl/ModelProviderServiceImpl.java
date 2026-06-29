@@ -45,9 +45,10 @@ public class ModelProviderServiceImpl implements ModelProviderService {
     @Resource
     private ModelCapabilityResolver modelCapabilityResolver;
 
-    private volatile WeakReference<Map<Long, ModelCache>> remoteModelsCache = new WeakReference<>(new ConcurrentHashMap<>());
+    @Resource
+    private ObjectMapper objectMapper;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private volatile WeakReference<Map<Long, ModelCache>> remoteModelsCache = new WeakReference<>(new ConcurrentHashMap<>());
 
     @Override
     public List<ModelProviderVO> listAll() {

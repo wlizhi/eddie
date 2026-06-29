@@ -1,6 +1,7 @@
 package cc.wlizhi.eddie.memory.context;
 
 import cc.wlizhi.eddie.common.cache.GlobalCache;
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dao.ModelProviderDao;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import jakarta.annotation.PostConstruct;
@@ -26,10 +27,12 @@ public class ModelProviderContext implements GlobalCache {
 
     @Resource
     private ModelProviderDao modelProviderDao;
+    @Resource
+    private InitScheduler initScheduler;
 
     @PostConstruct
     void init() {
-        refresh();
+        initScheduler.addTask(this.getClass().getSimpleName(), 1000, this::refresh);
     }
 
     /**

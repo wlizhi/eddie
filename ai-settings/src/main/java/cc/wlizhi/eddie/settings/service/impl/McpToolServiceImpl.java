@@ -1,5 +1,6 @@
 package cc.wlizhi.eddie.settings.service.impl;
 
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dao.McpServerDao;
 import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
@@ -59,12 +60,18 @@ public class McpToolServiceImpl implements McpToolService {
 
     @Resource
     private McpClientRegistry mcpClientRegistry;
+    @Resource
+    private InitScheduler initScheduler;
 
     /**
      * 注册重连成功回调：当 MCP 后台重连成功时自动同步工具列表到 DB
      */
     @PostConstruct
     public void registerReconnectCallback() {
+        initScheduler.addTask(this.getClass().getSimpleName(), 100, this::doRegisterReconnectCallback);
+    }
+
+    private void doRegisterReconnectCallback() {
         mcpClientRegistry.addReconnectCallback((mcpServerId, callbacks) -> {
             try {
                 List<McpConnectInfo.ToolInfo> toolInfos = callbacks.stream()

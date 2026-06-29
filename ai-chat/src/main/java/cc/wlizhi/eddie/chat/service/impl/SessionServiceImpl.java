@@ -42,7 +42,6 @@ import java.util.Map;
 public class SessionServiceImpl implements SessionService {
 
     private static final Logger log = LoggerFactory.getLogger(SessionServiceImpl.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final int TITLE_MAX_LENGTH = 20;
 
     @Resource
@@ -65,6 +64,9 @@ public class SessionServiceImpl implements SessionService {
 
     @Resource
     private GlobalPromptsContext globalPromptsContext;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     private static final int MESSAGE_PAGE_SIZE = 20;
 

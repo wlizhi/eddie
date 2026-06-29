@@ -1,5 +1,6 @@
-package cc.wlizhi.eddie.app.config;
+package cc.wlizhi.eddie.app.init;
 
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dao.McpServerDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
@@ -7,14 +8,12 @@ import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.ToolType;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -35,26 +34,29 @@ import java.util.stream.Collectors;
 @Slf4j
 @DependsOn("dataSourceScriptDatabaseInitializer") // 指定依赖的Bean名称
 @Component
-public class ToolAutoRegister {
+public class ToolRegisterInitializer {
 
     private final List<BuiltInToolProvider> toolProviders;
     private final ToolDefinitionDao toolDefinitionDao;
     private final McpServerDao mcpServerDao;
-    private final String serverPort;
     @Resource
     private OwnerToolBindingContext ownerToolBindingContext;
+    @Resource
+    private InitScheduler initScheduler;
 
-    public ToolAutoRegister(List<BuiltInToolProvider> toolProviders,
-                            ToolDefinitionDao toolDefinitionDao,
-                            McpServerDao mcpServerDao,
-                            @Value("${server.port:11520}") String serverPort) {
+    public ToolRegisterInitializer(List<BuiltInToolProvider> toolProviders,
+                                   ToolDefinitionDao toolDefinitionDao,
+                                   McpServerDao mcpServerDao) {
         this.toolProviders = toolProviders;
         this.toolDefinitionDao = toolDefinitionDao;
         this.mcpServerDao = mcpServerDao;
-        this.serverPort = serverPort;
     }
 
-    @EventListener(ApplicationReadyEvent.class)
+    @PostConstruct
+    public void init() {
+        initScheduler.addTask(this.getClass().getSimpleName(), 10000000, this::registerBuiltInTools);
+    }
+
     public void registerBuiltInTools() {
         if (toolProviders.isEmpty()) {
             log.debug("[工具自动注册] 无内置工具提供者");

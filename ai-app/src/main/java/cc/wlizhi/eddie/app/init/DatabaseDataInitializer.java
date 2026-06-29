@@ -1,9 +1,10 @@
-package cc.wlizhi.eddie.app.config;
+package cc.wlizhi.eddie.app.init;
 
+import cc.wlizhi.eddie.app.config.EddieProperties;
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -14,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
-public class DatabaseInitExecutor implements CommandLineRunner {
+public class DatabaseDataInitializer {
 
     private static final String VERSION_KEY = "DB_INIT_VERSION";
 
@@ -55,14 +55,12 @@ public class DatabaseInitExecutor implements CommandLineRunner {
 
     @Resource
     private EddieProperties eddieProperties;
+    @Resource
+    private InitScheduler initScheduler;
 
     @PostConstruct
     public void init() {
-        try {
-            CompletableFuture.runAsync(this::executePendingMigrations);
-        } catch (Exception e) {
-            log.error("数据库初始化脚本执行失败", e);
-        }
+        initScheduler.addTask(this.getClass().getSimpleName(), 10, this::executePendingMigrations);
     }
 
     private void executePendingMigrations() {
@@ -219,10 +217,5 @@ public class DatabaseInitExecutor implements CommandLineRunner {
         jdbcTemplate.update(
                 "UPDATE global_config SET config_val = ?, updated_at = datetime('now', 'localtime') WHERE config_key = ?",
                 String.valueOf(version), VERSION_KEY);
-    }
-
-    @Override
-    public void run(String... args) throws Exception {
-
     }
 }

@@ -41,7 +41,8 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
     @Resource
     private SessionDao sessionDao;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public void process(ChatContext ctx) {

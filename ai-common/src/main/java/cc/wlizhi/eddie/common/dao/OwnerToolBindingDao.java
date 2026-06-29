@@ -5,7 +5,6 @@ import cc.wlizhi.eddie.common.enums.RoleType;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -18,7 +17,6 @@ import java.util.List;
  * 多态关联 {@code ai_tool_definition}，支持 BUILT_IN 和 MCP 两种类型。
  * 绑定记录不关心工具是否启用，运行时按当前全局启用状态动态过滤。
  */
-@RegisterReflectionForBinding(ToolDefinitionEntity.class)
 @Repository
 public class OwnerToolBindingDao {
 

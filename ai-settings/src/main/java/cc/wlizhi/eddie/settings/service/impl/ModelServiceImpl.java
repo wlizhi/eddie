@@ -28,7 +28,8 @@ public class ModelServiceImpl implements ModelService {
     @Resource
     private ModelProviderContext modelProviderContext;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public void updateModel(Long providerId, ModelUpdateRequest request) {

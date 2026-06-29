@@ -22,7 +22,8 @@ public class ChatModelServiceImpl implements ChatModelService {
     @Resource
     private ChatModelProviderDao chatModelProviderDao;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public List<ChatModelSelectorVO> listChatModels() {

@@ -1,4 +1,4 @@
-package cc.wlizhi.eddie.app.config;
+package cc.wlizhi.eddie.app.aot;
 
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;

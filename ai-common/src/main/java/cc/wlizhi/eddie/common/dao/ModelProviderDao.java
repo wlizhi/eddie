@@ -2,7 +2,6 @@ package cc.wlizhi.eddie.common.dao;
 
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import jakarta.annotation.Resource;
-import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@RegisterReflectionForBinding(ModelProviderEntity.class)
 @Repository
 public class ModelProviderDao {
 

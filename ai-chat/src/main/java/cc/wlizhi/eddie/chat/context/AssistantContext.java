@@ -1,6 +1,7 @@
 package cc.wlizhi.eddie.chat.context;
 
 import cc.wlizhi.eddie.common.cache.GlobalCache;
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dao.AssistantDao;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
 import jakarta.annotation.PostConstruct;
@@ -25,10 +26,12 @@ public class AssistantContext implements GlobalCache {
 
     @Resource
     private AssistantDao assistantDao;
+    @Resource
+    private InitScheduler initScheduler;
 
     @PostConstruct
     void init() {
-        refresh();
+        initScheduler.addTask(this.getClass().getSimpleName(), 1000, this::refresh);
     }
 
     /**

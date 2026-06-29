@@ -4,6 +4,7 @@ import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Resource;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -46,14 +47,15 @@ public class WebFetchTools implements BuiltInToolProvider {
     private static final int MAX_CHARS = 15_000;
 
     private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     public WebFetchTools() {
         this.httpClient = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
                 .build();
-        this.objectMapper = new ObjectMapper();
     }
 
     @Tool(name = "built_in_fetch_markdown",

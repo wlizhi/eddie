@@ -51,7 +51,8 @@ public class ChatSseTransformer {
     @Resource
     private List<ChatMetadataHandler> metadataHandlers;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     private static final int MAX_TOOL_CALL_RES_LENGTH = 5000;
 

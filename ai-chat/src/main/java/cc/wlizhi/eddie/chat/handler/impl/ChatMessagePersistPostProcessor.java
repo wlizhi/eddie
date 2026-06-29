@@ -28,6 +28,9 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
     @Resource
     private MessageDao messageDao;
 
+    @Resource
+    private ObjectMapper objectMapper;
+
     @Override
     public void process(ChatContext ctx) {
         CompletableFuture.runAsync(() -> persist(ctx));
@@ -77,7 +80,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         // 持久化工具调用记录
         if (ctx.getToolCalls() != null && !ctx.getToolCalls().isEmpty()) {
             try {
-                toolCallsJson = new ObjectMapper().writeValueAsString(ctx.getToolCalls());
+                toolCallsJson = objectMapper.writeValueAsString(ctx.getToolCalls());
             } catch (JsonProcessingException e) {
                 // ignore
             }

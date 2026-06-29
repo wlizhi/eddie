@@ -6,10 +6,10 @@ import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -90,6 +90,9 @@ public class OwnerToolBindingContext implements GlobalCache {
 
     @Resource
     private OwnerToolBindingDao ownerToolBindingDao;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     // ==================== 查询方法：绑定关系 ====================
 
@@ -258,7 +261,7 @@ public class OwnerToolBindingContext implements GlobalCache {
             log.info("开始刷新内置工具缓存");
             doRefresh();
             log.info("刷新内置工具缓存完成");
-            log.debug("缓存数据: {}", new ObjectMapper().writeValueAsString(getAllMcpServersWithTools()));
+            log.debug("缓存数据: {}", objectMapper.writeValueAsString(getAllMcpServersWithTools()));
         } catch (Exception e) {
             log.warn("写入缓存数据日志失败（非关键错误）: {}", e.getMessage());
         } finally {

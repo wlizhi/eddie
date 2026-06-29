@@ -1,6 +1,7 @@
 package cc.wlizhi.eddie.tools.service;
 
 import cc.wlizhi.eddie.common.cache.GlobalCache;
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dao.McpServerDao;
 import cc.wlizhi.eddie.common.dto.McpConnectInfo;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
@@ -50,6 +51,8 @@ public class McpClientRegistry implements GlobalCache {
 
     @Resource
     private McpServerDao mcpServerDao;
+    @Resource
+    private InitScheduler initScheduler;
 
     // ==================== 重连回调 ====================
 
@@ -82,6 +85,10 @@ public class McpClientRegistry implements GlobalCache {
      */
     @PostConstruct
     public void init() {
+        initScheduler.addTask(this.getClass().getSimpleName(), 100, this::doInit);
+    }
+
+    private void doInit() {
         List<McpServerEntity> enabled = mcpServerDao.findAllEnabled();
         if (enabled.isEmpty()) {
             log.debug("MCP 注册中心: 无已启用的 MCP 服务器");

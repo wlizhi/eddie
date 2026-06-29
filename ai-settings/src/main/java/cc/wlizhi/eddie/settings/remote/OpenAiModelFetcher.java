@@ -5,6 +5,7 @@ import cc.wlizhi.eddie.common.util.UrlUtil;
 import cc.wlizhi.eddie.settings.entity.response.ModelVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -35,7 +36,9 @@ public class OpenAiModelFetcher implements RemoteModelFetcher {
     private static final String PROVIDER_CODE = "openai";
 
     private final RestClient restClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     public OpenAiModelFetcher() {
         this.restClient = RestClient.builder().build();

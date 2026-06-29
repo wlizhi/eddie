@@ -1,5 +1,6 @@
 package cc.wlizhi.eddie.tools.tool;
 
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
@@ -59,9 +60,15 @@ public class WebSearchTools implements BuiltInToolProvider {
 
     @Resource
     private GlobalConfigContext globalConfigContext;
+    @Resource
+    private InitScheduler initScheduler;
 
     @PostConstruct
     void init() {
+        initScheduler.addTask(this.getClass().getSimpleName(), 0, this::doInit);
+    }
+
+    private void doInit() {
         CompletableFuture.runAsync(() -> {
             try {
                 if (isDdgReachable()) {

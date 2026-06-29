@@ -1,9 +1,11 @@
 package cc.wlizhi.eddie.settings.remote;
 
+import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.enums.ModelCapability;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -32,15 +34,22 @@ public class ModelCapabilityResolver {
      */
     private static final String MAPPING_FILE = "model-capability-mapping.json";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 映射数据：providerCode → (modelCode → List<ModelCapability>)
      */
     private final Map<String, Map<String, List<ModelCapability>>> mapping = new ConcurrentHashMap<>();
+    @Resource
+    private InitScheduler initScheduler;
 
     @PostConstruct
     public void init() {
+        initScheduler.addTask(this.getClass().getSimpleName(), 0, this::doInit);
+    }
+
+    private void doInit() {
         try {
             ClassPathResource resource = new ClassPathResource(MAPPING_FILE);
             if (!resource.exists()) {

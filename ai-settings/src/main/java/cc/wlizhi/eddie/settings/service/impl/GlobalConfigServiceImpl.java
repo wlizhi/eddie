@@ -35,7 +35,8 @@ public class GlobalConfigServiceImpl implements GlobalConfigService {
     @Resource
     private GlobalConfigDao globalConfigDao;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public Map<String, String> getConfigs() {

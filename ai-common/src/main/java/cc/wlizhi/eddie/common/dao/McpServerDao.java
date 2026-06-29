@@ -2,7 +2,6 @@ package cc.wlizhi.eddie.common.dao;
 
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import jakarta.annotation.Resource;
-import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -13,7 +12,6 @@ import java.util.Optional;
 /**
  * MCP 服务器配置表 (ai_mcp_server) 数据访问层
  */
-@RegisterReflectionForBinding(McpServerEntity.class)
 @Repository
 public class McpServerDao {
 
