@@ -36,6 +36,9 @@
                    :type="server.enabled ? 'success' : 'default'">
               {{ server.tools.length }} 个工具
             </n-tag>
+            <n-tag v-if="showPartialLabel(server)" :bordered="false" size="tiny" type="warning">
+              已启用 {{ enabledToolCount(server) }}/{{ server.tools.length }}
+            </n-tag>
           </div>
 
           <div class="mcp-card-actions">
@@ -102,9 +105,6 @@
                 <div class="tool-info">
                   <span class="tool-name" :title="tool.name">{{ tool.name }}</span>
                   <div v-if="tool.description" class="tool-desc">{{ tool.description }}</div>
-                  <div class="tool-meta">
-                    <code>{{ tool.name }}</code>
-                  </div>
                 </div>
                 <label class="sidebar-toggle tool-toggle" @click.prevent="handleToolToggle(server, tool)">
                   <input
@@ -169,6 +169,16 @@ function handleToolToggle(server: McpServer, tool: McpToolItem) {
 
 function transportLabel(type: string): string {
   return TRANSPORT_LABELS[type] || type
+}
+
+function enabledToolCount(server: McpServer): number {
+  return server.tools.filter(t => t.enabled).length
+}
+
+function showPartialLabel(server: McpServer): boolean {
+  if (!server.enabled || !server.tools?.length) return false
+  const count = enabledToolCount(server)
+  return count > 0 && count < server.tools.length
 }
 
 function tagType(type: string): 'success' | 'info' | 'warning' | 'default' {

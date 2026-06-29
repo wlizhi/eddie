@@ -12,6 +12,14 @@
         <!-- 卡片头部 -->
         <div class="mcp-card-header" @click="toggleExpand(server.id)">
           <div class="mcp-card-left">
+            <!-- 连接状态圆点（仅启用时展示） -->
+            <span v-if="server.enabled"
+                  class="status-dot"
+                  :class="{
+                    'connected': server.connectionStatus === 'CONNECTED',
+                    'disconnected': server.connectionStatus !== 'CONNECTED',
+                  }"
+            />
             <HardDrive :size="18" :stroke-width="1.5" class="mcp-card-icon"/>
             <ChevronDown
                 :size="14"
@@ -23,9 +31,11 @@
               {{ server.name }}
             </span>
             <span class="mcp-tag built-in">内置</span>
-            <span v-if="needsConfig(server)" class="mcp-tag needs-config">需要配置</span>
             <span class="mcp-tag" :class="server.enabled ? 'enabled' : 'disabled'">
               {{ server.tools.length }} 个工具
+            </span>
+            <span v-if="showPartialLabel(server)" class="mcp-tag partial">
+              已启用 {{ enabledToolCount(server) }}/{{ server.tools.length }}
             </span>
           </div>
 
@@ -60,9 +70,6 @@
                 <div class="tool-info">
                   <span class="tool-name">{{ tool.name }}</span>
                   <div v-if="tool.description" class="tool-desc">{{ tool.description }}</div>
-                  <div class="tool-meta">
-                    <code>{{ tool.name }}</code>
-                  </div>
                 </div>
                 <label class="sidebar-toggle tool-toggle" @click.prevent="handleToolToggle(server, tool)">
                   <input
@@ -110,6 +117,16 @@ const builtInServers = computed(() =>
 
 function needsConfig(server: McpServer): boolean {
   return !server.command && !server.url
+}
+
+function enabledToolCount(server: McpServer): number {
+  return server.tools.filter(t => t.enabled).length
+}
+
+function showPartialLabel(server: McpServer): boolean {
+  if (!server.enabled || !server.tools?.length) return false
+  const count = enabledToolCount(server)
+  return count > 0 && count < server.tools.length
 }
 
 function toggleExpand(id: number) {
@@ -224,12 +241,11 @@ function handleToolToggle(server: McpServer, tool: McpToolItem) {
   margin-top: 4px;
 }
 
-.tool-meta code {
-  font-size: var(--font-size-xs);
-  background: var(--bg-secondary);
-  padding: 1px 5px;
-  border-radius: 3px;
-  color: var(--text-quaternary);
+
+/* ===== 部分启用标签 ===== */
+.mcp-tag.partial {
+  background: var(--tag-warning-bg, #fef3cd);
+  color: var(--tag-warning-text, #856404);
 }
 
 /* ===== Toggle 开关（em 单位，随全局字号缩放） ===== */
@@ -286,6 +302,25 @@ function handleToolToggle(server: McpServer, tool: McpToolItem) {
 
 .mcp-card-header {
   cursor: pointer;
+}
+
+/* ===== 连接状态圆点 ===== */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+.status-dot.connected {
+  background: var(--color-success, #52c41a);
+  box-shadow: 0 0 6px rgba(82, 196, 26, 0.5);
+}
+
+.status-dot.disconnected {
+  background: var(--color-warning, #faad14);
+  box-shadow: 0 0 6px rgba(250, 173, 20, 0.5);
 }
 
 </style>
