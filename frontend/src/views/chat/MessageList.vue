@@ -55,7 +55,7 @@ function buildToolContent(args: string | undefined, result: string | undefined):
     if (content) content += '\n\n'
     content += fixNewlines(result)
   }
-  console.log('=== buildToolContent output ===', JSON.stringify(content))
+  // console.log('=== buildToolContent output ===', JSON.stringify(content))
   return content
 }
 
