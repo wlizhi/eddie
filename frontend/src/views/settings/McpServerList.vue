@@ -34,8 +34,8 @@
             <!-- 编辑按钮 -->
             <button
                 class="mcp-card-action-btn"
-                :disabled="server.builtIn"
-                :title="server.builtIn ? '内置服务器不可编辑' : '编辑'"
+                :disabled="server.sourceType !== 'USER'"
+                :title="server.sourceType !== 'USER' ? '系统预置不可编辑' : '编辑'"
                 @click="$emit('edit', server)"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -47,8 +47,8 @@
             <!-- 删除按钮 -->
             <button
                 class="mcp-card-action-btn danger"
-                :disabled="server.builtIn"
-                :title="server.builtIn ? '内置服务器不可删除' : '删除'"
+                :disabled="server.sourceType !== 'USER'"
+                :title="server.sourceType !== 'USER' ? '系统预置不可删除' : '删除'"
                 @click="$emit('delete', server)"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"

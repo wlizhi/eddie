@@ -148,6 +148,8 @@ CREATE TABLE IF NOT EXISTS ai_mcp_server
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     name            TEXT    NOT NULL,                 -- MCP 服务端名称
     description            TEXT NOT NULL DEFAULT '',  -- MCP 服务描述
+    source_type   TEXT NOT NULL DEFAULT 'USER',       -- 来源类型：BUILT_IN（内置工具）/ USER（用户自定义）/ PROVIDER（第三方服务商）
+    source_config TEXT NOT NULL DEFAULT '{}',         -- 来源配置 JSON（多态），PROVIDER 类型存储认证信息及服务商元信息
     transport_type  TEXT    NOT NULL DEFAULT 'STDIO', -- 传输方式：STDIO / SSE / STREAMABLE_HTTP
 
     -- STDIO 专用参数
@@ -161,7 +163,6 @@ CREATE TABLE IF NOT EXISTS ai_mcp_server
 
     timeout_seconds INTEGER NOT NULL DEFAULT 60,      -- 请求超时时间（秒）
     enabled         INTEGER NOT NULL DEFAULT 1,       -- 0=禁用, 1=启用
-    built_in        INTEGER NOT NULL DEFAULT 0,       -- 0=用户自定义(可删除/编辑), 1=内置(不可删除)
     sort_order      INTEGER NOT NULL DEFAULT 0,       -- 排序序号
 
     -- 断开重连配置
@@ -171,4 +172,5 @@ CREATE TABLE IF NOT EXISTS ai_mcp_server
     created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
     updated_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
+CREATE INDEX IF NOT EXISTS idx_mcp_server_source_type ON ai_mcp_server (source_type);
 CREATE INDEX IF NOT EXISTS idx_mcp_server_enabled ON ai_mcp_server (enabled);

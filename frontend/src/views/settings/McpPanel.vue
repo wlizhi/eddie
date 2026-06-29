@@ -66,8 +66,8 @@ const activeTab = ref<'builtin' | 'mcp' | 'discover'>('builtin')
 const showForm = ref(false)
 const editingServer = ref<McpServer | null>(null)
 
-/** 用户自定义的 MCP 服务（非内置） */
-const userServers = computed(() => servers.value.filter(s => !s.builtIn))
+/** 用户自定义的 MCP 服务（USER 类型） */
+const userServers = computed(() => servers.value.filter(s => s.sourceType === 'USER'))
 
 /** 加载 MCP 列表 */
 async function loadData() {

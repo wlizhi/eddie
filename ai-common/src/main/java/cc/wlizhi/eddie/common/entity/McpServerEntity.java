@@ -66,9 +66,17 @@ public class McpServerEntity {
     private Integer enabled;
 
     /**
-     * 0=用户自定义(可删除/编辑), 1=内置(不可删除)
+     * 来源类型：BUILT_IN（内置工具）/ USER（用户自定义）/ PROVIDER（第三方服务商）
      */
-    private Integer builtIn;
+    private String sourceType;
+
+    /**
+     * 来源配置 JSON（多态）：
+     * BUILT_IN → "{}"（无配置）
+     * USER     → "{}"（配置在 command/args/env/url/headers 等标准字段）
+     * PROVIDER → {"auth_type":"...", "credentials":{...}, "provider_code":"...", ...}
+     */
+    private String sourceConfig;
 
     /**
      * 排序序号

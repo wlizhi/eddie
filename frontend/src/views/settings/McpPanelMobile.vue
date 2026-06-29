@@ -23,13 +23,12 @@ const loading = ref(false)
 const servers = ref<McpServer[]>([])
 const expandedId = ref<number | null>(null)
 
-/** 已排序：内置服务在前，自定义在后 */
+/** 已排序：内置工具（BUILT_IN）在前，自定义（USER）次之，第三方（PROVIDER）最后 */
 const sortedServers = computed(() => {
   const list = [...servers.value]
   list.sort((a, b) => {
-    if (a.builtIn && !b.builtIn) return -1
-    if (!a.builtIn && b.builtIn) return 1
-    return 0
+    const order = {BUILT_IN: 0, USER: 1, PROVIDER: 2}
+    return (order[a.sourceType] ?? 1) - (order[b.sourceType] ?? 1)
   })
   return list
 })
@@ -105,7 +104,8 @@ onMounted(loadData)
               <span class="mcp-tag-mobile" :class="transportClass(server.transportType)">
                 {{ transportLabel(server.transportType) }}
               </span>
-              <span v-if="server.builtIn" class="mcp-tag-mobile built-in">内置</span>
+              <span v-if="server.sourceType === 'BUILT_IN'" class="mcp-tag-mobile built-in">内置</span>
+              <span v-else-if="server.sourceType === 'PROVIDER'" class="mcp-tag-mobile built-in">第三方</span>
               <span v-if="server.tools?.length" style="font-size:var(--font-size-xs);color:var(--text-tertiary)">
                 {{ server.tools.length }} 工具
               </span>

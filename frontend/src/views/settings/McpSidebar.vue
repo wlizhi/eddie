@@ -25,7 +25,7 @@ defineEmits<{
 }>()
 
 const tabs = [
-  {key: 'builtin', label: '内置服务', icon: HardDrive},
+  {key: 'builtin', label: '内置工具', icon: HardDrive},
   {key: 'mcp', label: 'MCP 扩展', icon: Network},
   {key: 'discover', label: '发现', icon: Compass},
 ]

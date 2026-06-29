@@ -81,7 +81,7 @@
 
       <div v-if="builtInServers.length === 0" class="mcp-empty">
         <HardDrive :size="40" :stroke-width="1" class="mcp-empty-icon"/>
-        <span>暂无内置 MCP 服务</span>
+        <span>暂无内置工具</span>
       </div>
     </template>
   </div>
@@ -105,7 +105,7 @@ const emit = defineEmits<{
 const expandedId = ref<number | null>(null)
 
 const builtInServers = computed(() =>
-    props.servers.filter(s => s.builtIn)
+    props.servers.filter(s => s.sourceType === 'BUILT_IN')
 )
 
 function needsConfig(server: McpServer): boolean {

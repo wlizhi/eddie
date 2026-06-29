@@ -5,6 +5,7 @@ import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import cc.wlizhi.eddie.common.enums.McpSourceType;
 import cc.wlizhi.eddie.common.enums.McpTransportType;
 import cc.wlizhi.eddie.common.enums.ToolType;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
@@ -113,7 +114,8 @@ public class McpToolServiceImpl implements McpToolService {
         entity.setHeaders(request.getHeaders() != null ? request.getHeaders() : "{}");
         entity.setTimeoutSeconds(request.getTimeoutSeconds() != null ? request.getTimeoutSeconds() : 60);
         entity.setEnabled(1);
-        entity.setBuiltIn(0);
+        entity.setSourceType("USER");
+        entity.setSourceConfig("{}");
         entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
         entity.setReconnectIntervalSec(request.getReconnectIntervalSec());
         entity.setMaxReconnectAttempts(request.getMaxReconnectAttempts());
@@ -239,13 +241,14 @@ public class McpToolServiceImpl implements McpToolService {
     @Override
     @Transactional
     public void delete(Long id) {
-        // 1. 存在性 + builtIn 校验（走缓存）
+        // 1. 存在性 + sourceType 校验（走缓存）
         McpServerEntity mcp = ownerToolBindingContext.getMcpServer(id);
         if (mcp == null) {
             throw new NotFoundException("MCP 服务不存在: " + id);
         }
-        if (mcp.getBuiltIn() == 1) {
-            throw new BadRequestException("内置 MCP 服务不可删除");
+        McpSourceType sourceType = McpSourceType.fromCode(mcp.getSourceType());
+        if (sourceType != null && sourceType.isSystem()) {
+            throw new BadRequestException("系统预置 MCP 服务不可删除");
         }
 
         // 2. 查询该 MCP 下所有工具 ID（两步法，不用子查询）
@@ -295,12 +298,12 @@ public class McpToolServiceImpl implements McpToolService {
     /**
      * 校验名称唯一性（走缓存）
      * <p>
-     * 仅检查用户自定义的 MCP（builtIn=0），内置 MCP 允许用户创建同名副本进行自定义。
+     * 仅检查用户自定义的 MCP（USER 类型），内置工具和第三方服务商允许用户创建同名副本进行自定义。
      */
     private void checkNameUnique(String name) {
         List<OwnerToolBindingContext.McpServerWithTools> allData = ownerToolBindingContext.getAllMcpServersWithTools();
         boolean exists = allData.stream()
-                .filter(item -> item.mcpServer().getBuiltIn() == 0)
+                .filter(item -> McpSourceType.fromCode(item.mcpServer().getSourceType()) == McpSourceType.USER)
                 .anyMatch(item -> item.mcpServer().getName().equalsIgnoreCase(name.trim()));
         if (exists) {
             throw new ConflictException("MCP 服务名称已存在: " + name.trim());
@@ -324,7 +327,7 @@ public class McpToolServiceImpl implements McpToolService {
         vo.setHeaders(entity.getHeaders());
         vo.setTimeoutSeconds(entity.getTimeoutSeconds());
         vo.setEnabled(entity.getEnabled() == 1);
-        vo.setBuiltIn(entity.getBuiltIn() == 1);
+        vo.setSourceType(McpSourceType.fromCode(entity.getSourceType()));
         vo.setSortOrder(entity.getSortOrder());
         vo.setReconnectIntervalSec(entity.getReconnectIntervalSec());
         vo.setMaxReconnectAttempts(entity.getMaxReconnectAttempts());

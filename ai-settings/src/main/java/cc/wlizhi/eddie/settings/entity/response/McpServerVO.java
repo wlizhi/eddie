@@ -1,5 +1,6 @@
 package cc.wlizhi.eddie.settings.entity.response;
 
+import cc.wlizhi.eddie.common.enums.McpSourceType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -70,9 +71,9 @@ public class McpServerVO {
     private Boolean enabled;
 
     /**
-     * 0=用户自定义(可删除/编辑), 1=内置(不可删除)
+     * 来源类型：BUILT_IN（内置工具）/ USER（用户自定义）/ PROVIDER（第三方服务商）
      */
-    private Boolean builtIn;
+    private McpSourceType sourceType;
 
     /**
      * 排序序号

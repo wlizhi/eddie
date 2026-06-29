@@ -23,6 +23,16 @@ public class McpServerCreateRequest {
     private String description;
 
     /**
+     * 来源类型：BUILT_IN / USER（默认）/ PROVIDER
+     */
+    private String sourceType;
+
+    /**
+     * 来源配置 JSON（多态），PROVIDER 类型时必填
+     */
+    private String sourceConfig;
+
+    /**
      * 传输方式：STDIO / SSE / STREAMABLE_HTTP
      */
     @NotBlank(message = "传输方式不能为空")

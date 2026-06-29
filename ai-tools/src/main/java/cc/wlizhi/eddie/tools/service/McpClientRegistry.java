@@ -3,6 +3,7 @@ package cc.wlizhi.eddie.tools.service;
 import cc.wlizhi.eddie.common.cache.GlobalCache;
 import cc.wlizhi.eddie.common.dao.McpServerDao;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
+import cc.wlizhi.eddie.common.enums.McpSourceType;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
@@ -10,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -66,7 +66,8 @@ public class McpClientRegistry implements GlobalCache {
         }
         log.info("MCP 注册中心: 启动时加载 {} 个 MCP 服务器", enabled.size());
         for (McpServerEntity server : enabled) {
-            if (Objects.equals(server.getBuiltIn(), 1)) {
+            McpSourceType sourceType = McpSourceType.fromCode(server.getSourceType());
+            if (sourceType == McpSourceType.BUILT_IN) {
                 continue;
             }
             register(server);

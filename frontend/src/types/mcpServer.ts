@@ -1,9 +1,16 @@
 /**
+ * 来源类型：BUILT_IN（内置工具）/ USER（用户自定义）/ PROVIDER（第三方服务商）
+ */
+export type McpSourceType = 'BUILT_IN' | 'USER' | 'PROVIDER'
+
+/**
  * 对应后端 McpServerVO
  */
 export interface McpServer {
     id: number
     name: string
+    description: string
+    sourceType: McpSourceType
     transportType: 'STDIO' | 'SSE' | 'STREAMABLE_HTTP' | 'BUILT_IN'
     command: string
     args: string
@@ -11,7 +18,6 @@ export interface McpServer {
     url: string
     timeoutSeconds: number
     enabled: boolean
-    builtIn: boolean
     sortOrder: number
     createdAt: string
     updatedAt: string
@@ -37,6 +43,8 @@ export interface McpToolItem {
  */
 export interface McpServerCreateRequest {
     name: string
+    sourceType?: McpSourceType
+    sourceConfig?: string
     transportType: 'STDIO' | 'SSE' | 'STREAMABLE_HTTP'
     command?: string
     args?: string

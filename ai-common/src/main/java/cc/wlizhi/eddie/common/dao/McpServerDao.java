@@ -24,8 +24,9 @@ public class McpServerDao {
      * 全字段查询列（不含关联表）
      */
     private static final String ALL_COLUMNS = """
-            id, name, description, transport_type, command, args, env, url, headers,
-            timeout_seconds, enabled, built_in, sort_order,
+            id, name, description, source_type, source_config, transport_type,
+            command, args, env, url, headers,
+            timeout_seconds, enabled, sort_order,
             reconnect_interval_sec, max_reconnect_attempts,
             created_at, updated_at
             """;
@@ -74,17 +75,22 @@ public class McpServerDao {
     public void insert(McpServerEntity entity) {
         String sql = """
                 INSERT INTO ai_mcp_server
-                    (name, description, transport_type, command, args, env, url, headers,
-                     timeout_seconds, enabled, built_in, sort_order,
+                    (name, description, source_type, source_config, transport_type,
+                     command, args, env, url, headers,
+                     timeout_seconds, enabled, sort_order,
                      reconnect_interval_sec, max_reconnect_attempts,
                      created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                VALUES (?, ?, ?, ?, ?,
+                        ?, ?, ?, ?, ?,
+                        ?, ?, ?,
                         ?, ?,
                         datetime('now', 'localtime'), datetime('now', 'localtime'))
                 """;
         jdbcTemplate.update(sql,
                 entity.getName(),
                 entity.getDescription() != null ? entity.getDescription() : "",
+                entity.getSourceType() != null ? entity.getSourceType() : "USER",
+                entity.getSourceConfig() != null ? entity.getSourceConfig() : "{}",
                 entity.getTransportType() != null ? entity.getTransportType() : "STREAMABLE_HTTP",
                 entity.getCommand() != null ? entity.getCommand() : "",
                 entity.getArgs() != null ? entity.getArgs() : "[]",
@@ -93,7 +99,6 @@ public class McpServerDao {
                 entity.getHeaders() != null ? entity.getHeaders() : "{}",
                 entity.getTimeoutSeconds() != null ? entity.getTimeoutSeconds() : 60,
                 entity.getEnabled() != null ? entity.getEnabled() : 1,
-                entity.getBuiltIn() != null ? entity.getBuiltIn() : 0,
                 entity.getSortOrder() != null ? entity.getSortOrder() : 0,
                 entity.getReconnectIntervalSec(),
                 entity.getMaxReconnectAttempts());
@@ -105,9 +110,10 @@ public class McpServerDao {
     public void update(McpServerEntity entity) {
         String sql = """
                 UPDATE ai_mcp_server SET
-                    name = ?, description = ?, transport_type = ?, command = ?, args = ?,
+                    name = ?, description = ?, source_type = ?, source_config = ?,
+                    transport_type = ?, command = ?, args = ?,
                     env = ?, url = ?, headers = ?,
-                    timeout_seconds = ?, enabled = ?, built_in = ?, sort_order = ?,
+                    timeout_seconds = ?, enabled = ?, sort_order = ?,
                     reconnect_interval_sec = ?, max_reconnect_attempts = ?,
                     updated_at = datetime('now', 'localtime')
                 WHERE id = ?
@@ -115,6 +121,8 @@ public class McpServerDao {
         jdbcTemplate.update(sql,
                 entity.getName(),
                 entity.getDescription(),
+                entity.getSourceType(),
+                entity.getSourceConfig(),
                 entity.getTransportType(),
                 entity.getCommand(),
                 entity.getArgs(),
@@ -123,7 +131,6 @@ public class McpServerDao {
                 entity.getHeaders(),
                 entity.getTimeoutSeconds(),
                 entity.getEnabled(),
-                entity.getBuiltIn(),
                 entity.getSortOrder(),
                 entity.getReconnectIntervalSec(),
                 entity.getMaxReconnectAttempts(),
