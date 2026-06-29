@@ -258,7 +258,9 @@ public class OwnerToolBindingContext implements GlobalCache {
             log.info("开始刷新内置工具缓存");
             doRefresh();
             log.info("刷新内置工具缓存完成");
-            log.info(new ObjectMapper().writeValueAsString(getAllMcpServersWithTools()));
+            log.debug("缓存数据: {}", new ObjectMapper().writeValueAsString(getAllMcpServersWithTools()));
+        } catch (Exception e) {
+            log.warn("写入缓存数据日志失败（非关键错误）: {}", e.getMessage());
         } finally {
             lock.unlock();
         }
@@ -316,6 +318,14 @@ public class OwnerToolBindingContext implements GlobalCache {
     /**
      * MCP 服务 + 下辖工具列表的二层结构
      */
-    public record McpServerWithTools(McpServerEntity mcpServer, List<ToolDefinitionEntity> tools) {
+    @lombok.Getter
+    public static class McpServerWithTools {
+        private final McpServerEntity mcpServer;
+        private final List<ToolDefinitionEntity> tools;
+
+        public McpServerWithTools(McpServerEntity mcpServer, List<ToolDefinitionEntity> tools) {
+            this.mcpServer = mcpServer;
+            this.tools = tools;
+        }
     }
 }

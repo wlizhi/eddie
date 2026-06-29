@@ -88,7 +88,7 @@ public class McpToolServiceImpl implements McpToolService {
         List<OwnerToolBindingContext.McpServerWithTools> allData = ownerToolBindingContext.getAllMcpServersWithTools();
         List<McpServerVO> result = new ArrayList<>(allData.size());
         for (OwnerToolBindingContext.McpServerWithTools item : allData) {
-            result.add(toMcpServerVO(item.mcpServer(), item.tools()));
+            result.add(toMcpServerVO(item.getMcpServer(), item.getTools()));
         }
         return result;
     }
@@ -104,14 +104,14 @@ public class McpToolServiceImpl implements McpToolService {
             List<OwnerToolBindingContext.McpServerWithTools> enabledData =
                     ownerToolBindingContext.getEnabledMcpServersWithTools();
             return enabledData.stream()
-                    .map(item -> toMcpServerVO(item.mcpServer(), item.tools()))
+                    .map(item -> toMcpServerVO(item.getMcpServer(), item.getTools()))
                     .collect(Collectors.toList());
         }
         // enabled = false → 从全量中过滤出已禁用的 MCP
         List<OwnerToolBindingContext.McpServerWithTools> allData =
                 ownerToolBindingContext.getAllMcpServersWithTools();
         return allData.stream()
-                .map(item -> toMcpServerVO(item.mcpServer(), item.tools()))
+                .map(item -> toMcpServerVO(item.getMcpServer(), item.getTools()))
                 .collect(Collectors.toList());
     }
 
