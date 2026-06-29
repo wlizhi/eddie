@@ -37,7 +37,7 @@
               {{ server.tools.length }} 个工具
             </n-tag>
             <n-tag v-if="showPartialLabel(server)" :bordered="false" size="tiny" type="warning">
-              已启用 {{ enabledToolCount(server) }}/{{ server.tools.length }}
+              已启用 {{ enabledToolCount(server) }}
             </n-tag>
           </div>
 

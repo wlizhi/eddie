@@ -35,7 +35,7 @@
               {{ server.tools.length }} 个工具
             </span>
             <span v-if="showPartialLabel(server)" class="mcp-tag partial">
-              已启用 {{ enabledToolCount(server) }}/{{ server.tools.length }}
+              已启用 {{ enabledToolCount(server) }}
             </span>
           </div>
 
