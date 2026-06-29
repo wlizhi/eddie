@@ -1,7 +1,9 @@
 package cc.wlizhi.eddie.settings.controller;
 
 import cc.wlizhi.eddie.common.dto.ApiResult;
+import cc.wlizhi.eddie.settings.entity.request.BuiltInStatusUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.request.McpServerCreateRequest;
+import cc.wlizhi.eddie.settings.entity.request.McpServerUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.request.McpStatusUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.response.McpConnectResult;
 import cc.wlizhi.eddie.settings.entity.response.McpServerVO;
@@ -94,6 +96,34 @@ public class McpToolController {
     @PostMapping("/{id}/sync-tools")
     public ApiResult<McpConnectResult> syncTools(@PathVariable("id") Long id) {
         return ApiResult.success(mcpToolService.syncTools(id));
+    }
+
+    /**
+     * 编辑 MCP 服务器（全量覆盖更新）
+     * <p>
+     * 保存时根据 enabled 状态自动连接拉取工具列表。
+     *
+     * @param id      MCP 服务器 ID
+     * @param request 编辑参数
+     * @return 更新后的 MCP 服务 VO
+     */
+    @PutMapping("/{id}")
+    public ApiResult<McpServerVO> update(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody McpServerUpdateRequest request) {
+        request.setId(id);
+        return ApiResult.success(mcpToolService.update(request));
+    }
+
+    /**
+     * 内置工具启用/禁用切换
+     * <p>
+     * 内置工具不涉及 MCP 协议连接，仅更新工具本身的 enabled 状态并刷新缓存。
+     */
+    @PatchMapping("/built-in/status")
+    public ApiResult<Void> updateBuiltInStatus(@Valid @RequestBody BuiltInStatusUpdateRequest request) {
+        mcpToolService.updateBuiltInStatus(request);
+        return ApiResult.success();
     }
 
     /**

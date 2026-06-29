@@ -14,12 +14,16 @@
         <span>{{ editing ? '编辑 MCP 服务器' : '新增 MCP 服务器' }}</span>
         <div class="mcp-modal-header-right">
           <span class="mcp-toggle-label">启用</span>
-          <n-switch
-              :value="enabled"
-              :loading="toggling"
-              :disabled="toggling"
-              @update:value="handleToggle"
-          />
+          <label class="sidebar-toggle" :class="{ toggling }" @click.stop="handleToggle">
+            <input
+                type="checkbox"
+                :checked="enabled"
+                :disabled="toggling"
+                @click.stop
+                @change.stop
+            />
+            <span class="toggle-track"></span>
+          </label>
         </div>
       </div>
     </template>
@@ -41,9 +45,9 @@
 
       <n-form-item label="传输方式" path="transportType">
         <n-radio-group v-model:value="form.transportType">
-          <n-radio value="STDIO">STDIO</n-radio>
-          <n-radio value="SSE">SSE</n-radio>
           <n-radio value="STREAMABLE_HTTP">Streamable HTTP</n-radio>
+          <n-radio value="SSE">SSE</n-radio>
+          <n-radio value="STDIO">STDIO</n-radio>
         </n-radio-group>
       </n-form-item>
 
@@ -105,15 +109,33 @@
         <div v-if="connectResult.connected && connectResult.tools.length > 0" style="margin-top: 8px;">
           <n-tag
               v-for="tool in connectResult.tools"
-              :key="tool.id"
+              :key="tool.name"
               size="small"
               style="margin-right: 6px; margin-bottom: 4px;"
           >
-            {{ tool.displayName || tool.name }}
+            {{ truncateName(tool.name) }}
           </n-tag>
         </div>
       </template>
     </n-alert>
+
+    <!-- 工具列表可视化（可折叠） -->
+    <div v-if="connectResult?.connected && connectResult.tools.length > 0" class="tool-list-section">
+      <div class="tool-list-header" @click="toolListExpanded = !toolListExpanded">
+        <span>工具列表（{{ connectResult.tools.length }} 个）</span>
+        <NIcon :size="14" class="tool-list-chevron" :class="{ rotated: toolListExpanded }">
+          <ChevronDown/>
+        </NIcon>
+      </div>
+      <div v-show="toolListExpanded" class="tool-list-items">
+        <div v-for="tool in connectResult.tools" :key="tool.name" class="tool-list-item">
+          <div class="tool-item-left">
+            <span class="tool-item-name" :title="tool.name">{{ truncateName(tool.name) }}</span>
+            <span class="tool-item-desc">{{ tool.description || '无描述' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <template #footer>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
@@ -141,15 +163,21 @@ import {
   NButton,
   NForm,
   NFormItem,
+  NIcon,
   NInput,
   NInputNumber,
   NModal,
   NRadio,
   NRadioGroup,
-  NSwitch,
   NTag,
 } from 'naive-ui'
-import {createMcpServer, testMcpConnection, updateMcpStatus} from '@/api/mcpServer'
+import {ChevronDown} from '@lucide/vue'
+import {
+  createMcpServer,
+  testMcpConnection,
+  updateMcpServer as updateMcpServerApi,
+  updateMcpStatus
+} from '@/api/mcpServer'
 import type {McpConnectResult, McpServer} from '@/types/mcpServer'
 import {showToast} from '@/composables/useToast'
 
@@ -171,11 +199,13 @@ const enabled = ref(false)
 const savedServerId = ref<number | null>(null)
 /** 连接测试结果 */
 const connectResult = ref<McpConnectResult | null>(null)
+/** 工具列表展开状态 */
+const toolListExpanded = ref(true)
 
 const form = reactive({
   name: '',
   description: '',
-  transportType: 'STDIO' as 'STDIO' | 'SSE' | 'STREAMABLE_HTTP',
+  transportType: 'STREAMABLE_HTTP' as 'STDIO' | 'SSE' | 'STREAMABLE_HTTP',
   command: '',
   args: '',
   env: '',
@@ -209,7 +239,7 @@ watch(
       } else {
         form.name = ''
         form.description = ''
-        form.transportType = 'STDIO'
+        form.transportType = 'STREAMABLE_HTTP'
         form.command = ''
         form.args = ''
         form.env = ''
@@ -221,6 +251,17 @@ watch(
         form.maxReconnectAttempts = null
         enabled.value = false
         savedServerId.value = null
+        connectResult.value = null
+      }
+
+      // 编辑时如有已有工具列表，展示出来
+      if (val && val.tools && val.tools.length > 0) {
+        connectResult.value = {
+          connected: true,
+          message: `已有 ${val.tools.length} 个工具`,
+          tools: val.tools,
+        }
+      } else if (!val) {
         connectResult.value = null
       }
     },
@@ -284,11 +325,11 @@ async function ensureServerCreated(): Promise<number> {
 }
 
 /** 启用/禁用切换 */
-async function handleToggle(value: boolean) {
-  if (value === enabled.value) return
+async function handleToggle() {
+  const newValue = !enabled.value
 
   // 启用前先验证表单
-  if (value) {
+  if (newValue) {
     try {
       await formRef.value?.validate()
     } catch {
@@ -299,7 +340,7 @@ async function handleToggle(value: boolean) {
 
   toggling.value = true
   try {
-    if (value) {
+    if (newValue) {
       // 启用 → 先创建服务器（如未创建），再更新状态（自动测试连接）
       const id = await ensureServerCreated()
       const result = await updateMcpStatus({
@@ -328,7 +369,7 @@ async function handleToggle(value: boolean) {
   } catch (e: any) {
     showToast(e.message || '操作失败', 'error')
     // 恢复切换状态
-    enabled.value = !value
+    enabled.value = !newValue
   } finally {
     toggling.value = false
   }
@@ -361,6 +402,11 @@ async function handleTestConnection() {
   }
 }
 
+/** 工具名称截断（>50 字显示 ...） */
+function truncateName(name: string): string {
+  return name.length > 50 ? name.substring(0, 50) + '...' : name
+}
+
 /** 保存 */
 async function handleSubmit() {
   try {
@@ -371,12 +417,18 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
-    if (savedServerId.value !== null) {
-      // 编辑模式下已存在，直接刷新列表
+    const payload = {
+      ...buildCreatePayload(),
+      enabled: enabled.value,
+    }
+
+    if (props.editing) {
+      // 编辑模式
+      await updateMcpServerApi(props.editing.id, payload)
       showToast('MCP 服务已更新', 'success')
     } else {
-      // 纯新增（未测试连接）
-      await createMcpServer(buildCreatePayload())
+      // 新建模式
+      await createMcpServer(payload)
       showToast('MCP 服务已创建', 'success')
     }
     emit('saved')
@@ -405,5 +457,123 @@ async function handleSubmit() {
 .mcp-toggle-label {
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+/* ===== 工具列表可视化 ===== */
+.tool-list-section {
+  margin-top: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tool-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: var(--font-size-small);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border-default);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tool-list-chevron {
+  color: var(--text-quaternary);
+  transition: transform 0.2s;
+}
+
+.tool-list-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.tool-list-items {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.tool-list-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.tool-list-item:last-child {
+  border-bottom: none;
+}
+
+.tool-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tool-item-name {
+  font-size: var(--font-size-small);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+.tool-item-desc {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+/* ===== 自定义 Toggle 开关（同内置工具统一大小，em 单位随全局字号缩放） ===== */
+.sidebar-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 2em;
+  height: 1.125em;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle.toggling {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.sidebar-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.sidebar-toggle .toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border-hover);
+  border-radius: 9px;
+  transition: background 0.2s;
+}
+
+.sidebar-toggle .toggle-track::before {
+  content: '';
+  position: absolute;
+  top: 0.125em;
+  left: 0.125em;
+  width: 0.875em;
+  height: 0.875em;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-toggle input:checked + .toggle-track {
+  background: var(--accent-default);
+}
+
+.sidebar-toggle input:checked + .toggle-track::before {
+  transform: translateX(0.875em);
 }
 </style>

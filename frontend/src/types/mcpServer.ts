@@ -24,6 +24,7 @@ export interface McpServer {
     maxReconnectAttempts: number
     createdAt: string
     updatedAt: string
+    connectionStatus: 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING'
     tools: McpToolItem[]
 }
 
@@ -59,6 +60,14 @@ export interface McpServerCreateRequest {
     sortOrder?: number
     reconnectIntervalSec?: number
     maxReconnectAttempts?: number
+    enabled?: boolean
+}
+
+/**
+ * 对应后端 McpServerUpdateRequest（继承 CreateRequest，增加 id）
+ */
+export interface McpServerUpdateRequest extends McpServerCreateRequest {
+    id: number
 }
 
 /**

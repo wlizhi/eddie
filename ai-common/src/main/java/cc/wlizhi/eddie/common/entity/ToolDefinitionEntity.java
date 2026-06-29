@@ -65,4 +65,17 @@ public class ToolDefinitionEntity {
      * 更新时间
      */
     private String updatedAt;
+
+    /**
+     * 获取工具限定名，格式：{mcpServerId}|{name}。
+     * <p>
+     * 用于在运行时区分不同 MCP 服务的同名工具。
+     * 内置工具（mcpServerId 为 null）返回原始 name。
+     */
+    public String getQualifiedName() {
+        if (mcpServerId == null) {
+            return name;
+        }
+        return mcpServerId + "|" + (name != null ? name : "");
+    }
 }

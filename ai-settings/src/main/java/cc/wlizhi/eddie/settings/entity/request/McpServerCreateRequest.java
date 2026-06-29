@@ -82,4 +82,9 @@ public class McpServerCreateRequest {
      * 最大重试次数，NULL/0=无限重试
      */
     private Integer maxReconnectAttempts;
+
+    /**
+     * 启用状态，默认 false（新建时不连接）
+     */
+    private Boolean enabled;
 }

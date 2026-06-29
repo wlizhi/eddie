@@ -21,6 +21,22 @@ public class ToolDefinitionDao {
     private JdbcTemplate jdbcTemplate;
 
     /**
+     * 按 ID 查询工具定义
+     */
+    public ToolDefinitionEntity findById(Long id) {
+        String sql = """
+                SELECT id, tool_type, name, display_name, description,
+                       enabled, built_in, mcp_server_id, sort_order,
+                       created_at, updated_at
+                FROM ai_tool_definition
+                WHERE id = ?
+                """;
+        List<ToolDefinitionEntity> results = jdbcTemplate.query(
+                sql, new BeanPropertyRowMapper<>(ToolDefinitionEntity.class), id);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    /**
      * 查询所有内置工具
      */
     public List<ToolDefinitionEntity> findAllBuiltIn() {

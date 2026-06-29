@@ -56,7 +56,12 @@ public class OwnerToolBindingContext implements GlobalCache {
     private volatile Map<Long, ToolDefinitionEntity> toolDefMap = Map.of();
 
     /**
-     * name → ToolDefinitionEntity（全量索引，直接引用 heap 对象）
+     * qualifiedName → ToolDefinitionEntity（全量索引，直接引用 heap 对象）
+     * <p>
+     * qualifiedName 格式：
+     * 内置工具（mcpServerId IS NULL）→ name
+     * MCP 工具（mcpServerId IS NOT NULL）→ {mcpServerId}|{name}
+     * 此索引用于全局快速查找，不同 MCP 服务的同名工具使用不同的 qualifiedName，不冲突。
      */
     private volatile Map<String, ToolDefinitionEntity> toolNameIndex = Map.of();
 
@@ -131,20 +136,39 @@ public class OwnerToolBindingContext implements GlobalCache {
     }
 
     /**
-     * 根据 name 获取工具定义
+     * 根据 qualifiedName 或 name 获取工具定义。
+     * <p>
+     * 优先按 qualifiedName（格式：{mcpServerId}|{name}）查找，
+     * 找不到则降级为按原始 name 查找（兼容旧数据）。
      */
     public ToolDefinitionEntity getToolDefinitionByName(String name) {
-        return toolNameIndex.get(name);
+        // 先尝试作为 qualifiedName 查找
+        ToolDefinitionEntity entity = toolNameIndex.get(name);
+        if (entity != null) return entity;
+        // 降级：按原始 name 遍历查找（适应不同 MCP 服务的同名工具场景）
+        return toolNameIndex.values().stream()
+                .filter(t -> name.equals(t.getName()))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
-     * 根据 name 列表批量获取工具定义（保持传入顺序）
+     * 根据 name 列表批量获取工具定义（保持传入顺序）。
+     * <p>
+     * 每个 name 先尝试作为 qualifiedName 查找，再降级为原始 name 匹配。
      */
     public List<ToolDefinitionEntity> getToolDefinitionsByNames(List<String> names) {
         if (names == null || names.isEmpty()) return List.of();
         Map<String, ToolDefinitionEntity> nameIdx = this.toolNameIndex;
         return names.stream()
-                .map(nameIdx::get)
+                .map(n -> {
+                    ToolDefinitionEntity entity = nameIdx.get(n);
+                    if (entity != null) return entity;
+                    return nameIdx.values().stream()
+                            .filter(t -> n.equals(t.getName()))
+                            .findFirst()
+                            .orElse(null);
+                })
                 .filter(Objects::nonNull)
                 .toList();
     }
@@ -204,9 +228,11 @@ public class OwnerToolBindingContext implements GlobalCache {
             if (filterMcpEnabled && mcp.getEnabled() != 1) continue;
 
             List<ToolDefinitionEntity> tools = mcpToolsIdx.get(mcpServerId);
-            if (tools == null || tools.isEmpty()) continue;
-
-            if (filterToolEnabled) {
+            if (tools == null || tools.isEmpty()) {
+                // 过滤启用工具时，无工具则跳过；全量展示时，无工具也显示
+                if (filterToolEnabled) continue;
+                tools = List.of();
+            } else if (filterToolEnabled) {
                 tools = tools.stream()
                         .filter(t -> t.getEnabled() == 1)
                         .toList();
@@ -256,7 +282,8 @@ public class OwnerToolBindingContext implements GlobalCache {
         Map<String, ToolDefinitionEntity> nameIdx = new LinkedHashMap<>(allTools.size());
         for (ToolDefinitionEntity t : allTools) {
             defMap.put(t.getId(), t);
-            nameIdx.put(t.getName(), t);
+            // 使用 qualifiedName 作为索引键，不同 MCP 服务的同名工具不冲突
+            nameIdx.put(t.getQualifiedName(), t);
             // 建立 MCP → 工具索引（直接引用 heap 对象）
             if (t.getMcpServerId() != null) {
                 List<ToolDefinitionEntity> list = mcpToolsIdx.get(t.getMcpServerId());

@@ -13,10 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * MCP 客户端注册管理中心
@@ -53,6 +50,30 @@ public class McpClientRegistry implements GlobalCache {
 
     @Resource
     private McpServerDao mcpServerDao;
+
+    // ==================== 重连回调 ====================
+
+    /**
+     * 重连成功回调接口
+     * <p>
+     * 用于解耦模块依赖：{@link McpClientRegistry} 在 ai-tools 模块，
+     * 业务模块（如 ai-settings）通过此回调注册重连同步逻辑。
+     */
+    @FunctionalInterface
+    public interface ReconnectCallback {
+        void onReconnect(Long mcpServerId, List<McpToolCallback> callbacks);
+    }
+
+    private final List<ReconnectCallback> reconnectCallbacks = new CopyOnWriteArrayList<>();
+
+    /**
+     * 注册重连成功回调
+     */
+    public void addReconnectCallback(ReconnectCallback callback) {
+        if (callback != null) {
+            reconnectCallbacks.add(callback);
+        }
+    }
 
     // ==================== 生命周期 ====================
 
@@ -170,12 +191,12 @@ public class McpClientRegistry implements GlobalCache {
             log.info("MCP 同步注册成功: {} (id={}, tools={})",
                     server.getName(), server.getId(), holder.getToolCallbacks().size());
 
-            // 提取工具信息
+            // 提取工具信息（使用原始工具名，非限定名）
             List<McpConnectInfo.ToolInfo> toolInfos = new ArrayList<>();
             for (McpToolCallback callback : holder.getToolCallbacks()) {
                 var def = callback.getToolDefinition();
                 toolInfos.add(new McpConnectInfo.ToolInfo(
-                        def.name(), def.description(), def.inputSchema()));
+                        callback.getOriginalToolName(), def.description(), def.inputSchema()));
             }
             return McpConnectInfo.success(toolInfos);
         } else {
@@ -218,12 +239,36 @@ public class McpClientRegistry implements GlobalCache {
     }
 
     /**
+     * 获取指定 MCP 服务器当前连接状态
+     *
+     * @return CONNECTED / DISCONNECTED / RECONNECTING，未注册时返回 DISCONNECTED
+     */
+    public McpClientHolder.ConnectionState getConnectionState(Long mcpServerId) {
+        if (mcpServerId == null) return McpClientHolder.ConnectionState.DISCONNECTED;
+        McpClientHolder holder = clients.get(mcpServerId);
+        if (holder == null) return McpClientHolder.ConnectionState.DISCONNECTED;
+        return holder.getState();
+    }
+
+    /**
      * 重连成功后的回调
      * <p>
      * 由 {@link McpClientHolder} 在重连成功后调用。
      */
     void onReconnectSuccess(Long mcpServerId) {
         log.info("MCP 重连成功: id={}", mcpServerId);
+        // 遍历回调，通知业务层同步工具等
+        McpClientHolder holder = clients.get(mcpServerId);
+        if (holder != null && !reconnectCallbacks.isEmpty()) {
+            List<McpToolCallback> callbacks = holder.getToolCallbacks();
+            for (ReconnectCallback cb : reconnectCallbacks) {
+                try {
+                    cb.onReconnect(mcpServerId, callbacks);
+                } catch (Exception e) {
+                    log.error("MCP 重连回调执行失败: id={}", mcpServerId, e);
+                }
+            }
+        }
     }
 
     /**
@@ -251,12 +296,12 @@ public class McpClientRegistry implements GlobalCache {
             log.info("MCP 连接测试成功: name={}, tools={}",
                     server.getName(), holder.getToolCallbacks().size());
 
-            // 提取工具信息
+            // 提取工具信息（使用原始工具名，非限定名）
             List<McpConnectInfo.ToolInfo> toolInfos = new ArrayList<>();
             for (McpToolCallback callback : holder.getToolCallbacks()) {
                 var def = callback.getToolDefinition();
                 toolInfos.add(new McpConnectInfo.ToolInfo(
-                        def.name(), def.description(), def.inputSchema()));
+                        callback.getOriginalToolName(), def.description(), def.inputSchema()));
             }
 
             // 测试完毕，主动断开清理

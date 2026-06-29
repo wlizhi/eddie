@@ -24,6 +24,7 @@
           @toggle="handleToggle"
           @edit="handleEdit"
           @delete="handleDelete"
+          @toggle-tool="handleToolToggle"
       />
 
       <McpBuiltInList
@@ -50,7 +51,7 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useDialog} from 'naive-ui'
-import {deleteMcpServer, listMcpServers, updateMcpStatus} from '@/api/mcpServer'
+import {deleteMcpServer, listMcpServers, updateBuiltInToolStatus, updateMcpStatus} from '@/api/mcpServer'
 import {showToast} from '@/composables/useToast'
 import type {McpServer, McpToolItem} from '@/types/mcpServer'
 import McpSidebar from './McpSidebar.vue'
@@ -83,23 +84,27 @@ async function loadData() {
   }
 }
 
-/** 启用/禁用切换（MCP 级别 → 同步所有工具） */
+/** 启用/禁用切换（按 sourceType 路由） */
 async function handleToggle(server: McpServer) {
   const newEnabled = !server.enabled
   try {
-    const result = await updateMcpStatus({
-      mcpServerId: server.id,
-      mcpEnabled: newEnabled,
-      // MCP 切换时同步所有工具的状态
-      tools: server.tools.map(t => ({id: t.id, enabled: newEnabled})),
-    })
-    // 重新加载数据，获取后端级联后的完整状态
-    await loadData()
-    if (newEnabled && !result.connected) {
-      showToast(result.message || '连接失败', 'error')
+    if (server.sourceType === 'BUILT_IN') {
+      // 内置工具 MCP 级别切换：单次批量调用，后端更新所有工具 + 联动 MCP 状态
+      await updateBuiltInToolStatus({mcpServerId: server.id, enabled: newEnabled})
+      showToast(newEnabled ? '内置工具已启用' : '内置工具已禁用')
     } else {
-      showToast(newEnabled ? 'MCP 服务已启用' : 'MCP 服务已禁用')
+      // MCP 扩展：不传 tools，后端自动级联
+      const result = await updateMcpStatus({
+        mcpServerId: server.id,
+        mcpEnabled: newEnabled,
+      })
+      if (newEnabled && !result.connected) {
+        showToast(result.message || '连接失败', 'error')
+      } else {
+        showToast(newEnabled ? 'MCP 服务已启用' : 'MCP 服务已禁用')
+      }
     }
+    await loadData()
   } catch (e) {
     const msg = (e as Error).message || '切换状态失败'
     console.error('切换状态失败:', msg)
@@ -107,17 +112,19 @@ async function handleToggle(server: McpServer) {
   }
 }
 
-/** 工具启用/禁用切换（只改单个工具，后端自动级联 MCP 状态） */
+/** 工具启用/禁用切换（按 sourceType 路由） */
 async function handleToolToggle(server: McpServer, tool: McpToolItem) {
   const newEnabled = !tool.enabled
   try {
-    await updateMcpStatus({
-      mcpServerId: server.id,
-      tools: [{id: tool.id, enabled: newEnabled}],
-    })
-    // 重新加载数据，后端会级联处理：
-    // - 工具全禁用 → MCP 自动禁用
-    // - 有任意工具启用 → MCP 自动启用
+    if (server.sourceType === 'BUILT_IN') {
+      // 内置工具工具级别切换：后端更新单个工具 + 自动联动 MCP 状态
+      await updateBuiltInToolStatus({toolId: tool.id, enabled: newEnabled})
+    } else {
+      await updateMcpStatus({
+        mcpServerId: server.id,
+        tools: [{id: tool.id, enabled: newEnabled}],
+      })
+    }
     await loadData()
   } catch (e) {
     const msg = (e as Error).message || '切换工具状态失败'

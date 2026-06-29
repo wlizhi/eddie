@@ -132,10 +132,21 @@ public class McpClientHolder implements AutoCloseable {
             McpSchema.ListToolsResult listResult = newClient.listTools();
             List<McpSchema.Tool> remoteTools = listResult.tools();
 
-            // 转换为 McpToolCallback
+            // 转换为 McpToolCallback（传入 mcpServerId 用于生成限定名）
+            Long mcpServerId = server.getId();
             List<McpToolCallback> newCallbacks = new ArrayList<>(remoteTools.size());
             for (McpSchema.Tool tool : remoteTools) {
-                newCallbacks.add(new McpToolCallback(newClient, tool));
+                // 注入断开通知器：传输异常时标记断开并触发重连
+                newCallbacks.add(new McpToolCallback(newClient, tool, mcpServerId, () -> {
+                    // 只有 CONNECTED 状态才触发，避免重连中重复触发
+                    if (state == ConnectionState.CONNECTED) {
+                        state = ConnectionState.DISCONNECTED;
+                        callbacks = List.of();
+                        closeClient();
+                        startReconnectTask();
+                        log.warn("MCP 连接检测到传输异常，已标记断开并启动重连: {}", server.getName());
+                    }
+                }));
             }
 
             this.client = newClient;

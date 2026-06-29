@@ -101,6 +101,12 @@ public class McpServerVO {
     private String updatedAt;
 
     /**
+     * 连接状态：CONNECTED / DISCONNECTED / RECONNECTING
+     * 仅 enabled=true 时有意义，disabled 时始终为 DISCONNECTED
+     */
+    private String connectionStatus;
+
+    /**
      * 该 MCP 下的工具列表
      */
     private List<McpToolItemVO> tools;

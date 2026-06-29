@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition
 (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     tool_type     TEXT    NOT NULL DEFAULT 'BUILT_IN', -- BUILT_IN（内置）/ MCP（MCP 工具）
-    name          TEXT    NOT NULL UNIQUE,             -- 工具唯一标识名，如 'web_search', 'file_read'（全局唯一，防止冲突）
+    name TEXT NOT NULL,                                -- 工具唯一标识名，如 'web_search', 'file_read'（同一 MCP 服务内唯一）
     display_name  TEXT    NOT NULL DEFAULT '',         -- 工具显示名称
     description   TEXT    NOT NULL DEFAULT '',         -- 工具功能描述
     enabled       INTEGER NOT NULL DEFAULT 1,          -- 0=禁用, 1=启用
@@ -127,6 +127,9 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition
 CREATE INDEX IF NOT EXISTS idx_tool_def_type ON ai_tool_definition (tool_type);
 CREATE INDEX IF NOT EXISTS idx_tool_def_enabled ON ai_tool_definition (enabled);
 CREATE INDEX IF NOT EXISTS idx_tool_def_mcp_server ON ai_tool_definition (mcp_server_id);
+-- 内置工具（mcp_server_id IS NULL）名称全局唯一；MCP 工具（mcp_server_id IS NOT NULL）在同一 MCP 服务内唯一
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tool_def_name_builtin ON ai_tool_definition (name) WHERE mcp_server_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tool_def_name_mcp ON ai_tool_definition (name, mcp_server_id) WHERE mcp_server_id IS NOT NULL;
 
 -- 工具绑定表：Owner（助手/智能体）与工具的关联关系（多态关联）
 CREATE TABLE IF NOT EXISTS ai_owner_tool_binding

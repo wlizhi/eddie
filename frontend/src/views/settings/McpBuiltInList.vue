@@ -58,7 +58,7 @@
             >
               <div class="tool-header">
                 <div class="tool-info">
-                  <span class="tool-name">{{ tool.displayName || tool.name }}</span>
+                  <span class="tool-name">{{ tool.name }}</span>
                   <div v-if="tool.description" class="tool-desc">{{ tool.description }}</div>
                   <div class="tool-meta">
                     <code>{{ tool.name }}</code>
@@ -232,13 +232,14 @@ function handleToolToggle(server: McpServer, tool: McpToolItem) {
   color: var(--text-quaternary);
 }
 
-/* ===== Toggle 开关 ===== */
+/* ===== Toggle 开关（em 单位，随全局字号缩放） ===== */
 .sidebar-toggle {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 32px;
-  height: 18px;
+  width: 2em;
+  height: 1.125em;
+  font-size: var(--font-size-base);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -261,10 +262,10 @@ function handleToolToggle(server: McpServer, tool: McpToolItem) {
 .sidebar-toggle .toggle-track::before {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
+  top: 0.125em;
+  left: 0.125em;
+  width: 0.875em;
+  height: 0.875em;
   background: #fff;
   border-radius: 50%;
   transition: transform 0.2s;
@@ -276,11 +277,11 @@ function handleToolToggle(server: McpServer, tool: McpToolItem) {
 }
 
 .sidebar-toggle input:checked + .toggle-track::before {
-  transform: translateX(14px);
+  transform: translateX(0.875em);
 }
 
 .tool-toggle {
-  margin-top: 2px;
+  margin-top: var(--space-0, 0.125em);
 }
 
 .mcp-card-header {

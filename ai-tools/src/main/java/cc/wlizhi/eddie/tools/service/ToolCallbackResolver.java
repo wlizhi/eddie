@@ -10,10 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -93,7 +90,12 @@ public class ToolCallbackResolver {
                 if (toolType == ToolType.BUILT_IN) {
                     resolveBuiltIn(tool).ifPresent(result::add);
                 } else if (toolType == ToolType.MCP) {
-                    resolveMcp(tool).ifPresent(result::add);
+                    resolveMcp(tool).ifPresent(callback -> {
+                        // 避免重名
+                        boolean hasRepeatName = result.stream().anyMatch(p ->
+                                Objects.equals(p.getToolDefinition().name(), callback.getOriginalToolName()));
+                        result.add(hasRepeatName ? callback.cloneForNewName(callback.getOriginalToolName() + "_" + callback.getMcpServerId()) : callback);
+                    });
                 } else {
                     log.warn("[ToolCallbackResolver] 未知工具类型: {} (name={})", toolType, tool.getName());
                 }
@@ -101,7 +103,6 @@ public class ToolCallbackResolver {
                 log.error("[ToolCallbackResolver] 解析工具失败: {} (type={})", tool.getName(), toolType, e);
             }
         }
-
         return result.toArray(new ToolCallback[0]);
     }
 
@@ -121,9 +122,9 @@ public class ToolCallbackResolver {
      * 解析 MCP 工具
      * <p>
      * 从 {@link McpClientRegistry} 获取已连接的 MCP 客户端工具回调，
-     * 按工具名称匹配返回。
+     * 按「限定名（{mcpServerId}|{原始名}）」匹配注册给 AI 模型的名称。
      */
-    private Optional<ToolCallback> resolveMcp(ToolDefinitionEntity toolDef) {
+    private Optional<McpToolCallback> resolveMcp(ToolDefinitionEntity toolDef) {
         Long mcpServerId = toolDef.getMcpServerId();
         if (mcpServerId == null) {
             log.warn("[ToolCallbackResolver] MCP 工具缺少 mcpServerId: {}", toolDef.getName());
@@ -137,7 +138,6 @@ public class ToolCallbackResolver {
             return Optional.empty();
         }
 
-        // 按工具名称匹配
         for (McpToolCallback callback : callbacks) {
             if (callback.getToolDefinition().name().equals(toolDef.getName())) {
                 return Optional.of(callback);

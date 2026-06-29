@@ -1,6 +1,8 @@
 package cc.wlizhi.eddie.settings.service;
 
+import cc.wlizhi.eddie.settings.entity.request.BuiltInStatusUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.request.McpServerCreateRequest;
+import cc.wlizhi.eddie.settings.entity.request.McpServerUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.request.McpStatusUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.response.McpConnectResult;
 import cc.wlizhi.eddie.settings.entity.response.McpServerVO;
@@ -82,4 +84,25 @@ public interface McpToolService {
      * @return 连接结果（含工具列表）
      */
     McpConnectResult testConnection(McpServerCreateRequest request);
+
+    /**
+     * 编辑 MCP 服务器（全量覆盖更新）
+     * <p>
+     * 保存时根据 enabled 状态决定是否连接：
+     * enabled=true → 尝试连接并同步工具到 DB；
+     * enabled=false → 仅更新表单字段，断开连接。
+     *
+     * @param request 编辑请求参数（含 id）
+     * @return 更新后的 MCP 服务 VO
+     */
+    McpServerVO update(McpServerUpdateRequest request);
+
+    /**
+     * 内置工具启用/禁用切换
+     * <p>
+     * 内置工具不涉及 MCP 连接，仅更新工具本身的 enabled 状态并刷新缓存。
+     *
+     * @param request 内置工具状态更新请求
+     */
+    void updateBuiltInStatus(BuiltInStatusUpdateRequest request);
 }
