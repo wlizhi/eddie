@@ -14,11 +14,10 @@
         <span>{{ editing ? '编辑 MCP 服务器' : '新增 MCP 服务器' }}</span>
         <div class="mcp-modal-header-right">
           <span class="mcp-toggle-label">启用</span>
-          <label class="sidebar-toggle" :class="{ toggling }" @click.stop="handleToggle">
+          <label class="sidebar-toggle" @click.stop="handleToggle">
             <input
                 type="checkbox"
                 :checked="enabled"
-                :disabled="toggling"
                 @click.stop
                 @change.stop
             />
@@ -172,12 +171,7 @@ import {
   NTag,
 } from 'naive-ui'
 import {ChevronDown} from '@lucide/vue'
-import {
-  createMcpServer,
-  testMcpConnection,
-  updateMcpServer as updateMcpServerApi,
-  updateMcpStatus
-} from '@/api/mcpServer'
+import {createMcpServer, testMcpConnection, updateMcpServer as updateMcpServerApi,} from '@/api/mcpServer'
 import type {McpConnectResult, McpServer} from '@/types/mcpServer'
 import {showToast} from '@/composables/useToast'
 
@@ -192,11 +186,8 @@ const emit = defineEmits<{
 const formRef = ref<FormInst | null>(null)
 const submitting = ref(false)
 const testing = ref(false)
-const toggling = ref(false)
 const enabled = ref(false)
 
-/** 已创建的服务器 ID（测试连接/启用后记录） */
-const savedServerId = ref<number | null>(null)
 /** 连接测试结果 */
 const connectResult = ref<McpConnectResult | null>(null)
 /** 工具列表展开状态 */
@@ -235,7 +226,6 @@ watch(
         form.reconnectIntervalSec = val.reconnectIntervalSec ?? null
         form.maxReconnectAttempts = val.maxReconnectAttempts ?? null
         enabled.value = val.enabled
-        savedServerId.value = val.id
       } else {
         form.name = ''
         form.description = ''
@@ -250,7 +240,6 @@ watch(
         form.reconnectIntervalSec = null
         form.maxReconnectAttempts = null
         enabled.value = false
-        savedServerId.value = null
         connectResult.value = null
       }
 
@@ -316,63 +305,10 @@ const rules: FormRules = {
   ],
 }
 
-/** 创建服务器 */
-async function ensureServerCreated(): Promise<number> {
-  if (savedServerId.value !== null) return savedServerId.value
-  const server = await createMcpServer(buildCreatePayload())
-  savedServerId.value = server.id
-  return server.id
-}
-
-/** 启用/禁用切换 */
-async function handleToggle() {
-  const newValue = !enabled.value
-
-  // 启用前先验证表单
-  if (newValue) {
-    try {
-      await formRef.value?.validate()
-    } catch {
-      showToast('请先填写必填信息', 'info')
-      return
-    }
-  }
-
-  toggling.value = true
-  try {
-    if (newValue) {
-      // 启用 → 先创建服务器（如未创建），再更新状态（自动测试连接）
-      const id = await ensureServerCreated()
-      const result = await updateMcpStatus({
-        mcpServerId: id,
-        mcpEnabled: true,
-      })
-      enabled.value = true
-      connectResult.value = result
-      if (result.connected) {
-        showToast('连接成功', 'success')
-      } else {
-        showToast(result.message || '连接失败', 'error')
-      }
-    } else {
-      // 禁用
-      if (savedServerId.value !== null) {
-        await updateMcpStatus({
-          mcpServerId: savedServerId.value,
-          mcpEnabled: false,
-        })
-      }
-      enabled.value = false
-      connectResult.value = null
-      showToast('MCP 服务已禁用', 'info')
-    }
-  } catch (e: any) {
-    showToast(e.message || '操作失败', 'error')
-    // 恢复切换状态
-    enabled.value = !newValue
-  } finally {
-    toggling.value = false
-  }
+/** 启用/禁用切换 - 仅改本地状态，不调接口，最终保存时落盘 */
+function handleToggle() {
+  enabled.value = !enabled.value
+  connectResult.value = null
 }
 
 /** 测试连接 */
@@ -395,8 +331,14 @@ async function handleTestConnection() {
       showToast(result.message || '连接失败', 'error')
     }
   } catch (e: any) {
-    showToast(e.message || '测试连接失败', 'error')
-    connectResult.value = null
+    const msg = e.message || '测试连接失败'
+    showToast(msg, 'error')
+    // API 失败时也展示错误信息在连接结果栏中
+    connectResult.value = {
+      connected: false,
+      message: msg,
+      tools: [],
+    }
   } finally {
     testing.value = false
   }

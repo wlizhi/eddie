@@ -1,6 +1,7 @@
 package cc.wlizhi.eddie.settings.controller;
 
 import cc.wlizhi.eddie.common.dto.ApiResult;
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.settings.entity.request.BuiltInStatusUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.request.McpServerCreateRequest;
 import cc.wlizhi.eddie.settings.entity.request.McpServerUpdateRequest;
@@ -136,6 +137,10 @@ public class McpToolController {
      */
     @PostMapping("/test-connection")
     public ApiResult<McpConnectResult> testConnection(@Valid @RequestBody McpServerCreateRequest request) {
-        return ApiResult.success(mcpToolService.testConnection(request));
+        McpConnectResult result = mcpToolService.testConnection(request);
+        if (!result.isConnected()) {
+            return ApiResult.error(ApiResultCode.SERVICE_UNAVAILABLE, result.getMessage());
+        }
+        return ApiResult.success(result);
     }
 }

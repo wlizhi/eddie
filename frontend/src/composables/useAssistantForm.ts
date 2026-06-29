@@ -376,6 +376,18 @@ export function useAssistantForm(
                 preferences: Object.keys(preferences).length > 0 ? preferences : undefined,
                 enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
             })
+            // 同步 chatStore 中的 MCP 绑定和偏好，确保聊天工具栏实时更新
+            await chatStore.loadBoundMcpTools(detail.value.id)
+            // 联动逻辑：如果 BuiltInSearch 不在绑定列表中，强制关闭联网搜索
+            const hasBuiltInSearch = chatStore.boundMcpTools.some(
+                t => t.transportType === 'BUILT_IN'
+            )
+            if (!hasBuiltInSearch) {
+                chatStore.webSearchEnabled = false
+            } else {
+                chatStore.webSearchEnabled = formPreferences.webSearchEnabled ?? false
+            }
+            chatStore.mcpToolMode = formPreferences.mcpToolMode as 'disabled' | 'auto' | 'manual'
             showToast('保存成功')
             close()
         } catch (err) {
