@@ -2,6 +2,7 @@ package cc.wlizhi.eddie.memory.context;
 
 import jakarta.annotation.Resource;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
@@ -49,7 +50,7 @@ public class GlobalPromptsContext {
             log.warn("Prompts configuration is null, skip initialization");
             return;
         }
-        this.titleGeneration = loadContent(prompts.titleGeneration(), "titleGeneration");
+        this.titleGeneration = loadContent(prompts.getTitleGeneration(), "titleGeneration");
         log.info("Global prompts initialized: titleGeneration loaded={}", titleGeneration != null);
     }
 
@@ -100,6 +101,9 @@ public class GlobalPromptsContext {
      * 由 Spring Boot {@code @ConfigurationProperties} 从 {@code application.yml} 绑定，
      * 字段值均为 classpath 下的相对路径（如 {@code prompts/title-generation.md}）。
      */
-    public record Prompts(String titleGeneration) {
+    @Getter
+    @Setter
+    public static class Prompts {
+        private String titleGeneration;
     }
 }
