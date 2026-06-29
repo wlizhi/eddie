@@ -13,9 +13,12 @@ import io.modelcontextprotocol.spec.McpSchema;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
@@ -82,9 +85,23 @@ public class McpClientHolder implements AutoCloseable {
     private final AtomicInteger attemptCount = new AtomicInteger(0);
 
     /**
+     * 上次连接失败的错误消息（供上层同步注册时获取）
+     */
+    private volatile String lastErrorMessage;
+
+    /**
      * 调度器
      */
     private final ScheduledExecutorService scheduler;
+
+    // ==================== 查询状态 ====================
+
+    /**
+     * 获取上次连接失败的错误消息
+     */
+    public String getLastErrorMessage() {
+        return lastErrorMessage;
+    }
 
     public enum ConnectionState {
         CONNECTED,
@@ -108,6 +125,7 @@ public class McpClientHolder implements AutoCloseable {
      */
     public boolean connect() {
         try {
+            this.lastErrorMessage = null;
             io.modelcontextprotocol.client.McpSyncClient newClient = createClient(server);
 
             // 调用 listTools 获取远程工具
@@ -130,9 +148,10 @@ public class McpClientHolder implements AutoCloseable {
             return true;
 
         } catch (Exception e) {
-            log.error("MCP 连接失败: {} - {}", server.getName(), e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            this.lastErrorMessage = msg;
+            log.warn("MCP 连接失败: {} - {}", server.getName(), msg, e);  // 添加 e 打印完整异常栈
             this.state = ConnectionState.DISCONNECTED;
-            startReconnectTask();
             return false;
         }
     }
@@ -180,14 +199,14 @@ public class McpClientHolder implements AutoCloseable {
                 ? server.getReconnectIntervalSec()
                 : DEFAULT_RECONNECT_INTERVAL_SEC;
 
+        // null=默认5次, >0=指定次数（由调用方保证不会传入0）
         int maxAttempts = server.getMaxReconnectAttempts() != null
                 ? server.getMaxReconnectAttempts()
-                : 0;
-        boolean infinite = maxAttempts == 0;
+                : 5;
 
         this.state = ConnectionState.RECONNECTING;
-        log.info("MCP 启动重连: {} (间隔={}s, 最大尝试={}, 无限重试={})",
-                server.getName(), reconnectIntervalSec, maxAttempts, infinite);
+        log.info("MCP 启动重连: {} (间隔={}s, 最大尝试={})",
+                server.getName(), reconnectIntervalSec, maxAttempts);
 
         reconnectFuture = scheduler.scheduleWithFixedDelay(() -> {
             try {
@@ -197,7 +216,7 @@ public class McpClientHolder implements AutoCloseable {
                 }
 
                 int currentAttempt = attemptCount.incrementAndGet();
-                if (!infinite && currentAttempt > maxAttempts) {
+                if (currentAttempt > maxAttempts) {
                     log.warn("MCP 重连已达上限 ({}次), 停止重连: {}", maxAttempts, server.getName());
                     stopReconnectTask();
                     return;
@@ -248,9 +267,25 @@ public class McpClientHolder implements AutoCloseable {
 
     private io.modelcontextprotocol.client.McpSyncClient createStreamableHttpClient(
             McpServerEntity server, Duration timeout) {
+        Map<String, String> headers = parseKeyValueMap(server.getHeaders());
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            requestBuilder.header(entry.getKey(), entry.getValue());
+        }
+
+        // 解析 URL，分离基础地址和路径，避免 SDK 默认 endpoint="/mcp" 重复拼接
+        URI parsedUri = URI.create(server.getUrl());
+        String baseUrl = parsedUri.getScheme() + "://" + parsedUri.getAuthority();
+        String endpointPath = parsedUri.getPath();
+        if (endpointPath == null || endpointPath.isBlank()) {
+            endpointPath = "/mcp";
+        }
+
         HttpClientStreamableHttpTransport transport =
-                HttpClientStreamableHttpTransport.builder(server.getUrl())
+                HttpClientStreamableHttpTransport.builder(baseUrl)
                         .clientBuilder(HttpClient.newBuilder().connectTimeout(timeout))
+                        .requestBuilder(requestBuilder)
+                        .endpoint(endpointPath)
                         .build();
         return McpClient.sync(transport)
                 .requestTimeout(timeout)
@@ -260,7 +295,7 @@ public class McpClientHolder implements AutoCloseable {
     private io.modelcontextprotocol.client.McpSyncClient createStdioClient(
             McpServerEntity server, Duration timeout) {
         List<String> argsList = parseJsonArray(server.getArgs());
-        Map<String, String> envMap = parseJsonObject(server.getEnv());
+        Map<String, String> envMap = parseKeyValueMap(server.getEnv());
 
         ServerParameters params = ServerParameters.builder(server.getCommand())
                 .args(argsList)
@@ -310,5 +345,35 @@ public class McpClientHolder implements AutoCloseable {
             log.warn("解析 JSON 对象失败: {}", json, e);
             return Map.of();
         }
+    }
+
+    /**
+     * 解析 key=value 格式的文本（每行一个）。
+     * <p>
+     * - 空行自动忽略
+     * - 每行首尾空白自动 trim
+     *
+     * @param text 原始存储字符串
+     * @return 解析后的 Map
+     */
+    private Map<String, String> parseKeyValueMap(String text) {
+        if (text == null || text.isBlank()) {
+            return Map.of();
+        }
+        Map<String, String> map = new HashMap<>();
+        String[] lines = text.split("\n");
+        for (String line : lines) {
+            String entry = line.trim();
+            if (entry.isBlank()) continue;
+            int eqIdx = entry.indexOf('=');
+            if (eqIdx > 0) {
+                String key = entry.substring(0, eqIdx).trim();
+                String value = entry.substring(eqIdx + 1).trim();
+                if (!key.isEmpty()) {
+                    map.put(key, value);
+                }
+            }
+        }
+        return map;
     }
 }

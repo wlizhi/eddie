@@ -1,5 +1,5 @@
 import type {ApiResult} from '@/types/chat'
-import type {McpServer, McpServerCreateRequest} from '@/types/mcpServer'
+import type {McpConnectResult, McpServer, McpServerCreateRequest} from '@/types/mcpServer'
 
 const BASE = '/api/mcp-servers'
 
@@ -32,22 +32,51 @@ export async function createMcpServer(req: McpServerCreateRequest): Promise<McpS
 }
 
 /**
- * 更新 MCP 或工具的启用状态
+ * 更新 MCP 或工具的启用状态（启用时自动测试连接）
  * PATCH /api/mcp-servers/status
  */
 export async function updateMcpStatus(payload: {
     mcpServerId: number
     mcpEnabled?: boolean
     tools?: { id: number; enabled: boolean }[]
-}): Promise<void> {
+}): Promise<McpConnectResult> {
     const res = await fetch(`${BASE}/status`, {
         method: 'PATCH',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-    const json: ApiResult<void> = await res.json()
+    const json: ApiResult<McpConnectResult> = await res.json()
     if (json.code !== 200) throw new Error(json.message || '更新状态失败')
+    return json.data
+}
+
+/**
+ * 手动同步 MCP 服务器工具
+ * POST /api/mcp-servers/{id}/sync-tools
+ */
+export async function syncMcpTools(id: number): Promise<McpConnectResult> {
+    const res = await fetch(`${BASE}/${id}/sync-tools`, {method: 'POST'})
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<McpConnectResult> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '同步工具失败')
+    return json.data
+}
+
+/**
+ * 测试 MCP 服务器连接（不写入数据库，不改启用状态）
+ * POST /api/mcp-servers/test-connection
+ */
+export async function testMcpConnection(req: McpServerCreateRequest): Promise<McpConnectResult> {
+    const res = await fetch(`${BASE}/test-connection`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(req),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<McpConnectResult> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '测试连接失败')
+    return json.data
 }
 
 /**

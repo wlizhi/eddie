@@ -16,15 +16,17 @@
 <script setup lang="ts">
 import {Compass, HardDrive, Network} from '@lucide/vue'
 
+export type McpSidebarTab = 'builtin' | 'mcp' | 'discover'
+
 defineProps<{
-  activeTab: string
+  activeTab: McpSidebarTab
 }>()
 
 defineEmits<{
-  'update:activeTab': [tab: string]
+  'update:activeTab': [tab: McpSidebarTab]
 }>()
 
-const tabs = [
+const tabs: { key: McpSidebarTab; label: string; icon: any }[] = [
   {key: 'builtin', label: '内置工具', icon: HardDrive},
   {key: 'mcp', label: 'MCP 扩展', icon: Network},
   {key: 'discover', label: '发现', icon: Compass},

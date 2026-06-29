@@ -2,6 +2,7 @@ package cc.wlizhi.eddie.tools.service;
 
 import cc.wlizhi.eddie.common.cache.GlobalCache;
 import cc.wlizhi.eddie.common.dao.McpServerDao;
+import cc.wlizhi.eddie.common.dto.McpConnectInfo;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.enums.McpSourceType;
 import jakarta.annotation.PostConstruct;
@@ -10,6 +11,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -127,9 +129,60 @@ public class McpClientRegistry implements GlobalCache {
             clients.put(id, holder);
             log.info("MCP 注册成功: {} (id={})", server.getName(), id);
         } else {
-            // 连接失败，holder 内部会自动启动重连
+            // 连接失败，保留 holder
             clients.put(id, holder);
-            log.warn("MCP 注册失败(将自动重连): {} (id={})", server.getName(), id);
+            // maxReconnectAttempts: null=默认5次, 0=不重连, >0=重连N次
+            Integer maxAttempts = server.getMaxReconnectAttempts();
+            if (maxAttempts == null || maxAttempts > 0) {
+                holder.startReconnectTask();
+                log.warn("MCP 注册失败(将自动重连): {} (id={})", server.getName(), id);
+            } else {
+                log.warn("MCP 注册失败(不重连): {} (id={})", server.getName(), id);
+            }
+        }
+    }
+
+    /**
+     * 同步注册 MCP 服务器：等待连接结果并返回工具列表
+     * <p>
+     * 与 {@link #register(McpServerEntity)} 的区别：
+     * <ul>
+     *   <li>同步等待连接完成（连接失败时不会启动后台重连）</li>
+     *   <li>返回 {@link McpConnectInfo} 包含连接成功/失败状态、错误消息、远程工具列表</li>
+     * </ul>
+     * 适用于：用户手动启用 MCP、手动触发工具同步等需要实时反馈的场景。
+     *
+     * @param server MCP 服务器配置
+     * @return 连接结果
+     */
+    public McpConnectInfo registerSync(McpServerEntity server) {
+        if (server == null || server.getId() == null) {
+            return McpConnectInfo.failure("MCP 服务器配置无效");
+        }
+
+        // 先关闭旧的连接（如果存在）
+        unregister(server.getId());
+
+        // 创建新连接（同步，不启动重连调度器）
+        McpClientHolder holder = new McpClientHolder(server, this, reconnectScheduler);
+        if (holder.connect()) {
+            clients.put(server.getId(), holder);
+            log.info("MCP 同步注册成功: {} (id={}, tools={})",
+                    server.getName(), server.getId(), holder.getToolCallbacks().size());
+
+            // 提取工具信息
+            List<McpConnectInfo.ToolInfo> toolInfos = new ArrayList<>();
+            for (McpToolCallback callback : holder.getToolCallbacks()) {
+                var def = callback.getToolDefinition();
+                toolInfos.add(new McpConnectInfo.ToolInfo(
+                        def.name(), def.description(), def.inputSchema()));
+            }
+            return McpConnectInfo.success(toolInfos);
+        } else {
+            // 连接失败，不保留 holder（不启动重连）
+            String errorMsg = holder.getLastErrorMessage();
+            log.warn("MCP 同步注册失败: {} (id={}) - {}", server.getName(), server.getId(), errorMsg);
+            return McpConnectInfo.failure(errorMsg != null ? errorMsg : "连接失败，未知错误");
         }
     }
 
@@ -171,6 +224,49 @@ public class McpClientRegistry implements GlobalCache {
      */
     void onReconnectSuccess(Long mcpServerId) {
         log.info("MCP 重连成功: id={}", mcpServerId);
+    }
+
+    /**
+     * 测试 MCP 服务器连接：仅验证连通性，不注册、不写入缓存
+     * <p>
+     * 与 {@link #registerSync(McpServerEntity)} 的区别：
+     * <ul>
+     *   <li>不校验 server.id（临时连接测试，可能尚未保存到 DB）</li>
+     *   <li>连接成功后主动断开清理（测试用，不保持长连接）</li>
+     *   <li>不放入 clients 管理</li>
+     *   <li>不调用 unregister</li>
+     * </ul>
+     *
+     * @param server MCP 服务器配置（可能不含 id）
+     * @return 连接结果
+     */
+    public McpConnectInfo testConnection(McpServerEntity server) {
+        if (server == null) {
+            return McpConnectInfo.failure("MCP 服务器配置无效");
+        }
+
+        // 创建临时连接（同步，不启动重连调度器）
+        McpClientHolder holder = new McpClientHolder(server, this, reconnectScheduler);
+        if (holder.connect()) {
+            log.info("MCP 连接测试成功: name={}, tools={}",
+                    server.getName(), holder.getToolCallbacks().size());
+
+            // 提取工具信息
+            List<McpConnectInfo.ToolInfo> toolInfos = new ArrayList<>();
+            for (McpToolCallback callback : holder.getToolCallbacks()) {
+                var def = callback.getToolDefinition();
+                toolInfos.add(new McpConnectInfo.ToolInfo(
+                        def.name(), def.description(), def.inputSchema()));
+            }
+
+            // 测试完毕，主动断开清理
+            holder.disconnect();
+            return McpConnectInfo.success(toolInfos);
+        } else {
+            String errorMsg = holder.getLastErrorMessage();
+            log.warn("MCP 连接测试失败: name={} - {}", server.getName(), errorMsg);
+            return McpConnectInfo.failure(errorMsg != null ? errorMsg : "连接失败，未知错误");
+        }
     }
 
     /**

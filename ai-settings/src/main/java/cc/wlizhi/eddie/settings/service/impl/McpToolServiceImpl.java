@@ -3,6 +3,7 @@ package cc.wlizhi.eddie.settings.service.impl;
 import cc.wlizhi.eddie.common.dao.McpServerDao;
 import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
+import cc.wlizhi.eddie.common.dto.McpConnectInfo;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.McpSourceType;
@@ -14,6 +15,7 @@ import cc.wlizhi.eddie.common.exception.NotFoundException;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.settings.entity.request.McpServerCreateRequest;
 import cc.wlizhi.eddie.settings.entity.request.McpStatusUpdateRequest;
+import cc.wlizhi.eddie.settings.entity.response.McpConnectResult;
 import cc.wlizhi.eddie.settings.entity.response.McpServerVO;
 import cc.wlizhi.eddie.settings.entity.response.McpToolItemVO;
 import cc.wlizhi.eddie.settings.service.McpToolService;
@@ -24,10 +26,7 @@ import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -109,9 +108,9 @@ public class McpToolServiceImpl implements McpToolService {
         entity.setTransportType(request.getTransportType());
         entity.setCommand(request.getCommand() != null ? request.getCommand() : "");
         entity.setArgs(request.getArgs() != null ? request.getArgs() : "[]");
-        entity.setEnv(request.getEnv() != null ? request.getEnv() : "{}");
+        entity.setEnv(request.getEnv() != null ? request.getEnv() : "");
         entity.setUrl(request.getUrl() != null ? request.getUrl() : "");
-        entity.setHeaders(request.getHeaders() != null ? request.getHeaders() : "{}");
+        entity.setHeaders(request.getHeaders() != null ? request.getHeaders() : "");
         entity.setTimeoutSeconds(request.getTimeoutSeconds() != null ? request.getTimeoutSeconds() : 60);
         entity.setEnabled(1);
         entity.setSourceType("USER");
@@ -151,7 +150,7 @@ public class McpToolServiceImpl implements McpToolService {
 
     @Override
     @Transactional
-    public void updateStatus(McpStatusUpdateRequest request) {
+    public McpConnectResult updateStatus(McpStatusUpdateRequest request) {
         Long mcpServerId = request.getMcpServerId();
 
         // 1. 从缓存获取 MCP 服务及全量工具列表（不区分启用/禁用状态）
@@ -225,17 +224,21 @@ public class McpToolServiceImpl implements McpToolService {
         // 4. 刷新上下文缓存
         ownerToolBindingContext.refresh();
 
-        // 5. 联动 MCP 客户端连接管理
+        // 5. 如果启用了 MCP → 同步连接并扫描远端工具
+        McpConnectResult connectResult = null;
         if (targetMcpEnabled) {
-            // 启用 → 注册连接
+            // 重新从 DB 获取最新的 MCP 配置（状态已更新）
             McpServerEntity server = mcpServerDao.findById(mcpServerId).orElse(null);
             if (server != null) {
-                mcpClientRegistry.register(server);
+                connectResult = doConnectAndSyncTools(server);
             }
         } else {
             // 禁用 → 断开连接
             mcpClientRegistry.unregister(mcpServerId);
+            connectResult = McpConnectResult.success("MCP 已禁用", List.of());
         }
+
+        return connectResult;
     }
 
     @Override
@@ -271,7 +274,214 @@ public class McpToolServiceImpl implements McpToolService {
         ownerToolBindingContext.refresh();
     }
 
+    @Override
+    public List<McpToolItemVO> listToolsByMcpServer(Long mcpServerId) {
+        // 走缓存查询
+        McpServerEntity mcp = ownerToolBindingContext.getMcpServer(mcpServerId);
+        if (mcp == null) {
+            throw new NotFoundException("MCP 服务不存在: " + mcpServerId);
+        }
+        List<ToolDefinitionEntity> tools = ownerToolBindingContext.getToolsByMcpServerId(mcpServerId);
+        return tools.stream().map(this::toMcpToolItemVO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public McpConnectResult syncTools(Long mcpServerId) {
+        // 1. 校验 MCP 服务存在
+        McpServerEntity mcp = ownerToolBindingContext.getMcpServer(mcpServerId);
+        if (mcp == null) {
+            throw new NotFoundException("MCP 服务不存在: " + mcpServerId);
+        }
+
+        // 2. 重新连接 MCP 并获取远端工具列表
+        McpServerEntity server = mcpServerDao.findById(mcpServerId).orElse(null);
+        if (server == null) {
+            return McpConnectResult.failure("MCP 服务数据不存在");
+        }
+
+        // 3. 同步连接
+        McpConnectInfo connectInfo = mcpClientRegistry.registerSync(server);
+        if (!connectInfo.isConnected()) {
+            // DB 状态改为禁用（连接失败）
+            mcpServerDao.updateEnabled(mcpServerId, 0);
+            ownerToolBindingContext.refresh();
+            return McpConnectResult.failure(connectInfo.getMessage());
+        }
+
+        // 4. 同步远端工具到 DB
+        List<ToolDefinitionEntity> syncedTools = syncRemoteToolsToDb(mcpServerId, connectInfo.getTools());
+
+        // 5. 刷新缓存
+        ownerToolBindingContext.refresh();
+
+        // 6. 组装返回
+        List<McpToolItemVO> toolVOs = syncedTools.stream()
+                .map(this::toMcpToolItemVO)
+                .collect(Collectors.toList());
+        return McpConnectResult.success(
+                "同步成功，共 " + toolVOs.size() + " 个工具", toolVOs);
+    }
+
+    @Override
+    public McpConnectResult testConnection(McpServerCreateRequest request) {
+        // 1. 从请求构建临时 McpServerEntity（不含 id，仅连接参数）
+        McpServerEntity tempEntity = new McpServerEntity();
+        tempEntity.setName(request.getName() != null ? request.getName() : "test");
+        tempEntity.setTransportType(request.getTransportType());
+        tempEntity.setCommand(request.getCommand() != null ? request.getCommand() : "");
+        tempEntity.setArgs(request.getArgs() != null ? request.getArgs() : "[]");
+        tempEntity.setEnv(request.getEnv() != null ? request.getEnv() : "");
+        tempEntity.setUrl(request.getUrl() != null ? request.getUrl() : "");
+        tempEntity.setHeaders(request.getHeaders() != null ? request.getHeaders() : "");
+        tempEntity.setTimeoutSeconds(request.getTimeoutSeconds() != null ? request.getTimeoutSeconds() : 60);
+
+        // 2. 调用 MCP 客户端测试连接（不注册、不写 DB、不改变状态）
+        McpConnectInfo connectInfo = mcpClientRegistry.testConnection(tempEntity);
+        if (!connectInfo.isConnected()) {
+            log.warn("MCP 连接测试失败: name={}, error={}",
+                    tempEntity.getName(), connectInfo.getMessage());
+            return McpConnectResult.failure(connectInfo.getMessage());
+        }
+
+        // 3. 连接成功，将远端工具转成 VO 返回
+        List<McpToolItemVO> toolVOs = connectInfo.getTools().stream()
+                .map(t -> {
+                    McpToolItemVO vo = new McpToolItemVO();
+                    vo.setName(t.getName());
+                    vo.setDisplayName(t.getDescription() != null && !t.getDescription().isBlank()
+                            ? t.getDescription() : t.getName());
+                    vo.setDescription(t.getDescription());
+                    vo.setToolType(ToolType.MCP.name());
+                    return vo;
+                })
+                .collect(Collectors.toList());
+
+        log.info("MCP 连接测试成功: name={}, tools={}",
+                tempEntity.getName(), toolVOs.size());
+        return McpConnectResult.success(
+                "连接成功，检测到 " + toolVOs.size() + " 个工具", toolVOs);
+    }
+
     // ==================== 内部方法 ====================
+
+    /**
+     * 连接 MCP 服务器并同步远端工具到 DB
+     * <p>
+     * 在启用 MCP 时调用，同时处理连接结果和工具入库。
+     */
+    private McpConnectResult doConnectAndSyncTools(McpServerEntity server) {
+        Long mcpServerId = server.getId();
+
+        // 1. 同步连接 MCP 协议
+        McpConnectInfo connectInfo = mcpClientRegistry.registerSync(server);
+        if (!connectInfo.isConnected()) {
+            // 连接失败 → DB 状态回滚为禁用
+            log.warn("MCP 启用连接失败，回滚禁用状态: id={}, name={}, error={}",
+                    mcpServerId, server.getName(), connectInfo.getMessage());
+            mcpServerDao.updateEnabled(mcpServerId, 0);
+            ownerToolBindingContext.refresh();
+            return McpConnectResult.failure(connectInfo.getMessage());
+        }
+
+        // 2. 连接成功 → 同步远端工具到 DB
+        List<ToolDefinitionEntity> syncedTools = syncRemoteToolsToDb(mcpServerId, connectInfo.getTools());
+
+        // 3. 刷新缓存
+        ownerToolBindingContext.refresh();
+
+        // 4. 组装返回
+        List<McpToolItemVO> toolVOs = syncedTools.stream()
+                .map(this::toMcpToolItemVO)
+                .collect(Collectors.toList());
+        return McpConnectResult.success(
+                "连接成功，已同步 " + toolVOs.size() + " 个工具", toolVOs);
+    }
+
+    /**
+     * 将 MCP 远端工具列表同步到 DB（全量覆盖策略）
+     * <p>
+     * 逻辑：按 name 去重，新增不在 DB 中的工具，删除 MCP 不再提供的工具。
+     * 已存在的工具保持原来的 enabled / sortOrder 不变。
+     *
+     * @param mcpServerId MCP 服务器 ID
+     * @param remoteTools MCP 协议返回的远端工具列表
+     * @return 同步后的工具定义列表
+     */
+    private List<ToolDefinitionEntity> syncRemoteToolsToDb(
+            Long mcpServerId, List<McpConnectInfo.ToolInfo> remoteTools) {
+
+        // 1. 查询 DB 中该 MCP 下已有的工具（按 name 索引）
+        List<ToolDefinitionEntity> existingTools = toolDefinitionDao.findByMcpServerId(mcpServerId);
+        Map<String, ToolDefinitionEntity> existingByName = new HashMap<>();
+        for (ToolDefinitionEntity t : existingTools) {
+            existingByName.put(t.getName(), t);
+        }
+        Set<String> remoteNames = new HashSet<>();
+
+        // 2. 遍历远端工具，新增或更新
+        List<ToolDefinitionEntity> toInsert = new ArrayList<>();
+        int sortOrder = 0;
+        for (McpConnectInfo.ToolInfo remote : remoteTools) {
+            remoteNames.add(remote.getName());
+            ToolDefinitionEntity existing = existingByName.get(remote.getName());
+            if (existing != null) {
+                // 已存在 → 更新描述等非关键字段（保持 enabled/sortOrder）
+                boolean changed = false;
+                if (!remote.getDescription().equals(existing.getDescription())) {
+                    existing.setDescription(remote.getDescription());
+                    changed = true;
+                }
+                String displayName = remote.getDescription() != null && !remote.getDescription().isBlank()
+                        ? remote.getDescription() : remote.getName();
+                if (!displayName.equals(existing.getDisplayName())) {
+                    existing.setDisplayName(displayName);
+                    changed = true;
+                }
+                if (changed) {
+                    toolDefinitionDao.update(existing);
+                }
+            } else {
+                // 不存在 → 新增
+                ToolDefinitionEntity entity = new ToolDefinitionEntity();
+                entity.setToolType(ToolType.MCP);
+                entity.setName(remote.getName());
+                entity.setDisplayName(remote.getDescription() != null && !remote.getDescription().isBlank()
+                        ? remote.getDescription() : remote.getName());
+                entity.setDescription(remote.getDescription());
+                entity.setEnabled(1);
+                entity.setBuiltIn(0);
+                entity.setMcpServerId(mcpServerId);
+                entity.setSortOrder(sortOrder);
+                toInsert.add(entity);
+            }
+            sortOrder++;
+        }
+
+        // 3. 批量新增
+        if (!toInsert.isEmpty()) {
+            toolDefinitionDao.batchInsert(toInsert);
+            log.info("MCP 同步工具: id={}, 新增 {} 个工具", mcpServerId, toInsert.size());
+        }
+
+        // 4. 删除远端不再提供的工具（从 DB 中删除、清理绑定关系）
+        List<Long> toDeleteIds = new ArrayList<>();
+        for (ToolDefinitionEntity existing : existingTools) {
+            if (!remoteNames.contains(existing.getName())) {
+                toDeleteIds.add(existing.getId());
+            }
+        }
+        if (!toDeleteIds.isEmpty()) {
+            ownerToolBindingDao.deleteByToolIds(toDeleteIds);
+            for (Long id : toDeleteIds) {
+                toolDefinitionDao.deleteById(id);
+            }
+            log.info("MCP 同步工具: id={}, 移除 {} 个不再提供的工具", mcpServerId, toDeleteIds.size());
+        }
+
+        // 5. 重新查询全量返回
+        return toolDefinitionDao.findByMcpServerId(mcpServerId);
+    }
 
     /**
      * 校验新增请求的参数完整性

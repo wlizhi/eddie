@@ -87,7 +87,7 @@ async function loadData() {
 async function handleToggle(server: McpServer) {
   const newEnabled = !server.enabled
   try {
-    await updateMcpStatus({
+    const result = await updateMcpStatus({
       mcpServerId: server.id,
       mcpEnabled: newEnabled,
       // MCP 切换时同步所有工具的状态
@@ -95,7 +95,11 @@ async function handleToggle(server: McpServer) {
     })
     // 重新加载数据，获取后端级联后的完整状态
     await loadData()
-    showToast(newEnabled ? 'MCP 服务已启用' : 'MCP 服务已禁用')
+    if (newEnabled && !result.connected) {
+      showToast(result.message || '连接失败', 'error')
+    } else {
+      showToast(newEnabled ? 'MCP 服务已启用' : 'MCP 服务已禁用')
+    }
   } catch (e) {
     const msg = (e as Error).message || '切换状态失败'
     console.error('切换状态失败:', msg)

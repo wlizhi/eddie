@@ -16,9 +16,12 @@ export interface McpServer {
     args: string
     env: string
     url: string
+    headers: string
     timeoutSeconds: number
     enabled: boolean
     sortOrder: number
+    reconnectIntervalSec: number
+    maxReconnectAttempts: number
     createdAt: string
     updatedAt: string
     tools: McpToolItem[]
@@ -43,6 +46,7 @@ export interface McpToolItem {
  */
 export interface McpServerCreateRequest {
     name: string
+    description?: string
     sourceType?: McpSourceType
     sourceConfig?: string
     transportType: 'STDIO' | 'SSE' | 'STREAMABLE_HTTP'
@@ -50,8 +54,11 @@ export interface McpServerCreateRequest {
     args?: string
     env?: string
     url?: string
+    headers?: string
     timeoutSeconds?: number
     sortOrder?: number
+    reconnectIntervalSec?: number
+    maxReconnectAttempts?: number
 }
 
 /**
@@ -76,6 +83,15 @@ export interface ToolSourceVO {
     enabled: boolean
     tools: ToolItemVO[]
     bound: boolean
+}
+
+/**
+ * 对应后端 McpConnectResult — 连接测试结果
+ */
+export interface McpConnectResult {
+    connected: boolean
+    message: string
+    tools: McpToolItem[]
 }
 
 /**

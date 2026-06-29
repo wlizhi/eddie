@@ -129,6 +129,14 @@ public class ToolDefinitionDao {
     }
 
     /**
+     * 按 ID 删除工具定义
+     */
+    public void deleteById(Long id) {
+        String sql = "DELETE FROM ai_tool_definition WHERE id = ?";
+        jdbcTemplate.update(sql, id);
+    }
+
+    /**
      * 批量插入工具定义
      */
     public void batchInsert(List<ToolDefinitionEntity> entities) {
