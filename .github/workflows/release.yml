@@ -48,12 +48,6 @@ jobs:
           mkdir -p ai-app/src/main/resources/static
           cp -r frontend/dist/* ai-app/src/main/resources/static/
 
-      - name: Install native-image (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          "%JAVA_HOME%\bin\gu.cmd" install native-image
-        shell: cmd
-
       - name: Install dependencies
         run: mvn install -Pnative -pl ai-app -am -DskipTests
 
@@ -156,4 +150,4 @@ jobs:
             # release-artifacts/eddie-linux-amd64/eddie-linux-amd64
             # release-artifacts/eddie-darwin-amd64/eddie-darwin-amd64
             release-artifacts/eddie-windows-amd64/eddie-windows-amd64.exe
-            release-artifacts/eddie-${{ inputs.version }}.jar
+#            release-artifacts/eddie-${{ inputs.version }}.jar
