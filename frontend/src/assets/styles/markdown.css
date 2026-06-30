@@ -3,7 +3,6 @@
  *
  * 用于聊天消息中 Markdown 内容的显示。
  * 全局样式，作用于 .markdown-body 类名下的所有元素。
- * 从 ChatView.vue 中分离出来，便于复用和维护。
  */
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
     margin: .6em 0 .3em;
@@ -104,4 +103,250 @@
 
 .markdown-body em {
     font-style: italic
+}
+
+/* ===== 代码块包装器（含头部栏） ===== */
+.code-block-wrapper {
+    margin: .6em 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-base);
+    background: var(--text-code-bg);
+}
+
+.code-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-base);
+    font-size: var(--font-size-xs);
+    user-select: none;
+}
+
+.code-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+    cursor: pointer;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.code-header-left:hover {
+    background: var(--bg-hover);
+}
+
+.code-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+/* 折叠/展开图标 */
+.code-toggle-icon {
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+    transition: transform 0.2s;
+}
+
+/* 展开状态（默认）：箭头向右 */
+.code-block-wrapper:not(.collapsed) .code-toggle-icon {
+    transform: rotate(0deg);
+}
+
+/* 折叠状态：箭头向下 */
+.code-block-wrapper.collapsed .code-toggle-icon {
+    transform: rotate(90deg);
+}
+
+.code-lang-label {
+    color: var(--text-tertiary);
+    font-weight: 500;
+    text-transform: lowercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.code-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5em;
+    height: 1.5em;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+}
+
+.code-copy-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    border-color: var(--border-base);
+}
+
+.code-copy-btn .check-icon {
+    display: none;
+}
+
+.code-copy-btn.copied .copy-icon {
+    display: none;
+}
+
+.code-copy-btn.copied .check-icon {
+    display: block;
+    color: var(--success-default, #22c55e);
+}
+
+.code-copy-btn.copied {
+    border-color: var(--success-default, #22c55e);
+}
+
+/* 代码块主体区域（折叠控制） */
+.code-block-body {
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+    max-height: 2000px;
+}
+
+.code-block-wrapper.collapsed .code-block-body {
+    max-height: 0;
+}
+
+.code-block-wrapper pre {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 0;
+    background: transparent;
+}
+
+.code-block-wrapper pre code {
+    padding: 0;
+    background: none;
+    color: var(--text-code);
+    font-size: .97em;
+    line-height: 1.6;
+}
+
+/* ===== highlight.js 语法高亮主题（暗色背景优化） =====
+   代码块背景固定为暗色（--text-code-bg: #1e1e1e），
+   因此使用 VS Code Dark+ 风格配色，所有主题统一 */
+.hljs {
+    color: #d4d4d4;
+    background: transparent;
+}
+
+/* 关键字/控制流 → 紫粉色 */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal {
+    color: #c586c0;
+}
+
+/* 类型/类名 → 青色 */
+.hljs-type,
+.hljs-section,
+.hljs-title.class,
+.hljs-title.class_.inherited__ {
+    color: #4ec9b0;
+}
+
+/* 字符串 → 暖橙 */
+.hljs-string,
+.hljs-name,
+.hljs-attr,
+.hljs-attribute {
+    color: #ce9178;
+}
+
+/* 注释 → 灰绿 */
+.hljs-comment,
+.hljs-quote,
+.hljs-doctag {
+    color: #6a9955;
+    font-style: italic;
+}
+
+/* 数字 → 浅绿 */
+.hljs-number,
+.hljs-literal .hljs-number {
+    color: #b5cea8;
+}
+
+/* 内置函数/对象 → 明黄 */
+.hljs-built_in,
+.hljs-builtin-name {
+    color: #dcdcaa;
+}
+
+/* 运算符号/标点 → 浅灰 */
+.hljs-punctuation,
+.hljs-operator {
+    color: #b0b0b0;
+}
+
+/* 变量/参数 → 浅蓝 */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params {
+    color: #9cdcfe;
+}
+
+/* HTML/XML 标签名 → 亮蓝 */
+.hljs-tag {
+    color: #569cd6;
+}
+
+/* 标签中的属性名 → 暖橙（同字符串） */
+.hljs-tag .hljs-attr {
+    color: #ce9178;
+}
+
+/* 选择器类/ID → 明黄（同函数） */
+.hljs-selector-class,
+.hljs-selector-id {
+    color: #dcdcaa;
+}
+
+/* 函数名 → 明黄 */
+.hljs-title,
+.hljs-title.function_ {
+    color: #dcdcaa;
+}
+
+/* 正则/特殊字面量 → 暖橙 */
+.hljs-regexp,
+.hljs-symbol {
+    color: #ce9178;
+}
+
+/* meta（如 #!/bin/bash）→ 蓝 */
+.hljs-meta {
+    color: #569cd6;
+}
+
+/* 废弃/删除 → 红 */
+.hljs-deletion {
+    color: #f44747;
+}
+
+/* 新增/插入 → 绿 */
+.hljs-addition {
+    color: #4ec9b0;
+}
+
+/* ===== 链接预览 ===== */
+.markdown-body a:hover {
+    opacity: 0.85;
 }
