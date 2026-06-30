@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release 版本号（例如 v1.0.0）'
+        required: true
+        type: string
+
+jobs:
+  native-build:
+    name: Native Build (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            binary-name: eddie-linux-amd64
+          - os: macos-latest
+            binary-name: eddie-darwin-amd64
+          - os: windows-latest
+            binary-name: eddie-windows-amd64.exe
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (GraalVM)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'graalvm'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy frontend static files
+        shell: bash
+        run: |
+          rm -rf ai-app/src/main/resources/static/*
+          cp -r frontend/dist/* ai-app/src/main/resources/static/
+
+      - name: Install native-image (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          & "C:\Program Files\GraalVM\bin\gu.cmd" install native-image
+        shell: powershell
+
+      - name: Native compile (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mvn -Pnative native:compile -pl ai-app -DskipTests \
+            -Dnative-image.buildArgs="-J-Xmx8g"
+
+      - name: Native compile (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mvn -Pnative native:compile -pl ai-app -DskipTests ^
+            -Dnative-image.buildArgs="-J-Xmx8g"
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            mv ai-app/target/ai-app.exe ai-app/target/${{ matrix.binary-name }}
+          else
+            mv ai-app/target/ai-app ai-app/target/${{ matrix.binary-name }}
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary-name }}
+          path: ai-app/target/${{ matrix.binary-name }}
+
+  create-release:
+    name: Create Release
+    needs: [native-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: List artifacts
+        run: ls -laR release-artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}
+          body: |
+            请查看 [CHANGELOG](CHANGELOG.md) 了解此版本的变更详情。
+          draft: true
+          files: |
+            release-artifacts/eddie-linux-amd64/eddie-linux-amd64
+            release-artifacts/eddie-darwin-amd64/eddie-darwin-amd64
+            release-artifacts/eddie-windows-amd64/eddie-windows-amd64.exe

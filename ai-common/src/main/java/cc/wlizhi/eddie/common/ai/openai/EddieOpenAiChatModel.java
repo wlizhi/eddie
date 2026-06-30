@@ -57,6 +57,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * OpenAiChatModel Bug导致思考内容丢失，部分模型工具调用缺少id值会导致SSE流中断，拷贝源代码进行问题修复。
+ */
 public class EddieOpenAiChatModel implements ChatModel {
 
     private static final ChatModelObservationConvention DEFAULT_OBSERVATION_CONVENTION = new DefaultChatModelObservationConvention();

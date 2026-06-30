@@ -43,9 +43,12 @@ java -jar ai-app/target/ai-app-1.0.0.jar
 
 ## 🖼 截图
 
-<!-- TODO: 添加截图 -->
-<!-- ![聊天界面](screenshots/chat.png) -->
-<!-- ![智能体执行](screenshots/agent.png) -->
+<!-- TODO: 等你截图后取消下面行的注释并替换为实际图片文件 -->
+<!--
+![聊天界面](screenshots/chat.png)
+![设置面板](screenshots/settings.png)
+![智能体执行](screenshots/agent.png)
+-->
 
 ---
 
@@ -170,3 +173,11 @@ mvn -Pnative native:compile -pl ai-app -DskipTests
 
 - 文件路径：`~/.eddie/eddie.db`
 - 建表脚本：[`ai-app/src/main/resources/schema.sql`](ai-app/src/main/resources/schema.sql)
+
+---
+
+## 📄 License
+
+本项目基于 Apache License, Version 2.0 开源，详情见 [LICENSE](LICENSE) 文件。
+
+© 2026 Eddie 作者。保留所有权利中明确授予的许可。
