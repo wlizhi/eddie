@@ -64,6 +64,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   'update:params': [value: Record<string, any>]
   error: [hasError: boolean]
+  blur: []
 }>()
 
 /** 内部参数副本，避免直接修改 props */
@@ -105,15 +106,16 @@ function onValueChange(def: ModelParamDef, v: number | null) {
   emitParams()
 }
 
-/** 下拉选择变化时同步 */
+/** 下拉选择变化时同步，并通知父组件触发保存 */
 function onSelectChange(def: ModelParamDef, v: string) {
   localParams[def.key] = v
   errorMessages[def.key] = null
   emitErrorState()
   emitParams()
+  emit('blur')
 }
 
-/** 失焦时重新校验（兜底，仅对 number 类型生效） */
+/** 失焦时重新校验（兜底，仅对 number 类型生效），并通知父组件触发保存 */
 function onBlur(def: ModelParamDef) {
   if (def.componentType === 'select') return
   const v = localParams[def.key]
@@ -122,6 +124,7 @@ function onBlur(def: ModelParamDef) {
     errorMessages[def.key] = msg
     emitErrorState()
   }
+  emit('blur')
 }
 
 /** 是否有参数校验错误 */

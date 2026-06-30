@@ -28,8 +28,9 @@ public class SettingsController {
     }
 
     /**
-     * 全量更新全局配置。<p>
-     * 请求体为 {@code Map<configKey, configVal>}，仅更新 enum 中已定义的 key，非法 key 自动忽略。<br>
+     * 批量更新全局配置（部分更新）。<p>
+     * 请求体为 {@code Map<configKey, configVal>}，仅更新 enum 中已定义的 key，非法 key 自动忽略；<br>
+     * 未传入的 key 保持不变，并非全量覆盖。<br>
      * 修改后自动刷新缓存。
      */
     @PutMapping("/configs")

@@ -25,21 +25,14 @@
       <div class="config-row params-row">
         <span class="config-label">参数</span>
         <ModelParamsInput :params="slotParams[slot.key]" @update:params="Object.assign(slotParams[slot.key], $event)"
-                          @error="(e: boolean) => slotErrors[slot.key] = e"/>
+                          @blur="saveSlot(slot.key)"/>
       </div>
-    </div>
-
-    <!-- 保存按钮 -->
-    <div class="save-bar">
-      <button class="btn-save" :disabled="saving || hasAnyError" @click="handleSave">
-        {{ saving ? '保存中...' : '保存配置' }}
-      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref} from 'vue'
+import {computed, onMounted, reactive} from 'vue'
 import {NSelect} from 'naive-ui'
 import {Globe, Zap} from '@lucide/vue'
 import {useChatStore} from '@/stores/chat'
@@ -137,6 +130,8 @@ function onSlotModelSelect(slotKey: string, compositeKey: string | null) {
     s.modelId = modelId
     s.compositeKey = compositeKey
   }
+  // 选择变化后立即自动保存
+  saveSlot(slotKey)
 }
 
 // ========== 每个槽位的模型参数 ==========
@@ -145,12 +140,34 @@ for (const slot of modelSlots) {
   slotParams[slot.key] = Object.fromEntries(MODEL_PARAM_DEFS.map(d => [d.key, null]))
 }
 
-// ========== 每个槽位的参数校验错误标记 ==========
-const slotErrors = reactive<Record<string, boolean>>({})
-const hasAnyError = computed(() => Object.values(slotErrors).some(v => v))
-
 // ========== 状态 ==========
-const saving = ref(false)
+/** 构建单个槽位的 payload 并保存到后端 */
+async function saveSlot(slotKey: string) {
+  const sel = slotSelections[slotKey]
+  if (!sel?.providerId || !sel?.modelId) return
+
+  const params: Record<string, number> = {}
+  for (const def of MODEL_PARAM_DEFS) {
+    const v = slotParams[slotKey][def.key]
+    if (v !== null) {
+      params[def.key] = v
+    }
+  }
+
+  const payload: Record<string, string> = {
+    [slotKey]: JSON.stringify({
+      providerId: sel.providerId,
+      modelId: sel.modelId,
+      modelParams: Object.keys(params).length > 0 ? params : {},
+    }),
+  }
+
+  try {
+    await updateConfigs(payload)
+  } catch (err: any) {
+    showToast('保存失败: ' + (err.message || '未知错误'), 'error')
+  }
+}
 
 // ========== 初始化加载 ==========
 onMounted(async () => {
@@ -198,52 +215,6 @@ onMounted(async () => {
     showToast('加载配置失败: ' + (err.message || '未知错误'), 'error')
   }
 })
-
-// ========== 保存 ==========
-async function handleSave() {
-  // 校验参数：若有错误则阻止提交
-  if (hasAnyError.value) {
-    showToast('存在标红的参数超出合法范围，请修正后再保存', 'info')
-    return
-  }
-
-  saving.value = true
-
-  try {
-    const payload: Record<string, string> = {}
-
-    for (const slot of modelSlots) {
-      const sel = slotSelections[slot.key]
-      if (!sel?.providerId || !sel?.modelId) {
-        // 未配置的槽位保持原样（不提交空值，PUT 时会删除旧数据）
-        // 用空对象表示未配置
-        payload[slot.key] = '{}'
-        continue
-      }
-
-      const params: Record<string, number> = {}
-      for (const def of MODEL_PARAM_DEFS) {
-        const v = slotParams[slot.key][def.key]
-        if (v !== null) {
-          params[def.key] = v
-        }
-      }
-
-      payload[slot.key] = JSON.stringify({
-        providerId: sel.providerId,
-        modelId: sel.modelId,
-        modelParams: Object.keys(params).length > 0 ? params : {},
-      })
-    }
-
-    await updateConfigs(payload)
-    showToast('配置已保存')
-  } catch (err: any) {
-    showToast('保存失败: ' + (err.message || '未知错误'), 'error')
-  } finally {
-    saving.value = false
-  }
-}
 </script>
 
 <style scoped>
@@ -313,34 +284,5 @@ async function handleSave() {
 
 .params-row > .config-label {
   padding-top: 6px;
-}
-
-/* 保存栏 */
-.save-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
-}
-
-.btn-save {
-  padding: 8px 24px;
-  background: var(--accent-default);
-  color: var(--text-inverse);
-  border: none;
-  border-radius: 8px;
-  font-size: var(--font-size-base);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-family: inherit;
-}
-
-.btn-save:hover {
-  background: var(--accent-hover);
-}
-
-.btn-save:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 </style>

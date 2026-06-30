@@ -18,7 +18,8 @@ public interface GlobalConfigService {
     Map<String, String> getConfigs();
 
     /**
-     * 全量更新全局配置。<p>
+     * 批量更新全局配置（部分更新）。<p>
+     * 仅更新传入的 key，未传入的 key 保持不变；<br>
      * 会过滤掉不在 {@link GlobalConfigKey} 中的非法 key。<br>
      * 更新后自动刷新缓存。
      */

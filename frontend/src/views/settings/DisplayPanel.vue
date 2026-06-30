@@ -30,6 +30,7 @@
             class="profile-nickname-input"
             placeholder="输入昵称"
             maxlength="20"
+            @blur="handleNicknameBlur"
         />
       </div>
     </div>
@@ -354,7 +355,7 @@ function handleFontSizeInput() {
   }
 }
 
-/** 输入框失焦时做 clamp 兜底 */
+/** 输入框失焦时做 clamp 兜底并保存 */
 function handleFontSizeBlur() {
   const val = fontSizeInput.value
   if (val === undefined || val === null || val === '' || isNaN(val as number)) {
@@ -373,14 +374,23 @@ function handleFontSizeBlur() {
   if (matchLevel) {
     displaySettings.fontSize = matchLevel[0]
   }
+  applyDisplay()
+  saveDisplaySettings().catch(() => {
+  })
 }
 
-/** 调色盘输入处理 */
-function onColorPickerInput(e: Event) {
+/** 调色盘选择处理（关闭取色器时触发，避免拖拽中频繁保存） */
+function onColorPickerChange(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.value) {
     displaySettings.colorScheme = target.value
   }
+}
+
+/** 昵称输入框失焦时保存 */
+function handleNicknameBlur() {
+  saveDisplaySettings().catch(() => {
+  })
 }
 
 onMounted(async () => {
@@ -399,9 +409,25 @@ onMounted(async () => {
   }
 })
 
-/** 监听设置变化，即时生效并自动保存 */
+/**
+ * 监听非文本类设置变化，即时生效并自动保存。
+ * 文本类字段（nickname、customFontSize）仅在失焦时保存，避免输入过程中频繁调接口。
+ */
 watch(
-    () => ({...displaySettings}),
+    [
+      () => displaySettings.themeMode,
+      () => displaySettings.themeId,
+      () => displaySettings.colorScheme,
+      () => displaySettings.fontFamily,
+      () => displaySettings.fontSize,
+      () => displaySettings.wideMode,
+      () => displaySettings.chatMode,
+      () => displaySettings.showMetaTime,
+      () => displaySettings.showMetaDuration,
+      () => displaySettings.showMetaTokens,
+      () => displaySettings.showMetaCost,
+      () => displaySettings.avatar,
+    ],
     async () => {
       applyDisplay()
       try {
@@ -410,7 +436,6 @@ watch(
         // 保存失败静默处理
       }
     },
-    {deep: true},
 )
 
 /** 监听工具响应最大渲染长度变化，自动保存 */
