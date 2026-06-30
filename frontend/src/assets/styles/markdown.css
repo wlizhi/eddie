@@ -239,111 +239,110 @@
     line-height: 1.6;
 }
 
-/* ===== highlight.js 语法高亮主题（暗色背景优化） =====
-   代码块背景固定为暗色（--text-code-bg: #1e1e1e），
-   因此使用 VS Code Dark+ 风格配色，所有主题统一 */
+/* ===== highlight.js 语法高亮主题（跟随主题变量） =====
+   颜色由各主题的 light/dark 变量分别定义，切换主题时自动跟随。
+   --hljs-* 变量在 theme.css 中有后备默认值（暗色 VS Code Dark+ 风格）。 */
 .hljs {
-    color: #d4d4d4;
+    color: var(--hljs-color, #d4d4d4);
     background: transparent;
 }
 
-/* 关键字/控制流 → 紫粉色 */
+/* 关键字/控制流 */
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-literal {
-    color: #c586c0;
+    color: var(--hljs-keyword, #c586c0);
 }
 
-/* 类型/类名 → 青色 */
+/* 类型/类名 */
 .hljs-type,
 .hljs-section,
 .hljs-title.class,
 .hljs-title.class_.inherited__ {
-    color: #4ec9b0;
+    color: var(--hljs-type, #4ec9b0);
 }
 
-/* 字符串 → 暖橙 */
+/* 字符串/属性名 */
 .hljs-string,
 .hljs-name,
 .hljs-attr,
 .hljs-attribute {
-    color: #ce9178;
+    color: var(--hljs-string, #ce9178);
 }
 
-/* 注释 → 灰绿 */
+/* 注释 */
 .hljs-comment,
 .hljs-quote,
 .hljs-doctag {
-    color: #6a9955;
+    color: var(--hljs-comment, #6a9955);
     font-style: italic;
 }
 
-/* 数字 → 浅绿 */
-.hljs-number,
-.hljs-literal .hljs-number {
-    color: #b5cea8;
+/* 数字 */
+.hljs-number {
+    color: var(--hljs-number, #b5cea8);
 }
 
-/* 内置函数/对象 → 明黄 */
+/* 内置函数/对象 */
 .hljs-built_in,
 .hljs-builtin-name {
-    color: #dcdcaa;
+    color: var(--hljs-built-in, #dcdcaa);
 }
 
-/* 运算符号/标点 → 浅灰 */
+/* 运算符号/标点 */
 .hljs-punctuation,
 .hljs-operator {
-    color: #b0b0b0;
+    color: var(--hljs-punctuation, #b0b0b0);
 }
 
-/* 变量/参数 → 浅蓝 */
+/* 变量/参数 */
 .hljs-variable,
 .hljs-template-variable,
 .hljs-params {
-    color: #9cdcfe;
+    color: var(--hljs-variable, #9cdcfe);
 }
 
-/* HTML/XML 标签名 → 亮蓝 */
+/* HTML/XML 标签名 */
 .hljs-tag {
-    color: #569cd6;
+    color: var(--hljs-tag, #569cd6);
 }
 
-/* 标签中的属性名 → 暖橙（同字符串） */
+/* 标签中的属性名 */
 .hljs-tag .hljs-attr {
-    color: #ce9178;
+    color: var(--hljs-string, #ce9178);
 }
 
-/* 选择器类/ID → 明黄（同函数） */
+/* 选择器类/ID */
 .hljs-selector-class,
 .hljs-selector-id {
-    color: #dcdcaa;
+    color: var(--hljs-selector-class, #dcdcaa);
 }
 
-/* 函数名 → 明黄 */
+/* 函数名 */
 .hljs-title,
 .hljs-title.function_ {
-    color: #dcdcaa;
+    color: var(--hljs-title, #dcdcaa);
 }
 
-/* 正则/特殊字面量 → 暖橙 */
+/* 正则/特殊字面量 */
 .hljs-regexp,
 .hljs-symbol {
-    color: #ce9178;
+    color: var(--hljs-regexp, #ce9178);
 }
 
-/* meta（如 #!/bin/bash）→ 蓝 */
+/* meta（如 #!/bin/bash） */
 .hljs-meta {
-    color: #569cd6;
+    color: var(--hljs-meta, #569cd6);
 }
 
-/* 废弃/删除 → 红 */
+/* 废弃/删除 */
 .hljs-deletion {
-    color: #f44747;
+    color: var(--hljs-deletion, #f44747);
 }
 
-/* 新增/插入 → 绿 */
+/* 新增/插入 */
 .hljs-addition {
-    color: #4ec9b0;
+    color: var(--hljs-addition, #4ec9b0);
 }
 
 /* ===== 链接预览 ===== */

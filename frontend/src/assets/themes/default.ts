@@ -78,8 +78,26 @@ const theme: ThemeDefinition = {
             '--tag-embedding-text': '#4f46e5',
 
             /* 代码块 */
-            '--text-code-bg': '#1e1e1e',
-            '--text-code': '#d4d4d4',
+            '--text-code-bg': '#f6f8fa',
+            '--text-code': '#24292f',
+
+            /* 代码块语法高亮（GitHub Light 风格） */
+            '--hljs-color': '#24292f',
+            '--hljs-keyword': '#d73a49',
+            '--hljs-type': '#6f42c1',
+            '--hljs-string': '#032f62',
+            '--hljs-comment': '#6a737d',
+            '--hljs-number': '#005cc5',
+            '--hljs-built-in': '#e36209',
+            '--hljs-punctuation': '#24292f',
+            '--hljs-variable': '#e36209',
+            '--hljs-tag': '#22863a',
+            '--hljs-selector-class': '#6f42c1',
+            '--hljs-title': '#6f42c1',
+            '--hljs-regexp': '#032f62',
+            '--hljs-meta': '#24292f',
+            '--hljs-deletion': '#b31d28',
+            '--hljs-addition': '#22863a',
 
             /* 杂项 */
             '--scrollbar-thumb': '#c0c4cc',
@@ -153,6 +171,28 @@ const theme: ThemeDefinition = {
             '--tag-rerank-text': '#f472b6',
             '--tag-embedding-bg': '#1a1a3a',
             '--tag-embedding-text': '#818cf8',
+
+            /* 代码块 */
+            '--text-code-bg': '#1e1e1e',
+            '--text-code': '#d4d4d4',
+
+            /* 代码块语法高亮（VS Code Dark+ 风格） */
+            '--hljs-color': '#d4d4d4',
+            '--hljs-keyword': '#c586c0',
+            '--hljs-type': '#4ec9b0',
+            '--hljs-string': '#ce9178',
+            '--hljs-comment': '#6a9955',
+            '--hljs-number': '#b5cea8',
+            '--hljs-built-in': '#dcdcaa',
+            '--hljs-punctuation': '#b0b0b0',
+            '--hljs-variable': '#9cdcfe',
+            '--hljs-tag': '#569cd6',
+            '--hljs-selector-class': '#dcdcaa',
+            '--hljs-title': '#dcdcaa',
+            '--hljs-regexp': '#ce9178',
+            '--hljs-meta': '#569cd6',
+            '--hljs-deletion': '#f44747',
+            '--hljs-addition': '#4ec9b0',
 
             /* 杂项 */
             '--scrollbar-thumb': '#555555',
