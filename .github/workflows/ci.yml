@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24.16'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -35,7 +35,7 @@ jobs:
 
       - name: Copy frontend static files
         run: |
-          rm -rf ai-app/src/main/resources/static/*
+          mkdir -p ai-app/src/main/resources/static
           cp -r frontend/dist/* ai-app/src/main/resources/static/
 
       - name: Build backend (skip native)
