@@ -134,32 +134,54 @@ public class SessionServiceImpl implements SessionService {
             throw new NotFoundException("会话不存在: " + sessionId);
         }
 
-        List<MessageEntity> firstRound = messageDao.findFirstRound(sessionId);
-        if (firstRound.size() < 2) {
+        // 读取配置：生成标题取前几轮对话（默认 1 轮）
+        int rounds = 1;
+        String roundsStr = globalConfigContext.getConfig(GlobalConfigKey.TITLE_GENERATION_ROUNDS);
+        if (roundsStr != null && !roundsStr.isBlank()) {
+            try {
+                rounds = Math.max(Integer.parseInt(roundsStr), 1);
+            } catch (NumberFormatException e) {
+                log.warn("TITLE_GENERATION_ROUNDS 配置格式非法: {}", roundsStr);
+            }
+        }
+
+        List<MessageEntity> messages = messageDao.findRounds(sessionId, rounds);
+        if (messages.size() < 2) {
             // 消息不足，返回空字符串
             sessionDao.updateTitle(sessionId, "");
             return "";
         }
 
-        String userMsg = "";
-        String assistantMsg = "";
-        for (MessageEntity msg : firstRound) {
+        // 按角色提取首轮 user 消息（用于最终降级截取）
+        String firstUserMsg = "";
+        // 构建多轮对话文本
+        StringBuilder conversationBuilder = new StringBuilder();
+        int roundNum = 0;
+        int userCount = 0;
+        for (MessageEntity msg : messages) {
             if ("user".equals(msg.getRole())) {
-                userMsg = msg.getContent();
+                userCount++;
+                roundNum = userCount;
+                if (userCount == 1) {
+                    firstUserMsg = msg.getContent();
+                }
+                conversationBuilder.append("第").append(roundNum).append("轮\n用户：").append(msg.getContent()).append("\n");
             } else if ("assistant".equals(msg.getRole())) {
-                assistantMsg = msg.getContent();
+                conversationBuilder.append("助手：").append(msg.getContent()).append("\n");
             }
         }
 
+        String conversation = conversationBuilder.toString().trim();
+
         // 降级链：FAST_MODEL → DEFAULT_MODEL → 助手绑定模型 → 截取前 20 字
-        String title = tryGenerateWithAi(userMsg, assistantMsg, session);
+        String title = tryGenerateWithAi(conversation, session);
         if (title != null && !title.isBlank()) {
             sessionDao.updateTitle(sessionId, title);
             return title;
         }
 
         // 最终降级：截取首条消息前 20 字
-        title = userMsg.length() > TITLE_MAX_LENGTH ? userMsg.substring(0, TITLE_MAX_LENGTH) : userMsg;
+        title = firstUserMsg.length() > TITLE_MAX_LENGTH ? firstUserMsg.substring(0, TITLE_MAX_LENGTH) : firstUserMsg;
         sessionDao.updateTitle(sessionId, title);
         return title;
     }
@@ -167,13 +189,13 @@ public class SessionServiceImpl implements SessionService {
     /**
      * 逐级尝试用 AI 模型生成标题
      */
-    private String tryGenerateWithAi(String userMsg, String assistantMsg, SessionEntity session) {
+    private String tryGenerateWithAi(String conversation, SessionEntity session) {
         // 降级链 1: FAST_MODEL
         String fastModelJson = globalConfigContext.getConfig(GlobalConfigKey.FAST_MODEL);
         if (fastModelJson != null) {
             try {
                 JsonNode node = objectMapper.readTree(fastModelJson);
-                String title = callModel(node, userMsg, assistantMsg);
+                String title = callModel(node, conversation);
                 if (title != null) return title;
             } catch (Exception e) {
                 log.warn("FAST_MODEL 调用失败", e);
@@ -185,7 +207,7 @@ public class SessionServiceImpl implements SessionService {
         if (defaultModelJson != null) {
             try {
                 JsonNode node = objectMapper.readTree(defaultModelJson);
-                String title = callModel(node, userMsg, assistantMsg);
+                String title = callModel(node, conversation);
                 if (title != null) return title;
             } catch (Exception e) {
                 log.warn("DEFAULT_MODEL 调用失败", e);
@@ -196,7 +218,7 @@ public class SessionServiceImpl implements SessionService {
         if (session.getAssistantId() != null) {
             AssistantEntity assistant = assistantContext.getAssistantById(session.getAssistantId());
             if (assistant != null && assistant.getProviderId() != null && assistant.getModelId() != null) {
-                String title = callModel(assistant.getProviderId(), assistant.getModelId(), userMsg, assistantMsg);
+                String title = callModel(assistant.getProviderId(), assistant.getModelId(), conversation);
                 if (title != null) return title;
             }
         }
@@ -207,19 +229,19 @@ public class SessionServiceImpl implements SessionService {
     /**
      * 从 JSON 节点解析 providerId + modelCode 并调用模型
      */
-    private String callModel(JsonNode node, String userMsg, String assistantMsg) {
+    private String callModel(JsonNode node, String conversation) {
         Long providerId = node.get("providerId") != null ? node.get("providerId").asLong() : null;
         String modelId = node.get("modelId") != null ? node.get("modelId").asText() : null;
         if (providerId == null || modelId == null) {
             return null;
         }
-        return callModel(providerId, modelId, userMsg, assistantMsg);
+        return callModel(providerId, modelId, conversation);
     }
 
     /**
      * 使用指定 provider + model 调用 AI 生成标题
      */
-    private String callModel(Long providerId, String modelCode, String userMsg, String assistantMsg) {
+    private String callModel(Long providerId, String modelCode, String conversation) {
         ModelProviderEntity provider = modelProviderContext.getModelProviderById(providerId);
         if (provider == null) {
             log.warn("生成标题时未找到 provider: {}", providerId);
@@ -234,8 +256,7 @@ public class SessionServiceImpl implements SessionService {
         }
 
         String prompt = globalPromptsContext.resolvePrompt(promptTemplate, Map.of(
-                "userMessage", userMsg,
-                "assistantMessage", assistantMsg != null ? assistantMsg : ""
+                "conversation", conversation != null ? conversation : ""
         ));
 
         // 构建最小 ChatContext 用于获取 ChatClient

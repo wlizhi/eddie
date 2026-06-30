@@ -15,11 +15,6 @@
     <description>启动入口 + GraalVM 打包</description>
 
     <dependencies>
-        <!-- 自有模块 -->
-        <!--        <dependency>-->
-        <!--            <groupId>cc.wlizhi</groupId>-->
-        <!--            <artifactId>ai-common</artifactId>-->
-        <!--        </dependency>-->
         <dependency>
             <groupId>cc.wlizhi</groupId>
             <artifactId>ai-chat</artifactId>
@@ -33,23 +28,14 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>cc.wlizhi</groupId>-->
-        <!--            <artifactId>ai-tools</artifactId>-->
-        <!--        </dependency>-->
-        <!--        <dependency>-->
-        <!--            <groupId>cc.wlizhi</groupId>-->
-        <!--            <artifactId>ai-memory</artifactId>-->
-        <!--        </dependency>-->
         <dependency>
             <groupId>cc.wlizhi</groupId>
             <artifactId>ai-settings</artifactId>
         </dependency>
-
-        <!-- MCP Server：将内置 @Tool 暴露为 MCP 协议，供其他软件调用 -->
         <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 

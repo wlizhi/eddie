@@ -8,6 +8,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * 初始化数据目录
+ *
+ * @author eddie
+ */
 @Slf4j
 public class EddieContextInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 

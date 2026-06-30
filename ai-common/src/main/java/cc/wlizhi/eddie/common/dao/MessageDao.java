@@ -75,16 +75,20 @@ public class MessageDao {
     }
 
     /**
-     * 查询会话首轮对话（前 2 条消息），用于生成标题
+     * 查询会话前 N 轮对话消息，用于生成标题
+     *
+     * @param sessionId 会话 ID
+     * @param rounds    轮数（每轮含 user + assistant 两条消息，取 rounds * 2 条）
      */
-    public List<MessageEntity> findFirstRound(Long sessionId) {
+    public List<MessageEntity> findRounds(Long sessionId, int rounds) {
+        int limit = Math.max(rounds * 2, 2);
         return jdbcTemplate.query(
                 "SELECT id, session_id, assistant_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
                         "currency, duration_ms, created_at FROM ai_session_msg WHERE session_id = ? " +
-                        "ORDER BY id ASC LIMIT 2",
-                messageRowMapper, sessionId);
+                        "ORDER BY id ASC LIMIT ?",
+                messageRowMapper, sessionId, limit);
     }
 
     /**

@@ -20,6 +20,7 @@
             :show-button="false"
             class="number-input"
             placeholder="8"
+            @blur="saveField(SEARCH_RESULT_COUNT_KEY, searchResultCount)"
         />
       </div>
 
@@ -36,36 +37,73 @@
             :show-button="false"
             class="number-input"
             placeholder="4000"
+            @blur="saveField(WEB_FETCH_MAX_CHARS_KEY, webFetchMaxChars)"
         />
       </div>
     </div>
 
-    <!-- 保存按钮 -->
-    <div class="save-bar">
-      <button class="btn-save" :disabled="saving" @click="handleSave">
-        {{ saving ? '保存中...' : '保存配置' }}
-      </button>
+    <!-- ===== 会话标题设置 ===== -->
+    <div class="settings-group">
+      <div class="group-label">
+        <Sparkles :size="16" :stroke-width="2" class="group-icon"/>
+        会话标题设置
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">自动生成标题</span>
+          <span class="setting-hint">首轮对话完成后自动调用 AI 生成会话标题</span>
+        </div>
+        <n-switch
+            :value="enableAutoTitle"
+            @update:value="onAutoTitleChange"
+        />
+      </div>
+
+      <div v-if="enableAutoTitle" class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">取前几轮对话</span>
+          <span class="setting-hint">基于前 N 轮用户与助手的对话内容生成标题（1~5）</span>
+        </div>
+        <n-input-number
+            v-model:value="titleGenerationRounds"
+            :min="1"
+            :max="5"
+            :step="1"
+            :show-button="false"
+            class="number-input"
+            placeholder="1"
+            @blur="saveField(TITLE_GENERATION_ROUNDS_KEY, titleGenerationRounds)"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
-import {NInputNumber} from 'naive-ui'
-import {Search} from '@lucide/vue'
+import {NInputNumber, NSwitch} from 'naive-ui'
+import {Search, Sparkles} from '@lucide/vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {showToast} from '@/composables/useToast'
 
 const SEARCH_RESULT_COUNT_KEY = 'SEARCH_RESULT_COUNT'
 const WEB_FETCH_MAX_CHARS_KEY = 'WEB_FETCH_MAX_CHARS'
+const ENABLE_AUTO_TITLE_KEY = 'ENABLE_AUTO_TITLE'
+const TITLE_GENERATION_ROUNDS_KEY = 'TITLE_GENERATION_ROUNDS'
 
 const searchResultCount = ref<number | null>(null)
 const webFetchMaxChars = ref<number | null>(null)
-const saving = ref(false)
+const enableAutoTitle = ref(true)
+const titleGenerationRounds = ref<number | null>(1)
+
+/** 缓存初始全量配置，用于 blur 时合并其他未变化字段 */
+const initialConfigs = ref<Record<string, string>>({})
 
 onMounted(async () => {
   try {
     const configs = await fetchConfigs()
+    initialConfigs.value = {...configs}
 
     const srcRaw = configs[SEARCH_RESULT_COUNT_KEY]
     if (srcRaw && srcRaw !== '{}') {
@@ -78,25 +116,48 @@ onMounted(async () => {
       const n = parseInt(wfmcRaw, 10)
       if (!isNaN(n)) webFetchMaxChars.value = Math.min(Math.max(n, 1000), 15000)
     }
+
+    const eatRaw = configs[ENABLE_AUTO_TITLE_KEY]
+    if (eatRaw && eatRaw !== '{}') {
+      enableAutoTitle.value = eatRaw === 'true'
+    }
+
+    const tgrRaw = configs[TITLE_GENERATION_ROUNDS_KEY]
+    if (tgrRaw && tgrRaw !== '{}') {
+      const n = parseInt(tgrRaw, 10)
+      if (!isNaN(n)) titleGenerationRounds.value = Math.min(Math.max(n, 1), 5)
+    }
   } catch (err: any) {
     showToast('加载配置失败: ' + (err.message || '未知错误'), 'error')
   }
 })
 
-async function handleSave() {
-  saving.value = true
-
+/**
+ * 失去焦点时自动保存单个字段
+ * 与初始配置合并后全量提交，避免覆盖其他未加载的配置
+ */
+async function saveField(key: string, value: number | boolean | null) {
   try {
-    const payload: Record<string, string> = {}
-    payload[SEARCH_RESULT_COUNT_KEY] = searchResultCount.value != null ? String(searchResultCount.value) : ''
-    payload[WEB_FETCH_MAX_CHARS_KEY] = webFetchMaxChars.value != null ? String(webFetchMaxChars.value) : ''
+    const payload: Record<string, string> = {
+      ...initialConfigs.value,
+    }
+    if (value != null) {
+      payload[key] = String(value)
+    } else {
+      delete payload[key]
+    }
     await updateConfigs(payload)
-    showToast('配置已保存')
+    // 更新本地缓存，为下次 blur 做准备
+    initialConfigs.value = payload
   } catch (err: any) {
     showToast('保存失败: ' + (err.message || '未知错误'), 'error')
-  } finally {
-    saving.value = false
   }
+}
+
+/** 自动标题开关变更立即保存 */
+async function onAutoTitleChange(val: boolean) {
+  enableAutoTitle.value = val
+  await saveField(ENABLE_AUTO_TITLE_KEY, val)
 }
 </script>
 
@@ -153,34 +214,5 @@ async function handleSave() {
 
 .number-input {
   width: 120px;
-}
-
-/* 保存栏 */
-.save-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
-}
-
-.btn-save {
-  padding: 8px 24px;
-  background: var(--accent-default);
-  color: var(--text-inverse);
-  border: none;
-  border-radius: 8px;
-  font-size: var(--font-size-base);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-family: inherit;
-}
-
-.btn-save:hover {
-  background: var(--accent-hover);
-}
-
-.btn-save:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 </style>

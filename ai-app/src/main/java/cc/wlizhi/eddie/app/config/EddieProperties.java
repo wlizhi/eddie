@@ -2,12 +2,14 @@ package cc.wlizhi.eddie.app.config;
 
 import cc.wlizhi.eddie.app.init.DatabaseDataInitializer;
 import cc.wlizhi.eddie.common.cache.InitScheduler;
+import cc.wlizhi.eddie.memory.context.BuiltInPrompts;
 import cc.wlizhi.eddie.memory.context.GlobalPromptsContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -36,7 +38,8 @@ public class EddieProperties {
     /**
      * 提示词模板文件映射
      */
-    private GlobalPromptsContext.Prompts prompts;
+    @NestedConfigurationProperty
+    private BuiltInPrompts prompts;
 
     @Resource
     private GlobalPromptsContext globalPromptsContext;

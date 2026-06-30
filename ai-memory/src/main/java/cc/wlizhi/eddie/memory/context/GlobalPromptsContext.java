@@ -2,7 +2,6 @@ package cc.wlizhi.eddie.memory.context;
 
 import jakarta.annotation.Resource;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
@@ -45,7 +44,7 @@ public class GlobalPromptsContext {
      *
      * @param prompts 包含各 prompt 文件 classpath 路径的配置 record
      */
-    public void init(Prompts prompts) {
+    public void init(BuiltInPrompts prompts) {
         if (prompts == null) {
             log.warn("Prompts configuration is null, skip initialization");
             return;
@@ -94,16 +93,5 @@ public class GlobalPromptsContext {
             props.putAll(variables);
         }
         return PLACEHOLDER_HELPER.replacePlaceholders(template, props::getProperty);
-    }
-
-    /**
-     * Prompt 文件 classpath 路径配置。<p>
-     * 由 Spring Boot {@code @ConfigurationProperties} 从 {@code application.yml} 绑定，
-     * 字段值均为 classpath 下的相对路径（如 {@code prompts/title-generation.md}）。
-     */
-    @Getter
-    @Setter
-    public static class Prompts {
-        private String titleGeneration;
     }
 }

@@ -6,6 +6,7 @@ import type {MessageVO, ToolExecutionEventItem} from '@/types/session'
 import {fetchModelList, streamChat} from '@/api/chat'
 import {fetchBoundMcpTools} from '@/api/assistant'
 import {createSession, fetchMessages, generateTitle} from '@/api/session'
+import {fetchConfigs} from '@/api/settings'
 import {showToast} from '@/composables/useToast'
 import {useAssistantStore} from '@/stores/assistant'
 import {renderMd} from '@/utils/markdown'
@@ -91,6 +92,15 @@ export const useChatStore = defineStore('chat', () => {
 
     /** 每页消息数量（与后端 MESSAGE_PAGE_SIZE 保持一致） */
     const MESSAGE_PAGE_SIZE = 20
+
+    /** 是否自动生成会话标题 */
+    const autoTitleEnabled = ref(true)
+
+    /** 生成标题取前几轮对话（默认 1） */
+    const titleGenerationRounds = ref(1)
+
+    /** 自动标题配置是否已加载 */
+    let autoTitleLoaded = false
 
     // ========== 计算属性 ==========
 
@@ -214,6 +224,9 @@ export const useChatStore = defineStore('chat', () => {
     async function sendMessage(text: string): Promise<void> {
         if (!text.trim() || isStreaming.value) return
 
+        // 确保自动标题配置已加载
+        await loadAutoTitleConfig()
+
         const isFirstRound = isNewConversation.value
 
         // 新会话：创建 session
@@ -335,8 +348,9 @@ export const useChatStore = defineStore('chat', () => {
                 currentToolExecutions.value = []
                 isStreaming.value = false
                 abortController = null
-                // 首轮对话后生成标题
-                if (isFirstRound) {
+                // 当消息数量达到配置轮数 × 2 时自动生成标题
+                const targetMsgCount = titleGenerationRounds.value * 2
+                if (autoTitleEnabled.value && messages.value.length === targetMsgCount) {
                     generateTitleAsync()
                 }
                 // 刷新会话列表（消息数、更新时间等统计数据）
@@ -349,6 +363,30 @@ export const useChatStore = defineStore('chat', () => {
                 showToast(error.message, 'error')
             },
         })
+    }
+
+    /**
+     * 加载自动生成标题的配置（仅首次加载）
+     */
+    async function loadAutoTitleConfig(): Promise<void> {
+        if (autoTitleLoaded) return
+        autoTitleLoaded = true
+        try {
+            const configs = await fetchConfigs()
+            const eatRaw = configs['ENABLE_AUTO_TITLE']
+            if (eatRaw && eatRaw !== '{}') {
+                autoTitleEnabled.value = eatRaw === 'true'
+            }
+            const tgrRaw = configs['TITLE_GENERATION_ROUNDS']
+            if (tgrRaw && tgrRaw !== '{}') {
+                const n = parseInt(tgrRaw, 10)
+                if (!isNaN(n) && n >= 1) {
+                    titleGenerationRounds.value = n
+                }
+            }
+        } catch (err) {
+            console.error('加载自动标题配置失败:', err)
+        }
     }
 
     /** 异步生成标题（首轮对话后） */
@@ -538,5 +576,8 @@ export const useChatStore = defineStore('chat', () => {
         loadConversation,
         loadMoreMessages,
         loadBoundMcpTools,
+        autoTitleEnabled,
+        titleGenerationRounds,
+        loadAutoTitleConfig,
     }
 })

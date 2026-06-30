@@ -51,7 +51,18 @@ public enum GlobalConfigKey {
     /**
      * 工具调用响应最大长度（纯数字字符串，如 "5000"）
      */
-    TOOL_CALL_MAX_LENGTH("工具调用响应最大长度");
+    TOOL_CALL_MAX_LENGTH("工具调用响应最大长度"),
+
+    /**
+     * 是否自动生成会话标题（首轮对话后自动调用 AI 生成）
+     * value 为 "true" 或 "false"
+     */
+    ENABLE_AUTO_TITLE("是否自动生成会话标题"),
+
+    /**
+     * 生成标题取前几轮对话（纯数字字符串，默认 "1"）
+     */
+    TITLE_GENERATION_ROUNDS("生成标题取前几轮对话");
 
     private final String description;
 
