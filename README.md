@@ -56,7 +56,7 @@ java -jar ai-app/target/ai-app-1.0.0.jar
 - **💬 多模型聊天** — 支持 DeepSeek / OpenAI 等兼容 API，对话中可随时切换模型
 - **🤖 智能体** — 自主规划任务、逐步执行，集成 MCP 工具调用
 - **🔌 MCP 工具扩展** — 通过 MCP 协议接入 WebSearch、WebFetch 等外部工具
-- ~~**🧠 多级记忆系统** — 短期对话记忆 + 中期压缩 + 长期摘要，上下文持久化
+- **🧠 多级记忆系统** — 短期对话记忆 + 中期压缩 + 长期摘要，上下文持久化
 - **🖥 纯本地运行** — 数据存储在本地 `~/.eddie/`，隐私安全
 
 ---
@@ -142,7 +142,7 @@ mvn -Pnative native:compile -pl ai-app -DskipTests
 | [`ai-common`](ai-common)     | `cc.wlizhi.eddie.common`   | 公共定义：DTO、枚举、工具类               |
 | [`ai-tools`](ai-tools)       | `cc.wlizhi.eddie.tools`    | 内置工具（WebSearch/WebFetch）注册与管理 |
 | [`ai-settings`](ai-settings) | `cc.wlizhi.eddie.settings` | 全局设置：模型提供商、MCP、显示配置           |
-| [`ai-memory`](ai-memory)     | `cc.wlizhi.eddie.memory`   | 记忆：短期、中期压缩、长期摘要               |
+| [`ai-memory`](ai-memory)     | `cc.wlizhi.eddie.memory`   | 记忆：短期、中期压缩、长期摘要、缓存            |
 | [`ai-chat`](ai-chat)         | `cc.wlizhi.eddie.chat`     | 助手聊天：对话管理、上下文构建               |
 | [`ai-agent`](ai-agent)       | `cc.wlizhi.eddie.agent`    | 智能体：任务规划、逐步执行                 |
 | [`ai-app`](ai-app)           | `cc.wlizhi.eddie.app`      | 启动入口 + GraalVM 打包             |
@@ -175,6 +175,29 @@ mvn -Pnative native:compile -pl ai-app -DskipTests
 
 - 文件路径：`~/.eddie/eddie.db`
 - 建表脚本：[`ai-app/src/main/resources/schema.sql`](ai-app/src/main/resources/schema.sql)
+
+---
+
+## 🗺 开发路线图
+
+### ✅ 已实现
+
+- 💬 **多模型聊天** — 支持 DeepSeek / OpenAI 兼容 API，对话中可随时切换模型
+- 💾 **会话管理** — 创建、删除、切换会话
+- ⚙️ **通用设置** — 系统基本配置
+- 🎨 **显示设置** — 界面主题与显示选项
+- 🤖 **模型服务管理** — 模型提供商配置与默认模型选择
+- 🔌 **MCP 服务管理** — MCP 工具服务的注册与配置
+
+### 🚧 开发中
+
+- 🧠 **多级记忆系统** — 短期对话记忆已完成，中期压缩与长期摘要开发中
+- 🤖 **智能体** — 任务规划与逐步执行（基础框架开发中）
+
+### 📋 计划中
+
+- 🌐 **多语言支持**
+- 🖼 **截图与展示优化**
 
 ---
 
