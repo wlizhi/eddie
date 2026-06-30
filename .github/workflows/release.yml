@@ -51,8 +51,8 @@ jobs:
       - name: Install native-image (Windows)
         if: runner.os == 'Windows'
         run: |
-          & "$env:JAVA_HOME\bin\gu.cmd" install native-image
-        shell: powershell
+          "%JAVA_HOME%\bin\gu.cmd" install native-image
+        shell: cmd
 
       - name: Install dependencies
         run: mvn install -Pnative -pl ai-app -am -DskipTests
