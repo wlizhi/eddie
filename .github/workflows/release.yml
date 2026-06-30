@@ -85,9 +85,50 @@ jobs:
           name: ${{ matrix.binary-name }}
           path: ai-app/target/${{ matrix.binary-name }}
 
+  jar-build:
+    name: Build JAR
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (GraalVM)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'graalvm'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy frontend static files
+        run: |
+          rm -rf ai-app/src/main/resources/static/*
+          cp -r frontend/dist/* ai-app/src/main/resources/static/
+
+      - name: Package JAR
+        run: mvn clean package -DskipTests -Dmaven.javadoc.skip=true
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: eddie-jar
+          path: ai-app/target/ai-app-*.jar
+
   create-release:
     name: Create Release
-    needs: [native-build]
+    needs: [native-build, jar-build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -100,8 +141,9 @@ jobs:
         with:
           path: release-artifacts
 
-      - name: List artifacts
-        run: ls -laR release-artifacts/
+      - name: Rename JAR for release
+        run: |
+          cp release-artifacts/eddie-jar/ai-app-*.jar release-artifacts/eddie-${{ inputs.version }}.jar
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -115,3 +157,4 @@ jobs:
             release-artifacts/eddie-linux-amd64/eddie-linux-amd64
             release-artifacts/eddie-darwin-amd64/eddie-darwin-amd64
             release-artifacts/eddie-windows-amd64/eddie-windows-amd64.exe
+            release-artifacts/eddie-${{ inputs.version }}.jar
