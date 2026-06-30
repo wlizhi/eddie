@@ -58,6 +58,9 @@ jobs:
           & "C:\Program Files\GraalVM\bin\gu.cmd" install native-image
         shell: powershell
 
+      - name: Install dependencies
+        run: mvn install -Pnative -pl ai-app -am -DskipTests
+
       - name: Native compile (Linux / macOS)
         if: runner.os != 'Windows'
         run: |
