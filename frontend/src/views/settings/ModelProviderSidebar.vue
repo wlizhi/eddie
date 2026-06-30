@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-22
+-->
+
 <template>
   <aside class="provider-sidebar">
     <div class="sidebar-list" @dragover.prevent @drop="onDrop">

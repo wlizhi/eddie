@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * 模型参数定义（静态配置）
  *
  * 来源：AssistantDialog.vue modelParamDefs

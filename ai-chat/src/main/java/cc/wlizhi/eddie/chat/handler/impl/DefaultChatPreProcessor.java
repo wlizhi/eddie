@@ -6,6 +6,12 @@
  * 2. 根据 conversationId 查询会话 → 获取助手信息
  * 3. 填充基础上下文字段
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.context.AssistantContext;

@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-21
+-->
+
+<!--
   AssistantDialog.vue — 助手设置编辑弹窗
 
   功能：

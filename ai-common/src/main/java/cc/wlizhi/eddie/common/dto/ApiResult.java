@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-20
+ */
+
 package cc.wlizhi.eddie.common.dto;
 
 import cc.wlizhi.eddie.common.enums.ApiResultCode;

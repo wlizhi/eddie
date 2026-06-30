@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-20
+-->
+
 <script setup lang="ts">
 // RoleEditView — 角色编辑页面
 // TODO: 编辑角色名称、头像、System Prompt、关联模型

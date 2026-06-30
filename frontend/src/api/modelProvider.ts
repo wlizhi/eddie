@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-22
+ */
+
 import type {ApiResult} from '@/types/chat'
 import type {
     ModelItem,

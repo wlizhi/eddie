@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-22
+-->
+
 <script setup lang="ts">
 import {computed, nextTick, ref} from 'vue'
 import {Loader2, MessageSquare, Pencil, Pin, Plus, Search, Sparkles, Trash2} from '@lucide/vue'

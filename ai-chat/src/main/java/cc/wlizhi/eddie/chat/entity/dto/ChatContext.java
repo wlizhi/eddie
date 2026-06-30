@@ -7,6 +7,12 @@
  * 所有扩展点（PreProcessor、ThinkingHandler、MetadataHandler 等）都通过此对象
  * 交换数据，避免方法参数膨胀和 ThreadLocal 的线程安全问题。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.entity.dto;
 
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;

@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-20
+ */
+
 import type {ApiResult, ChatModelSelector, ChatRequest, ToolExecutionData} from '@/types/chat'
 
 const BASE_URL = '/api'

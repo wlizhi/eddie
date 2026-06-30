@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-20
+ */
+
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'

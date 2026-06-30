@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-24
+ */
+
+/**
  * 主题注册表
  * 利用 Vite glob import 自动扫描 themes/ 下所有主题文件（排除自身）
  * 新增主题只需在 themes/ 目录下新建 .ts 文件，自动注册到设置面板

@@ -5,6 +5,12 @@
  * 作为单一数据源同时供 SSE 事件推送和消息持久化使用，
  * 保证两路数据一致。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-26
+ */
+
 package cc.wlizhi.eddie.chat.entity.dto;
 
 import lombok.*;

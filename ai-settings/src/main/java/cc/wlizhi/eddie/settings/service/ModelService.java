@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-22
+ */
+
 package cc.wlizhi.eddie.settings.service;
 
 import cc.wlizhi.eddie.settings.entity.request.ModelBatchAddRequest;

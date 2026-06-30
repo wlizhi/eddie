@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-24
+ */
+
+/**
  * 默认主题
  * 配色值精确对应 theme.css 中的 :root（亮色）和 [data-theme="dark"]（深色）
  */

@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-24
+ */
+
+/**
  * Naive UI 主题映射桥接
  *
  * 将三层体系（外观→主题→强调色）的 CSS 变量值自动映射到 Naive UI 组件 token，

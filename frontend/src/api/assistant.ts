@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * 助手 CRUD API
  *
  * 对应后端 AssistantController：

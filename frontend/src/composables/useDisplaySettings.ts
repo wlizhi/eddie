@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-24
+ */
+
 import {reactive, watch} from 'vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {findTheme, getThemes, type ThemeDefinition} from '@/assets/themes/index'

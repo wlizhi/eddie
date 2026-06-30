@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-25
+ */
+
 package cc.wlizhi.eddie.tools.service;
 
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;

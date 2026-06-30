@@ -5,6 +5,12 @@
  * <p>
  * 此组件专注执行，不涉及 SSE 事件转换，后者由 ChatSseTransformer 处理。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;

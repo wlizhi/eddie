@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-28
+ */
+
+/**
  * useMobile — 移动端断点检测 & visualViewport 键盘高度
  *
  * 用法：

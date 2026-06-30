@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
+<!--
   PromptVariablePanel.vue — 系统提示词模板变量选择面板
 
   功能：

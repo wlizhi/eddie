@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-24
+-->
+
 <template>
   <Teleport to="body">
     <Transition name="toast-fade">

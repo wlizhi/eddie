@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-20
+-->
+
 <script setup lang="ts">
 // AgentView — 智能体任务执行页面
 // TODO: 智能体任务创建、步骤执行、结果展示

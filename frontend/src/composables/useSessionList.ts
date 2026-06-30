@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * useSessionList — 会话列表加载、搜索、分页
  *
  * 来源：ChatSidebar.vue 会话管理逻辑

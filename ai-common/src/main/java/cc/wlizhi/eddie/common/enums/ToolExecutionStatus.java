@@ -4,6 +4,12 @@
  * 替代硬编码的 "start" / "complete" 字符串。
  * 序列化时使用 name() 小写形式，兼容前端已有逻辑。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-26
+ */
+
 package cc.wlizhi.eddie.common.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;

@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-25
+ */
+
 package cc.wlizhi.eddie.chat.entity.response;
 
 import lombok.Getter;

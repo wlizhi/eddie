@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-20
+ */
+
 import {defineConfig} from 'vite'
 import vue from '@vitejs/plugin-vue'
 import {dirname, resolve} from 'path'

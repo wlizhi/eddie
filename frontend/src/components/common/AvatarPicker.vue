@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-21
+-->
+
 <script setup lang="ts">
 import {computed, nextTick, ref, watch} from 'vue'
 import ImageCropper from './ImageCropper.vue'

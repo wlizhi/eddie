@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-21
+-->
+
+<!--
   InputArea.vue — 底部输入区域（编排器）
 
   根据 isMobile 分发到 Desktop / Mobile 视图：

@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * useRelativeTime — 相对时间格式化（30s 自动刷新）
  *
  * 来源：ChatSidebar.vue formatTime + 定时器

@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * Markdown 工具函数
  *
  * 使用 marked 将 Markdown 文本渲染为 HTML。

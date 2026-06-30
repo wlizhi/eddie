@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-26
+-->
+
 <template>
   <div class="mcp-empty">
     <Compass :size="40" :stroke-width="1" class="mcp-empty-icon"/>

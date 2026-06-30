@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-23
+ */
+
 package cc.wlizhi.eddie.settings.remote;
 
 import cc.wlizhi.eddie.common.cache.InitScheduler;

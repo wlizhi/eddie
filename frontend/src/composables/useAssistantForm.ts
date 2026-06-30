@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * useAssistantForm — 助手表单状态管理与业务逻辑
  *
  * 来源：AssistantDialog.vue script 部分

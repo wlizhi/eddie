@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
+<!--
   SettingsViewMobile.vue — 移动端设置页面
 
   设计要点：

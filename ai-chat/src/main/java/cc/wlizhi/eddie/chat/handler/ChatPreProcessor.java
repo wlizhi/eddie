@@ -14,6 +14,12 @@
  * 新增预处理器时只需实现此接口，注册为 Spring Bean 即可。
  * 多个 ChatPreProcessor 会按顺序依次执行。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.handler;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;

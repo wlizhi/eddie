@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
+<!--
   InputAreaMobile.vue — 移动端底部输入区域
 
   设计要点：

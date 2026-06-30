@@ -6,6 +6,12 @@
  * <p>
  * 包装器不改变原始 ToolCallback 的调用语义，工具仍只会被执行一次。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-26
+ */
+
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;

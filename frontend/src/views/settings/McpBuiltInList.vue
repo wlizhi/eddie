@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-26
+-->
+
 <template>
   <div class="mcp-card-list">
     <div v-if="loading" class="mcp-loading">加载中...</div>

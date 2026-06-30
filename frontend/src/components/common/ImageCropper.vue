@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-21
+-->
+
 <script setup lang="ts">
 import {onBeforeUnmount, ref, watch} from 'vue'
 

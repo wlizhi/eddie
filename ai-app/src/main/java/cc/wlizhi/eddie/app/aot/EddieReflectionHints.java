@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-29
+ */
+
 package cc.wlizhi.eddie.app.aot;
 
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;

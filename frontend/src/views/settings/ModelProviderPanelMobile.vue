@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
+<!--
   ModelProviderPanelMobile.vue — 移动端模型服务管理
 
   设计要点：

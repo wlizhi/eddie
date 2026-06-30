@@ -1,11 +1,16 @@
 /**
+ * @author Eddie
+ * @date 2026-06-24
+ */
+
+/**
  * 暮光主题（Twilight）
  * 灰紫/暮色系，背景带有暮光渐晕形状
  */
 import type {ThemeDefinition} from './index'
 
 const theme: ThemeDefinition = {
-    id: 'rose',
+    id: 'dusk',
     name: '暮光',
     color: '#f7f5fb',
     darkColor: '#2a2040',

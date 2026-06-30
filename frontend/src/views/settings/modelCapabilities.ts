@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-22
+ */
+
 import {CAPABILITY_LABELS} from '@/types/modelProvider'
 
 /** 后端返回的能力名是大写(VISION)，转小写统一处理 */

@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-22
+ */
+
 package cc.wlizhi.eddie.common.util;
 
 /**

@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-22
+-->
+
 <template>
   <div class="panel">
     <h3 class="panel-title">网络搜索</h3>

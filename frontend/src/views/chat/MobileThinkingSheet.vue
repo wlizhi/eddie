@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
+<!--
   MobileThinkingSheet.vue — 移动端思考模式选择 BottomSheet
 -->
 <script setup lang="ts">

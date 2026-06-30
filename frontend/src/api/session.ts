@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * 会话管理 API
  *
  * 对应后端 SessionController：

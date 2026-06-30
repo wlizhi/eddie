@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-22
+ */
+
+/**
  * 模型服务商 — 对应后端 ModelProviderVO
  */
 export interface ModelProvider {

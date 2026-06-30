@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-21
+-->
+
+<!--
   InputAreaDesktop.vue — 桌面端底部输入区域
 
   功能：

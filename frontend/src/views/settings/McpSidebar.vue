@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-26
+-->
+
 <template>
   <aside class="mcp-sidebar">
     <button

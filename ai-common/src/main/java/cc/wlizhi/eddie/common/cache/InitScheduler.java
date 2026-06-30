@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-29
+ */
+
 package cc.wlizhi.eddie.common.cache;
 
 import jakarta.annotation.Resource;

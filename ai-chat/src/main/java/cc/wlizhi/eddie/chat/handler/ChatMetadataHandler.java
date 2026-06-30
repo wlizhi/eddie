@@ -12,6 +12,12 @@
  * <p>
  * 新增服务商时只需实现此接口，注册为 Spring Bean 即可。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.handler;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;

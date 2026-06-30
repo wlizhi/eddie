@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-20
+-->
+
 <script setup lang="ts">
 import AssistantList from './AssistantList.vue'
 import SessionList from './SessionList.vue'

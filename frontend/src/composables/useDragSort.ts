@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * useDragSort — 通用拖拽排序逻辑
  *
  * 来源：ChatSidebar.vue 助手列表拖拽排序

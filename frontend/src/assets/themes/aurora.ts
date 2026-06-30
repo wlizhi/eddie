@@ -1,11 +1,16 @@
 /**
+ * @author Eddie
+ * @date 2026-06-24
+ */
+
+/**
  * 极光主题（Aurora）
  * 绿紫渐变系，背景带有流动的极光光带形状
  */
 import type {ThemeDefinition} from './index'
 
 const theme: ThemeDefinition = {
-    id: 'lavender',
+    id: 'aurora',
     name: '极光',
     color: '#f0faf3',
     darkColor: '#1a3a2a',

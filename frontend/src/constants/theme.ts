@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-21
+ */
+
+/**
  * 共享主题配置
  *
  * 来源：AssistantDialog.vue tipTheme

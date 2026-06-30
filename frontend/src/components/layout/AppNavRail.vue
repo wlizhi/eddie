@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {Bot, MessageSquare, Moon, Paintbrush, Settings, Sun} from '@lucide/vue'

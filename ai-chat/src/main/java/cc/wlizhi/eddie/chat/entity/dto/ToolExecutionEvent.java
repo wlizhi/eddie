@@ -4,6 +4,12 @@
  * 用于在 SSE 流中向前端推送工具执行状态，包含开始和完成两个阶段。
  * 所有数据均来自本地，不消耗模型 token。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-26
+ */
+
 package cc.wlizhi.eddie.chat.entity.dto;
 
 import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;

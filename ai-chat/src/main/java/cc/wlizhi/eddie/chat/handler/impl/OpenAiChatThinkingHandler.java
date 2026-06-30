@@ -9,6 +9,12 @@
  * 注意：DeepSeek 使用独立子类 DeepSeekAssistantMessage 的 reasoningContent 字段，
  * 由 DefaultChatThinkingHandler 处理，不会走到此兜底。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-25
+ */
+
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;

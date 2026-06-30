@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-23
+ */
+
 package cc.wlizhi.eddie.common.util;
 
 import java.math.BigDecimal;

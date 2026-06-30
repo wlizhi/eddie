@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-26
+ */
+
+/**
  * 来源类型：BUILT_IN（内置工具）/ USER（用户自定义）/ PROVIDER（第三方服务商）
  */
 export type McpSourceType = 'BUILT_IN' | 'USER' | 'PROVIDER'

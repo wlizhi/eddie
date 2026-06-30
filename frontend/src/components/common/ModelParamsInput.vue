@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-27
+-->
+
 <template>
   <div class="mps-params-grid">
     <div class="mps-param-item" v-for="def in paramDefs" :key="def.key">

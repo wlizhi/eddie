@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-24
+ */
+
+/**
  * useToast — 全局顶部居中提示
  *
  * 提供 showToast(msg, type?, duration?) 方法。

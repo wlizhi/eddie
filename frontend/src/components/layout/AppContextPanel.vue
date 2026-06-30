@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
 <script setup lang="ts">
 import {ChevronLeft, ChevronRight} from '@lucide/vue'
 import {useIconSize} from '@/composables/useIconSize'

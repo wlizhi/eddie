@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-30
+ */
+
 package cc.wlizhi.eddie.app.init;
 
 import lombok.extern.slf4j.Slf4j;

@@ -4,6 +4,12 @@
  * 处理 DeepSeek 模型的 reasoning_content 提取。
  * 从 DeepseekChatPolicy 迁移至此，使 ChatPolicy 职责单一。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;

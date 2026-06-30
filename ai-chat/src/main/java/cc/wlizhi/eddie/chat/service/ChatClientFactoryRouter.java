@@ -8,6 +8,12 @@
  * - 遍历 List&lt;ChatClientFactory&gt; 按 support() 匹配
  * - 未匹配到任何工厂时返回默认工厂（defaultFactory）
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-22
+ */
+
 package cc.wlizhi.eddie.chat.service;
 
 import jakarta.annotation.Resource;

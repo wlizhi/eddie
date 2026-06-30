@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-23
+ */
+
 import type {ApiResult} from '@/types/chat'
 
 const BASE = '/api/settings'

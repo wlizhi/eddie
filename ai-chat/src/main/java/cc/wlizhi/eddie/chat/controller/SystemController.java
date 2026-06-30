@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-28
+ */
+
 package cc.wlizhi.eddie.chat.controller;
 
 import cc.wlizhi.eddie.common.dto.ApiResult;

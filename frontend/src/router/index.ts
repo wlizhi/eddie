@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-20
+ */
+
 import {createRouter, createWebHistory} from 'vue-router'
 
 const router = createRouter({

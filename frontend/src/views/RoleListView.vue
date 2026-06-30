@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-20
+-->
+
 <script setup lang="ts">
 // RoleListView — 角色列表页面
 // TODO: 展示助手/智能体角色列表，支持增删改

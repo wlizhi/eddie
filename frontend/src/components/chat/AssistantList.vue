@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-22
+-->
+
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {ChevronDown, GripVertical, Plus, Settings} from '@lucide/vue'

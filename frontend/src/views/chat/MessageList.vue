@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-21
+-->
+
+<!--
   MessageList.vue — 消息列表
 
   功能：

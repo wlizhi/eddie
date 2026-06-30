@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-20
+ */
+
 import {createApp} from 'vue'
 import {createPinia} from 'pinia'
 import router from './router'

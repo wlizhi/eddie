@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * @date 2026-06-22
+ */
+
 export const EMOJI_GROUPS: { label: string; emojis: string[] }[] = [
     {
         label: '表情',

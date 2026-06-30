@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.service.impl;
 
 import cc.wlizhi.eddie.chat.context.AssistantContext;

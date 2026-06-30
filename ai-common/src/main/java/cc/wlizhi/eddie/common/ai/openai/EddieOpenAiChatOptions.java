@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-25
+ */
+
 package cc.wlizhi.eddie.common.ai.openai;
 
 import com.openai.azure.AzureOpenAIServiceVersion;

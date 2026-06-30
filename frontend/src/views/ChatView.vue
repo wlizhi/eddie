@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-20
+-->
+
+<!--
   ChatView.vue — 聊天视图（编排器）
 
   职责：

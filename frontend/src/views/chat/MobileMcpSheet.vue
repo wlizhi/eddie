@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
+<!--
   MobileMcpSheet.vue — 移动端 MCP 工具模式 BottomSheet
 -->
 <script setup lang="ts">

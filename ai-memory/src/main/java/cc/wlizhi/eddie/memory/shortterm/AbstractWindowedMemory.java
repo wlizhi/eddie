@@ -1,3 +1,8 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-24
+ */
+
 package cc.wlizhi.eddie.memory.shortterm;
 
 import org.springframework.ai.chat.messages.Message;

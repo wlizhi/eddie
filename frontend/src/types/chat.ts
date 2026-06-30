@@ -1,4 +1,9 @@
 /**
+ * @author Eddie
+ * @date 2026-06-20
+ */
+
+/**
  * 聊天模型选择器 — 单个模型项
  * 对应后端 ChatModelItemVO
  */

@@ -5,6 +5,12 @@
  * 构建 MetadataInfo 实体并存入 ChatContext，作为单一数据源
  * 同时供 SSE 事件推送和消息持久化使用。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;

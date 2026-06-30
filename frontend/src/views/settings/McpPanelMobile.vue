@@ -1,4 +1,9 @@
 <!--
+ * @author Eddie
+ * @date 2026-06-28
+-->
+
+<!--
   McpPanelMobile.vue — 移动端 MCP 服务管理（精简版）
 
   功能：

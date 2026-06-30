@@ -11,6 +11,12 @@
  * <p>
  * 所有结构化数据均通过实体类序列化，统一数据源，避免 Map 导致的数据分裂。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;

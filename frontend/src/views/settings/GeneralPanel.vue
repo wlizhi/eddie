@@ -1,3 +1,8 @@
+<!--
+ * @author Eddie
+ * @date 2026-06-22
+-->
+
 <template>
   <div class="panel">
     <!-- ===== 搜索设置 ===== -->

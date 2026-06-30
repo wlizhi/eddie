@@ -7,6 +7,12 @@
  * <p>
  * 匹配所有 providerCode，作为 fallback 兜底。
  */
+
+/**
+ * @author Eddie
+ * {@code @date} 2026-06-21
+ */
+
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
