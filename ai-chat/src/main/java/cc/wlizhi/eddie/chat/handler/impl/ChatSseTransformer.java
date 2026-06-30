@@ -20,7 +20,10 @@ import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
 import cc.wlizhi.eddie.chat.handler.ChatThinkingHandler;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
+import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
+import cc.wlizhi.eddie.common.util.ConfigUtil;
+import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,7 +57,11 @@ public class ChatSseTransformer {
     @Resource
     private ObjectMapper objectMapper;
 
-    private static final int MAX_TOOL_CALL_RES_LENGTH = 5000;
+    @Resource
+    private GlobalConfigContext globalConfigContext;
+
+    // 绝对上限（硬编码，不可超过）
+    private static final int MAX_TOOL_CALL_RES_LENGTH = 8000;
 
 
     /**
@@ -125,8 +132,10 @@ public class ChatSseTransformer {
                 }
             }
             // 工具响应超长时截断（避免数据库存储过大）
-            if (event.getResult() != null && event.getResult().length() > MAX_TOOL_CALL_RES_LENGTH) {
-                event.setResult(event.getResult().substring(0, MAX_TOOL_CALL_RES_LENGTH) + "...（已截断）");
+            String configValue = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
+            int maxLength = ConfigUtil.resolveIntConfig(5000, configValue, 100, MAX_TOOL_CALL_RES_LENGTH);
+            if (event.getResult() != null && event.getResult().length() > maxLength) {
+                event.setResult(event.getResult().substring(0, maxLength) + "...（已截断）");
             }
             ctx.getToolCalls().add(event);
         }

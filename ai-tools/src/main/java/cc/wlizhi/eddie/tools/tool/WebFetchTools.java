@@ -2,7 +2,10 @@ package cc.wlizhi.eddie.tools.tool;
 
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
+import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
+import cc.wlizhi.eddie.common.util.ConfigUtil;
+import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.jsoup.Jsoup;
@@ -51,6 +54,9 @@ public class WebFetchTools implements BuiltInToolProvider {
     @Resource
     private ObjectMapper objectMapper;
 
+    @Resource
+    private GlobalConfigContext globalConfigContext;
+
     public WebFetchTools() {
         this.httpClient = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -67,7 +73,7 @@ public class WebFetchTools implements BuiltInToolProvider {
 
         if (urls == null || urls.isEmpty()) return ApiResult.error(ApiResultCode.BAD_REQUEST, "未提供 URL");
 
-        int maxChars = maxCharacters != null ? Math.min(maxCharacters, MAX_CHARS) : DEFAULT_MAX_CHARS;
+        int maxChars = resolveMaxResults(maxCharacters);
         String actualMode = mode != null ? mode : "article";
         boolean isFull = "full".equals(actualMode);
 
@@ -337,5 +343,19 @@ public class WebFetchTools implements BuiltInToolProvider {
                 }
             }
         }
+    }
+
+    // ==================== 配置读取 ====================
+
+    private int resolveMaxResults(Integer maxResults) {
+        try {
+            int minCount = 1000;
+            String val = globalConfigContext.getConfig(GlobalConfigKey.WEB_FETCH_MAX_CHARS);
+            int maxCount = val == null ? MAX_CHARS : Integer.parseInt(val.trim());
+            ConfigUtil.resolveIntConfig(DEFAULT_MAX_CHARS, maxResults == null ? null : maxResults.toString(), minCount, maxCount);
+        } catch (Exception e) {
+            log.debug("[fetch_markdown] 未设置 WEB_FETCH_MAX_CHARS 配置", e);
+        }
+        return DEFAULT_MAX_CHARS;
     }
 }

@@ -210,6 +210,23 @@
         </div>
       </div>
 
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">工具响应最大渲染长度</span>
+          <span class="setting-hint">工具调用响应的最大渲染字符数限制（100~8000）</span>
+        </div>
+        <n-input-number
+            v-model:value="toolCallMaxLength"
+            :min="100"
+            :max="8000"
+            :step="100"
+            :show-button="false"
+            class="number-input"
+            placeholder="5000"
+        />
+      </div>
+
       <div class="group-label" style="margin-top: 8px;">消息元数据</div>
 
       <div class="setting-row">
@@ -266,7 +283,7 @@ import {
   MIN_RECOMMENDED,
   saveDisplaySettings,
 } from '@/composables/useDisplaySettings'
-import {updateUserAvatar} from '@/api/settings'
+import {fetchConfigs, updateConfigs, updateUserAvatar} from '@/api/settings'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
 import AvatarPicker from '@/components/common/AvatarPicker.vue'
 
@@ -286,6 +303,9 @@ const fontSizeInput = ref<number>(getEffectiveFontSize())
 // ===== 个人信息 - 头像 =====
 const showAvatarPicker = ref(false)
 const pickerInitialAvatar = ref<string | null>(null)
+
+// ===== 工具响应最大渲染长度 =====
+const toolCallMaxLength = ref(5000)
 
 function onAvatarPicked(value: string | null, file: File | null) {
   showAvatarPicker.value = false
@@ -367,6 +387,16 @@ onMounted(async () => {
   await loadDisplaySettings()
   // 加载完成后同步输入框显示值
   fontSizeInput.value = getEffectiveFontSize()
+
+  // 加载工具响应最大渲染长度配置
+  try {
+    const configs = await fetchConfigs()
+    if (configs && configs.TOOL_CALL_MAX_LENGTH) {
+      toolCallMaxLength.value = parseInt(configs.TOOL_CALL_MAX_LENGTH, 10)
+    }
+  } catch {
+    // 加载失败使用默认值
+  }
 })
 
 /** 监听设置变化，即时生效并自动保存 */
@@ -381,6 +411,21 @@ watch(
       }
     },
     {deep: true},
+)
+
+/** 监听工具响应最大渲染长度变化，自动保存 */
+watch(
+    toolCallMaxLength,
+    async (newValue) => {
+      if (newValue === undefined || newValue === null) return
+      try {
+        await updateConfigs({
+          TOOL_CALL_MAX_LENGTH: String(newValue)
+        })
+      } catch {
+        // 保存失败静默处理
+      }
+    }
 )
 </script>
 

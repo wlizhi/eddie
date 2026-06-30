@@ -106,7 +106,8 @@ INSERT INTO global_config (config_key, config_val, description)
 VALUES ('DEFAULT_MODEL', '{}', '默认对话模型'),
        ('FAST_MODEL', '{}', '快速模型'),
        ('TRANSLATE_MODEL', '{}', '翻译模型'),
-       ('SEARCH_RESULT_COUNT', '8', '搜索返回结果数量')
+       ('SEARCH_RESULT_COUNT', '8', '搜索返回结果数量'),
+       ('TOOL_CALL_MAX_LENGTH', '5000', '工具调用响应最大长度')
 ON CONFLICT(config_key) DO NOTHING;
 
 -- 工具定义表：注册系统中可用的工具（内置工具或 MCP 工具）

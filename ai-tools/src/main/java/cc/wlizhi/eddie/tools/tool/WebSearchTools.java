@@ -5,6 +5,7 @@ import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
+import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -319,16 +320,14 @@ public class WebSearchTools implements BuiltInToolProvider {
     // ==================== 配置读取 ====================
 
     private int resolveMaxResults(Integer param) {
-        if (param != null) return Math.min(Math.max(param, 1), 20);
         try {
-            String val = globalConfigContext.getConfig(GlobalConfigKey.SEARCH_RESULT_COUNT);
-            if (val != null && !val.isBlank()) {
-                int n = Integer.parseInt(val.strip());
-                return Math.min(Math.max(n, 1), 20);
-            }
-        } catch (Exception e) {
-            log.debug("[搜索] 读取 SEARCH_RESULT_COUNT 配置失败", e);
+            // 绝对边界值
+            int minCount = 1;
+            String configValue = globalConfigContext.getConfig(GlobalConfigKey.SEARCH_RESULT_COUNT);
+            int maxCount = configValue == null ? 20 : Integer.parseInt(configValue.trim());
+            return ConfigUtil.resolveIntConfig(DEFAULT_MAX_RESULTS, param == null ? null : param.toString(), minCount, maxCount);
+        } catch (Exception ex) {
+            return DEFAULT_MAX_RESULTS;
         }
-        return DEFAULT_MAX_RESULTS;
     }
 }

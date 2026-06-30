@@ -41,7 +41,17 @@ public enum GlobalConfigKey {
     /**
      * 内置搜索工具返回结果数量（纯数字字符串，如 "8"）
      */
-    SEARCH_RESULT_COUNT("搜索返回结果数量");
+    SEARCH_RESULT_COUNT("搜索返回结果数量"),
+
+    /**
+     * 网页抓取最大字符数（纯数字字符串，如 "8000"）
+     */
+    WEB_FETCH_MAX_CHARS("网页抓取最大字符数"),
+
+    /**
+     * 工具调用响应最大长度（纯数字字符串，如 "5000"）
+     */
+    TOOL_CALL_MAX_LENGTH("工具调用响应最大长度");
 
     private final String description;
 
