@@ -5,7 +5,7 @@
 ## 开发环境
 
 - **JDK 25**（GraalVM，推荐使用 [SDKMAN](https://sdkman.io) 管理）
-- **Node.js** 20+
+- **Node.js** 24+
 - **Maven** 3.9+
 - **IntelliJ IDEA**（推荐，已配置项目设置）
 

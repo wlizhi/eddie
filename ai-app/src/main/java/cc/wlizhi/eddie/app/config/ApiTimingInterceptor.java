@@ -12,6 +12,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * <p>
  * 统计所有 /api/** 请求的 HTTP 全链路耗时（含序列化、网络 IO），
  * 输出到日志，并在响应头中返回 X-Response-Time-Ms。
+ * @author Eddie
+ * {@code @date} 2026-06-30
  */
 @Component
 public class ApiTimingInterceptor implements HandlerInterceptor {
