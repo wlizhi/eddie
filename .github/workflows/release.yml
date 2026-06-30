@@ -55,17 +55,24 @@ jobs:
       - name: Install dependencies
         run: mvn install -Pnative -pl ai-app -am -DskipTests
 
-      - name: Native compile (Linux / macOS)
-        if: runner.os != 'Windows'
+      - name: Native compile (Linux)
+        if: runner.os == 'Linux'
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx6g"
+            -Dnative-image.buildArgs="-J-Xmx4g"
+
+      - name: Native compile (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mvn -Pnative native:compile -pl ai-app -DskipTests \
+            -Dnative-image.buildArgs="-J-Xmx4g"
 
       - name: Native compile (Windows)
         if: runner.os == 'Windows'
+        shell: bash
         run: |
-          mvn -Pnative native:compile -pl ai-app -DskipTests ^
-            -Dnative-image.buildArgs="-J-Xmx6g"
+          mvn -Pnative native:compile -pl ai-app -DskipTests \
+            -Dnative-image.buildArgs="-J-Xmx4g"
 
       - name: Rename binary
         shell: bash
