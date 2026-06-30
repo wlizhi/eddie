@@ -40,6 +40,7 @@
     </dependencies>
 
     <build>
+        <finalName>eddie-app</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -82,6 +83,7 @@
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
                         <configuration>
+                            <imageName>eddie-app</imageName>
                             <mainClass>cc.wlizhi.eddie.app.EddieAiApplication</mainClass>
                             <buildArgs>
                                 <buildArg>-Os</buildArg>

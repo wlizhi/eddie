@@ -11,6 +11,7 @@ import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySett
 import {naiveThemeOverrides} from '@/composables/useNaiveThemeOverrides'
 import AppNavRail from '@/components/layout/AppNavRail.vue'
 import AppContextPanel from '@/components/layout/AppContextPanel.vue'
+import TitleBar from '@/components/layout/TitleBar.vue'
 import ToastNotification from '@/components/common/ToastNotification.vue'
 
 onMounted(() => {
@@ -76,6 +77,7 @@ function toggleCollapse() {
   <div class="app-backdrop"/>
   <NConfigProvider :theme="naiveTheme" :theme-overrides="naiveThemeOverrides">
     <NDialogProvider>
+      <TitleBar/>
       <AppNavRail
           :active-nav="activeNav"
           @navigate="onNavNavigate"
@@ -106,6 +108,7 @@ function toggleCollapse() {
   position: relative;
   z-index: 1;
   padding-left: 3rem;
+  padding-top: var(--title-bar-height, 0px);
 }
 
 .main-content {

@@ -78,9 +78,9 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
-            mv ai-app/target/ai-app.exe ai-app/target/${{ matrix.binary-name }}
+            mv ai-app/target/eddie-app.exe ai-app/target/${{ matrix.binary-name }}
           else
-            mv ai-app/target/ai-app ai-app/target/${{ matrix.binary-name }}
+            mv ai-app/target/eddie-app ai-app/target/${{ matrix.binary-name }}
           fi
 
       - name: Upload artifact
@@ -128,7 +128,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: eddie-jar
-          path: ai-app/target/ai-app-*.jar
+          path: ai-app/target/eddie-app.jar
 
   create-release:
     name: Create Release
@@ -147,7 +147,7 @@ jobs:
 
       - name: Rename JAR for release
         run: |
-          cp release-artifacts/eddie-jar/ai-app-*.jar release-artifacts/eddie-${{ inputs.version }}.jar
+          cp release-artifacts/eddie-jar/eddie-app.jar release-artifacts/eddie-${{ inputs.version }}.jar
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

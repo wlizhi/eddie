@@ -5,6 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
     <title>Eddie AI</title>
+    <script>
+        // Electron hiddenInset 模式：在 Vue 初始化前同步设置标题栏高度变量
+        // 确保首次渲染时 --title-bar-height 已存在，避免布局回退到 0px
+        if (window.electronAPI) {
+            document.documentElement.style.setProperty('--title-bar-height', '38px');
+        }
+    </script>
 </head>
 <body>
 <div id="app"></div>

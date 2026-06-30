@@ -1,0 +1,21 @@
+{
+  "name": "eddie-desktop",
+  "version": "1.0.0",
+  "description": "Eddie AI — Desktop Application",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "ELECTRON_STANDALONE=true electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^42.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "author": "Eddie",
+  "license": "MIT"
+}

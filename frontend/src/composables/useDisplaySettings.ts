@@ -594,6 +594,31 @@ export function applyDisplaySettings(): void {
             backdrop.style.backgroundColor = ''
         }
     }
+
+    // 同步 Electron 原生 UI 主题 + 标题栏颜色
+    syncElectronTheme()
+}
+
+/**
+ * 同步 Electron 原生 UI：
+ * 1. nativeTheme.themeSource → macOS 标题栏/滚动条等跟随前端主题
+ * 2. titleBarOverlay color/symbolColor → 标题栏背景色跟随 --bg-primary
+ */
+function syncElectronTheme(): void {
+    const api = (window as any).electronAPI
+    if (!api) return
+
+    // macOS 原生暗色/亮色模式
+    api.setThemeSource(displaySettings.themeMode)
+
+    // 标题栏 overlay 颜色（hiddenInset 模式下覆盖 traffic light 区域背景）
+    const style = getComputedStyle(document.documentElement)
+    const bg = style.getPropertyValue('--bg-primary').trim()
+    const symbol = style.getPropertyValue('--text-tertiary').trim()
+    api.updateTitleBarOverlay({
+        color: bg || '#18181b',
+        symbolColor: symbol || '#a1a1aa',
+    })
 }
 
 // 导出主题相关工具函数，方便其他组件使用

@@ -146,11 +146,11 @@ function onNavItemClick(key: string) {
 .nav-rail {
   position: fixed;
   left: 0;
-  top: 0;
+  top: var(--title-bar-height, 0px);
   width: 3rem;
   min-width: 3rem;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(100vh - var(--title-bar-height, 0px));
+  height: calc(100dvh - var(--title-bar-height, 0px));
   background: var(--bg-nav-rail);
   border-right: 1px solid var(--border-default);
   display: flex;
