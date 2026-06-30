@@ -362,6 +362,10 @@ const defaultSettings: DisplaySettings = {
 
 export const displaySettings = reactive<DisplaySettings>({...defaultSettings})
 
+/** 记录上次应用装饰时的主题标识（themeId + themeMode），
+ *  仅在主题切换时重新随机化坐标，其他操作不触发 */
+let lastThemeKey = ''
+
 let loaded = false
 /** 标记主题是否已从后端加载并应用到 DOM */
 const isReady = {value: false}
@@ -530,9 +534,16 @@ export function applyDisplaySettings(): void {
     const fontFamily = FONT_FAMILY_MAP[displaySettings.fontFamily] ?? FONT_FAMILY_MAP.system
     root.style.setProperty('--font-family', fontFamily)
 
-    // 获取当前主题定义，判断是否需要随机化装饰渐变
+    // 获取当前主题定义
     const theme = findTheme(displaySettings.themeId)
     const shouldRandomize = theme?.randomizeDecoration ?? false
+
+    // 判断主题是否真正切换（仅主题变更时重新随机化坐标）
+    const currentThemeKey = `${displaySettings.themeId}::${displaySettings.themeMode}`
+    const isThemeChanged = currentThemeKey !== lastThemeKey
+    if (isThemeChanged) {
+        lastThemeKey = currentThemeKey
+    }
 
     // 应用主题的全部 CSS 变量
     const themeVars = getCurrentThemeVariables()
@@ -540,8 +551,8 @@ export function applyDisplaySettings(): void {
         for (const [key, value] of Object.entries(themeVars)) {
             // 将多行渐变压缩为单行，确保 var(--bg-decoration) 在任何上下文中都能正确解析
             let v = key === '--bg-decoration' ? value.replace(/\s+/g, ' ').trim() : value
-            // 对开启了随机化的主题，每次应用时随机化渐变位置
-            if (key === '--bg-decoration' && shouldRandomize && v !== 'none') {
+            // 仅在主题切换时随机化渐变位置，其他操作不触发
+            if (key === '--bg-decoration' && shouldRandomize && v !== 'none' && isThemeChanged) {
                 v = randomizeGradientPositions(v)
             }
             root.style.setProperty(key, v)
@@ -579,8 +590,8 @@ export function applyDisplaySettings(): void {
         if (decoRaw && decoRaw !== 'none') {
             // 将多行渐变压缩为单行
             let deco = decoRaw.replace(/\s+/g, ' ').trim()
-            // 对开启了随机化的主题，同样随机化背景装饰层
-            if (shouldRandomize) {
+            // 仅在主题切换时随机化装饰坐标，其他操作不触发
+            if (shouldRandomize && isThemeChanged) {
                 deco = randomizeGradientPositions(deco)
             }
             // 装饰渐变存入自定义属性，供 ::before 读取（脱离底色，避免阴影影响外框）

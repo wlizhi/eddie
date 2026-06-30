@@ -161,8 +161,25 @@
 }
 
 /* 主题切换过渡动画 — 仅在主题数据加载完成后生效，避免 FOUC
-    使用 [data-theme] 属性选择器约束，防止首次加载时触发过渡 */
-html[data-theme] * {
+    使用 [data-theme] 属性选择器约束，防止首次加载时触发过渡。
+
+    ⚠ 性能说明：选择器范围已从通配符 * 缩小到实际使用主题变量的
+    关键元素，避免 resize 期间全页样式重算。如需新增元素参与主题
+    过渡，手动添加到选择器列表即可。 */
+html[data-theme] .app-layout,
+html[data-theme] .context-panel,
+html[data-theme] .nav-rail,
+html[data-theme] .title-bar,
+html[data-theme] .title-bar-controls,
+html[data-theme] .main-content,
+html[data-theme] .input-container,
+html[data-theme] .message-bubble,
+html[data-theme] .message-list,
+html[data-theme] .n-card,
+html[data-theme] .n-dialog,
+html[data-theme] .n-modal,
+html[data-theme] .n-select-menu,
+html[data-theme] .n-dropdown-menu {
     transition: background-color 0.25s ease,
     color 0.25s ease,
     border-color 0.25s ease,
@@ -230,40 +247,19 @@ body {
     display: none;
 }
 
-/* ===== 背景装饰呼吸动画 =====
-   作用于 .app-backdrop::before（装饰层），用 drop-shadow 让每个小图形
-   （星星、圆点、条纹、波纹等）各自产生阴影呼吸效果。
-   shape 本身清晰，shadow 发散/收缩。 */
-@keyframes backdrop-breathe {
-    0%, 100% {
-        opacity: 1;
-        filter: drop-shadow(0 0 2px var(--text-accent, currentColor));
-    }
-    50% {
-        opacity: 0.85;
-        filter: drop-shadow(0 0 16px var(--text-accent, currentColor));
-    }
-}
-
-/* ===== 背景微漂移动画 =====
-   装饰图形缓慢漂移，模拟自然的浮动感 */
-@keyframes backdrop-drift {
-    0%, 100% {
-        transform: translate(0, 0);
-    }
-    20% {
-        transform: translate(16px, -8px);
-    }
-    40% {
-        transform: translate(-10px, 18px);
-    }
-    60% {
-        transform: translate(14px, -12px);
-    }
-    80% {
-        transform: translate(-18px, 10px);
-    }
-}
+/*
+ * ⚠ backdrop-breathe / backdrop-drift 动画已移除：
+ *
+ * 历史原因：
+ * - backdrop-breathe 使用 filter: drop-shadow()，每帧触发 GPU 光栅化
+ * - backdrop-drift 使用 transform translate，强制重绘装饰层
+ * - 在 Electron 中窗口缩放时渲染阻塞，直接导致应用卡死
+ *
+ * 替代方案：
+ * - 背景装饰层（--bg-decoration）已从 6~22 层 gradient 压缩到 2 层
+ * - .app-backdrop 使用 contain: paint 隔离重绘，不再需要动画
+ * - resize 期间通过 .is-resizing CSS 规则暂停所有动画/过渡
+ */
 
 .n-card > .n-card-header {
     --n-padding-top: 10px;

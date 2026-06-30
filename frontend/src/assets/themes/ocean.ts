@@ -110,38 +110,8 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#b8d5e8',
             '--divider-light': '#d4e6f2',
 
-            /*
-             * 背景装饰 — 海浪波浪
-             * 厚椭圆弧线错位重叠，模拟涌浪的立体起伏
-             */
-            '--bg-decoration': `
-        radial-gradient(ellipse 90% 18% at 30% 14%,
-          rgba(14,165,233,0.22) 0%, transparent 100%),
-        radial-gradient(ellipse 80% 18% at 68% 14%,
-          rgba(56,189,248,0.15) 0%, transparent 100%),
-        radial-gradient(circle 70px at 28% 14%,
-          rgba(255,255,255,0.06) 0%, transparent 100%),
-        radial-gradient(ellipse 100% 20% at 55% 30%,
-          rgba(14,165,233,0.16) 0%, transparent 100%),
-        radial-gradient(ellipse 90% 20% at 25% 30%,
-          rgba(56,189,248,0.11) 0%, transparent 100%),
-        radial-gradient(circle 60px at 58% 30%,
-          rgba(255,255,255,0.05) 0%, transparent 100%),
-        radial-gradient(ellipse 110% 22% at 35% 46%,
-          rgba(14,165,233,0.12) 0%, transparent 100%),
-        radial-gradient(ellipse 100% 22% at 65% 46%,
-          rgba(56,189,248,0.08) 0%, transparent 100%),
-        radial-gradient(ellipse 120% 25% at 50% 62%,
-          rgba(14,165,233,0.09) 0%, transparent 100%),
-        radial-gradient(ellipse 110% 25% at 30% 62%,
-          rgba(56,189,248,0.06) 0%, transparent 100%),
-        radial-gradient(ellipse 130% 28% at 45% 78%,
-          rgba(14,165,233,0.06) 0%, transparent 100%),
-        radial-gradient(ellipse 100% 35% at 50% 100%,
-          rgba(14,165,233,0.08) 0%, transparent 100%),
-        radial-gradient(ellipse 60% 40% at 30% 0%,
-          rgba(56,189,248,0.05) 0%, transparent 100%)
-      `,
+            /* 装饰层已移除（性能原因），仅保留纯色背景 */
+            '--bg-decoration': 'none',
         },
         dark: {
             /* 背景色 — 清新海蓝 */
@@ -237,38 +207,8 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#3a6a8a',
             '--divider-light': '#2a5a7a',
 
-            /*
-             * 背景装饰 — 深海波浪（降低强度避免抢眼）
-             * 厚椭圆弧线错位重叠，模拟深海涌浪的立体起伏
-             */
-            '--bg-decoration': `
-        radial-gradient(ellipse 90% 18% at 30% 14%,
-          rgba(56,189,248,0.15) 0%, transparent 100%),
-        radial-gradient(ellipse 80% 18% at 68% 14%,
-          rgba(14,165,233,0.10) 0%, transparent 100%),
-        radial-gradient(circle 70px at 28% 14%,
-          rgba(255,255,255,0.04) 0%, transparent 100%),
-        radial-gradient(ellipse 100% 20% at 55% 30%,
-          rgba(56,189,248,0.12) 0%, transparent 100%),
-        radial-gradient(ellipse 90% 20% at 25% 30%,
-          rgba(14,165,233,0.08) 0%, transparent 100%),
-        radial-gradient(circle 60px at 58% 30%,
-          rgba(255,255,255,0.03) 0%, transparent 100%),
-        radial-gradient(ellipse 110% 22% at 35% 46%,
-          rgba(56,189,248,0.10) 0%, transparent 100%),
-        radial-gradient(ellipse 100% 22% at 65% 46%,
-          rgba(14,165,233,0.06) 0%, transparent 100%),
-        radial-gradient(ellipse 120% 25% at 50% 62%,
-          rgba(56,189,248,0.08) 0%, transparent 100%),
-        radial-gradient(ellipse 110% 25% at 30% 62%,
-          rgba(14,165,233,0.05) 0%, transparent 100%),
-        radial-gradient(ellipse 130% 28% at 45% 78%,
-          rgba(56,189,248,0.06) 0%, transparent 100%),
-        radial-gradient(ellipse 100% 35% at 50% 100%,
-          rgba(14,165,233,0.08) 0%, transparent 100%),
-        radial-gradient(ellipse 60% 40% at 30% 0%,
-          rgba(56,189,248,0.05) 0%, transparent 100%)
-      `,
+            /* 装饰层已移除（性能原因），仅保留纯色背景 */
+            '--bg-decoration': 'none',
         },
     },
 }

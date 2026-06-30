@@ -14,8 +14,23 @@ import AppContextPanel from '@/components/layout/AppContextPanel.vue'
 import TitleBar from '@/components/layout/TitleBar.vue'
 import ToastNotification from '@/components/common/ToastNotification.vue'
 
+/**
+ * 窗口缩放时暂停动画/过渡，防止渲染阻塞
+ * resize 结束后 200ms 恢复
+ */
+let resizeTimer = 0
+
 onMounted(() => {
   loadDisplaySettings()
+
+  // 窗口缩放期间暂停所有动画/过渡（配合 .is-resizing CSS 规则）
+  window.addEventListener('resize', () => {
+    document.documentElement.classList.add('is-resizing')
+    window.clearTimeout(resizeTimer)
+    resizeTimer = window.setTimeout(() => {
+      document.documentElement.classList.remove('is-resizing')
+    }, 200)
+  })
 })
 
 /** Naive UI 主题：跟随 displaySettings 响应式变化 */

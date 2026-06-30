@@ -28,26 +28,25 @@ button, input, select, textarea {
 }
 
 /* ===== 全局背景装饰层 =====
-   承载主题渐变装饰，位于所有页面内容之下。
+   承载主题纯色背景，位于所有页面内容之下。
    JS 在 applyDisplaySettings() 中设置其 background 属性。
-   backdrop-breathe 提供极微弱的透明度脉动呼吸感。 */
+
+   ⚠ 性能说明：
+   - 所有装饰渐变（--bg-decoration）已全部移除，仅保留纯色背景
+   - contain: paint 将重绘隔离到自身层，不波及页面其他元素
+   - inset: 0 确保不产生额外绘制区域 */
 .app-backdrop {
     position: fixed;
-    inset: -10%;
-    z-index: 0;
+    inset: 0;
+    z-index: -1;
     pointer-events: none;
     background: var(--bg-primary);
-    animation: backdrop-drift 25s ease-in-out infinite;
+    contain: paint;
 }
 
-/* 装饰层单独放在 ::before 上，用 drop-shadow 做呼吸，不影响外框 */
+/* 装饰层：已全部移除，保留结构以备后续扩展 */
 .app-backdrop::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--deco-instance, none);
-    animation: backdrop-breathe 8s ease-in-out infinite;
-    pointer-events: none;
+    display: none;
 }
 
 /* ===== 面板遮罩层（移动端 overlay） ===== */
@@ -80,4 +79,18 @@ button, input, select, textarea {
     .nav-rail.nav-expanded + .app-layout {
         padding-bottom: 3.75rem;
     }
+}
+
+/* ===== Resize 暂停动画 =====
+   窗口缩放时暂停所有动画和过渡，防止渲染阻塞。
+   JS 在 resize 开始时给 <html> 添加 .is-resizing 类，
+   resize 结束后 200ms 移除。
+   优先级最高（!important）确保覆盖所有组件样式。 */
+html.is-resizing *,
+html.is-resizing *::before,
+html.is-resizing *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
 }

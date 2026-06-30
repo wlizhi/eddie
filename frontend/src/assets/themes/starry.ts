@@ -112,39 +112,8 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#c8d4e0',
             '--divider-light': '#e2e6ee',
 
-            /*
-             * 背景装饰 — 晨星 + 弯月 + 晨曦
-             * CSS background 多层叠加顺序：第 1 层在最上方
-             * 切出层必须在月亮主体之上才能形成月牙
-             */
-            '--bg-decoration': `
-        radial-gradient(circle 2.5px at 12% 18%,
-          rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.55) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 28% 10%,
-          rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.45) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 3px at 42% 25%,
-          rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.50) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 58% 15%,
-          rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.40) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2.5px at 72% 28%,
-          rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.45) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 1.5px at 85% 12%,
-          rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 35% 35%,
-          rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 1.5px at 50% 32%,
-          rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.30) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 90% 30%,
-          rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.38) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 1.5px at 18% 42%,
-          rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.28) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 55px at 82% 15%,
-          rgba(255,243,205,0.35) 0%, rgba(255,243,205,0.35) 38%, transparent 42%),
-        radial-gradient(circle 130px at 82% 15%,
-          rgba(255,243,205,0.07) 0%, transparent 100%),
-        linear-gradient(180deg,
-          rgba(251,191,36,0.06) 0%, rgba(219,234,254,0.08) 40%, transparent 80%)
-      `,
+            /* 装饰层已移除（性能原因），仅保留纯色背景 */
+            '--bg-decoration': 'none',
         },
         dark: {
             /* 背景色 — 深夜海军蓝 */
@@ -240,57 +209,8 @@ const theme: ThemeDefinition = {
             '--icon-muted': '#3b4f6b',
             '--divider-light': '#2a3a50',
 
-            /*
-             * 背景装饰 — 繁星 + 弯月 + 银河光带
-             * CSS background 多层叠加顺序：第 1 层在最上方
-             */
-            '--bg-decoration': `
-        radial-gradient(circle 3px at 8% 15%,
-          rgba(255,255,255,0.70) 0%, rgba(255,255,255,0.70) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2.5px at 20% 5%,
-          rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.55) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 4px at 35% 18%,
-          rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.75) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2.5px at 50% 8%,
-          rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.50) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 3px at 62% 22%,
-          rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.60) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 72% 5%,
-          rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.45) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2.5px at 92% 18%,
-          rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.55) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 3px at 15% 35%,
-          rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.50) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 28% 42%,
-          rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.40) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 4px at 42% 30%,
-          rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.60) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2.5px at 55% 38%,
-          rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.45) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 3px at 70% 32%,
-          rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.55) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 85% 35%,
-          rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.40) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 3px at 95% 25%,
-          rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.50) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 10% 50%,
-          rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 3px at 40% 52%,
-          rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.40) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2px at 65% 48%,
-          rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 2.5px at 80% 55%,
-          rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.30) 35%, rgba(255,255,255,0.08) 60%, transparent 75%),
-        radial-gradient(circle 55px at 82% 10%,
-          rgba(255,243,205,0.40) 0%, rgba(255,243,205,0.40) 38%, transparent 42%),
-        radial-gradient(circle 90px at 80% 12%,
-          rgba(255,243,205,0.08) 0%, transparent 100%),
-        radial-gradient(ellipse 90% 14% at 50% 45%,
-          rgba(255,255,255,0.05) 0%, transparent 100%),
-        linear-gradient(135deg,
-          rgba(99,102,241,0.10) 0%, transparent 40%,
-          transparent 60%, rgba(139,92,246,0.08) 100%)
-      `,
+            /* 装饰层已移除（性能原因），仅保留纯色背景 */
+            '--bg-decoration': 'none',
         },
     },
 }
