@@ -47,7 +47,7 @@ const theme: ThemeDefinition = {
             /* 消息气泡 */
             '--msg-user-bg': '#ea580c',
             '--msg-user-text': '#ffffff',
-            '--msg-assistant-bg': '#ffffff',
+            '--msg-assistant-bg': '#f5e8dde3',
             '--msg-assistant-text': '#431407',
 
             /* 主色 / 强调色 */

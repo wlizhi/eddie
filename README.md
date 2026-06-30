@@ -14,7 +14,7 @@
 
 > 无需安装 Java 或 Node.js，开箱即用。
 
-### 📦 源码构建（需 Java 25 + Node.js）
+### 📦 源码构建（需 Java 25 + Node.js 24）
 
 ```shell
 # 1. 构建前端
@@ -37,17 +37,16 @@ java -jar ai-app/target/ai-app-1.0.0.jar
 ./build-native.sh
 ```
 
-详情参见下方 [AOT 编译](#-aot-编译graalvm-native-image) 章节。
+详情参见下方 [AOT 编译](#aot-compile) 章节。
 
 ---
 
 ## 🖼 截图
 
-<!-- TODO: 等你截图后取消下面行的注释并替换为实际图片文件 -->
-<!--
 ![聊天界面](screenshots/chat.png)
 ![设置面板](screenshots/settings.png)
-![智能体执行](screenshots/agent.png)
+
+[//]: # (![智能体执行]&#40;screenshots/agent.png&#41;)
 -->
 
 ---
@@ -57,7 +56,7 @@ java -jar ai-app/target/ai-app-1.0.0.jar
 - **💬 多模型聊天** — 支持 DeepSeek / OpenAI 等兼容 API，对话中可随时切换模型
 - **🤖 智能体** — 自主规划任务、逐步执行，集成 MCP 工具调用
 - **🔌 MCP 工具扩展** — 通过 MCP 协议接入 WebSearch、WebFetch 等外部工具
-- **🧠 多级记忆系统** — 短期对话记忆 + 中期压缩 + 长期摘要，上下文持久化
+- ~~**🧠 多级记忆系统** — 短期对话记忆 + 中期压缩 + 长期摘要，上下文持久化
 - **🖥 纯本地运行** — 数据存储在本地 `~/.eddie/`，隐私安全
 
 ---
@@ -90,9 +89,12 @@ java -jar ai-app/target/ai-app-1.0.0.jar
 
 ---
 
+<a id="aot-compile"></a>
 ## 🏗 AOT 编译（GraalVM Native Image）
 
 编译为本地二进制文件，无需 JRE，启动快、资源占用低。需要所有依赖包全部兼容 AOT 注册，否则会编译失败或运行异常。
+
+[GraalVM 下载链接](https://www.graalvm.org/downloads/#)
 
 ```shell
 # 1. 构建前端
