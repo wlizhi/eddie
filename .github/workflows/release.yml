@@ -59,13 +59,13 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx8g"
+            -Dnative-image.buildArgs="-J-Xmx6g"
 
       - name: Native compile (Windows)
         if: runner.os == 'Windows'
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests ^
-            -Dnative-image.buildArgs="-J-Xmx8g"
+            -Dnative-image.buildArgs="-J-Xmx6g"
 
       - name: Rename binary
         shell: bash
