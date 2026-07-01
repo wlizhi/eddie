@@ -23,7 +23,7 @@ jobs:
       - name: Set up JDK 25 (GraalVM)
         uses: actions/setup-java@v5
         with:
-          distribution: 'graalvm'
+          distribution: 'graalvm-community'
           java-version: '25'
           cache: 'maven'
 
@@ -51,7 +51,7 @@ jobs:
       - name: Native compile
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx4g"
+            -Dnative-image.buildArgs="-J-Xmx6g -J-XX:ActiveProcessorCount=2 --parallelism=1"
 
       - name: Copy native binary for electron-builder
         run: |
@@ -104,7 +104,7 @@ jobs:
       - name: Set up JDK 25 (GraalVM)
         uses: actions/setup-java@v5
         with:
-          distribution: 'graalvm'
+          distribution: 'graalvm-community'
           java-version: '25'
           cache: 'maven'
 
@@ -135,7 +135,7 @@ jobs:
       - name: Native compile
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests ^
-            -Dnative-image.buildArgs="-J-Xmx4g"
+            -Dnative-image.buildArgs="-J-Xmx6g -J-XX:ActiveProcessorCount=2 --parallelism=1"
         shell: cmd
 
       - name: Copy native binary for electron-builder
@@ -192,7 +192,7 @@ jobs:
       - name: Set up JDK 25 (GraalVM)
         uses: actions/setup-java@v5
         with:
-          distribution: 'graalvm'
+          distribution: 'graalvm-community'
           java-version: '25'
           cache: 'maven'
 
@@ -221,7 +221,7 @@ jobs:
       - name: Native compile (arm64)
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1"
+            -Dnative-image.buildArgs="-J-Xmx6g -J-XX:ActiveProcessorCount=2 --parallelism=1"
 
       - name: Copy arm64 binary for electron-builder
         run: |
@@ -247,7 +247,7 @@ jobs:
       - name: Native compile (x86_64 cross-compile)
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1 --target=darwin-amd64"
+            -Dnative-image.buildArgs="-J-Xmx6g -J-XX:ActiveProcessorCount=2 --parallelism=1 --target=darwin-amd64"
 
       - name: Copy x86_64 binary for electron-builder
         run: |
@@ -322,7 +322,7 @@ jobs:
       - name: Set up JDK 25 (GraalVM)
         uses: actions/setup-java@v5
         with:
-          distribution: 'graalvm'
+          distribution: 'graalvm-community'
           java-version: '25'
           cache: 'maven'
 
