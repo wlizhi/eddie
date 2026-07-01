@@ -45,7 +45,7 @@ const theme: ThemeDefinition = {
             '--border-focus': '#ea580c',
 
             /* 消息气泡 */
-            '--msg-user-bg': '#ea580c',
+            '--msg-user-bg': '#eb651f',
             '--msg-user-text': '#ffffff',
             '--msg-assistant-bg': '#fbede1e3',
             '--msg-assistant-text': '#431407',

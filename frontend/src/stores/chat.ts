@@ -7,7 +7,7 @@ import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'
 import type {ToolSourceVO} from '@/types/mcpServer'
-import type {MessageVO, ToolExecutionEventItem} from '@/types/session'
+import type {MessageVO, SessionVO, ToolExecutionEventItem} from '@/types/session'
 import {fetchModelList, streamChat} from '@/api/chat'
 import {fetchBoundMcpTools} from '@/api/assistant'
 import {createSession, fetchMessages, generateTitle} from '@/api/session'
@@ -73,6 +73,9 @@ export const useChatStore = defineStore('chat', () => {
 
     /** 会话消息数 +2 信号（模型回复完毕后递增，驱动侧边栏本地更新） */
     const sessionMessageSignal = ref(0)
+
+    /** 最近创建的会话（驱动侧边栏本地追加到列表顶部，避免全量刷新） */
+    const lastCreatedSession = ref<SessionVO | null>(null)
 
     /** AI 生成标题暂存（驱动侧边栏本地更新 title，含会话 ID 防止错贴） */
     const pendingTitle = ref<{ sessionId: number; title: string } | null>(null)
@@ -247,6 +250,7 @@ export const useChatStore = defineStore('chat', () => {
             try {
                 const session = await createSession({assistantId: assistantStore.activeId})
                 currentConversationId.value = String(session.id)
+                lastCreatedSession.value = session
             } catch (err) {
                 console.error('创建会话失败:', err)
                 return
@@ -569,6 +573,7 @@ export const useChatStore = defineStore('chat', () => {
         selectedMcpServerIds,
         boundMcpTools,
         sessionMessageSignal,
+        lastCreatedSession,
         pendingTitle,
         hasMoreMessages,
         isLoadingMore,

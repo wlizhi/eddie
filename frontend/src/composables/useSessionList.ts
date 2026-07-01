@@ -16,8 +16,7 @@ import {deleteSession, fetchSessionList, generateTitle, pinSession, renameTitle,
 import type {SessionVO} from '@/types/session'
 
 export function useSessionList(
-    activeId: ComputedRef<number | null>,
-    currentConversationId: ComputedRef<string | null>
+    activeId: ComputedRef<number | null>
 ) {
     const assistantStore = useAssistantStore()
     const chatStore = useChatStore()
@@ -96,10 +95,13 @@ export function useSessionList(
         loadSessions(true)
     }, {immediate: true})
 
-    // 会话 ID 变更时刷新列表（仅当新建会话时：oldId 为空）
-    watch(currentConversationId, (newId, oldId) => {
-        if (newId && !oldId) {
-            loadSessions(true)
+    // 新建会话时，直接追加到列表顶部，避免全量刷新
+    watch(() => chatStore.lastCreatedSession, (session) => {
+        if (session === null) return
+        const exists = sessions.value.some(s => s.id === session.id)
+        if (!exists) {
+            sessions.value.unshift(session)
+            total.value++
         }
     })
 
