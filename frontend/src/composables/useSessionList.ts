@@ -17,7 +17,6 @@ import type {SessionVO} from '@/types/session'
 
 export function useSessionList(
     activeId: ComputedRef<number | null>,
-    sessionRefreshCounter: ComputedRef<number>,
     currentConversationId: ComputedRef<string | null>
 ) {
     const assistantStore = useAssistantStore()
@@ -97,16 +96,31 @@ export function useSessionList(
         loadSessions(true)
     }, {immediate: true})
 
-    // 会话 ID 变更时刷新列表
-    watch(currentConversationId, (newId) => {
-        if (newId) {
+    // 会话 ID 变更时刷新列表（仅当新建会话时：oldId 为空）
+    watch(currentConversationId, (newId, oldId) => {
+        if (newId && !oldId) {
             loadSessions(true)
         }
     })
 
-    // 事件驱动刷新
-    watch(sessionRefreshCounter, () => {
-        loadSessions(true)
+    // 模型回复完毕 → 本地更新当前会话的消息数（+2）和更新时间
+    watch(() => chatStore.sessionMessageSignal, () => {
+        const sid = Number(chatStore.currentConversationId)
+        if (!sid) return
+        const session = sessions.value.find(s => s.id === sid)
+        if (session) {
+            session.messageCount = Math.max(session.messageCount + 2, 2)
+            session.updatedAt = new Date().toISOString()
+        }
+    })
+
+    // 生成标题后 → 本地更新对应会话的标题
+    watch(() => chatStore.pendingTitle, (data) => {
+        if (data === null) return
+        const session = sessions.value.find(s => s.id === data.sessionId)
+        if (session) {
+            session.title = data.title
+        }
     })
 
     /** 删除会话 */

@@ -17,10 +17,6 @@
     <dependencies>
         <dependency>
             <groupId>cc.wlizhi</groupId>
-            <artifactId>ai-chat</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cc.wlizhi</groupId>
             <artifactId>ai-agent</artifactId>
         </dependency>
         <dependency>

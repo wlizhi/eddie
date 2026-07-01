@@ -371,16 +371,28 @@ let loaded = false
 const isReady = {value: false}
 
 /**
- * 全局自动 watch：displaySettings 的任何变化自动同步到 DOM
- * 消除各组件手动调用 applyDisplay() 的负担
+ * 主题/外观变更 → 完整应用主题变量 + 背景 + Electron 主题同步
+ * 覆盖：themeId、themeMode
  */
-watch(
-    () => ({...displaySettings}),
-    () => {
-        applyDisplaySettings()
-    },
-    {deep: true},
-)
+watch([() => displaySettings.themeId, () => displaySettings.themeMode], () => {
+    applyTheme()
+})
+
+/**
+ * 强调色变更 → 仅更新强调色 CSS 变量
+ * 覆盖：colorScheme
+ */
+watch(() => displaySettings.colorScheme, () => {
+    applyColorScheme()
+})
+
+/**
+ * 字体变更 → 仅更新字体相关 CSS 变量
+ * 覆盖：fontSize、customFontSize、fontFamily
+ */
+watch([() => displaySettings.fontSize, () => displaySettings.customFontSize, () => displaySettings.fontFamily], () => {
+    applyFontSettings()
+})
 
 /** 加载显示设置 */
 export async function loadDisplaySettings(): Promise<void> {
@@ -505,34 +517,15 @@ function randomizeGradientPositions(cssValue: string): string {
 /** 移动端字号缩放系数（768px 以下视口生效） */
 const MOBILE_FONT_SCALE = 1.25
 
-/** 应用到 DOM */
-export function applyDisplaySettings(): void {
+/**
+ * 应用主题相关所有 CSS 变量 + 背景层 + Electron 主题
+ * 由 themeId / themeMode 变更触发
+ */
+function applyTheme(): void {
     const root = document.documentElement
 
     // 主题模式（设置 data-theme 属性，供 CSS 选择器使用）
     root.dataset.theme = displaySettings.themeMode
-
-    // 基准字号（移动端自动放大，使阅读体验与桌面端一致）
-    let basePx = getEffectiveFontSize()
-    if (window.innerWidth < 768) {
-        basePx = Math.round(basePx * MOBILE_FONT_SCALE)
-    }
-    root.style.setProperty('--base-font-size', `${basePx}px`)
-
-    // 头像大小 = 基准字体大小 × 2.5（放大差异让不同字体等级间的头像变化有感知度）
-    //   小 14px → 35px | 中 16px → 40px | 大 18px → 45px | 自定义 20px → 50px
-    const avatarSize = Math.round(basePx * 2.2)
-    root.style.setProperty('--avatar-size', `${avatarSize}px`)
-
-    // 图标尺寸 CSS 变量（基于基准字体的比例系数）
-    const iconCSSVars = getIconSizeCSSVariables(basePx)
-    for (const [key, value] of Object.entries(iconCSSVars)) {
-        root.style.setProperty(key, value)
-    }
-
-    // 字体类型
-    const fontFamily = FONT_FAMILY_MAP[displaySettings.fontFamily] ?? FONT_FAMILY_MAP.system
-    root.style.setProperty('--font-family', fontFamily)
 
     // 获取当前主题定义
     const theme = findTheme(displaySettings.themeId)
@@ -557,30 +550,6 @@ export function applyDisplaySettings(): void {
             }
             root.style.setProperty(key, v)
         }
-    }
-
-    // 配色方案（叠加覆盖主题中的 accent 相关变量）
-    const colorVal = displaySettings.colorScheme
-    let vars: ColorSchemeValue | null = null
-    if (colorVal) {
-        // 先按 hex 匹配预设色
-        const preset = findColorScheme(colorVal)
-        if (preset) {
-            vars = displaySettings.themeMode === 'dark' ? preset.dark : preset.light
-        } else if (/^#/.test(colorVal)) {
-            // hex 值但非预设 → 自定义颜色，自动生成变体
-            vars = generateAccentVariants(colorVal, displaySettings.themeMode === 'dark')
-        }
-    }
-    // 无有效值则跳过（使用主题自身的 accent 变量）
-    if (vars) {
-        root.style.setProperty('--accent-default', vars.accent)
-        root.style.setProperty('--accent-hover', vars.hover)
-        root.style.setProperty('--accent-light-bg', vars.lightBg)
-        root.style.setProperty('--accent-light-border', vars.lightBorder)
-        root.style.setProperty('--accent-ring', vars.ring)
-        root.style.setProperty('--border-focus', vars.borderFocus)
-        root.style.setProperty('--text-accent', vars.textAccent)
     }
 
     // 背景装饰层：.app-backdrop 多层背景（形状渐变叠在背景色之上）
@@ -608,6 +577,77 @@ export function applyDisplaySettings(): void {
 
     // 同步 Electron 原生 UI 主题 + 标题栏颜色
     syncElectronTheme()
+}
+
+/**
+ * 应用强调色 CSS 变量
+ * 由 colorScheme 变更触发，仅更新 accent 相关变量，不涉及主题变量或背景
+ */
+function applyColorScheme(): void {
+    const root = document.documentElement
+
+    // 配色方案（叠加覆盖主题中的 accent 相关变量）
+    const colorVal = displaySettings.colorScheme
+    let vars: ColorSchemeValue | null = null
+    if (colorVal) {
+        // 先按 hex 匹配预设色
+        const preset = findColorScheme(colorVal)
+        if (preset) {
+            vars = displaySettings.themeMode === 'dark' ? preset.dark : preset.light
+        } else if (/^#/.test(colorVal)) {
+            // hex 值但非预设 → 自定义颜色，自动生成变体
+            vars = generateAccentVariants(colorVal, displaySettings.themeMode === 'dark')
+        }
+    }
+    // 无有效值则跳过（使用主题自身的 accent 变量）
+    if (vars) {
+        root.style.setProperty('--accent-default', vars.accent)
+        root.style.setProperty('--accent-hover', vars.hover)
+        root.style.setProperty('--accent-light-bg', vars.lightBg)
+        root.style.setProperty('--accent-light-border', vars.lightBorder)
+        root.style.setProperty('--accent-ring', vars.ring)
+        root.style.setProperty('--border-focus', vars.borderFocus)
+        root.style.setProperty('--text-accent', vars.textAccent)
+    }
+}
+
+/**
+ * 应用字体相关 CSS 变量（基准字号、头像大小、图标尺寸、字体类型）
+ * 由 fontSize / customFontSize / fontFamily 变更触发
+ */
+function applyFontSettings(): void {
+    const root = document.documentElement
+
+    // 基准字号（移动端自动放大，使阅读体验与桌面端一致）
+    let basePx = getEffectiveFontSize()
+    if (window.innerWidth < 768) {
+        basePx = Math.round(basePx * MOBILE_FONT_SCALE)
+    }
+    root.style.setProperty('--base-font-size', `${basePx}px`)
+
+    // 头像大小 = 基准字体大小 × 2.5（放大差异让不同字体等级间的头像变化有感知度）
+    //   小 14px → 35px | 中 16px → 40px | 大 18px → 45px | 自定义 20px → 50px
+    const avatarSize = Math.round(basePx * 2.2)
+    root.style.setProperty('--avatar-size', `${avatarSize}px`)
+
+    // 图标尺寸 CSS 变量（基于基准字体的比例系数）
+    const iconCSSVars = getIconSizeCSSVariables(basePx)
+    for (const [key, value] of Object.entries(iconCSSVars)) {
+        root.style.setProperty(key, value)
+    }
+
+    // 字体类型
+    const fontFamily = FONT_FAMILY_MAP[displaySettings.fontFamily] ?? FONT_FAMILY_MAP.system
+    root.style.setProperty('--font-family', fontFamily)
+}
+
+/**
+ * 完整应用到 DOM（初始加载时使用，包含主题、强调色、字体全部）
+ */
+export function applyDisplaySettings(): void {
+    applyTheme()
+    applyColorScheme()
+    applyFontSettings()
 }
 
 /**

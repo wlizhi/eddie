@@ -26,7 +26,6 @@ const {
   removeSession, togglePin, renameSession, aiGenerateTitle,
 } = useSessionList(
     computed(() => assistantStore.activeId),
-    computed(() => chatStore.sessionRefreshCounter),
     computed(() => chatStore.currentConversationId),
 )
 

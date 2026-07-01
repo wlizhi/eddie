@@ -71,8 +71,11 @@ export const useChatStore = defineStore('chat', () => {
     /** AbortController，用于中断请求 */
     let abortController: AbortController | null = null
 
-    /** 会话列表刷新计数器（事件驱动侧边栏同步） */
-    const sessionRefreshCounter = ref(0)
+    /** 会话消息数 +2 信号（模型回复完毕后递增，驱动侧边栏本地更新） */
+    const sessionMessageSignal = ref(0)
+
+    /** AI 生成标题暂存（驱动侧边栏本地更新 title，含会话 ID 防止错贴） */
+    const pendingTitle = ref<{ sessionId: number; title: string } | null>(null)
 
     /** 当前思考模式：auto / low / medium / high / max / disabled */
     const thinkingMode = ref<string>('auto')
@@ -358,8 +361,8 @@ export const useChatStore = defineStore('chat', () => {
                 if (autoTitleEnabled.value && messages.value.length === targetMsgCount) {
                     generateTitleAsync()
                 }
-                // 刷新会话列表（消息数、更新时间等统计数据）
-                sessionRefreshCounter.value++
+                // 通知侧边栏本地更新当前会话的消息数（+2）和更新时间
+                sessionMessageSignal.value++
             },
             onError: (error) => {
                 console.error('流式请求出错:', error)
@@ -399,11 +402,11 @@ export const useChatStore = defineStore('chat', () => {
         const sid = Number(currentConversationId.value)
         if (!sid) return
         try {
-            await generateTitle(sid, {
+            const title = await generateTitle(sid, {
                 providerId: currentProviderId.value,
                 modelCode: currentModelId.value,
             })
-            sessionRefreshCounter.value++
+            pendingTitle.value = {sessionId: sid, title}
         } catch (err) {
             console.error('生成标题失败:', err)
         }
@@ -565,7 +568,8 @@ export const useChatStore = defineStore('chat', () => {
         mcpToolMode,
         selectedMcpServerIds,
         boundMcpTools,
-        sessionRefreshCounter,
+        sessionMessageSignal,
+        pendingTitle,
         hasMoreMessages,
         isLoadingMore,
         flatModelOptions,

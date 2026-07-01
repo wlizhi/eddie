@@ -14,7 +14,7 @@
           <span class="setting-label">头像</span>
           <span class="setting-hint">文字、Emoji 或上传图片</span>
         </div>
-        <div class="profile-avatar-wrap" @click="pickerInitialAvatar = displaySettings.avatar; showAvatarPicker = true"
+        <div class="profile-avatar-wrap" @click="pickerInitialAvatar = displaySettings.avatar ?? null; showAvatarPicker = true"
              title="点击修改头像">
           <AssistantAvatar
               :name="displaySettings.nickname || '我'"
@@ -295,7 +295,9 @@ import AvatarPicker from '@/components/common/AvatarPicker.vue'
 
 const themeList = computed(() => getThemes())
 
-const fontOptions = FONT_OPTIONS
+import type {SelectMixedOption} from 'naive-ui/es/select/src/interface'
+
+const fontOptions = FONT_OPTIONS as SelectMixedOption[]
 
 const fontSizeLevels: { value: FontSizeLevel; label: string }[] = [
   {value: 'small', label: '小'},
@@ -349,7 +351,7 @@ function handleFontSizeClick(level: FontSizeLevel) {
 /** 手动输入字体大小（仅更新，不做校验，避免干扰输入） */
 function handleFontSizeInput() {
   const val = fontSizeInput.value
-  if (val === undefined || val === null || val === '' || isNaN(val as number)) return
+  if (val === undefined || val === null || isNaN(val as number)) return
   const num = Number(val)
   displaySettings.customFontSize = num
   // 检查是否匹配某个预设，匹配则同步高亮
@@ -363,7 +365,7 @@ function handleFontSizeInput() {
 /** 输入框失焦时做 clamp 兜底并保存 */
 function handleFontSizeBlur() {
   const val = fontSizeInput.value
-  if (val === undefined || val === null || val === '' || isNaN(val as number)) {
+  if (val === undefined || val === null || isNaN(val as number)) {
     // 输入为空或无效时，回退到当前生效值
     fontSizeInput.value = getEffectiveFontSize()
     return
@@ -384,8 +386,8 @@ function handleFontSizeBlur() {
   })
 }
 
-/** 调色盘选择处理（关闭取色器时触发，避免拖拽中频繁保存） */
-function onColorPickerChange(e: Event) {
+/** 调色盘实时输入处理 */
+function onColorPickerInput(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.value) {
     displaySettings.colorScheme = target.value
@@ -414,34 +416,52 @@ onMounted(async () => {
   }
 })
 
-/**
- * 监听非文本类设置变化，即时生效并自动保存。
- * 文本类字段（nickname、customFontSize）仅在失焦时保存，避免输入过程中频繁调接口。
- */
-watch(
-    [
-      () => displaySettings.themeMode,
-      () => displaySettings.themeId,
-      () => displaySettings.colorScheme,
-      () => displaySettings.fontFamily,
-      () => displaySettings.fontSize,
-      () => displaySettings.wideMode,
-      () => displaySettings.chatMode,
-      () => displaySettings.showMetaTime,
-      () => displaySettings.showMetaDuration,
-      () => displaySettings.showMetaTokens,
-      () => displaySettings.showMetaCost,
-      () => displaySettings.avatar,
-    ],
-    async () => {
-      applyDisplay()
-      try {
+// 主题/外观变更 → 完整应用主题
+watch([() => displaySettings.themeId, () => displaySettings.themeMode], async () => {
+    applyDisplay()
+    try {
         await saveDisplaySettings()
-      } catch {
+    } catch {
         // 保存失败静默处理
-      }
-    },
-)
+    }
+})
+
+// 强调色变更 → 仅更新强调色变量
+watch(() => displaySettings.colorScheme, async () => {
+    applyDisplay()
+    try {
+        await saveDisplaySettings()
+    } catch {
+        // 保存失败静默处理
+    }
+})
+
+// 字体、文本类设置 → 仅更新字体变量
+watch([() => displaySettings.fontFamily, () => displaySettings.fontSize], async () => {
+    applyDisplay()
+    try {
+        await saveDisplaySettings()
+    } catch {
+        // 保存失败静默处理
+    }
+})
+
+// 其余非主题设置（wideMode、chatMode、元数据开关、头像）→ 仅保存，不触发任何 CSS 变量重设
+watch([
+    () => displaySettings.wideMode,
+    () => displaySettings.chatMode,
+    () => displaySettings.showMetaTime,
+    () => displaySettings.showMetaDuration,
+    () => displaySettings.showMetaTokens,
+    () => displaySettings.showMetaCost,
+    () => displaySettings.avatar,
+], async () => {
+    try {
+        await saveDisplaySettings()
+    } catch {
+        // 保存失败静默处理
+    }
+})
 
 /** 监听工具响应最大渲染长度变化，自动保存 */
 watch(
