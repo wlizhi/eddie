@@ -46,6 +46,6 @@ public class EddieProperties {
 
     @PostConstruct
     void init() {
-        initScheduler.addTask(GlobalPromptsContext.class.getSimpleName(), 0, () -> globalPromptsContext.init(prompts));
+        initScheduler.addTask(GlobalPromptsContext.class.getSimpleName(), 10, () -> globalPromptsContext.init(prompts));
     }
 }

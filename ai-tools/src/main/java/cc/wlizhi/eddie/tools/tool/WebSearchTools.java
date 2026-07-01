@@ -71,7 +71,7 @@ public class WebSearchTools implements BuiltInToolProvider {
 
     @PostConstruct
     void init() {
-        initScheduler.addTask(this.getClass().getSimpleName(), 0, this::doInit);
+        initScheduler.addTask(this.getClass().getSimpleName(), 1000000, this::doInit);
     }
 
     private void doInit() {
