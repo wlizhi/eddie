@@ -1,7 +1,11 @@
 #!/bin/bash
 #
 # Eddie — 一键桌面应用打包脚本
-# 产物输出到 project-root/dist/ 目录
+# 所有构建产物汇总输出到 project-root/dist/ 目录下：
+#   dist/eddie-app          — 原生二进制 (Native Image)
+#   dist/eddie-app.jar      — JAR 包
+#   dist/frontend/          — 前端静态资源
+#   dist/electron/          — Electron 桌面安装包 (DMG/NSIS/AppImage)
 # 支持多参数组合
 #
 # @author Eddie
@@ -91,6 +95,8 @@ build_frontend() {
     cd "$PROJECT_DIR/frontend"
     npm run build
 
+    # 复制到 dist 前先清理旧版本，确保完整替换
+    rm -rf "$DIST_DIR/frontend"
     mkdir -p "$DIST_DIR/frontend"
     cp -r "$PROJECT_DIR/frontend/dist/"* "$DIST_DIR/frontend/"
     log_info "前端 → $DIST_DIR/frontend/"
@@ -122,6 +128,8 @@ build_electron() {
     npm install
     npx electron-builder
 
+    # 复制到 dist 前先清理旧版本，确保完整替换（避免 DMG 增量覆盖导致图标/文件残留）
+    rm -rf "$DIST_DIR/electron"
     mkdir -p "$DIST_DIR/electron"
     cp -r "$PROJECT_DIR/electron/dist/"* "$DIST_DIR/electron/"
     log_info "Electron 安装包 → $DIST_DIR/electron/"
@@ -152,14 +160,9 @@ build_all() {
     cp "$PROJECT_DIR/ai-app/target/eddie-app.jar" "$DIST_DIR/"
     log_info "JAR → $DIST_DIR/"
 
-    # 4. 打包 Electron（用已有的 frontend/dist/ 和 target/eddie-app）
+    # 4. 打包 Electron（用已有的 frontend/dist/ 和 ai-app/target/eddie-app）
     log_info "--- 4/4 打包 Electron ---"
-    cd "$PROJECT_DIR/electron"
-    npm install
-    npx electron-builder
-    mkdir -p "$DIST_DIR/electron"
-    cp -r "$PROJECT_DIR/electron/dist/"* "$DIST_DIR/electron/"
-    log_info "Electron 安装包 → $DIST_DIR/electron/"
+    build_electron
 }
 
 # ============================================================
@@ -199,7 +202,7 @@ print_summary() {
     log_info "运行方式："
     log_info "  原生二进制:  ./dist/eddie-app"
     log_info "  JAR:         java -jar dist/eddie-app.jar"
-    log_info "  桌面应用:    打开 dist/electron/Eddie.dmg"
+    log_info "  桌面应用:    打开 dist/electron/ 目录下的 DMG 安装包"
     echo ""
 }
 

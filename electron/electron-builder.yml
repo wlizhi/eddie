@@ -8,14 +8,13 @@ copyright: Copyright © 2026 Eddie
 
 directories:
   output: dist
-  buildResources: build
 
 files:
   - main.js
   - preload.js
   - "!node_modules"
 
-icon: electron/icon.png
+icon: icons/icon.png
 
 extraResources:
   # Java 后端原生二进制
@@ -31,6 +30,8 @@ mac:
     - target: dmg
       arch:
         - x64
+    - target: dmg
+      arch:
         - arm64
   hardenedRuntime: true
   artifactName: "${productName}-${version}-mac-${arch}.${ext}"
@@ -51,6 +52,6 @@ linux:
     - target: AppImage
       arch:
         - x64
-  icon: build/icons
+  icon: icons
   category: Utility
   artifactName: "${productName}-${version}-linux-x64.${ext}"

@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.app.aot;
 
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
+import cc.wlizhi.eddie.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.service.impl.DeepseekChatClientFactory;
 import cc.wlizhi.eddie.chat.service.impl.OpenAiChatClientFactory;
@@ -15,6 +16,7 @@ import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.tools.service.McpClientHolder;
 import cc.wlizhi.eddie.tools.service.McpToolCallback;
 import org.jspecify.annotations.Nullable;
@@ -43,5 +45,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(McpClientHolder.class, members);
         reflection.registerType(McpToolCallback.class, members);
         reflection.registerType(EddieOpenAiChatModel.class, members);
+        reflection.registerType(OwnerToolBindingContext.McpServerWithTools.class, members);
+        reflection.registerType(ModelParams.class, members);
     }
 }
