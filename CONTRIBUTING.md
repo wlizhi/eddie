@@ -4,7 +4,7 @@
 
 ## 开发环境
 
-- **JDK 25**（GraalVM，推荐使用 [SDKMAN](https://sdkman.io) 管理）
+- **JDK 25**（GraalVM）
 - **Node.js** 24+
 - **Maven** 3.9+
 - **IntelliJ IDEA**（推荐，已配置项目设置）
@@ -50,7 +50,6 @@
 - TypeScript，使用 Naive UI 组件库
 - CSS 不允许硬编码颜色值，必须通过 CSS 变量引用
 - 间距/尺寸使用 `var(--space-*)` / `var(--size-*)` 变量
-- 单文件不超过 500 行
 
 ## Commit 规范
 
@@ -67,4 +66,5 @@
 ## 反馈与讨论
 
 - [Issues](https://github.com/wlizhi/eddie/issues) — Bug 报告 / 功能建议
-- [Discussions](https://github.com/wlizhi/eddie/discussions) — 技术讨论 / 使用问题
+
+[//]: # (- [Discussions]&#40;https://github.com/wlizhi/eddie/discussions&#41; — 技术讨论 / 使用问题)

@@ -29,9 +29,6 @@ mac:
   target:
     - target: dmg
       arch:
-        - x64
-    - target: dmg
-      arch:
         - arm64
   hardenedRuntime: true
   artifactName: "${productName}-${version}-mac-${arch}.${ext}"
