@@ -65,7 +65,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx4g"
+            -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1"
 
       - name: Native compile (Windows)
         if: runner.os == 'Windows'
