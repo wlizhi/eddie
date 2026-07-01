@@ -147,7 +147,7 @@ jobs:
       - name: Rename binary
         shell: bash
         run: |
-          mv ai-app/target/eddie-app.exe "ai-app/target/eddie-${VERSION#v}-windows-amd64.exe"
+          mv ai-app/target/eddie-app.exe "ai-app/target/eddie-${{ env.VERSION }}-windows-amd64.exe"
 
       - name: Build Windows NSIS installer
         working-directory: electron
@@ -161,23 +161,23 @@ jobs:
         run: |
           mkdir -p compressed
           # 压缩原生二进制
-          7z a -tzip "compressed/eddie-${VERSION#v}-windows-amd64.zip" \
-            "ai-app/target/eddie-${VERSION#v}-windows-amd64.exe"
+          7z a -tzip "compressed/eddie-${{ env.VERSION }}-windows-amd64.zip" \
+            "ai-app/target/eddie-${{ env.VERSION }}-windows-amd64.exe"
           # 压缩 NSIS 安装包
           7z a -tzip "compressed/Eddie-${VERSION#v}-win-x64.exe.zip" \
-            "electron/dist/Eddie-${VERSION#v}-win-x64.exe"
+            "electron/dist/Eddie-${{ env.VERSION }}-win-x64.exe"
 
       - name: Upload native binary
         uses: actions/upload-artifact@v7
         with:
           name: eddie-${{ env.VERSION }}-windows-amd64
-          path: compressed/eddie-${{ replace(env.VERSION, 'v', '') }}-windows-amd64.zip
+          path: compressed/eddie-${{ env.VERSION }}-windows-amd64.zip
 
       - name: Upload NSIS installer
         uses: actions/upload-artifact@v7
         with:
           name: Eddie-${{ env.VERSION }}-win-x64
-          path: compressed/Eddie-${{ replace(env.VERSION, 'v', '') }}-win-x64.exe.zip
+          path: compressed/Eddie-${{ env.VERSION }}-win-x64.exe.zip
 
   # ─── Job 3: macOS 原生二进制 × 2 + DMG × 2 ────────────
   native-build-macos:
