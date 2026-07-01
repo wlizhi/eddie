@@ -164,8 +164,8 @@ jobs:
           7z a -tzip "compressed/eddie-${{ env.VERSION }}-windows-amd64.zip" \
             "ai-app/target/eddie-${{ env.VERSION }}-windows-amd64.exe"
           # 压缩 NSIS 安装包
-          7z a -tzip "compressed/Eddie-${VERSION#v}-win-x64.exe.zip" \
-            "electron/dist/Eddie-${{ env.VERSION }}-win-x64.exe"
+          7z a -tzip "compressed/Eddie-${{ env.VERSION }}-win-x64.exe.zip" \
+            "electron/dist/Eddie-${env.VERSION#v}-win-x64.exe"
 
       - name: Upload native binary
         uses: actions/upload-artifact@v7
@@ -192,7 +192,7 @@ jobs:
       - name: Set up JDK 25 (GraalVM)
         uses: actions/setup-java@v5
         with:
-          distribution: 'graalvm-community'
+          distribution: 'graalvm'
           java-version: '25'
           cache: 'maven'
 
@@ -221,7 +221,7 @@ jobs:
       - name: Native compile (arm64)
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx6g -J-XX:ActiveProcessorCount=2 --parallelism=1"
+            -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1"
 
       - name: Copy arm64 binary for electron-builder
         run: |
@@ -247,7 +247,7 @@ jobs:
       - name: Native compile (x86_64 cross-compile)
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx6g -J-XX:ActiveProcessorCount=2 --parallelism=1 --target=darwin-amd64"
+            -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1 --target=darwin-amd64"
 
       - name: Copy x86_64 binary for electron-builder
         run: |
