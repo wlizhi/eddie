@@ -9,10 +9,9 @@
  -->
 
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, ref} from 'vue'
+import {ref} from 'vue'
 
 const isElectron = ref(false)
-const isMaximized = ref(false)
 
 const api = (window as any).electronAPI
 if (api) {
@@ -21,31 +20,7 @@ if (api) {
   document.documentElement.style.setProperty('--title-bar-height', '38px')
 }
 
-onMounted(() => {
-  if (!api) return
-  api.isMaximized().then((m: boolean) => {
-    isMaximized.value = m
-  })
-  api.onMaximizedChange((m: boolean) => {
-    isMaximized.value = m
-  })
-})
 
-onBeforeUnmount(() => {
-  if (api) api.removeMaximizedChangeListener()
-})
-
-function onMinimize() {
-  api?.minimize()
-}
-
-function onMaximize() {
-  api?.maximize()
-}
-
-function onClose() {
-  api?.close()
-}
 </script>
 
 <template>
@@ -55,30 +30,6 @@ function onClose() {
 
     <!-- 拖拽区域：-webkit-app-region drag → OS 原生处理双击最大化，无卡顿 -->
     <div class="title-bar-drag"/>
-
-    <!-- 窗口控制按钮（备选） -->
-    <div class="title-bar-controls">
-      <button class="ctl-btn ctl-close" @click="onClose" title="关闭">
-        <svg width="10" height="10" viewBox="0 0 10 10">
-          <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.2" fill="none"/>
-        </svg>
-      </button>
-      <button class="ctl-btn ctl-minimize" @click="onMinimize" title="最小化">
-        <svg width="10" height="10" viewBox="0 0 10 10">
-          <path d="M2 5h6" stroke="currentColor" stroke-width="1.2" fill="none"/>
-        </svg>
-      </button>
-      <button class="ctl-btn ctl-maximize" @click="onMaximize" :title="isMaximized ? '还原' : '最大化'">
-        <svg v-if="isMaximized" width="10" height="10" viewBox="0 0 10 10">
-          <rect x="2.5" y="0.5" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1" fill="none"/>
-          <path d="M2.5 3H1.5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V7.5" stroke="currentColor" stroke-width="1"
-                fill="none"/>
-        </svg>
-        <svg v-else width="10" height="10" viewBox="0 0 10 10">
-          <rect x="1" y="1" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1" fill="none"/>
-        </svg>
-      </button>
-    </div>
   </div>
 </template>
 
@@ -113,36 +64,4 @@ function onClose() {
   -webkit-app-region: drag;
 }
 
-.title-bar-controls {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding-right: 12px;
-  height: 100%;
-  -webkit-app-region: no-drag;
-}
-
-.ctl-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-tertiary);
-  transition: background 0.15s, color 0.15s;
-}
-
-.ctl-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-secondary);
-}
-
-.ctl-close:hover {
-  background: rgba(255, 59, 48, 0.15);
-  color: #ff3b30;
-}
 </style>
