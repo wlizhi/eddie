@@ -66,7 +66,7 @@ jobs:
         working-directory: electron
         run: |
           npm ci
-          npx electron-builder --linux
+          npx electron-builder --linux -c.extraMetadata.version="${{ env.VERSION }}"
 
       - name: Compress artifacts
         run: |
@@ -153,7 +153,7 @@ jobs:
         working-directory: electron
         run: |
           npm ci
-          npx electron-builder --win
+          npx electron-builder --win -c.extraMetadata.version="${{ env.VERSION }}"
         shell: bash
 
       - name: Compress artifacts
@@ -232,7 +232,7 @@ jobs:
         working-directory: electron
         run: |
           npm ci
-          npx electron-builder --mac --arm64
+          npx electron-builder --mac --arm64 -c.extraMetadata.version="${{ env.VERSION }}"
 
       - name: Rename arm64 binary
         run: |
@@ -256,7 +256,7 @@ jobs:
       - name: Build macOS x64 DMG
         working-directory: electron
         run: |
-          npx electron-builder --mac --x64
+          npx electron-builder --mac --x64 -c.extraMetadata.version="${{ env.VERSION }}"
 
       - name: Rename x86_64 binary
         run: |
