@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'
 import type {ToolSourceVO} from '@/types/mcpServer'
 import type {MessageVO, SessionVO, ToolExecutionEventItem} from '@/types/session'
-import {fetchModelList, streamChat} from '@/api/chat'
+import {fetchModelList, streamChat, stopChat} from '@/api/chat'
 import {fetchBoundMcpTools} from '@/api/assistant'
 import {createSession, fetchMessages, generateTitle} from '@/api/session'
 import {fetchConfigs} from '@/api/settings'
@@ -62,6 +62,9 @@ export const useChatStore = defineStore('chat', () => {
     /** 最近的流式 answer 内容 */
     const currentAnswer = ref('')
 
+    /** 最新被后端确认已接收的文本（供 ChatView 清空输入框） */
+    const confirmedText = ref('')
+
     /** 最近消息的元数据 */
     const currentMetadata = ref<ChatMetadata | null>(null)
 
@@ -70,6 +73,12 @@ export const useChatStore = defineStore('chat', () => {
 
     /** AbortController，用于中断请求 */
     let abortController: AbortController | null = null
+
+    /** 当前流中用户消息 ID（来自 message_created 事件，用于停止回答） */
+    let currentUserMsgId: number | null = null
+
+    /** 停止回答点击次数（第 1 次 graceful，第 2 次 forced） */
+    let stopClickCount = 0
 
     /** 会话消息数 +2 信号（模型回复完毕后递增，驱动侧边栏本地更新） */
     const sessionMessageSignal = ref(0)
@@ -257,47 +266,54 @@ export const useChatStore = defineStore('chat', () => {
             }
         }
 
-        // 添加用户消息
-        const userMsg: ChatMessage = {
-            id: generateId(),
-            role: 'user',
-            content: text.trim(),
-            timestamp: Date.now(),
-        }
-        messages.value.push(userMsg)
-
         // 重置流式状态
         isStreaming.value = true
         currentThinking.value = ''
         currentAnswer.value = ''
         currentMetadata.value = null
         currentToolExecutions.value = []
-
-        // 创建 assistant 空消息占位
-        const assistantMsg: ChatMessage = {
-            id: generateId(),
-            role: 'assistant',
-            content: '',
-            thinking: '',
-            timestamp: Date.now(),
-        }
-        messages.value.push(assistantMsg)
+        // 注意：user/assistant 消息不再提前添加到 messages，
+        // 改为在 onMessageCreated 中收到后端确认后才添加，
+        // 避免锁冲突时消息出现在聊天记录中
 
         abortController = new AbortController()
+        stopClickCount = 0
+        currentUserMsgId = null
 
         // 构建工具参数
         const toolParams = buildToolParams()
+        const rawText = text.trim()
 
         await streamChat({
             request: {
                 conversationId: currentConversationId.value,
-                message: text.trim(),
+                message: rawText,
                 providerId: currentProviderId.value,
                 modelId: currentModelId.value,
                 thinkingMode: thinkingMode.value !== 'auto' ? thinkingMode.value : undefined,
                 ...toolParams,
             },
             signal: abortController.signal,
+            onMessageCreated: (data) => {
+                currentUserMsgId = data.userMsgId
+                // 后端已确认接收并持久化，此时才将消息添加到界面并通知清空输入框
+                confirmedText.value = rawText
+                const userMsg: ChatMessage = {
+                    id: generateId(),
+                    role: 'user',
+                    content: rawText,
+                    timestamp: Date.now(),
+                }
+                messages.value.push(userMsg)
+                const assistantMsg: ChatMessage = {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: '',
+                    thinking: '',
+                    timestamp: Date.now(),
+                }
+                messages.value.push(assistantMsg)
+            },
             onThinking: (chunk) => {
                 currentThinking.value += chunk
                 const last = messages.value[messages.value.length - 1]
@@ -348,28 +364,18 @@ export const useChatStore = defineStore('chat', () => {
                     // ignore
                 }
             },
+            onCancelled: (reason) => {
+                console.log(`用户${reason === 'forced' ? '强制' : '优雅'}停止回答`)
+                // 停止回答后执行与 onComplete 相同的清理逻辑
+                finishStream()
+            },
             onComplete: () => {
-                // 将流式工具执行记录赋给最后一条 assistant 消息
-                if (currentToolExecutions.value.length > 0) {
-                    const last = messages.value[messages.value.length - 1]
-                    if (last?.role === 'assistant') {
-                        last.toolCalls = [...currentToolExecutions.value]
-                    }
-                }
-                // 清空流式工具记录，避免 MessageList 中 Section B 重复渲染
-                currentToolExecutions.value = []
-                isStreaming.value = false
-                abortController = null
-                // 当消息数量达到配置轮数 × 2 时自动生成标题
-                const targetMsgCount = titleGenerationRounds.value * 2
-                if (autoTitleEnabled.value && messages.value.length === targetMsgCount) {
-                    generateTitleAsync()
-                }
-                // 通知侧边栏本地更新当前会话的消息数（+2）和更新时间
-                sessionMessageSignal.value++
+                finishStream()
             },
             onError: (error) => {
                 console.error('流式请求出错:', error)
+                // 锁冲突：onMessageCreated 未触发，消息不会出现在聊天记录
+                // 输入框内容也未被清空（confirmedText 未设置），原样保留
                 isStreaming.value = false
                 abortController = null
                 showToast(error.message, 'error')
@@ -427,10 +433,60 @@ export const useChatStore = defineStore('chat', () => {
         sendMessage(prevMsg.content)
     }
 
-    function abortStream(): void {
+    /**
+     * 流完成/取消后的统一清理
+     */
+    function finishStream(): void {
+        // 将流式工具执行记录赋给最后一条 assistant 消息
+        if (currentToolExecutions.value.length > 0) {
+            const last = messages.value[messages.value.length - 1]
+            if (last?.role === 'assistant') {
+                last.toolCalls = [...currentToolExecutions.value]
+            }
+        }
+        // 断开 SSE 连接
         if (abortController) {
             abortController.abort()
-            abortController = null
+        }
+        // 清空流式工具记录，避免 MessageList 中 Section B 重复渲染
+        currentToolExecutions.value = []
+        isStreaming.value = false
+        abortController = null
+        currentUserMsgId = null
+        stopClickCount = 0
+        // 当消息数量达到配置轮数 × 2 时自动生成标题
+        const targetMsgCount = titleGenerationRounds.value * 2
+        if (autoTitleEnabled.value && messages.value.length === targetMsgCount) {
+            generateTitleAsync()
+        }
+        // 通知侧边栏本地更新当前会话的消息数（+2）和更新时间
+        sessionMessageSignal.value++
+    }
+
+    /**
+     * 停止回答
+     * <p>
+     * 第 1 次点击：优雅停止 → 后端停止模型回答，通过 SSE 通知前端
+     * 第 2 次点击：强制停止 → 后端强制断开模型连接，通过 SSE 通知前端
+     * <p>
+     * 前端不主动断开 HTTP 连接，等待后端 {@code event: cancelled} 事件。
+     * 收到该事件后 {@link #finishStream()} 会自动清理并释放连接。
+     */
+    function abortStream(): void {
+        if (!abortController) return
+
+        stopClickCount++
+        const mode = stopClickCount >= 2 ? 'forced' : 'graceful'
+
+        if (currentUserMsgId) {
+            // 通知后端停止，不主动断开连接
+            // 后端停止后会通过 SSE 发送 event: cancelled
+            stopChat(currentUserMsgId, mode).catch(() => {
+                // stop 请求失败时，降级为前端主动断开
+                abortController?.abort()
+                abortController = null
+                isStreaming.value = false
+            })
         }
     }
 
@@ -592,6 +648,7 @@ export const useChatStore = defineStore('chat', () => {
         loadBoundMcpTools,
         autoTitleEnabled,
         titleGenerationRounds,
+        confirmedText,
         loadAutoTitleConfig,
     }
 })

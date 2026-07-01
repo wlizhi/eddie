@@ -104,7 +104,8 @@ watch(() => assistantStore.activeId, async (newId) => {
 function handleSend() {
   const text = inputText.value
   if (!text.trim() || chatStore.isStreaming) return
-  inputText.value = ''
+  // 注意：不在发送前清空输入框。清空由 store 的 confirmedText 信号驱动，
+  // 仅在收到后端 message_created 确认后才清空。锁冲突时输入框内容原样保留。
   chatStore.sendMessage(text)
   // 桌面端发送后保持输入框焦点，移动端不聚焦以避免唤起键盘
   if (!isMobile.value) {
@@ -113,6 +114,19 @@ function handleSend() {
     })
   }
 }
+
+/** 后端确认接收消息后清空输入框 + 保持焦点 */
+watch(() => chatStore.confirmedText, (text) => {
+  if (text) {
+    inputText.value = ''
+    chatStore.confirmedText = ''  // 消费后清空
+    if (!isMobile.value) {
+      nextTick(() => {
+        inputAreaRef.value?.focusInput()
+      })
+    }
+  }
+})
 
 /** 空状态建议问题点击 */
 function onSelectSuggestion(text: string) {

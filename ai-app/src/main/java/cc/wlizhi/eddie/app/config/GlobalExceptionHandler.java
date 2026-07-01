@@ -77,14 +77,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理客户端主动断开连接（如用户手动中断模型回答、网络断开）
+     * 处理异步请求响应不可用（客户端断开、Async 超时、容器错误等）
      * <p>
      * 不返回响应体 — 客户端已断开连接，无法接收响应。
      * 仅 WARN 级别日志，避免 ERROR 日志污染。
      */
     @ExceptionHandler(AsyncRequestNotUsableException.class)
     public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException e) {
-        log.warn("客户端断开连接（可能为手动中断）: {}", e.getMessage());
+        log.warn("异步请求响应不可用（客户端可能已断开）: {}", e.getMessage());
         // void 返回 → Spring 认为异常已处理，不再尝试写响应体
     }
 

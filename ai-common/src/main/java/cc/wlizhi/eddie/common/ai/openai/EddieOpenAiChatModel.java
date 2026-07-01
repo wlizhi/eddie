@@ -57,6 +57,7 @@ import reactor.core.publisher.Flux;
 import tools.jackson.databind.JsonNode;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -237,18 +238,28 @@ public class EddieOpenAiChatModel implements ChatModel {
             }
 
             // Convert from AsyncStreamResponse<ChatCompletionChunk> to Flux<CCC>
-            Flux<ChatCompletionChunk> chunks = Flux.<ChatCompletionChunk>create(sink -> this.openAiClientAsync.chat()
-                    .completions()
-                    .createStreaming(request)
-                    .subscribe(sink::next)
-                    .onCompleteFuture()
-                    .whenComplete((unused, throwable) -> {
-                        if (throwable != null) {
-                            sink.error(throwable);
-                        } else {
-                            sink.complete();
-                        }
-                    }));
+            // 保存 CompletableFuture 引用，支持 sink.onCancel() 时强制中断 HTTP 连接
+            Flux<ChatCompletionChunk> chunks = Flux.<ChatCompletionChunk>create(sink -> {
+                CompletableFuture<Void>[] futureRef = new CompletableFuture[1];
+                futureRef[0] = this.openAiClientAsync.chat()
+                        .completions()
+                        .createStreaming(request)
+                        .subscribe(sink::next)
+                        .onCompleteFuture()
+                        .whenComplete((unused, throwable) -> {
+                            if (throwable != null) {
+                                sink.error(throwable);
+                            } else {
+                                sink.complete();
+                            }
+                        });
+                // 注册取消回调：下游取消 Flux 时强制中断 HTTP 请求
+                sink.onCancel(() -> {
+                    if (futureRef[0] != null && !futureRef[0].isDone()) {
+                        futureRef[0].cancel(true);
+                    }
+                });
+            });
 
             // Next, aggregate CCCs that deal with tool calls together
             AtomicBoolean isInsideTool = new AtomicBoolean(false);

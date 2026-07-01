@@ -120,9 +120,23 @@ public class ChatContext {
     private boolean interrupted;
 
     /**
+     * 用户消息 ID（持久化后获得，用于停止事件关联）
+     */
+    private Long userMessageId;
+
+    /**
      * 占位 assistant 消息的 ID（流开始前插入，doFinally 中通过此 ID 更新内容）
      */
     private Long placeholderMsgId;
+
+    // ==================== 会话锁 ====================
+
+    /**
+     * 会话锁 token（由 {@link cc.wlizhi.eddie.common.cache.SessionLockManager#tryLock} 返回的 nanoTime）
+     * <p>
+     * 0 表示未持有锁，在 {@code doFinally} 中传递给 {@code unlock} 用以原子比对释放。
+     */
+    private long lockNanoTime;
 
     // ==================== 扩展属性 ====================
 

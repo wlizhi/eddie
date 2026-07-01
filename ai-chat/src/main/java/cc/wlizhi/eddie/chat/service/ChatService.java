@@ -22,7 +22,16 @@ public interface ChatService {
      *   <li>{@code event: thinking} — 模型思考内容（DeepSeek reasoning_content）</li>
      *   <li>{@code event: answer} — 模型回答内容</li>
      *   <li>{@code event: metadata} — 回答完毕后的元数据（耗时、token 统计等）</li>
+     *   <li>{@code event: cancelled} — 用户主动停止回答（{@code reason: graceful|forced}）</li>
      * </ul>
      */
     Flux<ServerSentEvent<String>> chat(ChatRequest request);
+
+    /**
+     * 用户主动停止回答
+     *
+     * @param userMessageId 用户消息 ID
+     * @param mode          停止模式：graceful（优雅）/ forced（强制）
+     */
+    void stop(String userMessageId, String mode);
 }

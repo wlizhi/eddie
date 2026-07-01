@@ -66,7 +66,7 @@ public class MessageDao {
                 "SELECT id, session_id, assistant_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
-                        "currency, duration_ms, created_at FROM ai_session_msg WHERE session_id = ?");
+                        "currency, duration_ms, msg_status, created_at FROM ai_session_msg WHERE session_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(sessionId);
 
@@ -93,7 +93,7 @@ public class MessageDao {
                 "SELECT id, session_id, assistant_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
-                        "currency, duration_ms, created_at FROM ai_session_msg WHERE session_id = ? " +
+                        "currency, duration_ms, msg_status, created_at FROM ai_session_msg WHERE session_id = ? " +
                         "ORDER BY id ASC LIMIT ?",
                 messageRowMapper, sessionId, limit);
     }

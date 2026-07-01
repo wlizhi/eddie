@@ -16,6 +16,7 @@ import cc.wlizhi.eddie.chat.handler.impl.ToolCallbackWrapper;
 import cc.wlizhi.eddie.chat.service.ChatClientFactory;
 import cc.wlizhi.eddie.chat.service.ChatClientFactoryRouter;
 import cc.wlizhi.eddie.chat.service.ChatService;
+import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.cache.SessionLockManager;
 import cc.wlizhi.eddie.common.dao.MessageDao;
 import cc.wlizhi.eddie.common.dao.SessionDao;
@@ -94,6 +95,9 @@ public class ChatServiceImpl implements ChatService {
     @Resource
     private TransactionTemplate transactionTemplate;
 
+    @Resource
+    private EventRegistry chatEventRegistry;
+
     @Override
     public Flux<ServerSentEvent<String>> chat(ChatRequest request) {
         // 1. 初始化上下文
@@ -106,21 +110,30 @@ public class ChatServiceImpl implements ChatService {
 
         // 3. 会话级互斥锁 — 避免同一会话并发请求
         Long sessionId = ctx.getSession().getId();
-        if (!sessionLockManager.tryLock(sessionId)) {
+        long lockToken = sessionLockManager.tryLock(sessionId);
+        if (lockToken == 0L) {
             log.warn("会话 {} 正在处理中，拒绝并发请求", sessionId);
             return Flux.just(ServerSentEvent.<String>builder()
                     .event("error")
                     .data("{\"message\":\"该会话正在处理中，请等待当前回答完成\"}")
                     .build());
         }
+        ctx.setLockNanoTime(lockToken);
 
         try {
             return doChat(ctx);
         } catch (Exception e) {
-            sessionLockManager.unlock(sessionId);
+            sessionLockManager.unlock(sessionId, ctx.getLockNanoTime());
             log.error("聊天请求处理异常", e);
             throw e;
         }
+    }
+
+    @Override
+    public void stop(String userMessageId, String mode) {
+        String key = EventRegistry.key("STOP", userMessageId);
+        log.info("用户{}停止回答: userMessageId={}", "forced".equals(mode) ? "强制" : "优雅", userMessageId);
+        chatEventRegistry.register(key, mode);
     }
 
     /**
@@ -129,8 +142,17 @@ public class ChatServiceImpl implements ChatService {
     private Flux<ServerSentEvent<String>> doChat(ChatContext ctx) {
         Long sessionId = ctx.getSession().getId();
 
-        // 4. 事务性持久化 user 消息 + 占位 assistant 消息
+        // 4. 事务性持久化 user 消息 + 占位 assistant 消息（单事务保证原子性）
         persistInitialMessages(ctx);
+
+        // 4.5 持久化完成后立即创建 message_created 事件（不放后面等准备工作）
+        //     告知前端用户消息 ID，用于停止事件关联。事件在 concatWith 中先于流式内容发射
+        String messageCreatedData = "{\"userMsgId\":" + ctx.getUserMessageId()
+                + ",\"assistantMsgId\":" + ctx.getPlaceholderMsgId() + "}";
+        Flux<ServerSentEvent<String>> messageCreatedEvent = Flux.just(ServerSentEvent.<String>builder()
+                .event("message_created")
+                .data(messageCreatedData)
+                .build());
 
         // 5. 工厂路由 + 构建 ChatClient
         ChatClientFactory factory = chatClientFactoryRouter.resolve(ctx.getProviderCode());
@@ -171,17 +193,22 @@ public class ChatServiceImpl implements ChatService {
         Flux<ChatResponse> responseFlux = chatStreamExecutor.execute(ctx);
 
         // 8. SSE 事件转换（合并工具执行事件）
-        // 9. doFinally：无论 complete / error / cancel 都执行后置处理（更新占位消息）并释放锁
-        return chatSseTransformer.transform(responseFlux, ctx, toolEventFlux, toolEventSink)
-                .doFinally(signalType -> {
+        // 9. doFinally：无论 complete / error / cancel 都执行后置处理（更新占位消息）
+        //     注意：锁在 post-processing 之前释放，避免其他请求等待 DB 写入
+        //     同时清理注册表中的停止事件
+        String registryKey = EventRegistry.key("STOP", String.valueOf(ctx.getUserMessageId()));
+        return messageCreatedEvent.concatWith(
+                chatSseTransformer.transform(responseFlux, ctx, toolEventFlux, toolEventSink)
+        ).doFinally(signalType -> {
+                    // 第一步：立即释放锁 + 清理注册表（不阻塞其他请求）
+                    chatEventRegistry.remove(registryKey);
+                    sessionLockManager.unlock(sessionId, ctx.getLockNanoTime());
+
+                    // 第二步：后置处理（DB 写入，不再持有锁）
                     try {
-                        // 中断标志已在 ChatSseTransformer.doOnCancel 中设置
-                        // 后置处理（更新 assistant 占位消息为实际内容）
                         postProcessors.forEach(p -> p.process(ctx));
                     } catch (Exception e) {
                         log.error("后置处理异常", e);
-                    } finally {
-                        sessionLockManager.unlock(sessionId);
                     }
                 });
     }
@@ -216,6 +243,10 @@ public class ChatServiceImpl implements ChatService {
             userMsg.setToolCalls("[]");
             userMsg.setMsgStatus("COMPLETED");
             messageDao.insert(userMsg);
+
+            // 获取用户消息 ID（用于停止事件关联）
+            Long userMsgId = messageDao.findLastInsertId();
+            ctx.setUserMessageId(userMsgId);
 
             // 占位 assistant 消息（status=STREAMING，流结束后更新）
             MessageEntity assistantMsg = new MessageEntity();

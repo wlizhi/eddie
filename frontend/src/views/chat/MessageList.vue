@@ -448,3 +448,17 @@ function onScroll() {
 </template>
 
 <style src="./message-list.css" scoped/>
+
+<!-- 非 scoped 样式：覆盖 v-html 渲染的 <a> 标签（scoped 属性无法穿透） -->
+<style>
+.user-bubble .markdown-body a {
+    color: var(--msg-user-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    opacity: 0.92;
+    transition: opacity 0.15s;
+}
+.user-bubble .markdown-body a:hover {
+    opacity: 1;
+}
+</style>

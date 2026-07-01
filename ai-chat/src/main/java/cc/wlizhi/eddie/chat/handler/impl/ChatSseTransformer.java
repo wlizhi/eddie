@@ -99,6 +99,12 @@ public class ChatSseTransformer {
                 .concatWith(
                         Mono.fromSupplier(() -> {
                             long endTime = System.currentTimeMillis();
+                            // 如果被中断，先发送 cancelled 事件
+                            if (ctx.isInterrupted()) {
+                                String reason = (String) ctx.getAttributes().get("cancelMode");
+                                if (reason == null) reason = "unknown";
+                                return buildCancelledEvent(reason);
+                            }
                             // 元数据事件
                             return buildMetadataEvent(ctx, startTime, endTime);
                         })
@@ -249,6 +255,16 @@ public class ChatSseTransformer {
         return ServerSentEvent.<String>builder()
                 .event("metadata")
                 .data(toJson(info))
+                .build();
+    }
+
+    /**
+     * 构建 cancelled 事件 — 用户停止回答时发送
+     */
+    private ServerSentEvent<String> buildCancelledEvent(String reason) {
+        return ServerSentEvent.<String>builder()
+                .event("cancelled")
+                .data("{\"reason\":\"" + reason + "\"}")
                 .build();
     }
 

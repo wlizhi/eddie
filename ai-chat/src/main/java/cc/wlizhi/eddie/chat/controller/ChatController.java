@@ -7,12 +7,14 @@ package cc.wlizhi.eddie.chat.controller;
 
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.chat.service.ChatService;
+import cc.wlizhi.eddie.common.dto.ApiResult;
 import jakarta.annotation.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
@@ -37,10 +39,26 @@ public class ChatController {
      *   <li><code>event: thinking</code> — 模型思考内容</li>
      *   <li><code>event: answer</code> — 模型回答内容</li>
      *   <li><code>event: metadata</code> — 回答完毕后的元数据</li>
+     *   <li><code>event: cancelled</code> — 用户主动停止回答</li>
      * </ul>
      */
     @PostMapping(value = "/send", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> send(@Validated @RequestBody ChatRequest request) {
         return chatService.chat(request);
+    }
+
+    /**
+     * 用户主动停止回答
+     * <p>
+     * 第 1 次点击发送 graceful（优雅停止），第 2 次点击发送 forced（强制中断）。
+     *
+     * @param userMessageId 用户消息 ID
+     * @param mode          停止模式：graceful / forced
+     */
+    @PostMapping("/stop")
+    public ApiResult<Void> stop(@RequestParam(name = "userMessageId") String userMessageId,
+                                @RequestParam(name = "mode", defaultValue = "graceful") String mode) {
+        chatService.stop(userMessageId, mode);
+        return ApiResult.success();
     }
 }

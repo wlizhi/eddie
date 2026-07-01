@@ -21,6 +21,10 @@ export interface StreamChatOptions {
     onMetadata?: (json: string) => void
     /** 收到工具执行事件时的回调（通用展示，不做工具名映射） */
     onToolExecution?: (data: ToolExecutionData) => void
+    /** 收到 message_created 事件时的回调（包含 userMsgId、assistantMsgId） */
+    onMessageCreated?: (data: { userMsgId: number; assistantMsgId: number }) => void
+    /** 收到 cancelled 事件时的回调（用户停止回答） */
+    onCancelled?: (reason: string) => void
     /** 流结束时的回调 */
     onComplete?: () => void
     /** 出错时的回调 */
@@ -59,8 +63,16 @@ function parseSSELine(line: string): { event: string; data: string } | null {
  * 注意：当一个事件有多行 data 时，需要用 \n 拼接，
  * 否则 Markdown 的换行会丢失导致 marked 无法正确解析。
  */
+/**
+ * 停止回答
+ * POST /api/chat/stop
+ */
+export async function stopChat(userMessageId: number, mode: 'graceful' | 'forced'): Promise<void> {
+    await fetch(`${BASE_URL}/chat/stop?userMessageId=${userMessageId}&mode=${mode}`, {method: 'POST'})
+}
+
 export async function streamChat(options: StreamChatOptions): Promise<void> {
-    const {request, onThinking, onAnswer, onMetadata, onToolExecution, onComplete, onError, signal} = options
+    const {request, onThinking, onAnswer, onMetadata, onToolExecution, onMessageCreated, onCancelled, onComplete, onError, signal} = options
 
     try {
         const response = await fetch(`${BASE_URL}/chat/send`, {
@@ -129,6 +141,27 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
                     onToolExecution?.(parsed)
                 } catch {
                     // ignore parse error
+                }
+            } else if (currentEvent === 'message_created') {
+                try {
+                    const parsed = JSON.parse(data) as { userMsgId: number; assistantMsgId: number }
+                    onMessageCreated?.(parsed)
+                } catch {
+                    // ignore parse error
+                }
+            } else if (currentEvent === 'cancelled') {
+                try {
+                    const parsed = JSON.parse(data) as { reason: string }
+                    onCancelled?.(parsed.reason)
+                } catch {
+                    onCancelled?.('unknown')
+                }
+            } else if (currentEvent === 'error') {
+                try {
+                    const parsed = JSON.parse(data) as { message: string }
+                    onError?.(new Error(parsed.message))
+                } catch {
+                    onError?.(new Error('请求被拒绝'))
                 }
             }
         }
