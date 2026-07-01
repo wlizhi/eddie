@@ -86,9 +86,11 @@ CREATE TABLE IF NOT EXISTS ai_session_msg
     cache_written_input_tokens INTEGER NOT NULL DEFAULT 0, -- 缓存写入的 input token 数（来自 Usage）
     currency                TEXT    NOT NULL DEFAULT '', -- 费用货币符号，如 ¥ / $
     duration_ms INTEGER NOT NULL DEFAULT 0, -- 接口耗时（毫秒）
+    msg_status              TEXT    NOT NULL DEFAULT 'COMPLETED', -- 消息状态：COMPLETED（正常完成）/ STREAMING（流式进行中）/ INTERRUPTED（中断）
     created_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_msg_session_id ON ai_session_msg (session_id, id);
+CREATE INDEX IF NOT EXISTS idx_msg_status ON ai_session_msg (msg_status);
 
 -- 全局配置表（key-value 结构，config_key 直接使用 GlobalConfigKey 枚举名存储）
 -- config_val 为 JSON 字符串，前端/业务模块按需反序列化

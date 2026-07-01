@@ -114,6 +114,16 @@ public class ChatContext {
      */
     private List<ToolExecutionEvent> toolCalls = new ArrayList<>();
 
+    /**
+     * 是否被用户中断（手动取消或网络断开）
+     */
+    private boolean interrupted;
+
+    /**
+     * 占位 assistant 消息的 ID（流开始前插入，doFinally 中通过此 ID 更新内容）
+     */
+    private Long placeholderMsgId;
+
     // ==================== 扩展属性 ====================
 
     /**

@@ -16,16 +16,23 @@ import cc.wlizhi.eddie.chat.handler.impl.ToolCallbackWrapper;
 import cc.wlizhi.eddie.chat.service.ChatClientFactory;
 import cc.wlizhi.eddie.chat.service.ChatClientFactoryRouter;
 import cc.wlizhi.eddie.chat.service.ChatService;
+import cc.wlizhi.eddie.common.cache.SessionLockManager;
+import cc.wlizhi.eddie.common.dao.MessageDao;
+import cc.wlizhi.eddie.common.dao.SessionDao;
+import cc.wlizhi.eddie.common.entity.MessageEntity;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.memory.shortterm.ShortTermMemory;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
@@ -40,15 +47,19 @@ import java.util.List;
  * <ol>
  *   <li>初始化 {@link ChatContext}，解析 sessionId</li>
  *   <li>{@link ChatPreProcessor} 预处理</li>
+ *   <li>会话级互斥锁 — 同一会话同时只允许一个请求</li>
+ *   <li>事务性持久化 user 消息 + 占位 assistant 消息</li>
  *   <li>{@link ChatClientFactoryRouter} 工厂路由 + {@link ChatClientFactory} 构建 ChatClient</li>
- *   <li>注入记忆 Advisor</li>
+ *   <li>注入记忆 Advisor + 工具</li>
  *   <li>{@link ChatStreamExecutor} 流式执行</li>
- *   <li>{@link ChatSseTransformer} SSE 事件转换（含工具执行事件）</li>
- *   <li>{@link ChatPostProcessor} 后置处理（消息持久化等）</li>
+ *   <li>{@link ChatSseTransformer} SSE 事件转换（含工具执行事件 + 中断标记）</li>
+ *   <li>{@link ChatPostProcessor} 后置处理 — 更新占位消息为实际内容</li>
  * </ol>
  */
 @Service
 public class ChatServiceImpl implements ChatService {
+
+    private static final Logger log = LoggerFactory.getLogger(ChatServiceImpl.class);
 
     @Resource
     private List<ChatPreProcessor> preProcessors;
@@ -71,6 +82,18 @@ public class ChatServiceImpl implements ChatService {
     @Resource
     private List<ChatPostProcessor> postProcessors;
 
+    @Resource
+    private SessionLockManager sessionLockManager;
+
+    @Resource
+    private MessageDao messageDao;
+
+    @Resource
+    private SessionDao sessionDao;
+
+    @Resource
+    private TransactionTemplate transactionTemplate;
+
     @Override
     public Flux<ServerSentEvent<String>> chat(ChatRequest request) {
         // 1. 初始化上下文
@@ -78,13 +101,41 @@ public class ChatServiceImpl implements ChatService {
         ctx.setOriginalRequest(request);
         ctx.setStartTime(System.currentTimeMillis());
 
-        // 2. 预处理
+        // 2. 预处理（含 session 解析、助手解析等）
         preProcessors.forEach(p -> p.process(ctx));
 
-        // 3. 工厂路由 + 构建 ChatClient
+        // 3. 会话级互斥锁 — 避免同一会话并发请求
+        Long sessionId = ctx.getSession().getId();
+        if (!sessionLockManager.tryLock(sessionId)) {
+            log.warn("会话 {} 正在处理中，拒绝并发请求", sessionId);
+            return Flux.just(ServerSentEvent.<String>builder()
+                    .event("error")
+                    .data("{\"message\":\"该会话正在处理中，请等待当前回答完成\"}")
+                    .build());
+        }
+
+        try {
+            return doChat(ctx);
+        } catch (Exception e) {
+            sessionLockManager.unlock(sessionId);
+            log.error("聊天请求处理异常", e);
+            throw e;
+        }
+    }
+
+    /**
+     * 实际聊天执行流程（持有 session 锁）
+     */
+    private Flux<ServerSentEvent<String>> doChat(ChatContext ctx) {
+        Long sessionId = ctx.getSession().getId();
+
+        // 4. 事务性持久化 user 消息 + 占位 assistant 消息
+        persistInitialMessages(ctx);
+
+        // 5. 工厂路由 + 构建 ChatClient
         ChatClientFactory factory = chatClientFactoryRouter.resolve(ctx.getProviderCode());
 
-        // 4. 注入工具 + 记忆 Advisor
+        // 6. 注入工具 + 记忆 Advisor
         ChatClient chatClient = factory.getChatClient(ctx);
         var builder = chatClient.mutate()
                 .defaultAdvisors(
@@ -93,7 +144,7 @@ public class ChatServiceImpl implements ChatService {
                                 .build()
                 );
 
-        // 4.1 解析工具回调（请求参数优先，其次助手设置）
+        // 6.1 解析工具回调（请求参数优先，其次助手设置）
         ChatRequest chatRequest = ctx.getOriginalRequest();
         String toolMode = chatRequest.getToolSelectionMode();
         if (toolMode == null) {
@@ -102,12 +153,11 @@ public class ChatServiceImpl implements ChatService {
         ToolCallback[] toolCallbacks = toolCallbackResolver.resolve(
                 RoleType.ASSISTANT.name(), ctx.getAssistant().getId(), toolMode, chatRequest.getToolNames());
 
-        // 4.2 创建工具执行事件 Sinks（旁路通道，零 token 消耗）
+        // 6.2 创建工具执行事件 Sinks（旁路通道，零 token 消耗）
         Sinks.Many<ToolExecutionEvent> toolEventSink = Sinks.many().unicast().onBackpressureBuffer();
         Flux<ToolExecutionEvent> toolEventFlux = toolEventSink.asFlux();
 
         if (toolCallbacks.length > 0) {
-            // 用 ToolCallbackWrapper 包裹每个 ToolCallback，注入事件发射逻辑
             ToolCallback[] wrappedCallbacks = Arrays.stream(toolCallbacks)
                     .map(tc -> new ToolCallbackWrapper(tc, toolEventSink))
                     .toArray(ToolCallback[]::new);
@@ -117,11 +167,82 @@ public class ChatServiceImpl implements ChatService {
         chatClient = builder.build();
         ctx.setChatClient(chatClient);
 
-        // 5. 执行流式调用
+        // 7. 执行流式调用
         Flux<ChatResponse> responseFlux = chatStreamExecutor.execute(ctx);
 
-        // 6. SSE 事件转换（合并工具执行事件）+ 7. 后置处理
+        // 8. SSE 事件转换（合并工具执行事件）
+        // 9. doFinally：无论 complete / error / cancel 都执行后置处理（更新占位消息）并释放锁
         return chatSseTransformer.transform(responseFlux, ctx, toolEventFlux, toolEventSink)
-                .doOnComplete(() -> postProcessors.forEach(p -> p.process(ctx)));
+                .doFinally(signalType -> {
+                    try {
+                        // 中断标志已在 ChatSseTransformer.doOnCancel 中设置
+                        // 后置处理（更新 assistant 占位消息为实际内容）
+                        postProcessors.forEach(p -> p.process(ctx));
+                    } catch (Exception e) {
+                        log.error("后置处理异常", e);
+                    } finally {
+                        sessionLockManager.unlock(sessionId);
+                    }
+                });
+    }
+
+    /**
+     * 事务性持久化：user 消息 + 占位 assistant 消息
+     * <p>
+     * 保证 user 和占位 assistant 始终成对写入，不会出现孤立数据。
+     * 占位助理消息在流结束后由 {@link ChatMessagePersistPostProcessor} 更新为实际内容。
+     * 使用 TransactionTemplate 而非 @Transactional 避免自调用代理失效问题。
+     */
+    protected void persistInitialMessages(ChatContext ctx) {
+        transactionTemplate.execute(status -> {
+            Long sessionId = ctx.getSession().getId();
+            Long assistantId = ctx.getSession().getAssistantId();
+            ChatRequest request = ctx.getOriginalRequest();
+
+            // user 消息
+            MessageEntity userMsg = new MessageEntity();
+            userMsg.setSessionId(sessionId);
+            userMsg.setAssistantId(assistantId);
+            userMsg.setRole("user");
+            userMsg.setContent(ctx.getUserMessage());
+            userMsg.setProviderId(request.getProviderId());
+            userMsg.setModelCode(request.getModelId());
+            userMsg.setModelName(request.getModelId());
+            userMsg.setThinking("");
+            userMsg.setPromptTokens(0);
+            userMsg.setCompletionTokens(0);
+            userMsg.setTotalTokens(0);
+            userMsg.setPriceEstimate(0.0);
+            userMsg.setToolCalls("[]");
+            userMsg.setMsgStatus("COMPLETED");
+            messageDao.insert(userMsg);
+
+            // 占位 assistant 消息（status=STREAMING，流结束后更新）
+            MessageEntity assistantMsg = new MessageEntity();
+            assistantMsg.setSessionId(sessionId);
+            assistantMsg.setAssistantId(assistantId);
+            assistantMsg.setRole("assistant");
+            assistantMsg.setContent("");
+            assistantMsg.setProviderId(request.getProviderId());
+            assistantMsg.setModelCode(request.getModelId());
+            assistantMsg.setModelName(request.getModelId());
+            assistantMsg.setThinking("");
+            assistantMsg.setPromptTokens(0);
+            assistantMsg.setCompletionTokens(0);
+            assistantMsg.setTotalTokens(0);
+            assistantMsg.setPriceEstimate(0.0);
+            assistantMsg.setToolCalls("[]");
+            assistantMsg.setMsgStatus("STREAMING");
+            assistantMsg.setDurationMs(0);
+            messageDao.insert(assistantMsg);
+
+            // 获取占位消息 ID（用于后续 UPDATE）
+            Long placeholderId = messageDao.findLastInsertId();
+            ctx.setPlaceholderMsgId(placeholderId);
+
+            // 更新会话计数器（+2 表示 user + assistant）
+            sessionDao.touchAndIncrementMessageCount(sessionId, 2, 0);
+            return null;
+        });
     }
 }

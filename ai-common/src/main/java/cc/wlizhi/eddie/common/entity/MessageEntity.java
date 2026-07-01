@@ -106,6 +106,11 @@ public class MessageEntity {
     private Integer durationMs;
 
     /**
+     * 消息状态：COMPLETED（正常完成）/ STREAMING（流式进行中）/ INTERRUPTED（中断）
+     */
+    private String msgStatus;
+
+    /**
      * 消息时间
      */
     private String createdAt;

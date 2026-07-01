@@ -31,8 +31,9 @@ public class MessageDao {
                 "INSERT INTO ai_session_msg (session_id, assistant_id, role, provider_id, " +
                         "model_code, model_name, thinking, content, prompt_tokens, completion_tokens, " +
                         "total_tokens, price_estimate, tool_calls, " +
-                        "cache_read_input_tokens, cache_written_input_tokens, currency, duration_ms, created_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))",
+                        "cache_read_input_tokens, cache_written_input_tokens, currency, duration_ms, " +
+                        "msg_status, created_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))",
                 entity.getSessionId(),
                 entity.getAssistantId(),
                 entity.getRole(),
@@ -49,7 +50,8 @@ public class MessageDao {
                 entity.getCacheReadInputTokens() != null ? entity.getCacheReadInputTokens() : 0,
                 entity.getCacheWriteInputTokens() != null ? entity.getCacheWriteInputTokens() : 0,
                 entity.getCurrency() != null ? entity.getCurrency() : "",
-                entity.getDurationMs() != null ? entity.getDurationMs() : 0);
+                entity.getDurationMs() != null ? entity.getDurationMs() : 0,
+                entity.getMsgStatus() != null ? entity.getMsgStatus() : "COMPLETED");
     }
 
     /**
@@ -97,6 +99,13 @@ public class MessageDao {
     }
 
     /**
+     * 获取最后插入的自增 ID（仅在 INSERT 后立即调用有效）
+     */
+    public Long findLastInsertId() {
+        return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
+    }
+
+    /**
      * 统计会话消息数
      */
     public int countBySessionId(Long sessionId) {
@@ -119,6 +128,54 @@ public class MessageDao {
         jdbcTemplate.update("DELETE FROM ai_session_msg WHERE assistant_id = ?", assistantId);
     }
 
+    /**
+     * 更新 assistant 消息内容（流结束后或中断时调用，从占位符更新为实际内容）
+     *
+     * @param id                    消息 ID
+     * @param content               回答内容
+     * @param thinking              思考内容
+     * @param toolCalls             工具调用记录 JSON
+     * @param promptTokens          提示 token 数
+     * @param completionTokens      完成 token 数
+     * @param totalTokens           总 token 数
+     * @param cacheReadInputTokens  缓存读取 token
+     * @param cacheWriteInputTokens 缓存写入 token
+     * @param currency              货币符号
+     * @param priceEstimate         预估费用
+     * @param durationMs            耗时（毫秒）
+     * @param msgStatus             消息状态：COMPLETED / INTERRUPTED
+     */
+    public void updateAssistantMsg(Long id, String content, String thinking, String toolCalls,
+                                   int promptTokens, int completionTokens, int totalTokens,
+                                   int cacheReadInputTokens, int cacheWriteInputTokens,
+                                   String currency, double priceEstimate, int durationMs,
+                                   String msgStatus) {
+        jdbcTemplate.update(
+                "UPDATE ai_session_msg SET content = ?, thinking = ?, tool_calls = ?, " +
+                        "prompt_tokens = ?, completion_tokens = ?, total_tokens = ?, " +
+                        "cache_read_input_tokens = ?, cache_written_input_tokens = ?, " +
+                        "currency = ?, price_estimate = ?, duration_ms = ?, " +
+                        "msg_status = ? WHERE id = ?",
+                content, thinking, toolCalls,
+                promptTokens, completionTokens, totalTokens,
+                cacheReadInputTokens, cacheWriteInputTokens,
+                currency, priceEstimate, durationMs,
+                msgStatus, id);
+    }
+
+    /**
+     * 修复 stuck 消息：将长时间处于 STREAMING 状态的消息标记为 INTERRUPTED
+     * <p>
+     * 仅修复最近 7 天内的 stuck 记录，避免全表扫描和历史数据堆积。
+     * 在应用启动时或首次查询时调用。
+     */
+    public int fixStuckMessages() {
+        return jdbcTemplate.update(
+                "UPDATE ai_session_msg SET msg_status = 'INTERRUPTED' " +
+                        "WHERE msg_status = 'STREAMING' " +
+                        "  AND created_at >= datetime('now', '-7 days', 'localtime')");
+    }
+
     private final RowMapper<MessageEntity> messageRowMapper = (rs, rowNum) -> {
         MessageEntity entity = new MessageEntity();
         entity.setId(rs.getLong("id"));
@@ -139,6 +196,7 @@ public class MessageDao {
         entity.setCacheWriteInputTokens(rs.getInt("cache_written_input_tokens"));
         entity.setCurrency(rs.getString("currency"));
         entity.setDurationMs(rs.getInt("duration_ms"));
+        entity.setMsgStatus(rs.getString("msg_status"));
         entity.setCreatedAt(rs.getString("created_at"));
         return entity;
     };

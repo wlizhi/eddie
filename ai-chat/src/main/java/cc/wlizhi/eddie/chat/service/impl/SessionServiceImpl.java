@@ -22,6 +22,7 @@ import cc.wlizhi.eddie.common.entity.MessageEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.SessionEntity;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
+import cc.wlizhi.eddie.common.event.SessionDeletedEvent;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
 import cc.wlizhi.eddie.memory.context.GlobalPromptsContext;
@@ -33,6 +34,7 @@ import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -73,6 +75,9 @@ public class SessionServiceImpl implements SessionService {
     @Resource
     private ObjectMapper objectMapper;
 
+    @Resource
+    private ApplicationEventPublisher eventPublisher;
+
     private static final int MESSAGE_PAGE_SIZE = 20;
 
     @Override
@@ -105,6 +110,8 @@ public class SessionServiceImpl implements SessionService {
         }
         messageDao.deleteBySessionId(id);
         sessionDao.deleteById(id);
+        // 发布会话删除事件，清理缓存资源（如 SessionLockManager 中的锁）
+        eventPublisher.publishEvent(new SessionDeletedEvent(this, id));
     }
 
     @Override

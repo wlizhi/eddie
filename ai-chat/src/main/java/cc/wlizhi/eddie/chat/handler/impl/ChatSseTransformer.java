@@ -114,7 +114,11 @@ public class ChatSseTransformer {
         return Flux.merge(
                 mainSse.doFinally(signalType -> toolEventSink.tryEmitComplete()),
                 toolSse
-        );
+        ).doOnCancel(() -> {
+            log.debug("SSE 流被用户中断");
+            ctx.setInterrupted(true);
+            toolEventSink.tryEmitComplete();
+        });
     }
 
     /**

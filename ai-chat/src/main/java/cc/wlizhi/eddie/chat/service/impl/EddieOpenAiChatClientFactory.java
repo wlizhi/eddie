@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,10 +46,15 @@ public class EddieOpenAiChatClientFactory implements ChatClientFactory {
         ModelProviderEntity provider = ctx.getProvider();
         AssistantEntity assistant = ctx.getAssistant();
 
+        // OkHttp 默认 read timeout 为 60 秒，长思考/长回答模型可能触发
+        // AbstractOpenAiOptions.DEFAULT_TIMEOUT，导致 stream was reset: CANCEL。
+        // 设 10 分钟确保完整输出。
+        // TODO 这个超时事件后面改为可配置或用户页面设置，后端请求超时应当给出友好提示。
         EddieOpenAiChatOptions.Builder optionsBuilder = EddieOpenAiChatOptions.builder()
                 .apiKey(provider.getApiKey())
                 .baseUrl(provider.getBaseUrl())
-                .model(ctx.getOriginalRequest().getModelId());
+                .model(ctx.getOriginalRequest().getModelId())
+                .timeout(Duration.ofMinutes(10));
 
         // 应用助手级 modelParams
         applyModelParams(optionsBuilder, assistant.getModelParams(), ctx.getProviderCode());

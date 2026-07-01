@@ -7,22 +7,21 @@ package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
-import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
+import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatPostProcessor;
 import cc.wlizhi.eddie.common.dao.MessageDao;
 import cc.wlizhi.eddie.common.dao.SessionDao;
-import cc.wlizhi.eddie.common.entity.MessageEntity;
 import cc.wlizhi.eddie.common.entity.ModelPricing;
-import cc.wlizhi.eddie.common.entity.SessionEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.CompletableFuture;
-
 /**
- * 聊天消息持久化后置处理器：异步将 user/assistant 消息写入 DB，更新会话活跃时间
+ * 聊天消息后置处理器：流结束后更新占位 assistant 消息为实际内容
+ * <p>
+ * user 消息和占位 assistant 消息已在流开始前由 {@link ChatServiceImpl#persistInitialMessages}
+ * 事务性写入 DB。本处理器仅负责 UPDATE。
  */
 @Component
 public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
@@ -38,51 +37,16 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
 
     @Override
     public void process(ChatContext ctx) {
-        CompletableFuture.runAsync(() -> persist(ctx));
-    }
-
-    private void persist(ChatContext ctx) {
-        SessionEntity session = ctx.getSession();
-        if (session == null) {
+        Long placeholderMsgId = ctx.getPlaceholderMsgId();
+        if (placeholderMsgId == null) {
             return;
         }
-        Long sessionId = session.getId();
-        Long assistantId = session.getAssistantId();
-        ChatRequest request = ctx.getOriginalRequest();
+
+        String fullAnswer = ctx.getFullAnswer() != null ? ctx.getFullAnswer().toString() : "";
+        String fullThinking = ctx.getFullThinking() != null ? ctx.getFullThinking().toString() : "";
+
+        // 序列化工具调用记录
         String toolCallsJson = "[]";
-
-        // 持久化 user 消息
-        MessageEntity userMsg = new MessageEntity();
-        userMsg.setSessionId(sessionId);
-        userMsg.setAssistantId(assistantId);
-        userMsg.setRole("user");
-        userMsg.setContent(ctx.getUserMessage());
-        userMsg.setProviderId(request.getProviderId());
-        userMsg.setModelCode(request.getModelId());
-        userMsg.setModelName(request.getModelId());
-        userMsg.setThinking("");
-        userMsg.setPromptTokens(0);
-        userMsg.setCompletionTokens(0);
-        userMsg.setTotalTokens(0);
-        userMsg.setPriceEstimate(0.0);
-        // 货币符号
-        ModelPricing pricing = ctx.getPricing();
-        String currency = pricing != null && pricing.getCurrency() != null ? pricing.getCurrency() : "";
-        userMsg.setCurrency(currency);
-        userMsg.setToolCalls(toolCallsJson);
-        messageDao.insert(userMsg);
-
-        // 持久化 assistant 消息
-        MessageEntity assistantMsg = new MessageEntity();
-        assistantMsg.setSessionId(sessionId);
-        assistantMsg.setAssistantId(assistantId);
-        assistantMsg.setRole("assistant");
-        assistantMsg.setContent(ctx.getFullAnswer() != null ? ctx.getFullAnswer().toString() : "");
-        assistantMsg.setProviderId(request.getProviderId());
-        assistantMsg.setModelCode(request.getModelId());
-        assistantMsg.setModelName(request.getModelId());
-        assistantMsg.setThinking(ctx.getFullThinking() != null ? ctx.getFullThinking().toString() : "");
-        // 持久化工具调用记录
         if (ctx.getToolCalls() != null && !ctx.getToolCalls().isEmpty()) {
             try {
                 toolCallsJson = objectMapper.writeValueAsString(ctx.getToolCalls());
@@ -90,33 +54,45 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
                 // ignore
             }
         }
-        assistantMsg.setToolCalls(toolCallsJson);
 
-        // 从上下文获取经过 handler 处理的元数据（单一数据源）
+        // 从上下文获取元数据
         MetadataInfo metadata = ctx.getMetadata();
+        int promptTokens = 0;
+        int completionTokens = 0;
         int totalTokens = 0;
-        if (metadata != null) {
-            assistantMsg.setPromptTokens(metadata.getPromptTokens());
-            assistantMsg.setCompletionTokens(metadata.getCompletionTokens());
-            assistantMsg.setTotalTokens(metadata.getTotalTokens());
-            assistantMsg.setCacheReadInputTokens(metadata.getCacheReadInputTokens());
-            assistantMsg.setCacheWriteInputTokens(metadata.getCacheWriteInputTokens());
-            assistantMsg.setCurrency(metadata.getCurrency() != null ? metadata.getCurrency() : currency);
-            assistantMsg.setPriceEstimate(metadata.getCostEstimate());
-            assistantMsg.setDurationMs((int) metadata.getDurationMs());
-            totalTokens = metadata.getTotalTokens();
-        } else {
-            assistantMsg.setPromptTokens(0);
-            assistantMsg.setCompletionTokens(0);
-            assistantMsg.setTotalTokens(0);
-            assistantMsg.setCacheReadInputTokens(0);
-            assistantMsg.setCacheWriteInputTokens(0);
-            assistantMsg.setCurrency(currency);
-            assistantMsg.setPriceEstimate(0.0);
-        }
-        messageDao.insert(assistantMsg);
+        int cacheReadInputTokens = 0;
+        int cacheWriteInputTokens = 0;
+        String currency = "";
+        double priceEstimate = 0.0;
+        int durationMs = 0;
 
-        // 更新会话活跃时间并同步消息数量、累计 token 数（合并为一条 SQL）
-        sessionDao.touchAndIncrementMessageCount(sessionId, 2, totalTokens);
+        if (metadata != null) {
+            promptTokens = metadata.getPromptTokens();
+            completionTokens = metadata.getCompletionTokens();
+            totalTokens = metadata.getTotalTokens();
+            cacheReadInputTokens = metadata.getCacheReadInputTokens();
+            cacheWriteInputTokens = metadata.getCacheWriteInputTokens();
+            currency = metadata.getCurrency() != null ? metadata.getCurrency() : "";
+            priceEstimate = metadata.getCostEstimate();
+            durationMs = (int) metadata.getDurationMs();
+        } else {
+            ModelPricing pricing = ctx.getPricing();
+            currency = pricing != null && pricing.getCurrency() != null ? pricing.getCurrency() : "";
+        }
+
+        // 确定消息状态：中断 or 完成
+        String msgStatus = ctx.isInterrupted() ? "INTERRUPTED" : "COMPLETED";
+
+        // 更新占位消息为实际内容
+        messageDao.updateAssistantMsg(
+                placeholderMsgId, fullAnswer, fullThinking, toolCallsJson,
+                promptTokens, completionTokens, totalTokens,
+                cacheReadInputTokens, cacheWriteInputTokens,
+                currency, priceEstimate, durationMs,
+                msgStatus
+        );
+
+        // 更新会话的累计 token 数（message_count 已在初始插入时 +2，此处只更新 token）
+        sessionDao.touchAndIncrementMessageCount(ctx.getSession().getId(), 0, totalTokens);
     }
 }
