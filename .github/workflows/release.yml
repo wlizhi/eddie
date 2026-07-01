@@ -9,18 +9,17 @@ on:
         type: string
 
 jobs:
+  # ─── Job 1: 原生二进制 (矩阵) ──────────────────────────
   native-build:
     name: Native Build (${{ matrix.os }})
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        os: [ ubuntu-latest, windows-latest ]
         include:
           - os: ubuntu-latest
-            binary-name: eddie-linux-amd64
-          - os: macos-latest
-            binary-name: eddie-darwin-amd64
+            binary-name: eddie-${{ inputs.version }}-linux-amd64
           - os: windows-latest
-            binary-name: eddie-windows-amd64.exe
+            binary-name: eddie-${{ inputs.version }}-windows-amd64.exe
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -55,21 +54,7 @@ jobs:
       - name: Install dependencies
         run: mvn install -Pnative -pl ai-app -am -DskipTests
 
-      - name: Native compile (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx4g"
-
-      - name: Native compile (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1"
-
-      - name: Native compile (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
+      - name: Native compile
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
             -Dnative-image.buildArgs="-J-Xmx4g"
@@ -77,11 +62,9 @@ jobs:
       - name: Rename binary
         shell: bash
         run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            mv ai-app/target/eddie-app.exe ai-app/target/${{ matrix.binary-name }}
-          else
-            mv ai-app/target/eddie-app ai-app/target/${{ matrix.binary-name }}
-          fi
+          SRC="ai-app/target/eddie-app"
+          [ "${{ runner.os }}" = "Windows" ] && SRC="ai-app/target/eddie-app.exe"
+          mv "$SRC" "ai-app/target/${{ matrix.binary-name }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -89,6 +72,71 @@ jobs:
           name: ${{ matrix.binary-name }}
           path: ai-app/target/${{ matrix.binary-name }}
 
+  # ─── Job 2: macOS 原生二进制 (arm64 + x86_64，串行编译) ─
+  native-build-macos:
+    name: Native Build (macOS arm64 + x86_64)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 25 (GraalVM)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'graalvm'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.16'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy frontend static files
+        run: |
+          mkdir -p ai-app/src/main/resources/static
+          cp -r frontend/dist/* ai-app/src/main/resources/static/
+
+      - name: Install dependencies
+        run: mvn install -Pnative -pl ai-app -am -DskipTests
+
+      # ── 1/2: 编译 arm64 ──
+      - name: Native compile (arm64)
+        run: |
+          mvn -Pnative native:compile -pl ai-app -DskipTests \
+            -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1"
+
+      - name: Rename arm64 binary
+        run: |
+          mv ai-app/target/eddie-app ai-app/target/eddie-${{ inputs.version }}-darwin-arm64
+
+      # ── 2/2: 交叉编译 x86_64 ──
+      - name: Native compile (x86_64 cross-compile)
+        run: |
+          mvn -Pnative native:compile -pl ai-app -DskipTests \
+            -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1 --target=darwin-amd64"
+
+      - name: Rename x86_64 binary
+        run: |
+          mv ai-app/target/eddie-app ai-app/target/eddie-${{ inputs.version }}-darwin-amd64
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-binaries
+          path: |
+            ai-app/target/eddie-${{ inputs.version }}-darwin-arm64
+            ai-app/target/eddie-${{ inputs.version }}-darwin-amd64
+
+  # ─── Job 3: JAR 包 ──────────────────────────────────
   jar-build:
     name: Build JAR
     runs-on: ubuntu-latest
@@ -124,15 +172,63 @@ jobs:
       - name: Package JAR
         run: mvn clean package -DskipTests -Dmaven.javadoc.skip=true
 
+      - name: Copy JAR with version
+        run: |
+          cp ai-app/target/eddie-app.jar ai-app/target/eddie-${{ inputs.version }}.jar
+
       - name: Upload JAR
         uses: actions/upload-artifact@v7
         with:
           name: eddie-jar
-          path: ai-app/target/eddie-app.jar
+          path: ai-app/target/eddie-${{ inputs.version }}.jar
 
+  # ─── Job 4: 压缩打包 ──────────────────────────────────
+  package-archives:
+    name: Package Archives
+    needs: [native-build, native-build-macos]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all native binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: raw-binaries
+
+      - name: Create compressed archives
+        run: |
+          mkdir -p archives
+
+          # Linux amd64 → tar.gz
+          tar czf archives/eddie-${{ inputs.version }}-linux-amd64.tar.gz \
+            -C "raw-binaries/eddie-${{ inputs.version }}-linux-amd64" \
+            eddie-${{ inputs.version }}-linux-amd64
+
+          # macOS arm64 → tar.gz
+          tar czf archives/eddie-${{ inputs.version }}-darwin-arm64.tar.gz \
+            -C "raw-binaries/macos-binaries" \
+            eddie-${{ inputs.version }}-darwin-arm64
+
+          # macOS x86_64 → tar.gz
+          tar czf archives/eddie-${{ inputs.version }}-darwin-amd64.tar.gz \
+            -C "raw-binaries/macos-binaries" \
+            eddie-${{ inputs.version }}-darwin-amd64
+
+          # Windows → zip
+          cd "raw-binaries/eddie-${{ inputs.version }}-windows-amd64.exe"
+          zip "../../archives/eddie-${{ inputs.version }}-windows-amd64.zip" \
+            "eddie-${{ inputs.version }}-windows-amd64.exe"
+          cd ../..
+
+      - name: Upload archives
+        uses: actions/upload-artifact@v7
+        with:
+          name: packaged-archives
+          path: archives/
+
+  # ─── Job 5: 创建 Release ─────────────────────────────
   create-release:
     name: Create Release
-    needs: [native-build, jar-build]
+    needs: [native-build, native-build-macos, jar-build, package-archives]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -145,9 +241,8 @@ jobs:
         with:
           path: release-artifacts
 
-      - name: Rename JAR for release
-        run: |
-          cp release-artifacts/eddie-jar/eddie-app.jar release-artifacts/eddie-${{ inputs.version }}.jar
+      - name: List downloaded artifacts
+        run: find release-artifacts -type f
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -158,7 +253,8 @@ jobs:
             请查看 [CHANGELOG](CHANGELOG.md) 了解此版本的变更详情。
           draft: true
           files: |
-            release-artifacts/eddie-linux-amd64/eddie-linux-amd64
-            release-artifacts/eddie-darwin-amd64/eddie-darwin-amd64
-            release-artifacts/eddie-windows-amd64/eddie-windows-amd64.exe
-            release-artifacts/eddie-${{ inputs.version }}.jar
+            release-artifacts/packaged-archives/eddie-${{ inputs.version }}-linux-amd64.tar.gz
+            release-artifacts/packaged-archives/eddie-${{ inputs.version }}-darwin-arm64.tar.gz
+            release-artifacts/packaged-archives/eddie-${{ inputs.version }}-darwin-amd64.tar.gz
+            release-artifacts/packaged-archives/eddie-${{ inputs.version }}-windows-amd64.zip
+            release-artifacts/eddie-jar/eddie-${{ inputs.version }}.jar
