@@ -130,7 +130,6 @@ mvn -Pnative native:compile -pl ai-app -DskipTests
 | `-Os`                                      | 优化二进制体积     |
 | `-H:GenerateDebugInfo=0`                   | 不生成调试信息     |
 | `--initialize-at-build-time=...`           | 指定类在构建时初始化  |
-| `--allow-incomplete-classpath`             | 允许不完整的类路径   |
 | `--report-unsupported-elements-at-runtime` | 运行时报告不支持的元素 |
 
 ---

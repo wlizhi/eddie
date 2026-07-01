@@ -88,7 +88,6 @@
                                 <buildArg>
                                     --initialize-at-build-time=org.sqlite.JDBC,org.sqlite.core.DB,org.sqlite.util,org.xerial.snappy,ch.qos.logback,org.slf4j,org.jsoup
                                 </buildArg>
-                                <buildArg>--allow-incomplete-classpath</buildArg>
                                 <buildArg>--report-unsupported-elements-at-runtime</buildArg>
                             </buildArgs>
                         </configuration>
