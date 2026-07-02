@@ -162,6 +162,7 @@ jobs:
           java-version: '25'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'maven'
+          check-for-updates: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
