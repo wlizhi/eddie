@@ -446,6 +446,8 @@ defineExpose({focusInput})
   gap: var(--space-2);
   padding: 0 var(--space-5) var(--space-3);
   flex-shrink: 0;
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
 }
 
 /* ===== 模型选择器 ===== */
@@ -506,6 +508,7 @@ defineExpose({focusInput})
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  flex-wrap: wrap;
 }
 
 .toggle-chip {
