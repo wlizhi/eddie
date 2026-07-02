@@ -2,29 +2,31 @@
  * @author Eddie
  * @date 2026-06-30
  *
- * macOS 标题栏（hiddenInset 模式）
+ * 自定义标题栏（仅 macOS hiddenInset 模式需要）
+ * - macOS: hiddenInset 移除原生标题栏但保留交通灯，此组件提供拖拽区域
+ * - Windows/Linux: 使用原生标题栏或 hidden + overlay，无需此组件
  * - 背景使用 --bg-primary，与页面完美融合
  * - -webkit-app-region: drag → 操作系统原生处理双击最大化，零卡顿
  * - 无边框/无分隔线，消除边界感
  -->
 
 <script setup lang="ts">
-import {ref} from 'vue'
+import {ref, onMounted} from 'vue'
 
-const isElectron = ref(false)
+const isMacTitleBar = ref(false)
 
-const api = (window as any).electronAPI
-if (api) {
-  isElectron.value = true
-  // 确保 CSS 变量在首次渲染前设置（index.html 已有，这里冗余保证）
-  document.documentElement.style.setProperty('--title-bar-height', '38px')
-}
-
-
+onMounted(() => {
+  // 仅在 macOS Electron 环境下显示（titleBarStyle: 'hiddenInset'）
+  const api = (window as any).electronAPI
+  if (api && navigator.platform?.toLowerCase().includes('mac')) {
+    isMacTitleBar.value = true
+    document.documentElement.style.setProperty('--title-bar-height', '38px')
+  }
+})
 </script>
 
 <template>
-  <div v-if="isElectron" class="title-bar">
+  <div v-if="isMacTitleBar" class="title-bar">
     <!-- 左侧留空 → macOS 交通灯浮层，设 no-drag 避免拦截点击 -->
     <div class="title-bar-spacer"/>
 

@@ -224,16 +224,16 @@ animation:slide 1.4s ease-in-out infinite}
 }
 
 // ============================================================
-// 创建主窗口 (hiddenInset + titleBarOverlay + drag 原生双击最大化)
+// 创建主窗口 (平台自适应: macOS hiddenInset + overlay, Windows hidden + overlay, Linux 默认)
 // ============================================================
 function createMainWindow() {
     const startupTheme = readThemePrefs()
+    const isMac = process.platform === 'darwin'
+    const isWin = process.platform === 'win32'
 
-    mainWindow = new BrowserWindow({
+    const browserOptions = {
         width: 1200, height: 800, minWidth: 800, minHeight: 600,
         title: 'Eddie',
-        titleBarStyle: 'hiddenInset',
-        titleBarOverlay: {color: '#18181b', symbolColor: '#a1a1aa'},
         backgroundColor: '#18181b',       // 与深色主题一致，消除白闪
         show: false,
         backgroundThrottling: false,
@@ -242,7 +242,20 @@ function createMainWindow() {
             nodeIntegration: false,
             contextIsolation: true,
         },
-    });
+    };
+
+    if (isMac) {
+        // macOS: hiddenInset — 保留交通灯区域，标题栏通过 TitleBar.vue 自定义拖拽区
+        browserOptions.titleBarStyle = 'hiddenInset';
+        browserOptions.titleBarOverlay = {color: '#18181b', symbolColor: '#a1a1aa'};
+    } else if (isWin) {
+        // Windows: hidden — 隐藏原生标题栏，保留原生窗口控制按钮覆盖层
+        browserOptions.titleBarStyle = 'hidden';
+        browserOptions.titleBarOverlay = {color: '#18181b', symbolColor: '#a1a1aa'};
+    }
+    // Linux: 默认标题栏，不做特殊处理
+
+    mainWindow = new BrowserWindow(browserOptions);
 
     mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getLoadingHtml(startupTheme))}`);
     mainWindow.once('ready-to-show', () => mainWindow.show());
@@ -284,7 +297,12 @@ function setupIpc() {
     // 更新标题栏 overlay 颜色（前端主题切换时调用）
     ipcMain.on('update-title-bar-overlay', (_e, {color, symbolColor}) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setTitleBarOverlay?.({color, symbolColor});
+            try {
+                mainWindow.setTitleBarOverlay?.({color, symbolColor});
+            } catch (err) {
+                // Windows/Linux 未启用 overlay 时调用会抛出 TypeError，静默忽略
+                console.warn('[Eddie] setTitleBarOverlay not supported on this platform:', err.message);
+            }
         }
     });
 
