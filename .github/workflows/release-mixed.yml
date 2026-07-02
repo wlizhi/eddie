@@ -420,9 +420,9 @@ jobs:
   # ═══════════════════════════════════════════════════════════
   # 创建 Release（云端）
   # ═══════════════════════════════════════════════════════════
-  create-release:
+    create-release:
     name: Create Release
-    needs: [native-build, jar-build]
+    needs: [ native-build, native-build-macos, jar-build, electron-build, electron-build-macos ]
     if: success()
     runs-on: ubuntu-latest
     permissions:
