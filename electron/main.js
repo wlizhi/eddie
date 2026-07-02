@@ -47,10 +47,17 @@ function writeThemePrefs(theme) {
 // 后端路径
 // ============================================================
 function getBackendPath() {
+    let basePath;
     if (!app.isPackaged) {
-        return path.join(__dirname, '..', 'target', 'eddie-app');
+        basePath = path.join(__dirname, '..', 'target', 'eddie-app');
+    } else {
+        basePath = path.join(process.resourcesPath, 'eddie-app');
     }
-    return path.join(process.resourcesPath, 'eddie-app');
+    // Windows 下 PE 可执行文件必须带 .exe 后缀，否则 spawn() 会失败
+    if (process.platform === 'win32') {
+        basePath += '.exe';
+    }
+    return basePath;
 }
 
 // ============================================================

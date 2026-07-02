@@ -16,15 +16,16 @@ files:
 
 icon: icons/icon.png
 
-extraResources:
-  # Java 后端原生二进制
-  - from: ../target/eddie-app
-    to: eddie-app
-  # Vue 前端构建产物
-  - from: ../frontend/dist
-    to: frontend-dist
+# extraResources 已移至各平台独立配置，详见 win/mac/linux 块
 
 mac:
+  extraResources:
+    # Java 后端原生二进制
+    - from: ../target/eddie-app
+      to: eddie-app
+    # Vue 前端构建产物
+    - from: ../frontend/dist
+      to: frontend-dist
   category: public.app-category.productivity
   target:
     - target: dmg
@@ -34,6 +35,13 @@ mac:
   artifactName: "${productName}-${version}-mac-${arch}.${ext}"
 
 win:
+  extraResources:
+    # Java 后端原生二进制（Windows 必须带 .exe 后缀）
+    - from: ../target/eddie-app.exe
+      to: eddie-app.exe
+    # Vue 前端构建产物
+    - from: ../frontend/dist
+      to: frontend-dist
   target:
     - target: nsis
       arch:
@@ -45,6 +53,13 @@ nsis:
   allowToChangeInstallationDirectory: true
 
 linux:
+  extraResources:
+    # Java 后端原生二进制
+    - from: ../target/eddie-app
+      to: eddie-app
+    # Vue 前端构建产物
+    - from: ../frontend/dist
+      to: frontend-dist
   target:
     - target: AppImage
       arch:

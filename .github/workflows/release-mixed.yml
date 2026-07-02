@@ -302,12 +302,14 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             # Windows: artifact 是 .zip 格式
             7z e native-binary/${{ matrix.binary-name }}.zip -otarget -y
+            mv target/${{ matrix.binary-name }} target/eddie-app.exe
+            chmod +x target/eddie-app.exe
           else
             # Linux/macOS: artifact 是 .tar.gz 格式
             tar -xzf native-binary/${{ matrix.binary-name }}.tar.gz -C target --strip-components=2
+            mv target/${{ matrix.binary-name }} target/eddie-app
+            chmod +x target/eddie-app
           fi
-          mv target/${{ matrix.binary-name }} target/eddie-app
-          chmod +x target/eddie-app
 
       - name: Setup Node.js
         if: steps.check.outputs.skip != 'true'
