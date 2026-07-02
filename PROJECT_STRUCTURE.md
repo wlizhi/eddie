@@ -41,7 +41,7 @@ eddie/
 ├── ai-memory/                     # 记忆模块（上下文记忆及缓存）
 │   └── src/main/java/cc/wlizhi/eddie/memory/
 │       ├── controller/          # 记忆接口
-│       ├── service/             # 短期 / 中期压缩 / 长期摘要
+│       ├── service/             # 模型记忆处理逻辑
 │       ├── context/             # 上下文及缓存
 │       └── entity/              # 记忆实体
 ├── ai-tools/                     # 工具模块（内置工具注册与管理）

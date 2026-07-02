@@ -4,6 +4,16 @@
 
 ---
 
+## 🖼 截图
+
+![聊天界面](screenshots/chat.png)
+![设置面板](screenshots/settings.png)
+
+[//]: # (![智能体执行]&#40;screenshots/agent.png&#41;)
+
+
+---
+
 ## ⚡ 快速开始
 
 ### 🖥 本地安装包
@@ -32,16 +42,6 @@ java -jar dist/eddie-app.jar
 ```
 
 > 完整构建（含 Native + Electron）：`./build-desktop.sh --all`
-
----
-
-## 🖼 截图
-
-![聊天界面](screenshots/chat.png)
-![设置面板](screenshots/settings.png)
-
-[//]: # (![智能体执行]&#40;screenshots/agent.png&#41;)
--->
 
 ---
 
@@ -126,14 +126,15 @@ java -jar dist/eddie-app.jar
 
 项目提供 [`build-desktop.sh`](build-desktop.sh) 一键构建脚本，支持多参数组合，适用于 macOS / Linux / Windows（Git Bash）。
 
-| 参数 | 说明 |
-|------|------|
-| `--native` | 仅构建原生二进制 |
-| `--jar` | 仅构建 JAR 包 |
-| `--frontend` | 仅构建前端 |
+| 参数           | 说明                                  |
+|--------------|-------------------------------------|
+| `--native`   | 仅构建原生二进制                            |
+| `--jar`      | 仅构建 JAR 包                           |
+| `--frontend` | 仅构建前端                               |
 | `--electron` | 打包 Electron 桌面安装包（需先构建 Native + 前端） |
-| `--clean` | 清理所有构建产物 |
-| `--all` | 完整构建（Native + JAR + 前端 + Electron） |
+| `--clean`    | 清理所有构建产物                            |
+| `--all`      | 完整构建（Native + JAR + 前端 + Electron）  |
+| `--help`     | 参数文档                                |
 
 常用组合示例：
 
@@ -169,17 +170,17 @@ java -jar dist/eddie-app.jar
 
 ## 🔧 技术选型
 
-| 类别      | 技术                                         |
-|---------|--------------------------------------------|
-| 语言      | Java 25（GraalVM Native Image 打包）           |
-| 后端框架    | Spring Boot 4.1.0 + Spring AI 2.0.0        |
-| 数据库     | SQLite（`~/.eddie/eddie.db`）                |
-| 持久层     | Spring JDBC Template（HikariCP 连接池，最大 1 连接） |
-| AI 协议   | OpenAI 兼容协议（DeepSeek API / OpenAI API）     |
-| MCP 客户端 | `spring-ai-starter-mcp-client`             |
-| 前端      | Vue 3 + Vite + TypeScript                  |
-| 构建工具    | Maven 多模块                                  |
-| 打包方式    | JAR（源码构建）/ GraalVM Native Image（AOT 编译）    |
+| 类别      | 技术                                                      |
+|---------|---------------------------------------------------------|
+| 语言      | Java 25（GraalVM Native Image 打包）                        |
+| 后端框架    | Spring Boot 4.1.0 + Spring AI 2.0.0                     |
+| 数据库     | SQLite（`~/.eddie/eddie.db`）                             |
+| 持久层     | Spring JDBC Template（HikariCP 连接池，最大 1 连接）              |
+| AI 协议   | OpenAI 兼容协议（DeepSeek API / OpenAI API）                  |
+| MCP 客户端 | `spring-ai-starter-mcp-client`                          |
+| 前端      | Vue 3 + Vite + TypeScript                               |
+| 构建工具    | Maven                                                   |
+| 打包方式    | JAR（源码构建）/ GraalVM Native Image（AOT 编译）/本地安装包（Electron） |
 
 ---
 
