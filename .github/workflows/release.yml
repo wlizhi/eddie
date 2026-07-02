@@ -132,7 +132,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
-            zip ai-app/target/${{ matrix.binary-name }}.zip ai-app/target/${{ matrix.binary-name }}
+            7z a -tzip ai-app/target/${{ matrix.binary-name }}.zip ai-app/target/${{ matrix.binary-name }}
           else
             tar -czf ai-app/target/${{ matrix.binary-name }}.tar.gz ai-app/target/${{ matrix.binary-name }}
           fi
