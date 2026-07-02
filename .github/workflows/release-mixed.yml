@@ -158,16 +158,16 @@ jobs:
       # 使用自托管 runner 环境变量中的 GRAALVM_HOME 配置 JDK
       - name: Set up GraalVM JDK 25 (local)
         run: |
-          echo "JAVA_HOME=${{ env.GRAALVM_HOME }}" >> "$GITHUB_ENV"
-          echo "GRAALVM_HOME=${{ env.GRAALVM_HOME }}" >> "$GITHUB_ENV"
-          echo "${{ env.GRAALVM_HOME }}/bin" >> "$GITHUB_PATH"
+          echo "JAVA_HOME=$GRAALVM_HOME" >> "$GITHUB_ENV"
+          echo "GRAALVM_HOME=$GRAALVM_HOME" >> "$GITHUB_ENV"
+          echo "$GRAALVM_HOME/bin" >> "$GITHUB_PATH"
           java --version
           native-image --version
 
       # 使用自托管 runner 环境变量中的 NODE_HOME 配置 Node.js
       - name: Set up Node.js 24.16 (local)
         run: |
-          echo "${{ env.NODE_HOME }}/bin" >> "$GITHUB_PATH"
+          echo "$NODE_HOME/bin" >> "$GITHUB_PATH"
           node --version
           npm --version
 
