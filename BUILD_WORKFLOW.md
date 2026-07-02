@@ -1,28 +1,37 @@
-# Eddie AI 构建工作流说明
+# Eddie 构建工作流说明
 
 ## 概述
 
-Eddie AI 项目支持灵活的构建工作流，可以根据需要选择性构建不同平台的产物，节省 CI 算力和时间。
+Eddie 项目支持灵活的构建工作流，可以根据需要选择性构建不同平台的产物，节省 CI 算力和时间。
 
 ## 产物清单
 
 | 类型 | 平台 | 架构 | 数量 |
 |---|---|---|---|
-| 原生二进制 | Linux | amd64 | 1 |
-| 原生二进制 | macOS | arm64 (Apple Silicon) | 1 |
-| 原生二进制 | Windows | amd64 | 1 |
 | JAR 包 | 跨平台 | — | 1 |
-| Electron 套壳 | Linux | x64 (AppImage) | 1 |
-| Electron 套壳 | macOS | arm64 (DMG) | 1 |
-| Electron 套壳 | Windows | x64 (NSIS) | 1 |
+| 原生二进制 | Linux | amd64 | 1 |
+| Electron 安装包 | Linux | x64 (AppImage) | 1 |
+| 原生二进制 | macOS | arm64 (Apple Silicon) | 1 |
+| Electron 安装包 | macOS | arm64 (DMG) | 1 |
+| 原生二进制 | Windows | amd64 | 1 |
+| Electron 安装包 | Windows | x64 (NSIS) | 1 |
 
 **总计 7 个产物**
 
 ## Release 工作流
 
+项目提供两个 Release 工作流：
+
+| 工作流 | macOS 构建方式 | 适用场景 |
+|---|---|---|
+| `Release` | GitHub 托管的 `macos-latest` runner | 不包含 macOS 原生二进制时，或仅需 JAR/Linux/Windows |
+| `Release (Mixed)` | 本地自托管 runner（`[self-hosted, macOS, ARM64]`） | 需要构建 macOS 原生二进制或 DMG 安装包时 |
+
+> `Release` 工作流的 macOS 原生构建在 GitHub 托管 runner 上会触发 GraalVM 死锁 bug（详见下方注意事项），因此需改用 `Release (Mixed)` 并配合自托管 runner 执行。
+
 ### 触发方式
 
-在 GitHub Actions 页面手动触发 `Release` workflow，支持以下参数：
+Fork 后，在 GitHub Actions 页面手动触发 `Release` workflow，支持以下参数：
 
 ```
 Version * _____________________ v1.0.0
@@ -37,6 +46,8 @@ Version * _____________________ v1.0.0
 
 [Run workflow] [Cancel]
 ```
+
+> **注意：** `Release` 工作流中 macOS 原生二进制在 GitHub 托管的 `macos-latest` runner 上构建时会触发 GraalVM 死锁 bug，导致构建失败。如需构建 macOS 二进制，请改用 [`Release (Mixed)`](.github/workflows/release-mixed.yml) 工作流——该工作流对 macOS 使用自托管 runner（其他平台仍用 GitHub 托管 runner），可绕过此问题。
 
 ### 使用场景
 

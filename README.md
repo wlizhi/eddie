@@ -1,10 +1,20 @@
 # Eddie
 
-个人电脑 AI 助手 — 助手聊天 + 智能体 + 多模型支持
+桌面 AI 助手 — 助手聊天 + 智能体 + 多模型支持
 
 ---
 
 ## ⚡ 快速开始
+
+### 🖥 本地安装包
+
+前往 [Releases](https://github.com/wlizhi/eddie/releases) 下载对应系统的安装包：
+
+- **macOS**：下载 `.dmg` 文件，打开后将 Eddie 拖入 Applications 文件夹即可
+- **Windows**：下载 `.exe` 文件，双击运行安装向导
+- **Linux**：下载 `.AppImage` 文件，赋予执行权限后直接运行
+
+> 安装包已内置原生二进制，安装后开箱即用，无需额外配置。
 
 ### 📥 下载预编译二进制
 
@@ -17,27 +27,11 @@
 ### 📦 源码构建（需 Java 25 + Node.js 24）
 
 ```shell
-# 1. 构建前端
-cd frontend && npm install && npm run build
-cd ..
-
-# 2. 复制静态资源
-cp -r frontend/dist/* ai-app/src/main/resources/static/
-
-# 3. 打包并启动
-mvn clean package -DskipTests
-java -jar ai-app/target/ai-app-1.0.0.jar
+./build-desktop.sh --jar
+java -jar dist/eddie-app.jar
 ```
 
-### 🏗 AOT 编译（GraalVM Native Image）
-
-编译为本地二进制，无需 JRE，启动更快、资源占用更低：
-
-```shell
-./build-native.sh
-```
-
-详情参见下方 [AOT 编译](#aot-compile) 章节。
+> 完整构建（含 Native + Electron）：`./build-desktop.sh --all`
 
 ---
 
@@ -61,67 +55,45 @@ java -jar ai-app/target/ai-app-1.0.0.jar
 
 ---
 
-## 📦 源码构建（JAR）
+## 🔨 构建方式
 
-构建可执行 JAR 包，依赖 JRE 25 运行。
+### 📦 JAR 包构建
+
+构建可执行 JAR 包，依赖 JRE 25 运行，最稳定、跨平台。
 
 ```shell
-# 1. 构建前端
-cd frontend && npm run build
-
-# 2. 复制前端产物到后端静态资源目录
-rm -rf ai-app/src/main/resources/static/*
-cp -r frontend/dist/* ai-app/src/main/resources/static/
-
-# 3. 打包后端
-mvn clean package -DskipTests
+./build-desktop.sh --jar
 ```
 
-产物：`ai-app/target/ai-app-1.0.0.jar`
+产物：`dist/eddie-app.jar`
 
 运行：
 
 ```shell
-java -jar ai-app/target/ai-app-1.0.0.jar
+java -jar dist/eddie-app.jar
 ```
 
-> 也可使用 `mvn install -DskipTests` 将模块安装到本地 Maven 仓库。
+> 也可手动执行 `mvn clean package -DskipTests` 在 `ai-app/target/` 下生成 JAR，
+> 或使用 `mvn install -DskipTests` 将模块安装到本地 Maven 仓库。
 
----
+### 🏗 AOT 编译（GraalVM Native Image）
 
-<a id="aot-compile"></a>
-## 🏗 AOT 编译（GraalVM Native Image）
+编译为本地二进制文件，无需 JRE，启动快（毫秒级）、资源占用低。
 
-编译为本地二进制文件，无需 JRE，启动快、资源占用低。需要所有依赖包全部兼容 AOT 注册，否则会编译失败或运行异常。
+> 如需二次开发，请考虑兼容 AOT 注册，否则会编译失败或运行异常。
 
 [GraalVM 下载链接](https://www.graalvm.org/downloads/#)
 
 ```shell
-# 1. 构建前端
-cd frontend && npm run build
-
-# 2. 复制前端产物
-rm -rf ai-app/src/main/resources/static/*
-cp -r frontend/dist/* ai-app/src/main/resources/static/
-
-# 3. AOT 预处理 + 本地编译
-mvn clean
-mvn install -Pnative -pl ai-app -am -DskipTests
-mvn -Pnative native:compile -pl ai-app -DskipTests
+./build-desktop.sh --native
 ```
+
+产物：`ai-app/target/eddie-app`
 
 > 可通过 `-Dnative-image.buildArgs` 传递额外参数给 `native-image`，例如限制内存：
 > `-Dnative-image.buildArgs="-J-Xmx10g"`
 
-产物：`ai-app/target/ai-app`
-
-也可以直接使用项目根目录的一键构建脚本：
-
-```shell
-./build-native.sh
-```
-
-### Native Image 构建参数
+#### Native Image 构建参数
 
 配置在 [`ai-app/pom.xml`](ai-app/pom.xml) 的 `native` profile 中：
 
@@ -132,23 +104,70 @@ mvn -Pnative native:compile -pl ai-app -DskipTests
 | `--initialize-at-build-time=...`           | 指定类在构建时初始化  |
 | `--report-unsupported-elements-at-runtime` | 运行时报告不支持的元素 |
 
+### 🖥 本地安装包构建（Electron）
+
+基于 Electron 将原生二进制打包为桌面安装包，提供原生桌面应用体验（系统托盘、自动启动等）。
+
+```shell
+./build-desktop.sh --electron
+```
+
+产物格式：
+
+| 平台 | 安装包格式 |
+|------|-----------|
+| macOS | DMG |
+| Windows | NSIS 安装程序 |
+| Linux | AppImage 便携包 |
+
+详细 CI 构建流程请查看 [`BUILD_WORKFLOW.md`](BUILD_WORKFLOW.md)。
+
+### 📜 构建脚本说明
+
+项目提供 [`build-desktop.sh`](build-desktop.sh) 一键构建脚本，支持多参数组合，适用于 macOS / Linux / Windows（Git Bash）。
+
+| 参数 | 说明 |
+|------|------|
+| `--native` | 仅构建原生二进制 |
+| `--jar` | 仅构建 JAR 包 |
+| `--frontend` | 仅构建前端 |
+| `--electron` | 打包 Electron 桌面安装包（需先构建 Native + 前端） |
+| `--clean` | 清理所有构建产物 |
+| `--all` | 完整构建（Native + JAR + 前端 + Electron） |
+
+常用组合示例：
+
+```shell
+./build-desktop.sh --clean --native --jar   # 清理后构建 Native + JAR
+./build-desktop.sh --native --electron      # 构建 Native + 前端 + Electron
+./build-desktop.sh --all                     # 完整构建
+```
+
+### 🔄 构建方式对比
+
+| 方式 | 特点 | 适用场景 |
+|------|------|----------|
+| **JAR 包** | 最稳定，跨平台，需 JRE 25 | 通用部署、容器化、服务端 |
+| **原生二进制** | 启动快（毫秒级），性能高，无需 JRE | 追求性能、资源受限环境 |
+| **本地安装包** | 使用简单，桌面集成好（系统托盘、自动启动） | 普通用户日常使用 |
+
 ---
 
 ## 🧩 模块
 
-| 模块                           | 包名                         | 说明                            |
-|------------------------------|----------------------------|-------------------------------|
-| [`ai-common`](ai-common)     | `cc.wlizhi.eddie.common`   | 公共定义：DTO、枚举、工具类               |
+| 模块                           | 包名                         | 说明                       |
+|------------------------------|----------------------------|--------------------------|
+| [`ai-common`](ai-common)     | `cc.wlizhi.eddie.common`   | 公共定义：DTO、枚举、工具类          |
 | [`ai-tools`](ai-tools)       | `cc.wlizhi.eddie.tools`    | 内置工具（WebSearch/WebFetch）注册与管理 |
-| [`ai-settings`](ai-settings) | `cc.wlizhi.eddie.settings` | 全局设置：模型提供商、MCP、显示配置           |
-| [`ai-memory`](ai-memory)     | `cc.wlizhi.eddie.memory`   | 记忆：短期、中期压缩、长期摘要、缓存            |
-| [`ai-chat`](ai-chat)         | `cc.wlizhi.eddie.chat`     | 助手聊天：对话管理、上下文构建               |
-| [`ai-agent`](ai-agent)       | `cc.wlizhi.eddie.agent`    | 智能体：任务规划、逐步执行                 |
-| [`ai-app`](ai-app)           | `cc.wlizhi.eddie.app`      | 启动入口 + GraalVM 打包             |
+| [`ai-settings`](ai-settings) | `cc.wlizhi.eddie.settings` | 全局设置：模型提供商、MCP、显示配置      |
+| [`ai-memory`](ai-memory)     | `cc.wlizhi.eddie.memory`   | 记忆：模型记忆、上下文处理及缓存相关       |
+| [`ai-chat`](ai-chat)         | `cc.wlizhi.eddie.chat`     | 助手聊天：对话管理、上下文构建          |
+| [`ai-agent`](ai-agent)       | `cc.wlizhi.eddie.agent`    | 智能体：任务规划、逐步执行            |
+| [`ai-app`](ai-app)           | `cc.wlizhi.eddie.app`      | 启动入口 + GraalVM 打包        |
 
 ---
 
-## 🔧 技术栈
+## 🔧 技术选型
 
 | 类别      | 技术                                         |
 |---------|--------------------------------------------|
@@ -190,7 +209,7 @@ mvn -Pnative native:compile -pl ai-app -DskipTests
 
 ### 🚧 开发中
 
-- 🧠 **多级记忆系统** — 短期对话记忆已完成，中期压缩与长期摘要开发中
+- 🧠 **模型记忆** — 短期对话记忆已完成，中期压缩与长期摘要开发中
 - 🤖 **智能体** — 任务规划与逐步执行（基础框架开发中）
 
 ---
