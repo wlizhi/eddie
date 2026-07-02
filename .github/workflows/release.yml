@@ -40,9 +40,9 @@ jobs:
   native-build:
     name: Native Build (${{ matrix.os }})
     if: |
-      (runner.os == 'Linux' && inputs.build-native-linux == 'true') ||
-      (runner.os == 'macOS' && inputs.build-native-macos == 'true') ||
-      (runner.os == 'Windows' && inputs.build-native-windows == 'true')
+      (matrix.os == 'ubuntu-latest' && inputs.build-native-linux == 'true') ||
+      (matrix.os == 'macos-latest' && inputs.build-native-macos == 'true') ||
+      (matrix.os == 'windows-latest' && inputs.build-native-windows == 'true')
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
@@ -175,9 +175,9 @@ jobs:
   electron-build:
     name: Electron Build (${{ matrix.os }})
     if: |
-      (runner.os == 'Linux' && inputs.build-electron-linux == 'true') ||
-      (runner.os == 'macOS' && inputs.build-electron-macos == 'true') ||
-      (runner.os == 'Windows' && inputs.build-electron-windows == 'true')
+      (matrix.os == 'ubuntu-latest' && inputs.build-electron-linux == 'true') ||
+      (matrix.os == 'macos-latest' && inputs.build-electron-macos == 'true') ||
+      (matrix.os == 'windows-latest' && inputs.build-electron-windows == 'true')
     needs: [native-build]
     runs-on: ${{ matrix.os }}
     strategy:
