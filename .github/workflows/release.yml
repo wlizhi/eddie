@@ -39,10 +39,6 @@ on:
 jobs:
   native-build:
     name: Native Build (${{ matrix.os }})
-    if: |
-      (matrix.os == 'ubuntu-latest' && inputs.build-native-linux == 'true') ||
-      (matrix.os == 'macos-latest' && inputs.build-native-macos == 'true') ||
-      (matrix.os == 'windows-latest' && inputs.build-native-windows == 'true')
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
@@ -56,9 +52,20 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Skip if not requested
+        id: check
+        if: |
+          (runner.os == 'Linux' && inputs.build-native-linux != 'true') ||
+          (runner.os == 'macOS' && inputs.build-native-macos != 'true') ||
+          (runner.os == 'Windows' && inputs.build-native-windows != 'true')
+        shell: bash
+        run: echo "skip=true" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v5
+        if: steps.check.outputs.skip != 'true'
 
       - name: Set up JDK 25 (GraalVM)
+        if: steps.check.outputs.skip != 'true'
         uses: actions/setup-java@v5
         with:
           distribution: 'graalvm'
@@ -66,6 +73,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Node.js
+        if: steps.check.outputs.skip != 'true'
         uses: actions/setup-node@v6
         with:
           node-version: '24.16'
@@ -73,40 +81,44 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Build frontend
+        if: steps.check.outputs.skip != 'true'
         working-directory: frontend
         run: |
           npm ci
           npm run build
 
       - name: Copy frontend static files
+        if: steps.check.outputs.skip != 'true'
         shell: bash
         run: |
           mkdir -p ai-app/src/main/resources/static
           cp -r frontend/dist/* ai-app/src/main/resources/static/
 
       - name: Install dependencies
+        if: steps.check.outputs.skip != 'true'
         run: mvn install -Pnative -pl ai-app -am -DskipTests
 
       - name: Native compile (Linux)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && steps.check.outputs.skip != 'true'
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
             -Dnative-image.buildArgs="-J-Xmx4g"
 
       - name: Native compile (macOS)
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && steps.check.outputs.skip != 'true'
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
             -Dnative-image.buildArgs="-J-Xmx4g --parallelism=1"
 
       - name: Native compile (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && steps.check.outputs.skip != 'true'
         shell: bash
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
             -Dnative-image.buildArgs="-J-Xmx4g"
 
       - name: Rename binary
+        if: steps.check.outputs.skip != 'true'
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
@@ -116,6 +128,7 @@ jobs:
           fi
 
       - name: Compress binary
+        if: steps.check.outputs.skip != 'true'
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
@@ -125,6 +138,7 @@ jobs:
           fi
 
       - name: Upload artifact
+        if: steps.check.outputs.skip != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.binary-name }}
@@ -174,10 +188,6 @@ jobs:
 
   electron-build:
     name: Electron Build (${{ matrix.os }})
-    if: |
-      (matrix.os == 'ubuntu-latest' && inputs.build-electron-linux == 'true') ||
-      (matrix.os == 'macos-latest' && inputs.build-electron-macos == 'true') ||
-      (matrix.os == 'windows-latest' && inputs.build-electron-windows == 'true')
     needs: [native-build]
     runs-on: ${{ matrix.os }}
     strategy:
@@ -198,21 +208,34 @@ jobs:
             electron-dist-dir: electron/dist
 
     steps:
+      - name: Skip if not requested
+        id: check
+        if: |
+          (runner.os == 'Linux' && inputs.build-electron-linux != 'true') ||
+          (runner.os == 'macOS' && inputs.build-electron-macos != 'true') ||
+          (runner.os == 'Windows' && inputs.build-electron-windows != 'true')
+        shell: bash
+        run: echo "skip=true" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v5
+        if: steps.check.outputs.skip != 'true'
 
       - name: Download native binary
+        if: steps.check.outputs.skip != 'true'
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.binary-name }}
           path: native-binary
 
       - name: Prepare native binary for electron-builder
+        if: steps.check.outputs.skip != 'true'
         run: |
           mkdir -p target
           cp native-binary/${{ matrix.binary-name }} target/eddie-app
           chmod +x target/eddie-app
 
       - name: Setup Node.js
+        if: steps.check.outputs.skip != 'true'
         uses: actions/setup-node@v6
         with:
           node-version: '24.16'
@@ -220,25 +243,30 @@ jobs:
           cache-dependency-path: electron/package-lock.json
 
       - name: Build frontend
+        if: steps.check.outputs.skip != 'true'
         working-directory: frontend
         run: |
           npm ci
           npm run build
 
       - name: Copy frontend static files
+        if: steps.check.outputs.skip != 'true'
         run: |
           mkdir -p electron/src/main/resources/static
           cp -r frontend/dist/* electron/src/main/resources/static/
 
       - name: Install Electron dependencies
+        if: steps.check.outputs.skip != 'true'
         working-directory: electron
         run: npm install
 
       - name: Build Electron app
+        if: steps.check.outputs.skip != 'true'
         working-directory: electron
         run: npx electron-builder ${{ matrix.electron-arch }}
 
       - name: Upload Electron artifact
+        if: steps.check.outputs.skip != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.binary-name }}-electron
