@@ -328,29 +328,20 @@ jobs:
           # 创建临时文件列表
           touch release-files.txt
           
-          # 添加原生二进制文件（如果构建了），重命名带上版本号
+          # ── 平台无关 ──────────────────────────────────────────
+          # 添加JAR文件（如果构建了）
+          if [ "${{ inputs.build-jar }}" = "true" ]; then
+            echo "release-artifacts/eddie-${{ inputs.version }}.jar" >> release-files.txt
+          fi
+
+          # ── Linux ─────────────────────────────────────────────
+          # 原生二进制
           if [ "${{ inputs.build-native-linux }}" = "true" ]; then
             cp release-artifacts/eddie-linux-amd64/eddie-linux-amd64.tar.gz \
                release-artifacts/eddie-linux-amd64/eddie-${{ inputs.version }}-linux-amd64.tar.gz
             echo "release-artifacts/eddie-linux-amd64/eddie-${{ inputs.version }}-linux-amd64.tar.gz" >> release-files.txt
           fi
-          if [ "${{ inputs.build-native-macos }}" = "true" ]; then
-            cp release-artifacts/eddie-darwin-arm64/eddie-darwin-arm64.tar.gz \
-               release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz
-            echo "release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz" >> release-files.txt
-          fi
-          if [ "${{ inputs.build-native-windows }}" = "true" ]; then
-            cp release-artifacts/eddie-windows-amd64.exe/eddie-windows-amd64.exe.zip \
-               release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip
-            echo "release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip" >> release-files.txt
-          fi
-          
-          # 添加JAR文件（如果构建了）
-          if [ "${{ inputs.build-jar }}" = "true" ]; then
-            echo "release-artifacts/eddie-${{ inputs.version }}.jar" >> release-files.txt
-          fi
-          
-          # 添加Electron安装包（如果构建了），重命名带上版本号
+          # Electron 安装包（如果构建了）
           # 文件名格式：Eddie-<version>-<platform>-<arch>.<ext> -> Eddie-<release-version>-<platform>-<arch>.<ext>
           if [ "${{ inputs.build-electron-linux }}" = "true" ]; then
             for f in release-artifacts/eddie-linux-amd64-electron/*.AppImage; do
@@ -361,6 +352,15 @@ jobs:
             done
             find release-artifacts/eddie-linux-amd64-electron/ -type f -name "*.yml" >> release-files.txt
           fi
+
+          # ── macOS ─────────────────────────────────────────────
+          # 原生二进制
+          if [ "${{ inputs.build-native-macos }}" = "true" ]; then
+            cp release-artifacts/eddie-darwin-arm64/eddie-darwin-arm64.tar.gz \
+               release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz
+            echo "release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz" >> release-files.txt
+          fi
+          # Electron 安装包
           if [ "${{ inputs.build-electron-macos }}" = "true" ]; then
             for f in release-artifacts/eddie-darwin-arm64-electron/*.dmg; do
               [ -f "$f" ] || continue
@@ -370,6 +370,15 @@ jobs:
             done
             find release-artifacts/eddie-darwin-arm64-electron/ -type f -name "*.yml" >> release-files.txt
           fi
+
+          # ── Windows ───────────────────────────────────────────
+          # 原生二进制
+          if [ "${{ inputs.build-native-windows }}" = "true" ]; then
+            cp release-artifacts/eddie-windows-amd64.exe/eddie-windows-amd64.exe.zip \
+               release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip
+            echo "release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip" >> release-files.txt
+          fi
+          # Electron 安装包
           if [ "${{ inputs.build-electron-windows }}" = "true" ]; then
             for f in release-artifacts/eddie-windows-amd64.exe-electron/*.exe; do
               [ -f "$f" ] || continue
