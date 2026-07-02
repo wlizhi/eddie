@@ -155,21 +155,21 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up GraalVM JDK 25
-        uses: graalvm/setup-graalvm@v1
-        with:
-          distribution: 'graalvm'
-          java-version: '25'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cache: 'maven'
-          check-for-updates: false
+      # 使用自托管 runner 环境变量中的 GRAALVM_HOME 配置 JDK
+      - name: Set up GraalVM JDK 25 (local)
+        run: |
+          echo "JAVA_HOME=${{ env.GRAALVM_HOME }}" >> "$GITHUB_ENV"
+          echo "GRAALVM_HOME=${{ env.GRAALVM_HOME }}" >> "$GITHUB_ENV"
+          echo "${{ env.GRAALVM_HOME }}/bin" >> "$GITHUB_PATH"
+          java --version
+          native-image --version
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24.16'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+      # 使用自托管 runner 环境变量中的 NODE_HOME 配置 Node.js
+      - name: Set up Node.js 24.16 (local)
+        run: |
+          echo "${{ env.NODE_HOME }}/bin" >> "$GITHUB_PATH"
+          node --version
+          npm --version
 
       - name: Build frontend
         working-directory: frontend
