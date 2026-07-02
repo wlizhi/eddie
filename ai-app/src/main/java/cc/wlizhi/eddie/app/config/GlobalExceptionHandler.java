@@ -9,12 +9,16 @@ import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.exception.AppException;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
@@ -45,6 +49,47 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResult<Void>> handleIllegalArgument(IllegalArgumentException e) {
         return ResponseEntity.badRequest().body(ApiResult.error(ApiResultCode.BAD_REQUEST, e.getMessage()));
+    }
+
+    /**
+     * 处理缺少必需的请求参数（如 @RequestParam 注解的必填参数未传递）
+     * <p>
+     * 返回 400 友好提示，避免客户端看到服务端内部的参数名/类型细节。
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResult<Void>> handleMissingParam(MissingServletRequestParameterException e) {
+        log.warn("缺少必需的请求参数", e);
+        return ResponseEntity.badRequest().body(ApiResult.error(ApiResultCode.BAD_REQUEST, "缺少必需的请求参数"));
+    }
+
+    /**
+     * 处理 @Valid/@Validated 注解校验失败（如 @RequestBody 中字段的 @NotNull 等注解校验未通过）
+     * <p>
+     * 提取第一个校验失败信息作为提示返回 400。
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResult<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .orElse("请求参数校验不通过");
+        log.warn("请求参数校验失败: {}", message, e);
+        return ResponseEntity.badRequest().body(ApiResult.error(ApiResultCode.BAD_REQUEST, message));
+    }
+
+    /**
+     * 处理 @Validated 注解在方法参数上的校验失败（如 @RequestParam @NotNull 等）
+     * <p>
+     * 提取第一个校验失败信息作为提示返回 400。
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResult<Void>> handleConstraintViolation(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream()
+                .findFirst()
+                .map(ConstraintViolation::getMessage)
+                .orElse("请求参数校验不通过");
+        log.warn("请求参数校验失败: {}", message, e);
+        return ResponseEntity.badRequest().body(ApiResult.error(ApiResultCode.BAD_REQUEST, message));
     }
 
     /**

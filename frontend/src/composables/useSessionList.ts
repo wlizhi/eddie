@@ -90,9 +90,11 @@ export function useSessionList(
         onSearchChange()
     })
 
-    // 切换助手时重新加载
-    watch(activeId, () => {
-        loadSessions(true)
+    // 切换助手时重新加载（需等助手列表加载完成，避免竞态）
+    watch([activeId, () => assistantStore.loaded], () => {
+        if (assistantStore.activeId && assistantStore.loaded) {
+            loadSessions(true)
+        }
     }, {immediate: true})
 
     // 新建会话时，直接追加到列表顶部，避免全量刷新
