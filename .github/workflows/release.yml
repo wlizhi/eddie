@@ -108,7 +108,7 @@ jobs:
         if: runner.os == 'macOS' && steps.check.outputs.skip != 'true'
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx6g --parallelism=1"
+            -Dnative-image.buildArgs="-J-Xmx6g -J-Djava.util.concurrent.ForkJoinPool.common.parallelism=1 --parallelism=1"
 
       - name: Native compile (Windows)
         if: runner.os == 'Windows' && steps.check.outputs.skip != 'true'
