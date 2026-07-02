@@ -30,7 +30,7 @@ mac:
     - target: dmg
       arch:
         - arm64
-  hardenedRuntime: true
+  identity: null
   artifactName: "${productName}-${version}-mac-${arch}.${ext}"
 
 win:
