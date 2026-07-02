@@ -16,7 +16,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:sqlite:${user.home}/.eddie/eddie.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000
+    url: jdbc:sqlite:${eddie.data}/eddie.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000
     driver-class-name: org.sqlite.JDBC
     hikari:
       maximum-pool-size: 1
@@ -27,7 +27,6 @@ spring:
 
 # 数据目录（SQLite 数据库、用户上传文件等）
 eddie:
-  data-dir: ${user.home}/.eddie
   init-scripts:
       - init/model_provider_init_1.sql
   prompts:

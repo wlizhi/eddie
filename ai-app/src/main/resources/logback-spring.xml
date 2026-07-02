@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--
+      ============================================================
+      日志配置 —— Logback（Spring Boot 扩展版）
+      @author Eddie
+      @date 2026-07-02
+      ============================================================
+      将 ${eddie.data-dir}/logs/ 下的日志按大小 + 日期滚动归档。
+      目录不存在时 Logback 会自动创建。
+    -->
+
+    <!-- 从 application.yml 读取 eddie.data-dir，默认 ${user.home}/.eddie -->
+    <springProperty name="DATA_DIR" source="eddie.data-dir" defaultValue="${user.home}/.eddie"/>
+
+    <property name="LOG_PATH" value="${DATA_DIR}/logs"/>
+    <property name="LOG_FILE_NAME" value="eddie-app"/>
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+
+    <!-- ========== 控制台输出 ========== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ========== 文件输出（按大小+日期滚动） ========== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 当前活动日志文件 -->
+        <file>${LOG_PATH}/${LOG_FILE_NAME}.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 归档文件名：eddie-app.2026-07-02.0.log, eddie-app.2026-07-02.1.log ... -->
+            <fileNamePattern>${LOG_PATH}/${LOG_FILE_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- 单个日志文件达到 10MB 时触发滚动 -->
+            <maxFileSize>10MB</maxFileSize>
+            <!-- 保留最近 30 天的日志 -->
+            <maxHistory>30</maxHistory>
+            <!-- 所有归档日志总大小上限 1GB -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ========== 根日志级别 ========== -->
+    <!-- INFO 及以上日志同时输出到控制台和文件 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

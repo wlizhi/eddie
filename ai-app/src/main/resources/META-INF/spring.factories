@@ -1,2 +1,0 @@
-org.springframework.context.ApplicationContextInitializer=\
-  cc.wlizhi.eddie.app.init.EddieContextInitializer

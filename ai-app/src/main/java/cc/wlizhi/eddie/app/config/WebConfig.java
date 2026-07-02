@@ -27,9 +27,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @jakarta.annotation.Resource
     private ApiTimingInterceptor apiTimingInterceptor;
-
-    @Value("${eddie.data-dir}")
-    private String dataDir;
+    @Value("${eddie.images}")
+    private String imagesPath;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -40,9 +39,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 用户上传的图片文件：/api/files/** → ~/.eddie/images/
-        String imagesPath = Path.of(dataDir, "images").toUri().toString();
+        String path = Path.of(imagesPath).toUri().toString();
         registry.addResourceHandler("/api/files/**")
-                .addResourceLocations(imagesPath);
+                .addResourceLocations(path);
 
         // SPA 路由支持
         registry.addResourceHandler("/**")
