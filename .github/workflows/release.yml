@@ -331,24 +331,23 @@ jobs:
             echo "release-artifacts/eddie-${{ inputs.version }}.jar" >> release-files.txt
           fi
           
-          # 添加Electron安装包（如果构建了）
+           # 添加Electron安装包（如果构建了），动态发现实际文件
           if [ "${{ inputs.build-electron-linux }}" = "true" ]; then
-            echo "release-artifacts/eddie-linux-amd64-electron/electron/dist/*.AppImage" >> release-files.txt
+            find release-artifacts/eddie-linux-amd64-electron/ -type f >> release-files.txt
           fi
           if [ "${{ inputs.build-electron-macos }}" = "true" ]; then
-            echo "release-artifacts/eddie-darwin-arm64-electron/electron/dist/*.dmg" >> release-files.txt
+            find release-artifacts/eddie-darwin-arm64-electron/ -type f >> release-files.txt
           fi
           if [ "${{ inputs.build-electron-windows }}" = "true" ]; then
-            echo "release-artifacts/eddie-windows-amd64.exe-electron/electron/dist/*.exe" >> release-files.txt
+            find release-artifacts/eddie-windows-amd64.exe-electron/ -type f >> release-files.txt
           fi
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.version }}
-          name: ${{ inputs.version }}
-          body: |
-            请查看 [CHANGELOG](CHANGELOG.md) 了解此版本的变更详情。
-          draft: true
-          files: |
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ inputs.version }} \
+            --title "${{ inputs.version }}" \
+            --notes "请查看 [CHANGELOG](CHANGELOG.md) 了解此版本的变更详情。" \
+            --draft \
             $(cat release-files.txt)
