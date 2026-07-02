@@ -55,9 +55,9 @@ jobs:
       - name: Skip if not requested
         id: check
         if: |
-          (runner.os == 'Linux' && inputs.build-native-linux != 'true') ||
-          (runner.os == 'macOS' && inputs.build-native-macos != 'true') ||
-          (runner.os == 'Windows' && inputs.build-native-windows != 'true')
+          (runner.os == 'Linux' && !inputs.build-native-linux) ||
+          (runner.os == 'macOS' && !inputs.build-native-macos) ||
+          (runner.os == 'Windows' && !inputs.build-native-windows)
         shell: bash
         run: echo "skip=true" >> "$GITHUB_OUTPUT"
 
@@ -146,7 +146,7 @@ jobs:
 
   jar-build:
     name: Build JAR
-    if: ${{ inputs.build-jar == 'true' }}
+    if: inputs.build-jar
     runs-on: ubuntu-latest
 
     steps:
@@ -211,9 +211,9 @@ jobs:
       - name: Skip if not requested
         id: check
         if: |
-          (runner.os == 'Linux' && inputs.build-electron-linux != 'true') ||
-          (runner.os == 'macOS' && inputs.build-electron-macos != 'true') ||
-          (runner.os == 'Windows' && inputs.build-electron-windows != 'true')
+          (runner.os == 'Linux' && !inputs.build-electron-linux) ||
+          (runner.os == 'macOS' && !inputs.build-electron-macos) ||
+          (runner.os == 'Windows' && !inputs.build-electron-windows)
         shell: bash
         run: echo "skip=true" >> "$GITHUB_OUTPUT"
 
@@ -275,7 +275,7 @@ jobs:
   create-release:
     name: Create Release
     needs: [native-build, jar-build, electron-build]
-    if: always()
+    if: success()
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -289,7 +289,7 @@ jobs:
           path: release-artifacts
 
       - name: Rename JAR for release
-        if: ${{ inputs.build-jar == 'true' }}
+        if: inputs.build-jar
         run: |
           cp release-artifacts/eddie-jar/eddie-app.jar release-artifacts/eddie-${{ inputs.version }}.jar
 
