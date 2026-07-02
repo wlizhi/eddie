@@ -423,13 +423,34 @@ jobs:
   create-release:
     name: Create Release
     needs: [ native-build, native-build-macos, jar-build, electron-build, electron-build-macos ]
-    if: success()
+    # 使用 always() 防止上游 skipped job 连带跳过 release
+    # 但同时需要前置步骤检查是否有 job 真正失败
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Abort if any build job failed
+        shell: bash
+        run: |
+          # 遍历所有上游 job 的结果，任一 failure/cancelled 则中止
+          FAILED=false
+          for ctx in native-build native-build-macos jar-build electron-build electron-build-macos; do
+            result="${{ needs[ctx].result }}"
+            case "$result" in
+              failure|cancelled)
+                echo "::error::Job $ctx result: $result — aborting release"
+                FAILED=true
+                ;;
+            esac
+          done
+          if [ "$FAILED" = "true" ]; then
+            exit 1
+          fi
+          echo "All build jobs passed — proceeding with release."
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
