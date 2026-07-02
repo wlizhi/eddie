@@ -339,12 +339,29 @@ jobs:
         working-directory: electron
         run: npx electron-builder ${{ matrix.electron-arch }}
 
+      - name: Prepare Electron artifacts for upload
+        if: steps.check.outputs.skip != 'true'
+        shell: bash
+        run: |
+          # 只复制安装包文件到独立目录，排除 .app bundle 内部文件
+          mkdir -p electron/installers
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            cp electron/dist/*.dmg electron/installers/ 2>/dev/null || true
+            cp electron/dist/latest*.yml electron/installers/ 2>/dev/null || true
+          elif [ "${{ runner.os }}" = "Linux" ]; then
+            cp electron/dist/*.AppImage electron/installers/ 2>/dev/null || true
+            cp electron/dist/latest*.yml electron/installers/ 2>/dev/null || true
+          elif [ "${{ runner.os }}" = "Windows" ]; then
+            cp electron/dist/*.exe electron/installers/ 2>/dev/null || true
+            cp electron/dist/latest*.yml electron/installers/ 2>/dev/null || true
+          fi
+
       - name: Upload Electron artifact
         if: steps.check.outputs.skip != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.binary-name }}-electron
-          path: ${{ matrix.electron-dist-dir }}/*
+          path: electron/installers/*
 
   # ═══════════════════════════════════════════════════════════
   # 创建 Release（云端）
@@ -397,23 +414,47 @@ jobs:
             echo "release-artifacts/eddie-${{ inputs.version }}.jar" >> release-files.txt
           fi
           
-          # 添加Electron安装包（如果构建了），动态发现实际文件
+          # 添加Electron安装包（如果构建了），重命名带上版本号
+          # 文件名格式：Eddie-<version>-<platform>-<arch>.<ext> -> Eddie-<release-version>-<platform>-<arch>.<ext>
           if [ "${{ inputs.build-electron-linux }}" = "true" ]; then
-            find release-artifacts/eddie-linux-amd64-electron/ -type f >> release-files.txt
+            for f in release-artifacts/eddie-linux-amd64-electron/*.AppImage; do
+              [ -f "$f" ] || continue
+              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
+              cp "$f" "$new_f"
+              echo "$new_f" >> release-files.txt
+            done
+            find release-artifacts/eddie-linux-amd64-electron/ -type f -name "*.yml" >> release-files.txt
           fi
           if [ "${{ inputs.build-electron-macos }}" = "true" ]; then
-            find release-artifacts/eddie-darwin-arm64-electron/ -type f >> release-files.txt
+            for f in release-artifacts/eddie-darwin-arm64-electron/*.dmg; do
+              [ -f "$f" ] || continue
+              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
+              cp "$f" "$new_f"
+              echo "$new_f" >> release-files.txt
+            done
+            find release-artifacts/eddie-darwin-arm64-electron/ -type f -name "*.yml" >> release-files.txt
           fi
           if [ "${{ inputs.build-electron-windows }}" = "true" ]; then
-            find release-artifacts/eddie-windows-amd64.exe-electron/ -type f >> release-files.txt
+            for f in release-artifacts/eddie-windows-amd64.exe-electron/*.exe; do
+              [ -f "$f" ] || continue
+              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
+              cp "$f" "$new_f"
+              echo "$new_f" >> release-files.txt
+            done
+            find release-artifacts/eddie-windows-amd64.exe-electron/ -type f -name "*.yml" >> release-files.txt
           fi
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create ${{ inputs.version }} \
+          # 安全读取文件路径列表，避免 word splitting 和 glob 展开问题
+          files=()
+          while IFS= read -r f; do
+            files+=("$f")
+          done < release-files.txt
+          gh release create "${{ inputs.version }}" \
             --title "${{ inputs.version }}" \
             --notes "请查看 [CHANGELOG](CHANGELOG.md) 了解此版本的变更详情。" \
             --draft \
-            $(cat release-files.txt)
+            "${files[@]}"
