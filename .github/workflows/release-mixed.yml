@@ -180,7 +180,7 @@ jobs:
       - name: Native compile (macOS arm64)
         run: |
           mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -Dnative-image.buildArgs="-J-Xmx8g --parallelism=1"
+            -Dnative-image.buildArgs="-J-Xmx10g --parallelism=1"
 
       - name: Rename binary
         run: |
