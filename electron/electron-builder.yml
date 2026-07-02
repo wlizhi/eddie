@@ -37,10 +37,6 @@ mac:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  # 关闭固态压缩，让进度条平滑更新，避免"卡住"假象
-  solidCompression: false
-  # 普通压缩（比 LZMA 快，解压体验更好）
-  compress: normal
   # 增量更新
   differentialPackage: true
 
