@@ -383,86 +383,8 @@ jobs:
         with:
           path: release-artifacts
 
-      - name: Rename JAR for release
-        if: inputs.build-jar
+      - name: Generate Release Notes
         run: |
-          cp release-artifacts/eddie-jar/eddie-app.jar release-artifacts/eddie-${{ inputs.version }}.jar
-
-      - name: Prepare Release Files
-        run: |
-          # 创建临时文件列表
-          touch release-files.txt
-          
-          # ── 平台无关 ──────────────────────────────────────────
-          # 添加JAR文件（如果构建了）
-          if [ "${{ inputs.build-jar }}" = "true" ]; then
-            echo "release-artifacts/eddie-${{ inputs.version }}.jar" >> release-files.txt
-          fi
-
-          # ── Linux ─────────────────────────────────────────────
-          # 原生二进制
-          if [ "${{ inputs.build-native-linux }}" = "true" ]; then
-            cp release-artifacts/eddie-linux-amd64/eddie-linux-amd64.tar.gz \
-               release-artifacts/eddie-linux-amd64/eddie-${{ inputs.version }}-linux-amd64.tar.gz
-            echo "release-artifacts/eddie-linux-amd64/eddie-${{ inputs.version }}-linux-amd64.tar.gz" >> release-files.txt
-          fi
-          # Electron 安装包（如果构建了）
-          # 文件名格式：Eddie-<version>-<platform>-<arch>.<ext> -> Eddie-<release-version>-<platform>-<arch>.<ext>
-          if [ "${{ inputs.build-electron-linux }}" = "true" ]; then
-            for f in release-artifacts/eddie-linux-amd64-electron/*.AppImage; do
-              [ -f "$f" ] || continue
-              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
-              cp "$f" "$new_f"
-              echo "$new_f" >> release-files.txt
-            done
-            find release-artifacts/eddie-linux-amd64-electron/ -type f -name "*.yml" >> release-files.txt
-          fi
-
-          # ── macOS ─────────────────────────────────────────────
-          # 原生二进制
-          if [ "${{ inputs.build-native-macos }}" = "true" ]; then
-            cp release-artifacts/eddie-darwin-arm64/eddie-darwin-arm64.tar.gz \
-               release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz
-            echo "release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz" >> release-files.txt
-          fi
-          # Electron 安装包
-          if [ "${{ inputs.build-electron-macos }}" = "true" ]; then
-            for f in release-artifacts/eddie-darwin-arm64-electron/*.dmg; do
-              [ -f "$f" ] || continue
-              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
-              cp "$f" "$new_f"
-              echo "$new_f" >> release-files.txt
-            done
-            find release-artifacts/eddie-darwin-arm64-electron/ -type f -name "*.yml" >> release-files.txt
-          fi
-
-          # ── Windows ───────────────────────────────────────────
-          # 原生二进制
-          if [ "${{ inputs.build-native-windows }}" = "true" ]; then
-            cp release-artifacts/eddie-windows-amd64.exe/eddie-windows-amd64.exe.zip \
-               release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip
-            echo "release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip" >> release-files.txt
-          fi
-          # Electron 安装包
-          if [ "${{ inputs.build-electron-windows }}" = "true" ]; then
-            for f in release-artifacts/eddie-windows-amd64.exe-electron/*.exe; do
-              [ -f "$f" ] || continue
-              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
-              cp "$f" "$new_f"
-              echo "$new_f" >> release-files.txt
-            done
-            find release-artifacts/eddie-windows-amd64.exe-electron/ -type f -name "*.yml" >> release-files.txt
-          fi
-
-      - name: Create Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # 安全读取文件路径列表，避免 word splitting 和 glob 展开问题
-          files=()
-          while IFS= read -r f; do
-            files+=("$f")
-          done < release-files.txt
           {
             echo "请查看 [CHANGELOG](CHANGELOG.md) 了解此版本的变更详情。"
             echo ""
@@ -480,8 +402,93 @@ jobs:
             echo "> xattr -dr com.apple.quarantine /Applications/Eddie.app"
             echo "> \`\`\`"
           } > release-notes.md
+
+      - name: Create Release & Upload Assets (Sequential)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # ── ① 创建 draft release（不含资产）───────────────────
           gh release create "${{ inputs.version }}" \
             --title "${{ inputs.version }}" \
             --notes-file release-notes.md \
-            --draft \
-            "${files[@]}"
+            --draft
+
+          # 逐文件上传辅助函数（串行，保证 created_at 严格递增）
+          upload() {
+            echo "→ Uploading: $(basename "$1")"
+            gh release upload "${{ inputs.version }}" "$1" --clobber
+          }
+
+          # ═══════════════════════════════════════════════════════
+          # 以下顺序即 Release 页面展示顺序
+          # ═══════════════════════════════════════════════════════
+
+          # ── ② JAR ──
+          if [ "${{ inputs.build-jar }}" = "true" ]; then
+            cp release-artifacts/eddie-jar/eddie-app.jar \
+               "release-artifacts/eddie-${{ inputs.version }}.jar"
+            upload "release-artifacts/eddie-${{ inputs.version }}.jar"
+          fi
+
+          # ── ③ Linux 原生二进制 ──
+          if [ "${{ inputs.build-native-linux }}" = "true" ]; then
+            cp release-artifacts/eddie-linux-amd64/eddie-linux-amd64.tar.gz \
+               "release-artifacts/eddie-linux-amd64/eddie-${{ inputs.version }}-linux-amd64.tar.gz"
+            upload "release-artifacts/eddie-linux-amd64/eddie-${{ inputs.version }}-linux-amd64.tar.gz"
+          fi
+
+          # ── ④ Linux Electron ──
+          if [ "${{ inputs.build-electron-linux }}" = "true" ]; then
+            for f in release-artifacts/eddie-linux-amd64-electron/*.AppImage; do
+              [ -f "$f" ] || continue
+              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
+              cp "$f" "$new_f"
+              upload "$new_f"
+            done
+            for f in release-artifacts/eddie-linux-amd64-electron/*.yml; do
+              [ -f "$f" ] || continue
+              upload "$f"
+            done
+          fi
+
+          # ── ⑤ macOS 原生二进制 ──
+          if [ "${{ inputs.build-native-macos }}" = "true" ]; then
+            cp release-artifacts/eddie-darwin-arm64/eddie-darwin-arm64.tar.gz \
+               "release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz"
+            upload "release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz"
+          fi
+
+          # ── ⑥ macOS Electron ──
+          if [ "${{ inputs.build-electron-macos }}" = "true" ]; then
+            for f in release-artifacts/eddie-darwin-arm64-electron/*.dmg; do
+              [ -f "$f" ] || continue
+              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
+              cp "$f" "$new_f"
+              upload "$new_f"
+            done
+            for f in release-artifacts/eddie-darwin-arm64-electron/*.yml; do
+              [ -f "$f" ] || continue
+              upload "$f"
+            done
+          fi
+
+          # ── ⑦ Windows 原生二进制 ──
+          if [ "${{ inputs.build-native-windows }}" = "true" ]; then
+            cp release-artifacts/eddie-windows-amd64.exe/eddie-windows-amd64.exe.zip \
+               "release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip"
+            upload "release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip"
+          fi
+
+          # ── ⑧ Windows Electron ──
+          if [ "${{ inputs.build-electron-windows }}" = "true" ]; then
+            for f in release-artifacts/eddie-windows-amd64.exe-electron/*.exe; do
+              [ -f "$f" ] || continue
+              new_f="$(dirname "$f")/$(basename "$f" | sed 's/\(Eddie-\)[^-]*/\1${{ inputs.version }}/')"
+              cp "$f" "$new_f"
+              upload "$new_f"
+            done
+            for f in release-artifacts/eddie-windows-amd64.exe-electron/*.yml; do
+              [ -f "$f" ] || continue
+              upload "$f"
+            done
+          fi
