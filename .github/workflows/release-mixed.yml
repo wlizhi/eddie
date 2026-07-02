@@ -289,7 +289,8 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         run: |
           mkdir -p target
-          cp native-binary/${{ matrix.binary-name }} target/eddie-app
+          tar -xzf native-binary/${{ matrix.binary-name }}.tar.gz -C target --strip-components=2
+          mv target/${{ matrix.binary-name }} target/eddie-app
           chmod +x target/eddie-app
 
       - name: Setup Node.js
@@ -359,15 +360,21 @@ jobs:
           # 创建临时文件列表
           touch release-files.txt
           
-          # 添加原生二进制文件（如果构建了）
+          # 添加原生二进制文件（如果构建了），重命名带上版本号
           if [ "${{ inputs.build-native-linux }}" = "true" ]; then
-            echo "release-artifacts/eddie-linux-amd64/eddie-linux-amd64.tar.gz" >> release-files.txt
+            cp release-artifacts/eddie-linux-amd64/eddie-linux-amd64.tar.gz \
+               release-artifacts/eddie-linux-amd64/eddie-${{ inputs.version }}-linux-amd64.tar.gz
+            echo "release-artifacts/eddie-linux-amd64/eddie-${{ inputs.version }}-linux-amd64.tar.gz" >> release-files.txt
           fi
           if [ "${{ inputs.build-native-macos }}" = "true" ]; then
-            echo "release-artifacts/eddie-darwin-arm64/eddie-darwin-arm64.tar.gz" >> release-files.txt
+            cp release-artifacts/eddie-darwin-arm64/eddie-darwin-arm64.tar.gz \
+               release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz
+            echo "release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz" >> release-files.txt
           fi
           if [ "${{ inputs.build-native-windows }}" = "true" ]; then
-            echo "release-artifacts/eddie-windows-amd64/eddie-windows-amd64.zip" >> release-files.txt
+            cp release-artifacts/eddie-windows-amd64/eddie-windows-amd64.zip \
+               release-artifacts/eddie-windows-amd64/eddie-${{ inputs.version }}-windows-amd64.zip
+            echo "release-artifacts/eddie-windows-amd64/eddie-${{ inputs.version }}-windows-amd64.zip" >> release-files.txt
           fi
           
           # 添加JAR文件（如果构建了）
