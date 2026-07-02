@@ -654,6 +654,7 @@ export function applyDisplaySettings(): void {
  * 同步 Electron 原生 UI：
  * 1. nativeTheme.themeSource → macOS 标题栏/滚动条等跟随前端主题
  * 2. titleBarOverlay color/symbolColor → 标题栏背景色跟随 --bg-primary
+ * 3. saveStartupTheme → 持久化启动主题，下次启动时加载页使用相同配色
  */
 function syncElectronTheme(): void {
     const api = (window as any).electronAPI
@@ -662,14 +663,28 @@ function syncElectronTheme(): void {
     // macOS 原生暗色/亮色模式
     api.setThemeSource(displaySettings.themeMode)
 
-    // 标题栏 overlay 颜色（hiddenInset 模式下覆盖 traffic light 区域背景）
+    // 标题栏 overlay 颜色
     const style = getComputedStyle(document.documentElement)
     const bg = style.getPropertyValue('--bg-primary').trim()
-    const symbol = style.getPropertyValue('--text-tertiary').trim()
+    const textPrimary = style.getPropertyValue('--text-primary').trim()
+    const textTertiary = style.getPropertyValue('--text-tertiary').trim()
+    const accent = style.getPropertyValue('--accent-default').trim()
     api.updateTitleBarOverlay({
         color: bg || '#18181b',
-        symbolColor: symbol || '#a1a1aa',
+        symbolColor: textTertiary || '#a1a1aa',
     })
+
+    // 持久化启动主题，下次启动时 Electron 加载页使用相同配色
+    if (api.saveStartupTheme) {
+        api.saveStartupTheme({
+            bgPrimary: bg || '#18181b',
+            textPrimary: textPrimary || '#e4e4e7',
+            textTertiary: textTertiary || '#52525b',
+            accent: accent || '#a1a1aa',
+            barTrack: displaySettings.themeMode === 'dark' ? '#27272a' : '#e4e4e7',
+            mode: displaySettings.themeMode,
+        })
+    }
 }
 
 // 导出主题相关工具函数，方便其他组件使用

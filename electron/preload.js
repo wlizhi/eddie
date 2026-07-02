@@ -35,4 +35,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setThemeSource: (source) => {
         ipcRenderer.send('set-theme-source', source);
     },
+
+    // ===== 持久化启动主题（主题切换时写入，下次启动加载页使用相同配色） =====
+    saveStartupTheme: (theme) => {
+        ipcRenderer.send('save-startup-theme', theme);
+    },
 });

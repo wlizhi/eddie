@@ -18,6 +18,32 @@ let mainWindow = null;
 let isQuitting = false;
 
 // ============================================================
+// 启动主题持久化路径
+// ============================================================
+const THEME_PREFS_PATH = path.join(app.getPath('userData'), 'theme-prefs.json')
+
+function readThemePrefs() {
+    try {
+        if (fs.existsSync(THEME_PREFS_PATH)) {
+            return JSON.parse(fs.readFileSync(THEME_PREFS_PATH, 'utf-8'))
+        }
+    } catch {}
+    return null
+}
+
+function writeThemePrefs(theme) {
+    try {
+        const dir = path.dirname(THEME_PREFS_PATH)
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, {recursive: true})
+        }
+        fs.writeFileSync(THEME_PREFS_PATH, JSON.stringify(theme, null, 2), 'utf-8')
+    } catch (err) {
+        console.warn(`[Eddie] Failed to write theme prefs: ${err.message}`)
+    }
+}
+
+// ============================================================
 // 后端路径
 // ============================================================
 function getBackendPath() {
@@ -163,22 +189,28 @@ h2{margin-bottom:.75rem;font-size:20px}
 }
 
 // ============================================================
-// 启动加载页
+// 启动加载页 — 使用主题颜色（从 theme-prefs.json 读取）
 // ============================================================
-function getLoadingHtml() {
+function getLoadingHtml(theme) {
+    const bg = theme?.bgPrimary || '#18181b'
+    const text = theme?.textPrimary || '#e4e4e7'
+    const accent = theme?.accent || '#a1a1aa'
+    const textTertiary = theme?.textTertiary || '#52525b'
+    const barTrack = theme?.barTrack || '#27272a'
+
     return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Eddie AI</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;
 height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-background:#18181b;color:#e4e4e7;user-select:none;overflow:hidden}
+background:${bg};color:${text};user-select:none;overflow:hidden}
 .brand{text-align:center;margin-bottom:48px}
 .brand h1{font-size:36px;font-weight:600;letter-spacing:4px}
-.brand h1 span{color:#52525b;font-weight:400}
-.bar-wrap{width:120px;height:2px;background:#27272a;border-radius:1px;overflow:hidden}
-.bar-inner{width:40%;height:100%;background:#a1a1aa;border-radius:1px;
+.brand h1 span{color:${textTertiary};font-weight:400}
+.bar-wrap{width:120px;height:2px;background:${barTrack};border-radius:1px;overflow:hidden}
+.bar-inner{width:40%;height:100%;background:${accent};border-radius:1px;
 animation:slide 1.4s ease-in-out infinite}
 @keyframes slide{0%{transform:translateX(-100%)}50%{transform:translateX(150%)}100%{transform:translateX(250%)}}
-.status{position:fixed;bottom:28px;font-size:12px;color:#52525b;letter-spacing:1px}</style></head><body>
+.status{position:fixed;bottom:28px;font-size:12px;color:${textTertiary};letter-spacing:1px}</style></head><body>
 <div class="brand"><h1>Eddie <span>AI</span></h1></div>
 <div class="bar-wrap"><div class="bar-inner"></div></div>
 <div class="status">INITIALIZING</div></body></html>`;
@@ -188,6 +220,8 @@ animation:slide 1.4s ease-in-out infinite}
 // 创建主窗口 (hiddenInset + titleBarOverlay + drag 原生双击最大化)
 // ============================================================
 function createMainWindow() {
+    const startupTheme = readThemePrefs()
+
     mainWindow = new BrowserWindow({
         width: 1200, height: 800, minWidth: 800, minHeight: 600,
         title: 'Eddie AI',
@@ -203,7 +237,7 @@ function createMainWindow() {
         },
     });
 
-    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getLoadingHtml())}`);
+    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getLoadingHtml(startupTheme))}`);
     mainWindow.once('ready-to-show', () => mainWindow.show());
 
     mainWindow.on('closed', () => {
@@ -251,6 +285,11 @@ function setupIpc() {
     ipcMain.on('set-theme-source', (_e, source) => {
         nativeTheme.themeSource = source; // 'dark' | 'light' | 'system'
     });
+
+    // 持久化启动主题（前端主题切换时写入，下次启动时加载页使用相同配色）
+    ipcMain.on('save-startup-theme', (_e, theme) => {
+        writeThemePrefs(theme)
+    })
 }
 
 // ============================================================
