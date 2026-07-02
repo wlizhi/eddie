@@ -165,7 +165,7 @@ function waitForBackend(port, retries = 60) {
 function showErrorPage(errorMessage) {
     if (mainWindow && !mainWindow.isDestroyed()) return;
 
-    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Eddie AI - 启动失败</title>
+    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Eddie - 启动失败</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;
 height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -180,7 +180,7 @@ h2{margin-bottom:.75rem;font-size:20px}
 
     mainWindow = new BrowserWindow({
         width: 480, height: 320, resizable: false,
-        title: 'Eddie AI - 启动失败', show: false,
+        title: 'Eddie - 启动失败', show: false,
         backgroundColor: '#1a1a1a',
         webPreferences: {preload: path.join(__dirname, 'preload.js'), nodeIntegration: false, contextIsolation: true},
     });
@@ -198,7 +198,7 @@ function getLoadingHtml(theme) {
     const textTertiary = theme?.textTertiary || '#52525b'
     const barTrack = theme?.barTrack || '#27272a'
 
-    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Eddie AI</title>
+    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Eddie</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;
 height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -224,7 +224,7 @@ function createMainWindow() {
 
     mainWindow = new BrowserWindow({
         width: 1200, height: 800, minWidth: 800, minHeight: 600,
-        title: 'Eddie AI',
+        title: 'Eddie',
         titleBarStyle: 'hiddenInset',
         titleBarOverlay: {color: '#18181b', symbolColor: '#a1a1aa'},
         backgroundColor: '#18181b',       // 与深色主题一致，消除白闪

@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>ai-tools</artifactId>
-    <name>Eddie AI — Tools</name>
+    <name>Eddie — Tools</name>
     <description>工具管理：内置工具注册与管理</description>
 
     <dependencies>

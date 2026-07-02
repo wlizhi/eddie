@@ -1,7 +1,7 @@
 {
   "name": "eddie-desktop",
   "version": "1.0.0",
-  "description": "Eddie AI — Desktop Application",
+  "description": "Eddie — Desktop Application",
   "main": "main.js",
   "private": true,
   "scripts": {
