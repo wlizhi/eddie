@@ -136,7 +136,12 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.binary-name }}
-          path: ai-app/target/${{ matrix.binary-name }}.tar.gz
+          path: >
+            ${{
+              runner.os == 'Windows' &&
+              format('ai-app/target/{0}.zip', matrix.binary-name) ||
+              format('ai-app/target/{0}.tar.gz', matrix.binary-name)
+            }}
 
   # ═══════════════════════════════════════════════════════════
   # macOS arm64：本地自托管 runner
@@ -287,9 +292,16 @@ jobs:
 
       - name: Prepare native binary for electron-builder
         if: steps.check.outputs.skip != 'true'
+        shell: bash
         run: |
           mkdir -p target
-          tar -xzf native-binary/${{ matrix.binary-name }}.tar.gz -C target --strip-components=2
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            # Windows: artifact 是 .zip 格式
+            7z e native-binary/${{ matrix.binary-name }}.zip -otarget -y
+          else
+            # Linux/macOS: artifact 是 .tar.gz 格式
+            tar -xzf native-binary/${{ matrix.binary-name }}.tar.gz -C target --strip-components=2
+          fi
           mv target/${{ matrix.binary-name }} target/eddie-app
           chmod +x target/eddie-app
 
@@ -372,9 +384,9 @@ jobs:
             echo "release-artifacts/eddie-darwin-arm64/eddie-${{ inputs.version }}-darwin-arm64.tar.gz" >> release-files.txt
           fi
           if [ "${{ inputs.build-native-windows }}" = "true" ]; then
-            cp release-artifacts/eddie-windows-amd64/eddie-windows-amd64.zip \
-               release-artifacts/eddie-windows-amd64/eddie-${{ inputs.version }}-windows-amd64.zip
-            echo "release-artifacts/eddie-windows-amd64/eddie-${{ inputs.version }}-windows-amd64.zip" >> release-files.txt
+            cp release-artifacts/eddie-windows-amd64.exe/eddie-windows-amd64.exe.zip \
+               release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip
+            echo "release-artifacts/eddie-windows-amd64.exe/eddie-${{ inputs.version }}-windows-amd64.zip" >> release-files.txt
           fi
           
           # 添加JAR文件（如果构建了）
@@ -390,7 +402,7 @@ jobs:
             echo "release-artifacts/eddie-darwin-arm64-electron/electron/dist/*.dmg" >> release-files.txt
           fi
           if [ "${{ inputs.build-electron-windows }}" = "true" ]; then
-            echo "release-artifacts/eddie-windows-amd64-electron/electron/dist/*.exe" >> release-files.txt
+            echo "release-artifacts/eddie-windows-amd64.exe-electron/electron/dist/*.exe" >> release-files.txt
           fi
 
       - name: Create Release
