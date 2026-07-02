@@ -251,35 +251,28 @@ jobs:
           path: ai-app/target/eddie-app.jar
 
   # ═══════════════════════════════════════════════════════════
-  # Electron 打包（云端，依赖所有 native build）
+  # Electron 打包 - Linux/Windows（云端矩阵，依赖 native-build）
   # ═══════════════════════════════════════════════════════════
   electron-build:
     name: Electron Build (${{ matrix.os }})
-    needs: [native-build, native-build-macos]
-    runs-on: ${{ matrix.os }}
+    needs: [native-build]
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        os: [ubuntu-latest, windows-latest]
         include:
           - os: ubuntu-latest
             binary-name: eddie-linux-amd64
             electron-arch: --linux
-            electron-dist-dir: electron/dist
-          - os: macos-latest
-            binary-name: eddie-darwin-arm64
-            electron-arch: --mac
-            electron-dist-dir: electron/dist
           - os: windows-latest
             binary-name: eddie-windows-amd64.exe
             electron-arch: --win
-            electron-dist-dir: electron/dist
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Skip if not requested
         id: check
         if: |
           (runner.os == 'Linux' && !inputs.build-electron-linux) ||
-          (runner.os == 'macOS' && !inputs.build-electron-macos) ||
           (runner.os == 'Windows' && !inputs.build-electron-windows)
         shell: bash
         run: echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -300,12 +293,10 @@ jobs:
         run: |
           mkdir -p target
           if [ "${{ runner.os }}" = "Windows" ]; then
-            # Windows: artifact 是 .zip 格式
             7z e native-binary/${{ matrix.binary-name }}.zip -otarget -y
             mv target/${{ matrix.binary-name }} target/eddie-app.exe
             chmod +x target/eddie-app.exe
           else
-            # Linux/macOS: artifact 是 .tar.gz 格式
             tar -xzf native-binary/${{ matrix.binary-name }}.tar.gz -C target --strip-components=2
             mv target/${{ matrix.binary-name }} target/eddie-app
             chmod +x target/eddie-app
@@ -346,18 +337,13 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         shell: bash
         run: |
-          # 只复制安装包文件到独立目录，排除 .app bundle 内部文件
           mkdir -p electron/installers
-          if [ "${{ runner.os }}" = "macOS" ]; then
-            cp electron/dist/*.dmg electron/installers/ 2>/dev/null || true
-            cp electron/dist/latest*.yml electron/installers/ 2>/dev/null || true
-          elif [ "${{ runner.os }}" = "Linux" ]; then
-            cp electron/dist/*.AppImage electron/installers/ 2>/dev/null || true
-            cp electron/dist/latest*.yml electron/installers/ 2>/dev/null || true
-          elif [ "${{ runner.os }}" = "Windows" ]; then
+          if [ "${{ runner.os }}" = "Windows" ]; then
             cp electron/dist/*.exe electron/installers/ 2>/dev/null || true
-            cp electron/dist/latest*.yml electron/installers/ 2>/dev/null || true
+          else
+            cp electron/dist/*.AppImage electron/installers/ 2>/dev/null || true
           fi
+          cp electron/dist/latest*.yml electron/installers/ 2>/dev/null || true
 
       - name: Upload Electron artifact
         if: steps.check.outputs.skip != 'true'
@@ -367,11 +353,76 @@ jobs:
           path: electron/installers/*
 
   # ═══════════════════════════════════════════════════════════
+  # Electron 打包 - macOS（云端，依赖 macOS native build）
+  # ═══════════════════════════════════════════════════════════
+  electron-build-macos:
+    name: Electron Build (macOS)
+    needs: [native-build-macos]
+    if: inputs.build-electron-macos
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download native binary
+        uses: actions/download-artifact@v4
+        with:
+          name: eddie-darwin-arm64
+          path: native-binary
+
+      - name: Prepare native binary for electron-builder
+        shell: bash
+        run: |
+          mkdir -p target
+          tar -xzf native-binary/eddie-darwin-arm64.tar.gz -C target --strip-components=2
+          mv target/eddie-darwin-arm64 target/eddie-app
+          chmod +x target/eddie-app
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.16'
+          cache: 'npm'
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy frontend static files
+        run: |
+          mkdir -p electron/src/main/resources/static
+          cp -r frontend/dist/* electron/src/main/resources/static/
+
+      - name: Install Electron dependencies
+        working-directory: electron
+        run: npm install
+
+      - name: Build Electron app
+        working-directory: electron
+        run: npx electron-builder --mac
+
+      - name: Prepare Electron artifacts for upload
+        shell: bash
+        run: |
+          mkdir -p electron/installers
+          cp electron/dist/*.dmg electron/installers/ 2>/dev/null || true
+          cp electron/dist/latest*.yml electron/installers/ 2>/dev/null || true
+
+      - name: Upload Electron artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: eddie-darwin-arm64-electron
+          path: electron/installers/*
+
+  # ═══════════════════════════════════════════════════════════
   # 创建 Release（云端）
   # ═══════════════════════════════════════════════════════════
   create-release:
     name: Create Release
-    needs: [native-build, native-build-macos, jar-build, electron-build]
+    needs: [native-build, jar-build]
     if: success()
     runs-on: ubuntu-latest
     permissions:
