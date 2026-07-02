@@ -318,25 +318,37 @@ jobs:
         with:
           path: release-artifacts
 
-      - name: Generate Release Notes
+      - name: Generate Release Notes from CHANGELOG.md
+        shell: bash
         run: |
-          {
-            echo "请查看 [CHANGELOG](CHANGELOG.md) 了解此版本的变更详情。"
-            echo ""
-            echo "> **🍎 macOS 用户注意**："
-            echo "> 首次打开 Eddie 时，系统可能提示应用无法验证。"
-            echo "> 请按以下步骤操作："
-            echo ">"
-            echo "> 1. 打开 **系统设置 → 隐私与安全性**"
-            echo "> 2. 向下滚动到 **安全性** 区域"
-            echo "> 3. 点击 **\"仍要打开\"** 按钮"
-            echo "> 4. 在弹出的确认窗口中点击 **\"打开\"**"
-            echo ">"
-            echo "> 如提示\"已损坏\"，请在终端执行："
-            echo "> \`\`\`bash"
-            echo "> xattr -dr com.apple.quarantine /Applications/Eddie.app"
-            echo "> \`\`\`"
-          } > release-notes.md
+          VERSION="${{ inputs.version }}"
+          VER="${VERSION#v}"
+
+          awk -v ver="$VER" '
+            $0 ~ "^## \\[" ver "\\]" { flag=1; next }
+            flag && /^## \[/ { exit }
+            flag { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            {
+              echo "请查看 [CHANGELOG](CHANGELOG.md) 了解此版本的变更详情。"
+              echo ""
+              echo "> **🍎 macOS 用户注意**："
+              echo "> 首次打开 Eddie 时，系统可能提示应用无法验证。"
+              echo "> 请按以下步骤操作："
+              echo ">"
+              echo "> 1. 打开 **系统设置 → 隐私与安全性**"
+              echo "> 2. 向下滚动到 **安全性** 区域"
+              echo "> 3. 点击 **\"仍要打开\"** 按钮"
+              echo "> 4. 在弹出的确认窗口中点击 **\"打开\"**"
+              echo ">"
+              echo "> 如提示\"已损坏\"，请在终端执行："
+              echo "> \`\`\`bash"
+              echo "> xattr -dr com.apple.quarantine /Applications/Eddie.app"
+              echo "> \`\`\`"
+            } > release-notes.md
+          fi
 
       - name: Create Release & Upload Assets (Sequential)
         env:
