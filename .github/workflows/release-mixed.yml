@@ -436,16 +436,19 @@ jobs:
       - name: Abort if any build job failed
         shell: bash
         run: |
-          # 遍历所有上游 job 的结果，任一 failure/cancelled 则中止
           FAILED=false
-          for ctx in native-build native-build-macos jar-build electron-build electron-build-macos; do
-            result="${{ needs[ctx].result }}"
-            case "$result" in
-              failure|cancelled)
-                echo "::error::Job $ctx result: $result — aborting release"
-                FAILED=true
-                ;;
-            esac
+          for result in \
+            "native-build:${{ needs.native-build.result }}" \
+            "native-build-macos:${{ needs.native-build-macos.result }}" \
+            "jar-build:${{ needs.jar-build.result }}" \
+            "electron-build:${{ needs.electron-build.result }}" \
+            "electron-build-macos:${{ needs.electron-build-macos.result }}"; do
+            job="${result%%:*}"
+            status="${result#*:}"
+            if [ "$status" = "failure" ] || [ "$status" = "cancelled" ]; then
+              echo "::error::Job $job result: $status — aborting release"
+              FAILED=true
+            fi
           done
           if [ "$FAILED" = "true" ]; then
             exit 1
