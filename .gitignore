@@ -5,6 +5,7 @@ target/
 *.iml
 .idea/
 .mvn/
+!.mvn/wrapper/
 .settings/
 .project
 .classpath
