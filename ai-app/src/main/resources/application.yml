@@ -10,11 +10,11 @@ server:
     max-connections: 20
     # 异步请求超时（毫秒）：
     # SSE 流式响应总时长限制，默认 Tomcat 为 30 秒。
-    # 慢模型长回答可能超过此值导致中途断开，设 10 分钟。
-    async-request-timeout: 600000
+    # 慢模型长回答可能超过此值导致中途断开，设 30 分钟。
+    async-request-timeout: 1800000
     # HTTP 连接超时（毫秒）：
-    # 建立 TCP 连接的最大等待时间。设为 10 分钟确保长连接不因空闲被回收。
-    connection-timeout: 600000
+    # 建立 TCP 连接的最大等待时间。设为 30 分钟确保长连接不因空闲被回收。
+    connection-timeout: 1800000
 
 spring:
   threads:
