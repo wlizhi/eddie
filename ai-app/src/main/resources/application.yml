@@ -1,6 +1,8 @@
 server:
   port: 11520
   tomcat:
+    # 虚拟线程模式下，Tomcat 内部线程池被替换为虚拟线程执行器，
+    # 以下 threads.max / min-spare 仅作为降级回退配置保留。
     threads:
       max: 8
       min-spare: 1
@@ -15,6 +17,9 @@ server:
     connection-timeout: 600000
 
 spring:
+  threads:
+    virtual:
+      enabled: true
   datasource:
     url: jdbc:sqlite:${eddie.data}/eddie.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000
     driver-class-name: org.sqlite.JDBC
@@ -32,4 +37,4 @@ eddie:
     - init/model_provider_init_1.sql
     - init/ai_assistant_init_1.sql
   prompts:
-    title-generation: prompts/title-generation.md
+    session-title-prompts: prompts/title-generation.md

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 工具回调解析器
@@ -44,6 +45,8 @@ public class ToolCallbackResolver {
 
     @Resource
     private McpClientRegistry mcpClientRegistry;
+
+    private final ReentrantLock builtInCallbackLock = new ReentrantLock();
 
     /**
      * BUILT_IN 工具名 → ToolCallback 的缓存（应用生命周期内不变）
@@ -165,7 +168,8 @@ public class ToolCallbackResolver {
         Map<String, ToolCallback> map = this.builtInCallbackMap;
         if (map != null) return map;
 
-        synchronized (this) {
+        builtInCallbackLock.lock();
+        try {
             map = this.builtInCallbackMap;
             if (map != null) return map;
 
@@ -184,6 +188,8 @@ public class ToolCallbackResolver {
             }
             this.builtInCallbackMap = newMap;
             return newMap;
+        } finally {
+            builtInCallbackLock.unlock();
         }
     }
 }
