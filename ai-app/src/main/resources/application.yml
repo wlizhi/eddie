@@ -29,5 +29,6 @@ spring:
 eddie:
   init-scripts:
     - init/model_provider_init_1.sql
+    - init/ai_assistant_init_1.sql
   prompts:
     title-generation: prompts/title-generation.md

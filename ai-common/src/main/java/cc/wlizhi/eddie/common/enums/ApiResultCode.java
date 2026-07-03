@@ -16,6 +16,9 @@ public enum ApiResultCode implements ResultCode {
     /** 请求参数错误 */
     BAD_REQUEST(400, "bad request"),
 
+    /** 服务商调用失败 */
+    PROVIDER_CALL_FAILED(460, "服务商调用失败，请检查 API 配置"),
+
     /** 未授权 */
     UNAUTHORIZED(401, "unauthorized"),
 

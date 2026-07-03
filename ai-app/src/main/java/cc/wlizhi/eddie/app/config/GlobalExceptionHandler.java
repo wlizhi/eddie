@@ -32,9 +32,27 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理系统自定义异常，按异常携带的 ResultCode 和 data 返回
+     * <p>
+     * 日志格式（可选字段有值才打印）：
+     * <pre>
+     * resultCode resultMessage exceptionMessage
+     * data
+     * originException
+     * </pre>
      */
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResult<Object>> handleAppException(AppException e) {
+        // 第一行：resultCode resultMessage exceptionMessage
+        log.warn("{} {} {}", e.getResultCode().getCode(), e.getResultCode().getMessage(), e.getMessage());
+        // 第二行：data（有值才打印）
+        if (e.getData() != null) {
+            log.warn("{}", e.getData());
+        }
+        // 第三行：originException（有值才打印）
+        if (e.getOriginException() != null) {
+            log.warn("originException: ", e.getOriginException());
+        }
+
         Object data = e.getData();
         int httpStatus = e.getResultCode().getCode();
         if (data != null) {

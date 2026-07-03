@@ -124,6 +124,7 @@ import {computed, onMounted, ref, watch} from 'vue'
 import type {ModelItem} from '@/types/modelProvider'
 import {CAPABILITY_LABELS} from '@/types/modelProvider'
 import {batchAddModels, batchRemoveModels, fetchRemoteModels} from '@/api/modelProvider'
+import {showToast} from '@/composables/useToast'
 import {capIcon, normalizeCaps} from './modelCapabilities'
 
 const searchQuery = ref('')
@@ -179,7 +180,9 @@ async function loadModels() {
   try {
     models.value = await fetchRemoteModels(props.providerId)
   } catch (e: any) {
-    error.value = e.message || '拉取失败'
+    const msg = e.message || '拉取远程模型列表失败'
+    error.value = msg
+    showToast(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -227,7 +230,9 @@ async function toggleModel(m: ModelItem) {
     }
     emit('changed')
   } catch (e: any) {
-    error.value = e.message || (isExist(code) ? '移除失败' : '添加失败')
+    const msg = e.message || (isExist(code) ? '移除失败' : '添加失败')
+    error.value = msg
+    showToast(msg, 'error')
   } finally {
     const s = new Set(busyCodes.value)
     s.delete(code)

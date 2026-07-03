@@ -5,9 +5,12 @@
 
 package cc.wlizhi.eddie.settings.remote;
 
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
+import cc.wlizhi.eddie.common.exception.ProviderCallException;
 import cc.wlizhi.eddie.settings.entity.response.ModelVO;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -63,14 +66,25 @@ public class RemoteModelFetcherRouter {
         if (fetcher == null) {
             throw new BadRequestException("暂不支持远程拉取该服务商的模型列表: " + providerCode);
         }
-        List<ModelVO> models = fetcher.fetchModels(baseUrl, apiKey);
-        boolean blankCreated = models.stream().anyMatch(m -> m.getCreated() == null);
-        if (!blankCreated) {
-            // 统一按创建时间倒序排列，最新在前；created 为 null 的排最后
-            models.sort(Comparator.nullsLast(
-                    Comparator.comparingLong(ModelVO::getCreated).reversed()
-            ));
+        try {
+            List<ModelVO> models = fetcher.fetchModels(baseUrl, apiKey);
+            boolean blankCreated = models.stream().anyMatch(m -> m.getCreated() == null);
+            if (!blankCreated) {
+                // 统一按创建时间倒序排列，最新在前；created 为 null 的排最后
+                models.sort(Comparator.nullsLast(
+                        Comparator.comparingLong(ModelVO::getCreated).reversed()
+                ));
+            }
+            return models;
+        } catch (HttpClientErrorException e) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("httpStatus", e.getStatusCode().value());
+            data.put("responseBody", e.getResponseBodyAsString());
+            data.put("providerCode", providerCode);
+            throw new ProviderCallException(ApiResultCode.PROVIDER_CALL_FAILED,
+                    "服务商 [" + providerCode + "] 请求失败（" + e.getStatusCode().value() + "），"
+                            + "请检查 API Key 是否正确或服务商是否允许当前请求来源",
+                    data, e);
         }
-        return models;
     }
 }

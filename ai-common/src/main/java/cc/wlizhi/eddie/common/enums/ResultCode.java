@@ -10,9 +10,9 @@ package cc.wlizhi.eddie.common.enums;
  */
 public interface ResultCode {
 
-    /** 状态码 */
+    /** 业务状态码 */
     int getCode();
 
-    /** 状态描述 */
+    /** 描述信息（前端友好提示） */
     String getMessage();
 }

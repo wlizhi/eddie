@@ -4,8 +4,6 @@ target/
 *.war
 *.iml
 .idea/
-.mvn/
-!.mvn/wrapper/
 .settings/
 .project
 .classpath

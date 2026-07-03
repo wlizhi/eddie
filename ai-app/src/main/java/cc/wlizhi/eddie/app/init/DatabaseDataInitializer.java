@@ -12,9 +12,9 @@ import org.springframework.stereotype.Component;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  * <ol>
  *   <li>查询 {@code global_config} 中 {@code DB_INIT_VERSION} 的值</li>
  *   <li>无记录 → 插入版本 {@code 0}</li>
- *   <li>扫描 classpath 下所有 {@code .sql} 文件，解析版本号</li>
- *   <li>筛选版本号 > 当前版本的脚本，按版本升序执行</li>
+ *   <li>按 {@code eddie.init-scripts} 配置顺序扫描所有 {@code .sql} 文件，解析版本号</li>
+ *   <li>筛选版本号 > 当前版本的脚本，按配置顺序执行</li>
  *   <li>更新 {@code DB_INIT_VERSION} 为最大成功执行的版本号</li>
  * </ol>
  *
@@ -67,36 +67,37 @@ public class DatabaseDataInitializer {
         int currentVersion = getCurrentVersion();
         log.info("当前数据库初始化版本: {}", currentVersion);
 
-        Map<Integer, String> pendingFiles = scanVersionedSqlFiles();
-        if (pendingFiles.isEmpty()) {
+        List<VersionedScript> allScripts = scanVersionedSqlFiles();
+        if (allScripts.isEmpty()) {
             log.info("没有待执行的数据库初始化脚本");
             return;
         }
 
-        // 筛选版本号 > 当前版本的脚本（TreeMap 保证按 version 升序）
-        Map<Integer, String> toExecute = pendingFiles.entrySet().stream()
-                .filter(e -> e.getKey() > currentVersion)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                        (a, b) -> b, TreeMap::new));
+        // 筛选版本号 > 当前版本的脚本（allScripts 已按版本号升序排序）
+        List<VersionedScript> toExecute = allScripts.stream()
+                .filter(s -> s.version() > currentVersion)
+                .toList();
 
         if (toExecute.isEmpty()) {
             log.info("数据库已是最新版本 (v{})", currentVersion);
             return;
         }
 
-        log.info("待执行的初始化脚本版本: {}", toExecute.keySet());
+        log.info("待执行的初始化脚本: {}", toExecute.stream()
+                .map(s -> "v" + s.version() + " (" + s.scriptPath() + ")")
+                .toList());
 
         int maxVersion = currentVersion;
-        for (Map.Entry<Integer, String> entry : toExecute.entrySet()) {
-            int version = entry.getKey();
-            String sql = entry.getValue();
+        for (VersionedScript script : toExecute) {
+            int version = script.version();
+            String path = script.scriptPath();
             try {
-                log.info("执行数据库初始化脚本 v{}...", version);
-                executeSqlScript(sql);
+                log.info("执行数据库初始化脚本 [{}] v{}...", path, version);
+                executeSqlScript(script.sql());
                 maxVersion = Math.max(maxVersion, version);
-                log.info("数据库初始化脚本 v{} 执行成功", version);
+                log.info("数据库初始化脚本 [{}] v{} 执行成功", path, version);
             } catch (Exception e) {
-                log.error("数据库初始化脚本 v{} 执行失败: {}", version, e.getMessage());
+                log.error("数据库初始化脚本 [{}] v{} 执行失败: {}", path, version, e.getMessage());
             }
         }
 
@@ -147,8 +148,18 @@ public class DatabaseDataInitializer {
         }
     }
 
-    private Map<Integer, String> scanVersionedSqlFiles() {
-        Map<Integer, String> result = new TreeMap<>();
+    /**
+     * 脚本文件及其版本号的内部记录。
+     *
+     * @param version    解析出的版本号
+     * @param scriptPath classpath 路径，用于失败日志追踪
+     * @param sql        SQL 脚本内容
+     */
+    private record VersionedScript(int version, String scriptPath, String sql) {
+    }
+
+    private List<VersionedScript> scanVersionedSqlFiles() {
+        List<VersionedScript> result = new ArrayList<>();
         List<String> initScripts = eddieProperties.getInitScripts();
         for (String scriptPath : initScripts) {
             String filename = scriptPath.substring(scriptPath.lastIndexOf('/') + 1);
@@ -164,14 +175,16 @@ public class DatabaseDataInitializer {
                     new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
                 String sql = reader.lines().collect(Collectors.joining("\n")).trim();
                 if (sql.isEmpty()) {
-                    log.warn("初始化脚本 v{} 内容为空，跳过", version);
+                    log.warn("初始化脚本 [{}] v{} 内容为空，跳过", scriptPath, version);
                     continue;
                 }
-                result.put(version, sql);
+                result.add(new VersionedScript(version, scriptPath, sql));
             } catch (Exception e) {
                 log.error("加载初始化脚本 {} 失败: {}", scriptPath, e.getMessage());
             }
         }
+        // 按版本号升序排序；同一版本内保持配置顺序（稳定排序）
+        result.sort(Comparator.comparingInt(VersionedScript::version));
         return result;
     }
 

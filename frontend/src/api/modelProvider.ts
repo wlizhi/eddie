@@ -10,6 +10,7 @@ import type {
     ModelProviderCreatePayload,
     ModelProviderUpdatePayload
 } from '@/types/modelProvider'
+import {request} from '@/api/request'
 
 const BASE = '/api/model-provider'
 
@@ -148,11 +149,7 @@ export async function batchRemoveModels(providerId: number, codes: string[]): Pr
  * POST /api/model-provider/{id}/fetch-models
  */
 export async function fetchRemoteModels(providerId: number): Promise<ModelItem[]> {
-    const res = await fetch(`${BASE}/${providerId}/fetch-models`, {method: 'POST'})
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-    const json: ApiResult<ModelItem[]> = await res.json()
-    if (json.code !== 200) throw new Error(json.message || '拉取远程模型列表失败')
-    return json.data
+    return request<ModelItem[]>(`${BASE}/${providerId}/fetch-models`, {method: 'POST'})
 }
 
 /**
