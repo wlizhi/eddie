@@ -108,7 +108,15 @@ public class ChatSseTransformer {
                             // 元数据事件
                             return buildMetadataEvent(ctx, startTime, endTime);
                         })
-                );
+                ).onErrorResume(e -> {
+                    log.error("Chat 流式响应异常: {}", e.getMessage(), e);
+                    String message = extractFriendlyErrorMessage(e);
+                    String data = "{\"message\":\"" + escapeJson(message) + "\"}";
+                    return Flux.just(ServerSentEvent.<String>builder()
+                            .event("error")
+                            .data(data)
+                            .build());
+                });
 
         // 工具执行事件 SSE 流（同时累积到上下文用于持久化）
         Flux<ServerSentEvent<String>> toolSse = toolEventFlux
@@ -274,5 +282,63 @@ public class ChatSseTransformer {
         } catch (Exception e) {
             return "{}";
         }
+    }
+
+    /**
+     * 提取友好错误提示 — 遍历异常链，根据异常类名和消息返回中文友好提示
+     * <p>
+     * 优先按异常类名精确匹配遍历异常链，429 状态码仅在遍历完所有异常、没有类名匹配成功时兜底使用，
+     * 避免 CompletionException 的 message 包含 "429" 导致提前返回、错过内层 RateLimitException 的判断。
+     */
+    private static String extractFriendlyErrorMessage(Throwable e) {
+        Throwable cause = e;
+        boolean has429 = false;
+        while (cause != null) {
+            String clsName = cause.getClass().getName();
+            String msg = cause.getMessage() != null ? cause.getMessage() : "";
+            if (clsName.contains("RateLimitException")) {
+                if (msg.contains("quota")) {
+                    return "API 配额不足，请检查账户余额及套餐";
+                }
+                // 其他 RateLimitException（如频率限制）在遍历结束后兜底处理
+            }
+            if (clsName.contains("AuthenticationException") || msg.contains("401")) {
+                return "API 认证失败，请检查 API Key 是否正确";
+            }
+            if (msg.contains("429")) {
+                has429 = true;
+            }
+            cause = cause.getCause();
+        }
+        // 遍历完异常链后，根据收集的信息兜底
+        if (has429) {
+            return "API 配额不足或请求过于频繁，请检查账户余额及套餐";
+        }
+        // 兜底：返回原始消息（短）或通用提示（长）
+        String originalMsg = e.getMessage();
+        if (originalMsg != null && originalMsg.length() < 200) {
+            return originalMsg;
+        }
+        return "服务暂不可用，请稍后重试";
+    }
+
+    /**
+     * 对 JSON 字符串值中的特殊字符转义
+     */
+    private static String escapeJson(String s) {
+        if (s == null) return "";
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '\\' -> sb.append("\\\\");
+                case '"' -> sb.append("\\\"");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 }
