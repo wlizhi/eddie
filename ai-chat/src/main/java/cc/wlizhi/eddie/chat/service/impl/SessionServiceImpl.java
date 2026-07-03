@@ -261,7 +261,7 @@ public class SessionServiceImpl implements SessionService {
         }
 
         // 加载并解析 prompt 模板
-        String promptTemplate = globalPromptsContext.getTitleGeneration();
+        String promptTemplate = globalPromptsContext.getSessionTitlePrompts();
         if (promptTemplate == null) {
             log.warn("标题生成 prompt 未加载，跳过");
             return null;

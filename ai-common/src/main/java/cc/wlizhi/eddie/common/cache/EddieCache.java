@@ -5,5 +5,5 @@
 
 package cc.wlizhi.eddie.common.cache;
 
-public interface EddieAiCache {
+public interface EddieCache {
 }

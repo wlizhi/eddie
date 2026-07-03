@@ -5,7 +5,7 @@ eddie/
 ├── ai-app/                      # 启动聚合模块
 │   └── src/main/
 │       ├── java/cc/wlizhi/eddie/app/
-│       │   ├── EddieAiApplication.java   # Spring Boot 启动类
+│       │   ├── EddieApplication.java   # Spring Boot 启动类
 │       │   └── config/                   # 全局配置（拦截器、异常处理、WebMVC 等）
 │       └── resources/
 │           ├── application.yml           # 全局配置

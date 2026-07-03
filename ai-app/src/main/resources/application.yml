@@ -27,6 +27,7 @@ spring:
 
 # 自定义属性
 eddie:
+  version: 1.0.0-beta
   init-scripts:
     - init/model_provider_init_1.sql
     - init/ai_assistant_init_1.sql

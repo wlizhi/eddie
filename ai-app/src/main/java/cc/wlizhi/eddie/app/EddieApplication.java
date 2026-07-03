@@ -20,11 +20,11 @@ import java.nio.file.Path;
 @SpringBootApplication(
         scanBasePackages = "cc.wlizhi.eddie"
 )
-public class EddieAiApplication {
+public class EddieApplication {
 
     public static void main(String[] args) {
         initPath();
-        SpringApplication.run(EddieAiApplication.class, args);
+        SpringApplication.run(EddieApplication.class, args);
     }
 
     public static void initPath() {

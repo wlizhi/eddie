@@ -3,7 +3,7 @@
  * {@code @date} 2026-06-30
  */
 
-package cc.wlizhi.eddie.memory.context;
+package cc.wlizhi.eddie.common.config;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -11,5 +11,5 @@ import lombok.Setter;
 @Getter
 @Setter
 public class BuiltInPrompts {
-    private String titleGeneration;
+    private String sessionTitlePrompts;
 }

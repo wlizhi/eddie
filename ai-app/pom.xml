@@ -49,7 +49,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>cc.wlizhi.eddie.app.EddieAiApplication</mainClass>
+                    <mainClass>cc.wlizhi.eddie.app.EddieApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>
@@ -72,7 +72,7 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <mainClass>cc.wlizhi.eddie.app.EddieAiApplication</mainClass>
+                            <mainClass>cc.wlizhi.eddie.app.EddieApplication</mainClass>
                         </configuration>
                     </plugin>
                     <plugin>
@@ -80,7 +80,7 @@
                         <artifactId>native-maven-plugin</artifactId>
                         <configuration>
                             <imageName>eddie-app</imageName>
-                            <mainClass>cc.wlizhi.eddie.app.EddieAiApplication</mainClass>
+                            <mainClass>cc.wlizhi.eddie.app.EddieApplication</mainClass>
                             <buildArgs>
                                 <buildArg>-Os</buildArg>
                                 <buildArg>-H:GenerateDebugInfo=0</buildArg>

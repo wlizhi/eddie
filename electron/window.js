@@ -58,13 +58,12 @@ height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans
 background:${bg};color:${text};user-select:none;overflow:hidden}
 .brand{text-align:center;margin-bottom:48px}
 .brand h1{font-size:36px;font-weight:600;letter-spacing:4px}
-.brand h1 span{color:${textTertiary};font-weight:400}
 .bar-wrap{width:120px;height:2px;background:${barTrack};border-radius:1px;overflow:hidden}
 .bar-inner{width:40%;height:100%;background:${accent};border-radius:1px;
 animation:slide 1.4s ease-in-out infinite}
 @keyframes slide{0%{transform:translateX(-100%)}50%{transform:translateX(150%)}100%{transform:translateX(250%)}}
 .status{position:fixed;bottom:28px;font-size:12px;color:${textTertiary};letter-spacing:1px}</style></head><body>
-<div class="brand"><h1>Eddie <span>AI</span></h1></div>
+<div class="brand"><h1>Eddie</h1></div>
 <div class="bar-wrap"><div class="bar-inner"></div></div>
 <div class="status">INITIALIZING</div></body></html>`;
 }

@@ -1,5 +1,8 @@
 package cc.wlizhi.eddie.memory.context;
 
+import cc.wlizhi.eddie.common.cache.InitScheduler;
+import cc.wlizhi.eddie.common.config.BuiltInPrompts;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +13,7 @@ import org.springframework.util.PropertyPlaceholderHelper;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
+import cc.wlizhi.eddie.common.config.EddieProperties;
 
 /**
  * 全局提示词模板上下文。<p>
@@ -27,6 +31,10 @@ public class GlobalPromptsContext {
      */
     private static final PropertyPlaceholderHelper PLACEHOLDER_HELPER =
             new PropertyPlaceholderHelper("${", "}", null, null, true);
+    @Resource
+    private EddieProperties eddieProperties;
+    @Resource
+    private InitScheduler initScheduler;
 
     /**
      * 标题生成 prompt 模板内容
@@ -34,46 +42,51 @@ public class GlobalPromptsContext {
      * 获取标题生成 prompt 模板内容
      */
     @Getter
-    private String titleGeneration;
+    private String sessionTitlePrompts;
 
     @Resource
     private ResourceLoader resourceLoader;
+
+    @PostConstruct
+    void doInit() {
+        BuiltInPrompts prompts = eddieProperties.getPrompts();
+        initScheduler.addTask(this.getClass().getSimpleName(), 10, () -> this.doInit(prompts));
+    }
 
     /**
      * 初始化加载所有 prompt 模板文件内容。
      *
      * @param prompts 包含各 prompt 文件 classpath 路径的配置 record
      */
-    public void init(BuiltInPrompts prompts) {
+    public void doInit(BuiltInPrompts prompts) {
         if (prompts == null) {
             log.warn("Prompts configuration is null, skip initialization");
             return;
         }
-        this.titleGeneration = loadContent(prompts.getTitleGeneration(), "titleGeneration");
-        log.info("Global prompts initialized: titleGeneration loaded={}", titleGeneration != null);
+        this.sessionTitlePrompts = loadContent(prompts.getSessionTitlePrompts());
+        log.info("Global prompts initialized: sessionTitlePrompts loaded={}", sessionTitlePrompts != null);
     }
 
     /**
      * 从 classpath 加载单个 prompt 文件内容
      *
      * @param classpath classpath 路径（不含 classpath: 前缀）
-     * @param name      prompt 名称（仅用于日志）
      * @return 文件内容，加载失败返回 null
      */
-    private String loadContent(String classpath, String name) {
+    private String loadContent(String classpath) {
         if (classpath == null || classpath.isBlank()) {
-            log.warn("Prompt path [{}] is empty, skip", name);
+            log.warn("Prompt path [{}] is empty, skip", "sessionTitlePrompts");
             return null;
         }
         try {
             org.springframework.core.io.Resource resource = resourceLoader.getResource("classpath:" + classpath);
             if (!resource.exists()) {
-                log.warn("Prompt resource [{}] not found: {}", name, classpath);
+                log.warn("Prompt resource [{}] not found: {}", "sessionTitlePrompts", classpath);
                 return null;
             }
             return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            log.warn("Failed to load prompt [{}]: {}", name, classpath, e);
+            log.warn("Failed to load prompt [{}]: {}", "sessionTitlePrompts", classpath, e);
             return null;
         }
     }

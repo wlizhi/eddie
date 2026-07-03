@@ -5,7 +5,7 @@ package cc.wlizhi.eddie.common.cache;
  *
  * @author Eddie
  */
-public interface GlobalCache extends EddieAiCache {
+public interface GlobalCache extends EddieCache {
 
     void refresh();
 }

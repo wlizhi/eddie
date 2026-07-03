@@ -117,11 +117,19 @@ function waitForBackend(port, retries = 60) {
                 reject(new Error('App is quitting'));
                 return;
             }
-            const req = http.get(`http://localhost:${port}/api/session/list`, () => {
+            let settled = false;
+            const onSettled = () => {
+                if (settled) return true;
+                settled = true;
+                return false;
+            };
+            const req = http.get(`http://localhost:${port}/api/health`, () => {
+                if (onSettled()) return;
                 console.log('[Eddie] Backend is ready!');
                 resolve();
             });
             req.on('error', () => {
+                if (onSettled()) return;
                 if (n > 0) {
                     console.log(`[Eddie] Waiting for backend... (${n} retries left)`);
                     setTimeout(() => check(n - 1), 1000);
@@ -130,6 +138,7 @@ function waitForBackend(port, retries = 60) {
                 }
             });
             req.setTimeout(2000, () => {
+                if (onSettled()) return;
                 req.destroy();
                 if (n > 0) setTimeout(() => check(n - 1), 1000);
                 else reject(new Error('Backend did not start in time'));

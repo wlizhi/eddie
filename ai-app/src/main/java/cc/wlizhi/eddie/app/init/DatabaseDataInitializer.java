@@ -1,6 +1,6 @@
 package cc.wlizhi.eddie.app.init;
 
-import cc.wlizhi.eddie.app.config.EddieProperties;
+import cc.wlizhi.eddie.common.config.EddieProperties;
 import cc.wlizhi.eddie.common.cache.InitScheduler;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;

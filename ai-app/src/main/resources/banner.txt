@@ -1,0 +1,20 @@
+                                  dddddddd            dddddddd
+EEEEEEEEEEEEEEEEEEEEEE            d::::::d            d::::::d  iiii
+E::::::::::::::::::::E            d::::::d            d::::::d i::::i
+E::::::::::::::::::::E            d::::::d            d::::::d  iiii
+EE::::::EEEEEEEEE::::E            d:::::d             d:::::d
+  E:::::E       EEEEEE    ddddddddd:::::d     ddddddddd:::::d iiiiiii     eeeeeeeeeeee
+  E:::::E               dd::::::::::::::d   dd::::::::::::::d i:::::i   ee::::::::::::ee
+  E::::::EEEEEEEEEE    d::::::::::::::::d  d::::::::::::::::d  i::::i  e::::::eeeee:::::ee
+  E:::::::::::::::E   d:::::::ddddd:::::d d:::::::ddddd:::::d  i::::i e::::::e     e:::::e
+  E:::::::::::::::E   d::::::d    d:::::d d::::::d    d:::::d  i::::i e:::::::eeeee::::::e
+  E::::::EEEEEEEEEE   d:::::d     d:::::d d:::::d     d:::::d  i::::i e:::::::::::::::::e
+  E:::::E             d:::::d     d:::::d d:::::d     d:::::d  i::::i e::::::eeeeeeeeeee
+  E:::::E       EEEEEEd:::::d     d:::::d d:::::d     d:::::d  i::::i e:::::::e
+EE::::::EEEEEEEE:::::Ed::::::ddddd::::::ddd::::::ddddd::::::ddi::::::ie::::::::e
+E::::::::::::::::::::E d:::::::::::::::::d d:::::::::::::::::di::::::i e::::::::eeeeeeee
+E::::::::::::::::::::E  d:::::::::ddd::::d  d:::::::::ddd::::di::::::i  ee:::::::::::::e
+EEEEEEEEEEEEEEEEEEEEEE   ddddddddd   ddddd   ddddddddd   dddddiiiiiiii    eeeeeeeeeeeeee
+
+  :: Eddie AI ::               (v${eddie.version})
+  :: Spring Boot ::            (v${spring-boot.version})
