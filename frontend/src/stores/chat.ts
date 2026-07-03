@@ -597,9 +597,9 @@ export const useChatStore = defineStore('chat', () => {
             thinking: msg.thinking || undefined,
             renderedThinking: msg.thinking ? renderMd(msg.thinking) : undefined,
             toolCalls,
-            timestamp: new Date(msg.createdAt).getTime(),
+            timestamp: msg.createdAt,
             metadata: {
-                timestamp: new Date(msg.createdAt).getTime(),
+                timestamp: msg.createdAt,
                 ...(msg.totalTokens != null ? {totalTokens: msg.totalTokens} : {}),
                 ...(msg.promptTokens != null ? {promptTokens: msg.promptTokens} : {}),
                 ...(msg.completionTokens != null ? {completionTokens: msg.completionTokens} : {}),

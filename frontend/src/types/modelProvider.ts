@@ -16,8 +16,8 @@ export interface ModelProvider {
     builtIn: number
     sortOrder: number
     models: ModelItem[]
-    createdAt: string
-    updatedAt: string
+    createdAt: number
+    updatedAt: number
 }
 
 /**

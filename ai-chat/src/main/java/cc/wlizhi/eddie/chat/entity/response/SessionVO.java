@@ -48,5 +48,5 @@ public class SessionVO {
     /**
      * 最后活跃时间
      */
-    private String updatedAt;
+    private Long updatedAt;
 }

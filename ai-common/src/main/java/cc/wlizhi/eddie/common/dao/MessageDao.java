@@ -27,13 +27,14 @@ public class MessageDao {
      * 插入消息
      */
     public void insert(MessageEntity entity) {
+        long now = System.currentTimeMillis();
         jdbcTemplate.update(
                 "INSERT INTO ai_session_msg (session_id, assistant_id, role, provider_id, " +
                         "model_code, model_name, thinking, content, prompt_tokens, completion_tokens, " +
                         "total_tokens, price_estimate, tool_calls, " +
                         "cache_read_input_tokens, cache_written_input_tokens, currency, duration_ms, " +
                         "msg_status, created_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 entity.getSessionId(),
                 entity.getAssistantId(),
                 entity.getRole(),
@@ -51,7 +52,8 @@ public class MessageDao {
                 entity.getCacheWriteInputTokens() != null ? entity.getCacheWriteInputTokens() : 0,
                 entity.getCurrency() != null ? entity.getCurrency() : "",
                 entity.getDurationMs() != null ? entity.getDurationMs() : 0,
-                entity.getMsgStatus() != null ? entity.getMsgStatus() : "COMPLETED");
+                entity.getMsgStatus() != null ? entity.getMsgStatus() : "COMPLETED",
+                now);
     }
 
     /**
@@ -170,10 +172,12 @@ public class MessageDao {
      * 在应用启动时或首次查询时调用。
      */
     public int fixStuckMessages() {
+        long sevenDaysAgo = System.currentTimeMillis() - 7L * 86400 * 1000;
         return jdbcTemplate.update(
                 "UPDATE ai_session_msg SET msg_status = 'INTERRUPTED' " +
                         "WHERE msg_status = 'STREAMING' " +
-                        "  AND created_at >= datetime('now', '-7 days', 'localtime')");
+                        "  AND created_at >= ?",
+                sevenDaysAgo);
     }
 
     private final RowMapper<MessageEntity> messageRowMapper = (rs, rowNum) -> {
@@ -197,7 +201,7 @@ public class MessageDao {
         entity.setCurrency(rs.getString("currency"));
         entity.setDurationMs(rs.getInt("duration_ms"));
         entity.setMsgStatus(rs.getString("msg_status"));
-        entity.setCreatedAt(rs.getString("created_at"));
+        entity.setCreatedAt(rs.getLong("created_at"));
         return entity;
     };
 }

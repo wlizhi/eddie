@@ -36,6 +36,10 @@ log_info()  { echo "${GREEN}[INFO]${NC} $1"; }
 log_warn()  { echo "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo "${RED}[ERROR]${NC} $1"; }
 
+# 构建结果日志数组 — 每个构建函数自行追加产物信息
+BUILD_RESULTS=()
+BUILD_INSTRUCTIONS=()
+
 # ============================================================
 # 清理
 # ============================================================
@@ -66,7 +70,10 @@ build_native() {
 
     mkdir -p "$DIST_DIR"
     cp "$PROJECT_DIR/ai-app/target/eddie-app" "$DIST_DIR/eddie-app"
-    log_info "Native Image → $DIST_DIR/eddie-app"
+
+    BUILD_RESULTS+=("✅ 原生二进制    → $DIST_DIR/eddie-app")
+    BUILD_RESULTS+=("      大小: $(ls -lh "$DIST_DIR/eddie-app" | awk '{print $5}')")
+    BUILD_INSTRUCTIONS+=("  原生二进制:  ./dist/eddie-app")
 }
 
 # ============================================================
@@ -83,7 +90,10 @@ build_jar() {
 
     mkdir -p "$DIST_DIR"
     cp "$PROJECT_DIR/ai-app/target/eddie-app.jar" "$DIST_DIR/"
-    log_info "JAR → $DIST_DIR/"
+
+    BUILD_RESULTS+=("✅ JAR 包        → $DIST_DIR/eddie-app.jar")
+    BUILD_RESULTS+=("      大小: $(ls -lh "$DIST_DIR/eddie-app.jar" | awk '{print $5}')")
+    BUILD_INSTRUCTIONS+=("  JAR:         java -jar dist/eddie-app.jar")
 }
 
 # ============================================================
@@ -92,14 +102,15 @@ build_jar() {
 build_frontend() {
     log_info "===== 构建前端 ====="
 
-    cd "$PROJECT_DIR/frontend"
-    npm run build
+    # 调用 frontend/build.sh，内部包含 npm build + 复制静态资源到后端 static/
+    sh "$PROJECT_DIR/frontend/build.sh"
 
     # 复制到 dist 前先清理旧版本，确保完整替换
     rm -rf "$DIST_DIR/frontend"
     mkdir -p "$DIST_DIR/frontend"
     cp -r "$PROJECT_DIR/frontend/dist/"* "$DIST_DIR/frontend/"
-    log_info "前端 → $DIST_DIR/frontend/"
+
+    BUILD_RESULTS+=("✅ 前端资源      → $DIST_DIR/frontend/")
 }
 
 # ============================================================
@@ -132,7 +143,14 @@ build_electron() {
     rm -rf "$DIST_DIR/electron"
     mkdir -p "$DIST_DIR/electron"
     cp -r "$PROJECT_DIR/electron/dist/"* "$DIST_DIR/electron/"
-    log_info "Electron 安装包 → $DIST_DIR/electron/"
+
+    BUILD_RESULTS+=("✅ 桌面安装包    → $DIST_DIR/electron/")
+    local dmg_file
+    dmg_file=$(ls "$DIST_DIR/electron/"*.dmg 2>/dev/null | head -1)
+    if [ -n "$dmg_file" ]; then
+        BUILD_RESULTS+=("      安装包: $(ls -lh "$dmg_file" | awk '{print $5}')")
+    fi
+    BUILD_INSTRUCTIONS+=("  桌面应用:    打开 dist/electron/ 目录下的 DMG 安装包")
 }
 
 # ============================================================
@@ -154,11 +172,19 @@ build_all() {
     cp "$PROJECT_DIR/ai-app/target/eddie-app" "$DIST_DIR/eddie-app"
     log_info "Native Image → $DIST_DIR/eddie-app"
 
+    BUILD_RESULTS+=("✅ 原生二进制    → $DIST_DIR/eddie-app")
+    BUILD_RESULTS+=("      大小: $(ls -lh "$DIST_DIR/eddie-app" | awk '{print $5}')")
+    BUILD_INSTRUCTIONS+=("  原生二进制:  ./dist/eddie-app")
+
     # 3. 打包 JAR（前端已就位，只 package 很快）
     log_info "--- 3/4 打包 JAR ---"
     mvn package -DskipTests
     cp "$PROJECT_DIR/ai-app/target/eddie-app.jar" "$DIST_DIR/"
     log_info "JAR → $DIST_DIR/"
+
+    BUILD_RESULTS+=("✅ JAR 包        → $DIST_DIR/eddie-app.jar")
+    BUILD_RESULTS+=("      大小: $(ls -lh "$DIST_DIR/eddie-app.jar" | awk '{print $5}')")
+    BUILD_INSTRUCTIONS+=("  JAR:         java -jar dist/eddie-app.jar")
 
     # 4. 打包 Electron（用已有的 frontend/dist/ 和 ai-app/target/eddie-app）
     log_info "--- 4/4 打包 Electron ---"
@@ -175,34 +201,17 @@ print_summary() {
     log_info "========================================="
     echo ""
 
-    if [ -f "$DIST_DIR/eddie-app" ]; then
-        log_info "  产物1: 原生二进制    → $DIST_DIR/eddie-app"
-        ls -lh "$DIST_DIR/eddie-app" | awk '{print "        大小:", $5}'
-    fi
+    for result in "${BUILD_RESULTS[@]}"; do
+        log_info "  $result"
+    done
 
-    if ls "$DIST_DIR/"*.jar 1>/dev/null 2>&1; then
-        JAR_FILE=$(ls "$DIST_DIR/"*.jar 2>/dev/null | head -1)
-        log_info "  产物2: JAR 包        → $JAR_FILE"
-        ls -lh "$JAR_FILE" | awk '{print "        大小:", $5}'
+    if [ ${#BUILD_INSTRUCTIONS[@]} -gt 0 ]; then
+        echo ""
+        log_info "运行方式："
+        for inst in "${BUILD_INSTRUCTIONS[@]}"; do
+            log_info "$inst"
+        done
     fi
-
-    if [ -d "$DIST_DIR/frontend" ]; then
-        log_info "  产物3: 前端资源      → $DIST_DIR/frontend/"
-    fi
-
-    if [ -d "$DIST_DIR/electron" ]; then
-        DMG_FILE=$(ls "$DIST_DIR/electron/"*.dmg 2>/dev/null | head -1)
-        log_info "  产物4: 桌面安装包    → $DIST_DIR/electron/"
-        if [ -n "$DMG_FILE" ]; then
-            ls -lh "$DMG_FILE" | awk '{print "        安装包:", $5}'
-        fi
-    fi
-
-    echo ""
-    log_info "运行方式："
-    log_info "  原生二进制:  ./dist/eddie-app"
-    log_info "  JAR:         java -jar dist/eddie-app.jar"
-    log_info "  桌面应用:    打开 dist/electron/ 目录下的 DMG 安装包"
     echo ""
 }
 

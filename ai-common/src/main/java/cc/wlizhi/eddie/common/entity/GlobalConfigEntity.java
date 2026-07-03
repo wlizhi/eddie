@@ -36,7 +36,7 @@ public class GlobalConfigEntity {
     private String description;
 
     /**
-     * 更新时间
+     * 更新时间（毫秒时间戳）
      */
-    private String updatedAt;
+    private Long updatedAt;
 }

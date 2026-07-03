@@ -39,8 +39,8 @@ public class AssistantDetailVO {
 
     private Boolean enabled;
     private Integer sortOrder;
-    private String createdAt;
-    private String updatedAt;
+    private Long createdAt;
+    private Long updatedAt;
 
     /**
      * 已绑定的 MCP Server ID 列表（回显用）

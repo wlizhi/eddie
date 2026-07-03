@@ -25,9 +25,9 @@ spring:
       mode: always
       schema-locations: classpath:schema.sql
 
-# 数据目录（SQLite 数据库、用户上传文件等）
+# 自定义属性
 eddie:
   init-scripts:
-      - init/model_provider_init_1.sql
+    - init/model_provider_init_1.sql
   prompts:
     title-generation: prompts/title-generation.md

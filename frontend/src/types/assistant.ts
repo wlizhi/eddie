@@ -73,8 +73,8 @@ export interface AssistantVO {
     memoryRounds: number
     enabled: number       // 0=禁用, 1=启用
     sortOrder: number
-    createdAt: string
-    updatedAt: string
+    createdAt: number
+    updatedAt: number
 }
 
 /**

@@ -48,10 +48,10 @@ public class ModelProviderEntity {
     /** 排序序号 */
     private Integer sortOrder;
 
-    /** 创建时间 */
-    private String createdAt;
+    /** 创建时间（毫秒时间戳） */
+    private Long createdAt;
 
-    /** 更新时间 */
-    private String updatedAt;
+    /** 更新时间（毫秒时间戳） */
+    private Long updatedAt;
 
 }

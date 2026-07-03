@@ -100,12 +100,13 @@ public class OwnerToolBindingDao {
      */
     public void batchInsert(RoleType ownerType, Long ownerId, List<Long> toolIds) {
         if (toolIds == null || toolIds.isEmpty()) return;
+        long now = System.currentTimeMillis();
         String sql = """
                 INSERT INTO ai_owner_tool_binding (owner_type, owner_id, tool_id, enabled, created_at)
-                VALUES (?, ?, ?, 1, datetime('now', 'localtime'))
+                VALUES (?, ?, ?, 1, ?)
                 """;
         List<Object[]> batchArgs = toolIds.stream()
-                .map(toolId -> new Object[]{ownerType.name(), ownerId, toolId})
+                .map(toolId -> new Object[]{ownerType.name(), ownerId, toolId, now})
                 .toList();
         jdbcTemplate.batchUpdate(sql, batchArgs);
     }

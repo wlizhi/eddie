@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS model_provider
     enabled    INTEGER NOT NULL DEFAULT 1,                 -- 0=禁用, 1=启用
     built_in INTEGER NOT NULL DEFAULT 0,                                -- 0=用户自定义(可删除/编辑), 1=内置(不可删除,可启/禁)
     sort_order INTEGER NOT NULL DEFAULT 0,                 -- 排序序号
-    created_at TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')), -- 创建时间
-    updated_at TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))  -- 更新时间
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000), -- 创建时间（毫秒时间戳）
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)  -- 更新时间（毫秒时间戳）
 );
 CREATE INDEX IF NOT EXISTS idx_model_provider_code ON model_provider (code);
 CREATE INDEX IF NOT EXISTS idx_model_provider_enabled ON model_provider (enabled);
@@ -46,8 +46,8 @@ CREATE TABLE IF NOT EXISTS ai_assistant
     -- 工具选择模式：auto（自动选择）、manual（手动选择）、none（不使用工具）
     tool_selection_mode TEXT NOT NULL DEFAULT 'none',
 
-    created_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-    updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+    created_at    INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+    updated_at    INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_assistant_enabled ON ai_assistant (enabled);
 
@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS ai_session
     pinned        INTEGER NOT NULL DEFAULT 0,  -- 0=普通, 1=置顶
     message_count INTEGER NOT NULL DEFAULT 0,  -- 消息数量冗余字段，每次发消息时同步更新
     total_tokens INTEGER NOT NULL DEFAULT 0,   -- 累计 token 数冗余字段
-    created_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-    updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+    created_at    INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+    updated_at    INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_session_sort ON ai_session (assistant_id, pinned DESC, updated_at DESC);
 
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS ai_session_msg
     currency                TEXT    NOT NULL DEFAULT '', -- 费用货币符号，如 ¥ / $
     duration_ms INTEGER NOT NULL DEFAULT 0, -- 接口耗时（毫秒）
     msg_status              TEXT    NOT NULL DEFAULT 'COMPLETED', -- 消息状态：COMPLETED（正常完成）/ STREAMING（流式进行中）/ INTERRUPTED（中断）
-    created_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+    created_at        INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_msg_session_id ON ai_session_msg (session_id, id);
 CREATE INDEX IF NOT EXISTS idx_msg_status ON ai_session_msg (msg_status);
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS global_config
     config_key  TEXT NOT NULL UNIQUE,
     config_val  TEXT NOT NULL DEFAULT '{}',
     description TEXT NOT NULL DEFAULT '',
-    updated_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+    updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 
 -- 初始数据（仅首次建表时插入）
@@ -126,8 +126,8 @@ CREATE TABLE IF NOT EXISTS ai_tool_definition
     built_in      INTEGER NOT NULL DEFAULT 0,          -- 0=用户自定义, 1=内置（不可删除）
     mcp_server_id INTEGER,                             -- 关联 ai_mcp_server.id（仅 MCP 类型）
     sort_order    INTEGER NOT NULL DEFAULT 0,          -- 排序序号
-    created_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-    updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+    created_at    INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+    updated_at    INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_tool_def_type ON ai_tool_definition (tool_type);
 CREATE INDEX IF NOT EXISTS idx_tool_def_enabled ON ai_tool_definition (enabled);
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS ai_owner_tool_binding
     owner_id   INTEGER NOT NULL,                     -- 归属方 ID（assistant_id / agent_id）
     tool_id    INTEGER NOT NULL,                     -- 工具 ID
     enabled    INTEGER NOT NULL DEFAULT 1,           -- 0=禁用, 1=启用
-    created_at TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
     UNIQUE (owner_type, owner_id, tool_id)           -- 同一归属方不可重复绑定同一工具
 );
 CREATE INDEX IF NOT EXISTS idx_owner_tool_binding_owner ON ai_owner_tool_binding (owner_type, owner_id);
@@ -177,8 +177,8 @@ CREATE TABLE IF NOT EXISTS ai_mcp_server
     reconnect_interval_sec INTEGER, -- 重连间隔(秒)，NULL/0=默认5秒
     max_reconnect_attempts INTEGER, -- 最大重试次数，NULL/0=无限重试
 
-    created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-    updated_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+    created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+    updated_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_mcp_server_source_type ON ai_mcp_server (source_type);
 CREATE INDEX IF NOT EXISTS idx_mcp_server_enabled ON ai_mcp_server (enabled);

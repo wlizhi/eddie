@@ -214,8 +214,9 @@ public class DatabaseDataInitializer {
      * 更新 {@code global_config} 中 {@code DB_INIT_VERSION} 的值。
      */
     private void updateVersion(int version) {
+        long now = System.currentTimeMillis();
         jdbcTemplate.update(
-                "UPDATE global_config SET config_val = ?, updated_at = datetime('now', 'localtime') WHERE config_key = ?",
-                String.valueOf(version), VERSION_KEY);
+                "UPDATE global_config SET config_val = ?, updated_at = ? WHERE config_key = ?",
+                String.valueOf(version), now, VERSION_KEY);
     }
 }

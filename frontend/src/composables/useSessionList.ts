@@ -114,7 +114,7 @@ export function useSessionList(
         const session = sessions.value.find(s => s.id === sid)
         if (session) {
             session.messageCount = Math.max(session.messageCount + 2, 2)
-            session.updatedAt = new Date().toISOString()
+            session.updatedAt = Date.now()
         }
     })
 

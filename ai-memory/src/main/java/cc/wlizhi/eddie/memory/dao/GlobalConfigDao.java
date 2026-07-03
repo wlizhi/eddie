@@ -48,11 +48,12 @@ public class GlobalConfigDao {
             return;
         }
         transactionTemplate.execute(status -> {
+            long now = System.currentTimeMillis();
             String sql = "INSERT OR REPLACE INTO global_config (config_key, config_val, description, updated_at) "
-                    + "VALUES (?, ?, '', datetime('now', 'localtime'))";
+                    + "VALUES (?, ?, '', ?)";
             List<Object[]> batchArgs = new ArrayList<>();
             for (Map.Entry<String, String> entry : configs.entrySet()) {
-                batchArgs.add(new Object[]{entry.getKey(), entry.getValue()});
+                batchArgs.add(new Object[]{entry.getKey(), entry.getValue(), now});
             }
             jdbcTemplate.batchUpdate(sql, batchArgs);
             return null;

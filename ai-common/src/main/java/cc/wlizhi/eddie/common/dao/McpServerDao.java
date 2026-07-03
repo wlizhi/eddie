@@ -76,6 +76,7 @@ public class McpServerDao {
      * 插入 MCP 服务器
      */
     public void insert(McpServerEntity entity) {
+        long now = System.currentTimeMillis();
         String sql = """
                 INSERT INTO ai_mcp_server
                     (name, description, source_type, source_config, transport_type,
@@ -87,7 +88,7 @@ public class McpServerDao {
                         ?, ?, ?, ?, ?,
                         ?, ?, ?,
                         ?, ?,
-                        datetime('now', 'localtime'), datetime('now', 'localtime'))
+                        ?, ?)
                 """;
         jdbcTemplate.update(sql,
                 entity.getName(),
@@ -104,13 +105,15 @@ public class McpServerDao {
                 entity.getEnabled() != null ? entity.getEnabled() : 1,
                 entity.getSortOrder() != null ? entity.getSortOrder() : 0,
                 entity.getReconnectIntervalSec(),
-                entity.getMaxReconnectAttempts());
+                entity.getMaxReconnectAttempts(),
+                now, now);
     }
 
     /**
      * 更新 MCP 服务器
      */
     public void update(McpServerEntity entity) {
+        long now = System.currentTimeMillis();
         String sql = """
                 UPDATE ai_mcp_server SET
                     name = ?, description = ?, source_type = ?, source_config = ?,
@@ -118,7 +121,7 @@ public class McpServerDao {
                     env = ?, url = ?, headers = ?,
                     timeout_seconds = ?, enabled = ?, sort_order = ?,
                     reconnect_interval_sec = ?, max_reconnect_attempts = ?,
-                    updated_at = datetime('now', 'localtime')
+                    updated_at = ?
                 WHERE id = ?
                 """;
         jdbcTemplate.update(sql,
@@ -137,6 +140,7 @@ public class McpServerDao {
                 entity.getSortOrder(),
                 entity.getReconnectIntervalSec(),
                 entity.getMaxReconnectAttempts(),
+                now,
                 entity.getId());
     }
 
@@ -144,12 +148,13 @@ public class McpServerDao {
      * 切换 MCP 服务器启用/禁用状态
      */
     public void updateEnabled(Long id, int enabled) {
+        long now = System.currentTimeMillis();
         String sql = """
                 UPDATE ai_mcp_server
-                SET enabled = ?, updated_at = datetime('now', 'localtime')
+                SET enabled = ?, updated_at = ?
                 WHERE id = ?
                 """;
-        jdbcTemplate.update(sql, enabled, id);
+        jdbcTemplate.update(sql, enabled, now, id);
     }
 
     /**

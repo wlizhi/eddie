@@ -21,7 +21,7 @@ export interface SessionVO {
     title: string
     pinned: number          // 0=普通, 1=置顶
     messageCount: number
-    updatedAt: string
+    updatedAt: number
 }
 
 /** 消息记录 */
@@ -42,7 +42,7 @@ export interface MessageVO {
     currency: string
     durationMs?: number
     toolCalls?: ToolExecutionEventItem[]
-    createdAt: string
+    createdAt: number
 }
 
 /**

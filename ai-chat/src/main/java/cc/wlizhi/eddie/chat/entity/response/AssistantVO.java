@@ -26,6 +26,6 @@ public class AssistantVO {
     private Integer memoryRounds;
     private Integer enabled;
     private Integer sortOrder;
-    private String createdAt;
-    private String updatedAt;
+    private Long createdAt;
+    private Long updatedAt;
 }

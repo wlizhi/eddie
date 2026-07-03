@@ -76,7 +76,7 @@ public class MessageVO {
     /**
      * 消息时间
      */
-    private String createdAt;
+    private Long createdAt;
 
     /**
      * 工具调用记录列表（由 JSON 字符串反序列化而来）

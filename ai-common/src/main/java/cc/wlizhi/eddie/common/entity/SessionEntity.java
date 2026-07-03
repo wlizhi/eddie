@@ -46,12 +46,12 @@ public class SessionEntity {
     private Integer totalTokens;
 
     /**
-     * 创建时间
+     * 创建时间（毫秒时间戳）
      */
-    private String createdAt;
+    private Long createdAt;
 
     /**
-     * 最后活跃时间
+     * 最后活跃时间（毫秒时间戳）
      */
-    private String updatedAt;
+    private Long updatedAt;
 }

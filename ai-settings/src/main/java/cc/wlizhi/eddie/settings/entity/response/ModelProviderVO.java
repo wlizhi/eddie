@@ -21,8 +21,8 @@ public class ModelProviderVO {
     private Integer builtIn;
     private Integer sortOrder;
     private List<ModelVO> models;
-    private String createdAt;
-    private String updatedAt;
+    private Long createdAt;
+    private Long updatedAt;
 
     public Long getId() {
         return id;
@@ -96,19 +96,19 @@ public class ModelProviderVO {
         this.models = models;
     }
 
-    public String getCreatedAt() {
+    public Long getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(String createdAt) {
+    public void setCreatedAt(Long createdAt) {
         this.createdAt = createdAt;
     }
 
-    public String getUpdatedAt() {
+    public Long getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(String updatedAt) {
+    public void setUpdatedAt(Long updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

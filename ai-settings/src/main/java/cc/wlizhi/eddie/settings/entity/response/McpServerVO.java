@@ -98,12 +98,12 @@ public class McpServerVO {
     /**
      * 创建时间
      */
-    private String createdAt;
+    private Long createdAt;
 
     /**
      * 更新时间
      */
-    private String updatedAt;
+    private Long updatedAt;
 
     /**
      * 连接状态：CONNECTED / DISCONNECTED / RECONNECTING

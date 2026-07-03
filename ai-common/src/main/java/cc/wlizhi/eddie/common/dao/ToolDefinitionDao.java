@@ -58,13 +58,14 @@ public class ToolDefinitionDao {
      * 插入工具定义
      */
     public void insert(ToolDefinitionEntity entity) {
+        long now = System.currentTimeMillis();
         String sql = """
                 INSERT INTO ai_tool_definition
                     (tool_type, name, display_name, description, enabled,
                      built_in, mcp_server_id, sort_order,
                      created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?,
-                        datetime('now', 'localtime'), datetime('now', 'localtime'))
+                        ?, ?)
                 """;
         jdbcTemplate.update(sql,
                 entity.getToolType(),
@@ -74,18 +75,20 @@ public class ToolDefinitionDao {
                 entity.getEnabled() != null ? entity.getEnabled() : 1,
                 entity.getBuiltIn() != null ? entity.getBuiltIn() : 0,
                 entity.getMcpServerId(),
-                entity.getSortOrder() != null ? entity.getSortOrder() : 0);
+                entity.getSortOrder() != null ? entity.getSortOrder() : 0,
+                now, now);
     }
 
     /**
      * 更新工具定义（排除创建时间）
      */
     public void update(ToolDefinitionEntity entity) {
+        long now = System.currentTimeMillis();
         String sql = """
                 UPDATE ai_tool_definition SET
                     tool_type = ?, display_name = ?, description = ?,
                     enabled = ?, built_in = ?, mcp_server_id = ?,
-                    sort_order = ?, updated_at = datetime('now', 'localtime')
+                    sort_order = ?, updated_at = ?
                 WHERE id = ?
                 """;
         jdbcTemplate.update(sql,
@@ -96,6 +99,7 @@ public class ToolDefinitionDao {
                 entity.getBuiltIn(),
                 entity.getMcpServerId(),
                 entity.getSortOrder(),
+                now,
                 entity.getId());
     }
 
@@ -117,8 +121,9 @@ public class ToolDefinitionDao {
      * 切换启用/禁用状态
      */
     public void updateEnabled(Long id, int enabled) {
-        String sql = "UPDATE ai_tool_definition SET enabled = ?, updated_at = datetime('now', 'localtime') WHERE id = ?";
-        jdbcTemplate.update(sql, enabled, id);
+        long now = System.currentTimeMillis();
+        String sql = "UPDATE ai_tool_definition SET enabled = ?, updated_at = ? WHERE id = ?";
+        jdbcTemplate.update(sql, enabled, now, id);
     }
 
     /**
@@ -160,13 +165,14 @@ public class ToolDefinitionDao {
      */
     public void batchInsert(List<ToolDefinitionEntity> entities) {
         if (entities == null || entities.isEmpty()) return;
+        long now = System.currentTimeMillis();
         String sql = """
                 INSERT INTO ai_tool_definition
                     (tool_type, name, display_name, description, enabled,
                      built_in, mcp_server_id, sort_order,
                      created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?,
-                        datetime('now', 'localtime'), datetime('now', 'localtime'))
+                        ?, ?)
                 """;
         List<Object[]> batchArgs = new ArrayList<>(entities.size());
         for (ToolDefinitionEntity entity : entities) {
@@ -178,7 +184,8 @@ public class ToolDefinitionDao {
                     entity.getEnabled() != null ? entity.getEnabled() : 1,
                     entity.getBuiltIn() != null ? entity.getBuiltIn() : 0,
                     entity.getMcpServerId(),
-                    entity.getSortOrder() != null ? entity.getSortOrder() : 0
+                    entity.getSortOrder() != null ? entity.getSortOrder() : 0,
+                    now, now
             });
         }
         jdbcTemplate.batchUpdate(sql, batchArgs);

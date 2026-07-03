@@ -101,12 +101,12 @@ public class McpServerEntity {
     private Integer maxReconnectAttempts;
 
     /**
-     * 创建时间
+     * 创建时间（毫秒时间戳）
      */
-    private String createdAt;
+    private Long createdAt;
 
     /**
-     * 更新时间
+     * 更新时间（毫秒时间戳）
      */
-    private String updatedAt;
+    private Long updatedAt;
 }

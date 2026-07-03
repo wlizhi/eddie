@@ -54,8 +54,9 @@ public class ModelProviderDao {
      * 新增服务提供商
      */
     public void insert(ModelProviderEntity entity) {
+        long now = System.currentTimeMillis();
         String sql = "INSERT INTO model_provider (code, name, base_url, api_key, models, enabled, built_in, sort_order, created_at, updated_at) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))";
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
                 entity.getCode(),
                 entity.getName(),
@@ -64,15 +65,17 @@ public class ModelProviderDao {
                 entity.getModels(),
                 entity.getEnabled(),
                 entity.getBuiltIn(),
-                entity.getSortOrder());
+                entity.getSortOrder(),
+                now, now);
     }
 
     /**
      * 按 id 更新服务提供商
      */
     public void update(ModelProviderEntity entity) {
+        long now = System.currentTimeMillis();
         String sql = "UPDATE model_provider SET name = ?, base_url = ?, api_key = ?, models = ?, "
-                + "enabled = ?, sort_order = ?, updated_at = datetime('now', 'localtime') WHERE id = ?";
+                + "enabled = ?, sort_order = ?, updated_at = ? WHERE id = ?";
         jdbcTemplate.update(sql,
                 entity.getName(),
                 entity.getBaseUrl(),
@@ -80,6 +83,7 @@ public class ModelProviderDao {
                 entity.getModels(),
                 entity.getEnabled(),
                 entity.getSortOrder(),
+                now,
                 entity.getId());
     }
 
@@ -104,8 +108,9 @@ public class ModelProviderDao {
      * 更新排序序号
      */
     public void updateSortOrder(Long id, int sortOrder) {
-        String sql = "UPDATE model_provider SET sort_order = ?, updated_at = datetime('now', 'localtime') WHERE id = ?";
-        jdbcTemplate.update(sql, sortOrder, id);
+        long now = System.currentTimeMillis();
+        String sql = "UPDATE model_provider SET sort_order = ?, updated_at = ? WHERE id = ?";
+        jdbcTemplate.update(sql, sortOrder, now, id);
     }
 
     private final RowMapper<ModelProviderEntity> providerRowMapper = (rs, rowNum) -> {
@@ -119,8 +124,8 @@ public class ModelProviderDao {
         entity.setEnabled(rs.getInt("enabled"));
         entity.setBuiltIn(rs.getInt("built_in"));
         entity.setSortOrder(rs.getObject("sort_order") != null ? rs.getInt("sort_order") : null);
-        entity.setCreatedAt(rs.getString("created_at"));
-        entity.setUpdatedAt(rs.getString("updated_at"));
+        entity.setCreatedAt(rs.getLong("created_at"));
+        entity.setUpdatedAt(rs.getLong("updated_at"));
         return entity;
     };
 }

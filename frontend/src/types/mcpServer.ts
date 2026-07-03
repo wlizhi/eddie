@@ -27,8 +27,8 @@ export interface McpServer {
     sortOrder: number
     reconnectIntervalSec: number
     maxReconnectAttempts: number
-    createdAt: string
-    updatedAt: string
+    createdAt: number
+    updatedAt: number
     connectionStatus: 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING'
     tools: McpToolItem[]
 }

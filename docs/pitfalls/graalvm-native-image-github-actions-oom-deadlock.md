@@ -9,10 +9,9 @@ GraalVM, native-image, GitHub Actions, macOS, 内存不足, 死锁, ConcurrentHa
 Linux/Windows runner（同为免费版）上无此问题。
 
 ## 排查过程
-1. 怀疑是 GraalVM 版本问题 — 尝试降级/升级 GraalVM 版本，问题依旧
-2. 怀疑是 Maven 插件配置问题 — 调整 `-J-Xmx` 参数，发现减小堆内存后死锁概率降低但未消除
-3. 查看 GraalVM GitHub Issues，发现类似报告指向 **macOS runner 物理内存过小**
-4. macOS free runner 只有 7GB 物理内存，而 GraalVM native-image 在构建时需要大量堆外内存（native memory），在内存紧张时触发 JVM 内部 `ConcurrentHashMap` 并发写入死锁
+1. 怀疑是 Maven 插件配置问题 — 调整 `-J-Xmx` 参数，发现增加堆内存后内存溢出，原因是github个人版macos运行容器只有7G内存
+2. 查看 GraalVM GitHub Issues，发现类似报告指向 **macOS runner 物理内存过小**
+3. macOS free runner 只有 7GB 物理内存，而 GraalVM native-image 在构建时需要大量堆外内存（native memory），在内存紧张时触发 JVM 内部 `ConcurrentHashMap` 并发写入死锁
 
 ## 根因分析
 GraalVM native-image 在 **AOT 编译阶段** 会启动一个 JVM 来执行编译分析和字节码处理。当物理内存不足时，JVM 的 GC 和 native memory 分配产生竞争条件，在特定并发路径下触发 `ConcurrentHashMap` 的 **链表转红黑树（treeify）过程中的死锁**。

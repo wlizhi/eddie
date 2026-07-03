@@ -111,7 +111,7 @@ public class MessageEntity {
     private String msgStatus;
 
     /**
-     * 消息时间
+     * 消息时间（毫秒时间戳）
      */
-    private String createdAt;
+    private Long createdAt;
 }

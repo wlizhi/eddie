@@ -27,10 +27,11 @@ public class SessionDao {
      * 创建会话
      */
     public void insert(SessionEntity entity) {
+        long now = System.currentTimeMillis();
         jdbcTemplate.update(
                 "INSERT INTO ai_session (assistant_id, title, pinned, created_at, updated_at) " +
-                        "VALUES (?, '', 0, datetime('now', 'localtime'), datetime('now', 'localtime'))",
-                entity.getAssistantId());
+                        "VALUES (?, '', 0, ?, ?)",
+                entity.getAssistantId(), now, now);
     }
 
     /**
@@ -124,9 +125,10 @@ public class SessionDao {
      * 更新置顶状态
      */
     public void updatePinned(Long id, int pinned) {
+        long now = System.currentTimeMillis();
         jdbcTemplate.update(
-                "UPDATE ai_session SET pinned = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
-                pinned, id);
+                "UPDATE ai_session SET pinned = ?, updated_at = ? WHERE id = ?",
+                pinned, now, id);
     }
 
     /**
@@ -137,11 +139,12 @@ public class SessionDao {
      * @param tokenDelta 累计 token 增量
      */
     public void touchAndIncrementMessageCount(Long id, int msgDelta, int tokenDelta) {
+        long now = System.currentTimeMillis();
         jdbcTemplate.update(
-                "UPDATE ai_session SET updated_at = datetime('now', 'localtime'), " +
+                "UPDATE ai_session SET updated_at = ?, " +
                         "message_count = message_count + ?, " +
                         "total_tokens = total_tokens + ? WHERE id = ?",
-                msgDelta, tokenDelta, id);
+                now, msgDelta, tokenDelta, id);
     }
 
     /**
@@ -174,8 +177,8 @@ public class SessionDao {
         entity.setPinned(rs.getInt("pinned"));
         entity.setMessageCount(rs.getInt("message_count"));
         entity.setTotalTokens(rs.getInt("total_tokens"));
-        entity.setCreatedAt(rs.getString("created_at"));
-        entity.setUpdatedAt(rs.getString("updated_at"));
+        entity.setCreatedAt(rs.getLong("created_at"));
+        entity.setUpdatedAt(rs.getLong("updated_at"));
         return entity;
     };
 
@@ -187,8 +190,8 @@ public class SessionDao {
         entity.setPinned(rs.getInt("pinned"));
         entity.setMessageCount(rs.getInt("message_count"));
         entity.setTotalTokens(rs.getInt("total_tokens"));
-        entity.setCreatedAt(rs.getString("created_at"));
-        entity.setUpdatedAt(rs.getString("updated_at"));
+        entity.setCreatedAt(rs.getLong("created_at"));
+        entity.setUpdatedAt(rs.getLong("updated_at"));
         return entity;
     };
 }

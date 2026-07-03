@@ -60,12 +60,12 @@ public class AssistantDao {
      * 新增助手
      */
     public void insert(AssistantEntity entity) {
+        long now = System.currentTimeMillis();
         String sql = """
                 INSERT INTO ai_assistant (name, avatar, description, system_prompt,
                                           provider_id, model_id, model_params, memory_rounds,
                                           tool_selection_mode, preferences, enabled, sort_order, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                        datetime('now', 'localtime'), datetime('now', 'localtime'))
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
         jdbcTemplate.update(sql,
                 entity.getName(),
@@ -79,15 +79,18 @@ public class AssistantDao {
                 entity.getToolSelectionMode() != null ? entity.getToolSelectionMode() : "none",
                 entity.getPreferences() != null ? entity.getPreferences() : "{}",
                 entity.getEnabled(),
-                entity.getSortOrder());
+                entity.getSortOrder(),
+                now, now);
     }
 
     /**
      * 更新助手（动态 SQL，仅更新非 null 字段）
      */
     public void update(AssistantEntity entity) {
+        long now = System.currentTimeMillis();
         List<Object> params = new java.util.ArrayList<>();
-        StringBuilder sql = new StringBuilder("UPDATE ai_assistant SET updated_at = datetime('now', 'localtime')");
+        StringBuilder sql = new StringBuilder("UPDATE ai_assistant SET updated_at = ?");
+        params.add(now);
 
         if (entity.getName() != null) {
             sql.append(", name = ?");
@@ -148,18 +151,20 @@ public class AssistantDao {
      * 更新助手头像字段
      */
     public void updateAvatar(Long id, String avatar) {
+        long now = System.currentTimeMillis();
         jdbcTemplate.update(
-                "UPDATE ai_assistant SET avatar = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
-                avatar, id);
+                "UPDATE ai_assistant SET avatar = ?, updated_at = ? WHERE id = ?",
+                avatar, now, id);
     }
 
     /**
      * 更新单个助手的排序序号
      */
     public void updateSortOrder(Long id, int sortOrder) {
+        long now = System.currentTimeMillis();
         jdbcTemplate.update(
-                "UPDATE ai_assistant SET sort_order = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
-                sortOrder, id);
+                "UPDATE ai_assistant SET sort_order = ?, updated_at = ? WHERE id = ?",
+                sortOrder, now, id);
     }
 
     /**
@@ -203,8 +208,8 @@ public class AssistantDao {
         entity.setToolSelectionMode(rs.getString("tool_selection_mode"));
         entity.setEnabled(rs.getInt("enabled"));
         entity.setSortOrder(rs.getObject("sort_order") != null ? rs.getInt("sort_order") : 0);
-        entity.setCreatedAt(rs.getString("created_at"));
-        entity.setUpdatedAt(rs.getString("updated_at"));
+        entity.setCreatedAt(rs.getLong("created_at"));
+        entity.setUpdatedAt(rs.getLong("updated_at"));
         return entity;
     };
 
@@ -226,8 +231,8 @@ public class AssistantDao {
         entity.setToolSelectionMode(rs.getString("tool_selection_mode"));
         entity.setEnabled(rs.getInt("enabled"));
         entity.setSortOrder(rs.getObject("sort_order") != null ? rs.getInt("sort_order") : 0);
-        entity.setCreatedAt(rs.getString("created_at"));
-        entity.setUpdatedAt(rs.getString("updated_at"));
+        entity.setCreatedAt(rs.getLong("created_at"));
+        entity.setUpdatedAt(rs.getLong("updated_at"));
         return entity;
     };
 }
