@@ -10,8 +10,8 @@ directories:
   output: dist
 
 files:
-  - main.js
-  - preload.js
+  - "*.js"
+  - icons/*
   - "!node_modules"
 
 icon: icons/icon.png
