@@ -8,7 +8,7 @@ package cc.wlizhi.eddie.tools.tool;
 import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
-import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
+import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
@@ -328,8 +328,8 @@ public class WebSearchTools implements BuiltInToolProvider {
         try {
             // 绝对边界值
             int minCount = 1;
-            String configValue = globalConfigContext.getConfig(GlobalConfigKey.SEARCH_RESULT_COUNT);
-            int maxCount = configValue == null ? 20 : Integer.parseInt(configValue.trim());
+            GeneralSettings settings = globalConfigContext.getGeneralSettings();
+            int maxCount = Math.min(settings.getSearchResultCount(), 20);
             return ConfigUtil.resolveIntConfig(DEFAULT_MAX_RESULTS, param == null ? null : param.toString(), minCount, maxCount);
         } catch (Exception ex) {
             return DEFAULT_MAX_RESULTS;

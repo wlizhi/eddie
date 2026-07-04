@@ -92,6 +92,13 @@
     text-align: right;
 }
 
+/* 助手模型名称 */
+.assistant-model-name {
+    font-weight: 400;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+}
+
 /* ===== 气泡 ===== */
 .message-bubble {
     position: relative;

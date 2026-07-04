@@ -157,7 +157,7 @@ public class ChatSseTransformer {
             }
             // 工具响应超长时截断（避免数据库存储过大）
             String configValue = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
-            int maxLength = ConfigUtil.resolveIntConfig(5000, configValue, 100, MAX_TOOL_CALL_RES_LENGTH);
+            int maxLength = ConfigUtil.resolveIntConfig(20000, configValue, 100, MAX_TOOL_CALL_RES_LENGTH);
             if (event.getResult() != null && event.getResult().length() > maxLength) {
                 event.setResult(event.getResult().substring(0, maxLength) + "...（已截断）");
             }

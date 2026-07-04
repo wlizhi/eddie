@@ -311,6 +311,7 @@ export const useChatStore = defineStore('chat', () => {
                     content: '',
                     thinking: '',
                     timestamp: Date.now(),
+                    modelName: currentModelId.value,
                 }
                 messages.value.push(assistantMsg)
             },
@@ -391,13 +392,14 @@ export const useChatStore = defineStore('chat', () => {
         autoTitleLoaded = true
         try {
             const configs = await fetchConfigs()
-            const eatRaw = configs['ENABLE_AUTO_TITLE']
-            if (eatRaw && eatRaw !== '{}') {
-                autoTitleEnabled.value = eatRaw === 'true'
+            const raw = configs['GENERAL_SETTINGS']
+            const settings = raw ? JSON.parse(raw) : {}
+
+            if (settings.enableAutoTitle != null) {
+                autoTitleEnabled.value = settings.enableAutoTitle === true
             }
-            const tgrRaw = configs['TITLE_GENERATION_ROUNDS']
-            if (tgrRaw && tgrRaw !== '{}') {
-                const n = parseInt(tgrRaw, 10)
+            if (settings.titleGenerationRounds != null) {
+                const n = Number(settings.titleGenerationRounds)
                 if (!isNaN(n) && n >= 1) {
                     titleGenerationRounds.value = n
                 }
@@ -596,6 +598,7 @@ export const useChatStore = defineStore('chat', () => {
             renderedContent: renderMd(msg.content),
             thinking: msg.thinking || undefined,
             renderedThinking: msg.thinking ? renderMd(msg.thinking) : undefined,
+            modelName: msg.modelName || undefined,
             toolCalls,
             timestamp: msg.createdAt,
             metadata: {

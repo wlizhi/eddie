@@ -11,6 +11,7 @@ import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import cc.wlizhi.eddie.common.enums.McpSourceType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -54,21 +55,6 @@ public class OwnerToolBindingContext implements GlobalCache {
      * mcpServerId → McpServerEntity（全量，含禁用）
      */
     private volatile Map<Long, McpServerEntity> mcpServerMap = Map.of();
-
-    /**
-     * toolId → ToolDefinitionEntity（全量，含禁用，主存储）
-     */
-    private volatile Map<Long, ToolDefinitionEntity> toolDefMap = Map.of();
-
-    /**
-     * qualifiedName → ToolDefinitionEntity（全量索引，直接引用 heap 对象）
-     * <p>
-     * qualifiedName 格式：
-     * 内置工具（mcpServerId IS NULL）→ name
-     * MCP 工具（mcpServerId IS NOT NULL）→ {mcpServerId}|{name}
-     * 此索引用于全局快速查找，不同 MCP 服务的同名工具使用不同的 qualifiedName，不冲突。
-     */
-    private volatile Map<String, ToolDefinitionEntity> toolNameIndex = Map.of();
 
     /**
      * mcpServerId → 有序的工具列表（全量，含禁用，直接引用 heap 对象）
@@ -134,52 +120,6 @@ public class OwnerToolBindingContext implements GlobalCache {
         return mcp != null && mcp.getEnabled() == 1;
     }
 
-    // ==================== 查询方法：工具定义 ====================
-
-    /**
-     * 根据 toolId 获取工具定义
-     */
-    public ToolDefinitionEntity getToolDefinition(Long toolId) {
-        return toolDefMap.get(toolId);
-    }
-
-    /**
-     * 根据 qualifiedName 或 name 获取工具定义。
-     * <p>
-     * 优先按 qualifiedName（格式：{mcpServerId}|{name}）查找，
-     * 找不到则降级为按原始 name 查找（兼容旧数据）。
-     */
-    public ToolDefinitionEntity getToolDefinitionByName(String name) {
-        // 先尝试作为 qualifiedName 查找
-        ToolDefinitionEntity entity = toolNameIndex.get(name);
-        if (entity != null) return entity;
-        // 降级：按原始 name 遍历查找（适应不同 MCP 服务的同名工具场景）
-        return toolNameIndex.values().stream()
-                .filter(t -> name.equals(t.getName()))
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * 根据 name 列表批量获取工具定义（保持传入顺序）。
-     * <p>
-     * 每个 name 先尝试作为 qualifiedName 查找，再降级为原始 name 匹配。
-     */
-    public List<ToolDefinitionEntity> getToolDefinitionsByNames(List<String> names) {
-        if (names == null || names.isEmpty()) return List.of();
-        Map<String, ToolDefinitionEntity> nameIdx = this.toolNameIndex;
-        return names.stream()
-                .map(n -> {
-                    ToolDefinitionEntity entity = nameIdx.get(n);
-                    if (entity != null) return entity;
-                    return nameIdx.values().stream()
-                            .filter(t -> n.equals(t.getName()))
-                            .findFirst()
-                            .orElse(null);
-                })
-                .filter(Objects::nonNull)
-                .toList();
-    }
 
     // ==================== 查询方法：MCP 服务 ====================
 
@@ -188,6 +128,25 @@ public class OwnerToolBindingContext implements GlobalCache {
      */
     public McpServerEntity getMcpServer(Long mcpServerId) {
         return mcpServerMap.get(mcpServerId);
+    }
+
+    /**
+     * 根据服务名称和来源类型从缓存中查找 MCP 服务。<p>
+     * 遍历内存中的 {@link #mcpServerMap}，按 name + sourceType 精确匹配。
+     *
+     * @param name       服务名称（如 "BuiltInShell"）
+     * @param sourceType 来源类型（如 "BUILT_IN"），传 null 则忽略此过滤条件
+     * @return 匹配的 MCP 服务，不存在返回 null
+     */
+    public McpServerEntity getBuiltInMcpServerByName(String name) {
+        if (name == null) return null;
+        String sourceType = McpSourceType.BUILT_IN.name();
+        for (McpServerEntity mcp : mcpServerMap.values()) {
+            if (name.equals(mcp.getName()) && sourceType.equals(mcp.getSourceType())) {
+                return mcp;
+            }
+        }
+        return null;
     }
 
     /**
@@ -316,8 +275,6 @@ public class OwnerToolBindingContext implements GlobalCache {
         this.mcpServerMap = Collections.unmodifiableMap(mcpMap);
         this.mcpServerToolsIndex = Collections.unmodifiableMap(mcpToolsIdx);
         this.sortedMcpServerIds = Collections.unmodifiableList(sortedIds);
-        this.toolDefMap = Collections.unmodifiableMap(defMap);
-        this.toolNameIndex = Collections.unmodifiableMap(nameIdx);
         this.bindingMap = Collections.unmodifiableMap(bMap);
     }
 

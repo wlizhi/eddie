@@ -31,6 +31,15 @@ public enum ApiResultCode implements ResultCode {
     /** 参数校验失败 */
     VALIDATION_FAILED(422, "validation failed"),
 
+    /** 命令无执行权限（AI 无权执行此指令） */
+    COMMAND_NOT_PERMITTED(403, "无权执行此命令"),
+
+    /** 请求超时 */
+    TIMEOUT(408, "request timeout"),
+
+    /** 需要用户确认（用于危险操作的双重确认） */
+    NEED_CONFIRMATION(490, "需要用户确认"),
+
     /** 服务器内部错误 */
     INTERNAL_ERROR(500, "internal server error"),
 

@@ -1,5 +1,6 @@
 package cc.wlizhi.eddie.common.entity;
 
+import cc.wlizhi.eddie.common.enums.ConfigType;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,6 +30,11 @@ public class GlobalConfigEntity {
      * 配置值（JSON 字符串）
      */
     private String configVal;
+
+    /**
+     * 配置类型：FRONTEND（前端可见）/ BACKEND（后端内置）
+     */
+    private String configType;
 
     /**
      * 描述

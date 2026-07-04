@@ -21,6 +21,7 @@ import cc.wlizhi.eddie.common.entity.AssistantEntity;
 import cc.wlizhi.eddie.common.entity.MessageEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.SessionEntity;
+import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.event.SessionDeletedEvent;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
@@ -147,15 +148,8 @@ public class SessionServiceImpl implements SessionService {
         }
 
         // 读取配置：生成标题取前几轮对话（默认 1 轮）
-        int rounds = 1;
-        String roundsStr = globalConfigContext.getConfig(GlobalConfigKey.TITLE_GENERATION_ROUNDS);
-        if (roundsStr != null && !roundsStr.isBlank()) {
-            try {
-                rounds = Math.max(Integer.parseInt(roundsStr), 1);
-            } catch (NumberFormatException e) {
-                log.warn("TITLE_GENERATION_ROUNDS 配置格式非法: {}", roundsStr);
-            }
-        }
+        GeneralSettings generalSettings = globalConfigContext.getGeneralSettings();
+        int rounds = Math.max(generalSettings.getTitleGenerationRounds(), 1);
 
         List<MessageEntity> messages = messageDao.findRounds(sessionId, rounds);
         if (messages.size() < 2) {

@@ -342,6 +342,8 @@ export interface DisplaySettings {
     showMetaTokens: boolean
     /** 元数据：显示花费估算 */
     showMetaCost: boolean
+    /** 元数据：显示模型名称 */
+    showMetaModel: boolean
 }
 
 const defaultSettings: DisplaySettings = {
@@ -358,6 +360,7 @@ const defaultSettings: DisplaySettings = {
     showMetaDuration: true,
     showMetaTokens: true,
     showMetaCost: true,
+    showMetaModel: false,
 }
 
 export const displaySettings = reactive<DisplaySettings>({...defaultSettings})
@@ -480,6 +483,7 @@ export async function saveDisplaySettings(): Promise<void> {
             showMetaDuration: displaySettings.showMetaDuration,
             showMetaTokens: displaySettings.showMetaTokens,
             showMetaCost: displaySettings.showMetaCost,
+            showMetaModel: displaySettings.showMetaModel,
         }),
     }
     await updateConfigs(payload)

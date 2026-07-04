@@ -126,6 +126,8 @@ export interface ChatMessage {
     renderedContent?: string
     /** 预渲染的 thinking Markdown 内容 HTML */
     renderedThinking?: string
+    /** 模型名称（仅 assistant 角色） */
+    modelName?: string
 }
 
 /**

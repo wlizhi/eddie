@@ -269,6 +269,9 @@ function onScroll() {
         <!-- 助手名称 -->
         <div v-if="msg.role === 'assistant' && assistantStore.activeAssistant" class="assistant-name-label">
           {{ assistantStore.activeAssistant.name }}
+          <span v-if="msg.modelName && displaySettings.showMetaModel" class="assistant-model-name">
+            ({{ msg.modelName }})
+          </span>
         </div>
 
         <!-- 消息正文（内含 thinking → tool_calls → content） -->

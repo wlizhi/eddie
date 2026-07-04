@@ -16,6 +16,7 @@ import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
+import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.tools.service.McpClientHolder;
 import cc.wlizhi.eddie.tools.service.McpToolCallback;
@@ -47,5 +48,6 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(EddieOpenAiChatModel.class, members);
         reflection.registerType(OwnerToolBindingContext.McpServerWithTools.class, members);
         reflection.registerType(ModelParams.class, members);
+        reflection.registerType(GeneralSettings.class, members);
     }
 }

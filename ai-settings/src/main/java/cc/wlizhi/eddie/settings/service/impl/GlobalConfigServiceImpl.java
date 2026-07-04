@@ -40,7 +40,8 @@ public class GlobalConfigServiceImpl implements GlobalConfigService {
 
     @Override
     public Map<String, String> getConfigs() {
-        return globalConfigContext.getAllConfigs();
+        // 仅返回 FRONTEND 类型的配置，后端内置配置不暴露给前端
+        return globalConfigContext.getFrontendConfigs();
     }
 
     @Override

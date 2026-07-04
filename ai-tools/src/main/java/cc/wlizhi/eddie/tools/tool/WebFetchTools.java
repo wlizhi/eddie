@@ -7,7 +7,7 @@ package cc.wlizhi.eddie.tools.tool;
 
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
-import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
+import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
@@ -355,12 +355,12 @@ public class WebFetchTools implements BuiltInToolProvider {
     private int resolveMaxResults(Integer maxResults) {
         try {
             int minCount = 1000;
-            String val = globalConfigContext.getConfig(GlobalConfigKey.WEB_FETCH_MAX_CHARS);
-            int maxCount = val == null ? MAX_CHARS : Integer.parseInt(val.trim());
-            ConfigUtil.resolveIntConfig(DEFAULT_MAX_CHARS, maxResults == null ? null : maxResults.toString(), minCount, maxCount);
+            GeneralSettings settings = globalConfigContext.getGeneralSettings();
+            int maxCount = Math.min(settings.getWebFetchMaxChars(), MAX_CHARS);
+            return ConfigUtil.resolveIntConfig(DEFAULT_MAX_CHARS, maxResults == null ? null : maxResults.toString(), minCount, maxCount);
         } catch (Exception e) {
-            log.debug("[fetch_markdown] 未设置 WEB_FETCH_MAX_CHARS 配置", e);
+            log.debug("[fetch_markdown] 解析配置失败，使用默认值", e);
+            return DEFAULT_MAX_CHARS;
         }
-        return DEFAULT_MAX_CHARS;
     }
 }

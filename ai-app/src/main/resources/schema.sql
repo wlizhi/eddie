@@ -94,24 +94,26 @@ CREATE INDEX IF NOT EXISTS idx_msg_status ON ai_session_msg (msg_status);
 
 -- 全局配置表（key-value 结构，config_key 直接使用 GlobalConfigKey 枚举名存储）
 -- config_val 为 JSON 字符串，前端/业务模块按需反序列化
+-- config_type 标明配置归属：FRONTEND（前端可见）/ BACKEND（后端内置，不返回前端）
 CREATE TABLE IF NOT EXISTS global_config
 (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     config_key  TEXT NOT NULL UNIQUE,
     config_val  TEXT NOT NULL DEFAULT '{}',
+    config_type TEXT NOT NULL DEFAULT 'FRONTEND',
     description TEXT NOT NULL DEFAULT '',
     updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 
 -- 初始数据（仅首次建表时插入）
-INSERT INTO global_config (config_key, config_val, description)
-VALUES ('DEFAULT_MODEL', '{}', '默认对话模型'),
-       ('FAST_MODEL', '{}', '快速模型'),
-       ('TRANSLATE_MODEL', '{}', '翻译模型'),
-       ('SEARCH_RESULT_COUNT', '8', '搜索返回结果数量'),
-       ('TOOL_CALL_MAX_LENGTH', '5000', '工具调用响应最大长度'),
-       ('ENABLE_AUTO_TITLE', 'true', '是否自动生成会话标题'),
-       ('TITLE_GENERATION_ROUNDS', '1', '生成标题取前几轮对话')
+INSERT INTO global_config (config_key, config_val, config_type, description)
+VALUES ('DEFAULT_MODEL', '{}', 'FRONTEND', '默认对话模型'),
+       ('FAST_MODEL', '{}', 'FRONTEND', '快速模型'),
+       ('TRANSLATE_MODEL', '{}', 'FRONTEND', '翻译模型'),
+       ('GENERAL_SETTINGS',
+        '{"searchResultCount":8,"webFetchMaxChars":8000,"enableAutoTitle":true,"titleGenerationRounds":1}',
+        'FRONTEND', '常规设置'),
+       ('TOOL_CALL_MAX_LENGTH', '20000', 'BACKEND', '工具调用响应最大长度')
 ON CONFLICT(config_key) DO NOTHING;
 
 -- 工具定义表：注册系统中可用的工具（内置工具或 MCP 工具）

@@ -9,6 +9,7 @@ import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dao.McpServerDao;
 import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
 import cc.wlizhi.eddie.common.dao.ToolDefinitionDao;
+import cc.wlizhi.eddie.common.dto.ConfigSchema;
 import cc.wlizhi.eddie.common.dto.McpConnectInfo;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
@@ -17,6 +18,7 @@ import cc.wlizhi.eddie.common.enums.McpTransportType;
 import cc.wlizhi.eddie.common.enums.ToolType;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
+import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.settings.entity.request.BuiltInStatusUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.request.McpServerCreateRequest;
@@ -67,6 +69,9 @@ public class McpToolServiceImpl implements McpToolService {
     private McpClientRegistry mcpClientRegistry;
     @Resource
     private InitScheduler initScheduler;
+
+    @Resource
+    private List<BuiltInToolProvider> toolProviders;
 
     /**
      * 注册重连成功回调：当 MCP 后台重连成功时自动同步工具列表到 DB
@@ -372,6 +377,8 @@ public class McpToolServiceImpl implements McpToolService {
         // 2. 更新字段
         existing.setName(request.getName().trim());
         existing.setDescription(request.getDescription() != null ? request.getDescription() : "");
+        existing.setSourceType(request.getSourceType() != null ? request.getSourceType() : existing.getSourceType());
+        existing.setSourceConfig(request.getSourceConfig() != null ? request.getSourceConfig() : existing.getSourceConfig());
         existing.setTransportType(request.getTransportType());
         existing.setCommand(request.getCommand() != null ? request.getCommand() : "");
         existing.setArgs(request.getArgs() != null ? request.getArgs() : "[]");
@@ -667,8 +674,14 @@ public class McpToolServiceImpl implements McpToolService {
         vo.setUpdatedAt(entity.getUpdatedAt());
 
         // 填充连接状态（仅 enabled 时有意义）
-        if (Objects.equals(entity.getSourceType(), McpSourceType.BUILT_IN.name())) {
+        String sourceType = entity.getSourceType();
+        if (Objects.equals(sourceType, McpSourceType.BUILT_IN.name())) {
             vo.setConnectionStatus(McpClientHolder.ConnectionState.CONNECTED.name());
+
+            // BUILT_IN 类型：填充 sourceConfig 和 configSchema
+            vo.setSourceConfig(entity.getSourceConfig());
+            ConfigSchema schema = findConfigSchema(entity.getName());
+            vo.setConfigSchema(schema);
         } else if (entity.getEnabled() == 1) {
             vo.setConnectionStatus(mcpClientRegistry.getConnectionState(entity.getId()).name());
         } else {
@@ -698,5 +711,21 @@ public class McpToolServiceImpl implements McpToolService {
         vo.setBuiltIn(entity.getBuiltIn() == 1);
         vo.setSortOrder(entity.getSortOrder());
         return vo;
+    }
+
+    /**
+     * 根据 MCP Server 名称查找对应内置工具的 Config Schema。
+     * 遍历所有 {@link BuiltInToolProvider}，匹配 serverName 返回其配置描述。
+     */
+    private ConfigSchema findConfigSchema(String serverName) {
+        if (serverName == null || toolProviders == null) {
+            return ConfigSchema.empty();
+        }
+        for (BuiltInToolProvider provider : toolProviders) {
+            if (serverName.equals(provider.getMcpServerName())) {
+                return provider.getConfigSchema();
+            }
+        }
+        return ConfigSchema.empty();
     }
 }

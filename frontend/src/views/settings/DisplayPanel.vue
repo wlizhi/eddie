@@ -131,7 +131,7 @@
       <div class="setting-row">
         <div class="setting-info">
           <span class="setting-label">主题</span>
-          <span class="setting-hint">在当前外观下选择配色风格</span>
+          <span class="setting-hint">配色风格</span>
         </div>
         <div class="theme-selector">
           <button
@@ -265,6 +265,14 @@
           <span class="setting-hint">显示每次对话的预估费用</span>
         </div>
         <NSwitch v-model:value="displaySettings.showMetaCost"/>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">模型名称</span>
+          <span class="setting-hint">在助手昵称旁显示模型名称</span>
+        </div>
+        <NSwitch v-model:value="displaySettings.showMetaModel"/>
       </div>
     </div>
   </div>
@@ -454,6 +462,7 @@ watch([
     () => displaySettings.showMetaDuration,
     () => displaySettings.showMetaTokens,
     () => displaySettings.showMetaCost,
+    () => displaySettings.showMetaModel,
     () => displaySettings.avatar,
 ], async () => {
     try {

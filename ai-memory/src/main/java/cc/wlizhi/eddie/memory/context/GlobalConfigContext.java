@@ -3,8 +3,11 @@ package cc.wlizhi.eddie.memory.context;
 import cc.wlizhi.eddie.common.cache.GlobalCache;
 import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
+import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
+import cc.wlizhi.eddie.common.enums.ConfigType;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.memory.dao.GlobalConfigDao;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
@@ -33,6 +36,9 @@ public class GlobalConfigContext implements GlobalCache {
     @Resource
     private InitScheduler initScheduler;
 
+    @Resource
+    private ObjectMapper objectMapper;
+
     @PostConstruct
     void init() {
         initScheduler.addTask(this.getClass().getSimpleName(), 1000, this::refresh);
@@ -47,32 +53,47 @@ public class GlobalConfigContext implements GlobalCache {
     }
 
     /**
-     * 获取指定枚举的配置值，并反序列化为指定类型
+     * 获取全量配置 Map（所有类型）
      */
-    @SuppressWarnings("unchecked")
-    public <T> T getConfig(GlobalConfigKey key, Class<T> valueType) {
-        String json = getConfig(key);
+    public Map<String, String> getAllConfigs() {
+        return new LinkedHashMap<>(configMap);
+    }
+
+    /**
+     * 解析并返回 {@link GeneralSettings} DTO。<p>
+     * 用于后端各模块便捷读取常规设置，无需自行解析 JSON。
+     */
+    public GeneralSettings getGeneralSettings() {
+        String json = getConfig(GlobalConfigKey.GENERAL_SETTINGS);
         if (json == null || json.isBlank()) {
-            return null;
+            return new GeneralSettings();
         }
-        // 如果目标类型是 String，直接返回
-        if (valueType == String.class) {
-            return (T) json;
-        }
-        // 简单 JSON 反序列化，使用 Jackson
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.readValue(json, valueType);
+            return objectMapper.readValue(json, GeneralSettings.class);
         } catch (Exception e) {
-            return null;
+            return new GeneralSettings();
         }
     }
 
     /**
-     * 获取全量配置 Map（前端用）
+     * 仅获取前端可见的配置 Map（{@link ConfigType#FRONTEND}）<p>
+     * 用于 {@code GET /api/settings/configs} 接口返回给前端。
      */
-    public Map<String, String> getAllConfigs() {
-        return new LinkedHashMap<>(configMap);
+    public Map<String, String> getFrontendConfigs() {
+        Map<String, String> all = configMap;
+        if (all == null) {
+            return new LinkedHashMap<>();
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        for (GlobalConfigKey key : GlobalConfigKey.values()) {
+            if (key.getConfigType() == ConfigType.FRONTEND) {
+                String val = all.get(key.name());
+                if (val != null) {
+                    result.put(key.name(), val);
+                }
+            }
+        }
+        return result;
     }
 
     @Override

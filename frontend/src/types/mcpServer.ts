@@ -9,6 +9,35 @@
 export type McpSourceType = 'BUILT_IN' | 'USER' | 'PROVIDER'
 
 /**
+ * 配置字段描述（对应后端 ConfigFieldDescriptor）
+ */
+export interface ConfigFieldDescriptor {
+    name: string
+    type: 'string' | 'number' | 'boolean' | 'select' | 'textarea'
+    label: string
+    description: string
+    defaultValue: any
+    placeholder?: string
+    required?: boolean
+    min?: number
+    max?: number
+    options?: { value: string; label: string }[]
+    /** 依赖的字段名：仅当依赖字段的值等于 dependsOnValue 时才显示该字段 */
+    dependsOn?: string
+    /** 依赖字段的目标值 */
+    dependsOnValue?: any
+}
+
+/**
+ * 内置工具配置描述 Schema（对应后端 ConfigSchema）
+ */
+export interface ConfigSchema {
+    title: string
+    description: string
+    fields: ConfigFieldDescriptor[]
+}
+
+/**
  * 对应后端 McpServerVO
  */
 export interface McpServer {
@@ -31,6 +60,10 @@ export interface McpServer {
     updatedAt: number
     connectionStatus: 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING'
     tools: McpToolItem[]
+    /** 来源配置 JSON（仅 BUILT_IN 类型有值） */
+    sourceConfig?: string
+    /** 配置描述 Schema（仅 BUILT_IN 类型有值） */
+    configSchema?: ConfigSchema
 }
 
 /**

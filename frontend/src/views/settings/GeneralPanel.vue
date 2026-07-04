@@ -25,7 +25,7 @@
             :show-button="false"
             class="number-input"
             placeholder="8"
-            @blur="saveField(SEARCH_RESULT_COUNT_KEY, searchResultCount)"
+            @blur="saveField('searchResultCount', searchResultCount)"
         />
       </div>
 
@@ -42,7 +42,7 @@
             :show-button="false"
             class="number-input"
             placeholder="4000"
-            @blur="saveField(WEB_FETCH_MAX_CHARS_KEY, webFetchMaxChars)"
+            @blur="saveField('webFetchMaxChars', webFetchMaxChars)"
         />
       </div>
     </div>
@@ -78,7 +78,7 @@
             :show-button="false"
             class="number-input"
             placeholder="1"
-            @blur="saveField(TITLE_GENERATION_ROUNDS_KEY, titleGenerationRounds)"
+            @blur="saveField('titleGenerationRounds', titleGenerationRounds)"
         />
       </div>
     </div>
@@ -92,45 +92,30 @@ import {Search, Sparkles} from '@lucide/vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {showToast} from '@/composables/useToast'
 
-const SEARCH_RESULT_COUNT_KEY = 'SEARCH_RESULT_COUNT'
-const WEB_FETCH_MAX_CHARS_KEY = 'WEB_FETCH_MAX_CHARS'
-const ENABLE_AUTO_TITLE_KEY = 'ENABLE_AUTO_TITLE'
-const TITLE_GENERATION_ROUNDS_KEY = 'TITLE_GENERATION_ROUNDS'
+const GENERAL_SETTINGS_KEY = 'GENERAL_SETTINGS'
 
 const searchResultCount = ref<number | null>(null)
 const webFetchMaxChars = ref<number | null>(null)
 const enableAutoTitle = ref(true)
 const titleGenerationRounds = ref<number | null>(1)
 
-/** 缓存初始全量配置，用于 blur 时合并其他未变化字段 */
-const initialConfigs = ref<Record<string, string>>({})
-
 onMounted(async () => {
   try {
     const configs = await fetchConfigs()
-    initialConfigs.value = {...configs}
+    const raw = configs[GENERAL_SETTINGS_KEY]
+    const settings = raw ? JSON.parse(raw) : {}
 
-    const srcRaw = configs[SEARCH_RESULT_COUNT_KEY]
-    if (srcRaw && srcRaw !== '{}') {
-      const n = parseInt(srcRaw, 10)
-      if (!isNaN(n)) searchResultCount.value = Math.min(Math.max(n, 1), 20)
+    if (settings.searchResultCount != null) {
+      searchResultCount.value = Math.min(Math.max(settings.searchResultCount, 1), 20)
     }
-
-    const wfmcRaw = configs[WEB_FETCH_MAX_CHARS_KEY]
-    if (wfmcRaw && wfmcRaw !== '{}') {
-      const n = parseInt(wfmcRaw, 10)
-      if (!isNaN(n)) webFetchMaxChars.value = Math.min(Math.max(n, 1000), 15000)
+    if (settings.webFetchMaxChars != null) {
+      webFetchMaxChars.value = Math.min(Math.max(settings.webFetchMaxChars, 1000), 15000)
     }
-
-    const eatRaw = configs[ENABLE_AUTO_TITLE_KEY]
-    if (eatRaw && eatRaw !== '{}') {
-      enableAutoTitle.value = eatRaw === 'true'
+    if (settings.enableAutoTitle != null) {
+      enableAutoTitle.value = settings.enableAutoTitle === true
     }
-
-    const tgrRaw = configs[TITLE_GENERATION_ROUNDS_KEY]
-    if (tgrRaw && tgrRaw !== '{}') {
-      const n = parseInt(tgrRaw, 10)
-      if (!isNaN(n)) titleGenerationRounds.value = Math.min(Math.max(n, 1), 5)
+    if (settings.titleGenerationRounds != null) {
+      titleGenerationRounds.value = Math.min(Math.max(settings.titleGenerationRounds, 1), 5)
     }
   } catch (err: any) {
     showToast('加载配置失败: ' + (err.message || '未知错误'), 'error')
@@ -139,21 +124,20 @@ onMounted(async () => {
 
 /**
  * 失去焦点时自动保存单个字段
- * 与初始配置合并后全量提交，避免覆盖其他未加载的配置
+ * 更新 GENERAL_SETTINGS JSON 中的对应字段后全量提交
  */
 async function saveField(key: string, value: number | boolean | null) {
   try {
-    const payload: Record<string, string> = {
-      ...initialConfigs.value,
-    }
+    const configs = await fetchConfigs()
+    const raw = configs[GENERAL_SETTINGS_KEY]
+    const settings: Record<string, any> = raw ? JSON.parse(raw) : {}
+
     if (value != null) {
-      payload[key] = String(value)
+      settings[key] = value
     } else {
-      delete payload[key]
+      delete settings[key]
     }
-    await updateConfigs(payload)
-    // 更新本地缓存，为下次 blur 做准备
-    initialConfigs.value = payload
+    await updateConfigs({[GENERAL_SETTINGS_KEY]: JSON.stringify(settings)})
   } catch (err: any) {
     showToast('保存失败: ' + (err.message || '未知错误'), 'error')
   }
@@ -162,7 +146,7 @@ async function saveField(key: string, value: number | boolean | null) {
 /** 自动标题开关变更立即保存 */
 async function onAutoTitleChange(val: boolean) {
   enableAutoTitle.value = val
-  await saveField(ENABLE_AUTO_TITLE_KEY, val)
+  await saveField('enableAutoTitle', val)
 }
 </script>
 
