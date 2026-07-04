@@ -155,13 +155,27 @@ public class ChatSseTransformer {
                     log.warn("解析内置工具结果失败 -> " + e.getMessage(), e);
                 }
             }
-            // 工具响应超长时截断（避免数据库存储过大）
+            // 第一阶段截断：SSE 实时渲染，允许更大的值
             String configValue = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
-            int maxLength = ConfigUtil.resolveIntConfig(20000, configValue, 100, MAX_TOOL_CALL_RES_LENGTH);
-            if (event.getResult() != null && event.getResult().length() > maxLength) {
-                event.setResult(event.getResult().substring(0, maxLength) + "...（已截断）");
+            int sseMaxLength = ConfigUtil.resolveIntConfig(20000, configValue, 100, MAX_TOOL_CALL_RES_LENGTH);
+            if (event.getResult() != null && event.getResult().length() > sseMaxLength) {
+                event.setResult(event.getResult().substring(0, sseMaxLength) + "...（已截断）");
+            }
+
+            // 先构建 SSE 事件（此时 event.result 是第一阶段截断后的值，供前端实时渲染）
+            ServerSentEvent<String> sseEvent = ServerSentEvent.<String>builder()
+                    .event("tool_execution")
+                    .data(toJson(event))
+                    .build();
+
+            // 第二阶段截断：保存到上下文/入库时使用更小的边界（MAX_TOOL_CALL_RES_LENGTH >> 1）
+            int storeMaxLength = MAX_TOOL_CALL_RES_LENGTH >> 1;
+            if (event.getResult() != null && event.getResult().length() > storeMaxLength) {
+                event.setResult(event.getResult().substring(0, storeMaxLength) + "...（已截断）");
             }
             ctx.getToolCalls().add(event);
+
+            return sseEvent;
         }
         return ServerSentEvent.<String>builder()
                 .event("tool_execution")
