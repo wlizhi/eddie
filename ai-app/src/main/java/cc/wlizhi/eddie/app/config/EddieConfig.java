@@ -58,6 +58,7 @@ public class EddieConfig {
      */
     @Bean
     public TomcatProtocolHandlerCustomizer<?> protocolHandlerVirtualThreadExecutor() {
+        log.info("CPU核心数: {}", Runtime.getRuntime().availableProcessors());
         log.info("启用虚拟线程: Tomcat ProtocolHandler 配置为虚拟线程执行器");
         return protocolHandler -> {
             protocolHandler.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
