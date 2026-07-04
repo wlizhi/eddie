@@ -58,4 +58,10 @@ public class ModelUpdateRequest {
      * 缓存写入价格，每百万 token（不传则保持原有值）
      */
     private Double cacheWriteInputPrice;
+
+    /**
+     * 调用间隔（秒），模型每次调用的最小时间间隔<br>
+     * null 或 0 表示不限制
+     */
+    private Integer callIntervalSec;
 }

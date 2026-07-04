@@ -9,10 +9,13 @@ import cc.wlizhi.eddie.common.cache.GlobalCache;
 import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dao.ModelProviderDao;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
+import cc.wlizhi.eddie.memory.cache.ModelThrottleCache;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,10 +37,24 @@ public class ModelProviderContext implements GlobalCache {
     private ModelProviderDao modelProviderDao;
     @Resource
     private InitScheduler initScheduler;
+    @Resource
+    private ObjectProvider<ModelThrottleCache> modelThrottleCacheProvider;
 
     @PostConstruct
     void init() {
         initScheduler.addTask(this.getClass().getSimpleName(), 1000, this::refresh);
+    }
+
+    /**
+     * 获取所有模型服务商列表
+     */
+    public List<ModelProviderEntity> listAll() {
+        Map<Long, ModelProviderEntity> map = modelProviderMap;
+        if (map == null) {
+            refresh();
+            map = modelProviderMap;
+        }
+        return new ArrayList<>(map.values());
     }
 
     /**
@@ -61,6 +78,8 @@ public class ModelProviderContext implements GlobalCache {
                 map.put(entity.getId(), entity);
             }
             this.modelProviderMap = map;
+            // 联动刷新：模型配置变更时同步更新节流阀缓存
+            modelThrottleCacheProvider.getIfAvailable().refresh();
         } finally {
             lock.unlock();
         }

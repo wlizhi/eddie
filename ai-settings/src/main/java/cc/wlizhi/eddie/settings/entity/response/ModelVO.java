@@ -6,12 +6,16 @@
 package cc.wlizhi.eddie.settings.entity.response;
 
 import cc.wlizhi.eddie.common.enums.ModelCapability;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
 /**
  * 模型信息响应 VO（接口2：根据服务商 code 获取模型列表）
  */
+@Getter
+@Setter
 public class ModelVO {
 
     /** 对应 JSON 中的 id 字段 */
@@ -58,83 +62,10 @@ public class ModelVO {
      */
     private Double cacheWriteInputPrice;
 
-    public String getCode() {
-        return code;
-    }
+    /**
+     * 调用间隔（秒），模型每次调用的最小时间间隔<br>
+     * null 或 0 表示不限制
+     */
+    private Integer callIntervalSec;
 
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getObject() {
-        return object;
-    }
-
-    public void setObject(String object) {
-        this.object = object;
-    }
-
-    public String getOwnedBy() {
-        return ownedBy;
-    }
-
-    public void setOwnedBy(String ownedBy) {
-        this.ownedBy = ownedBy;
-    }
-
-    public Long getCreated() {
-        return created;
-    }
-
-    public void setCreated(Long created) {
-        this.created = created;
-    }
-
-    public List<ModelCapability> getCapabilities() {
-        return capabilities;
-    }
-
-    public void setCapabilities(List<ModelCapability> capabilities) {
-        this.capabilities = capabilities;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public Double getInputPrice() {
-        return inputPrice;
-    }
-
-    public void setInputPrice(Double inputPrice) {
-        this.inputPrice = inputPrice;
-    }
-
-    public Double getOutputPrice() {
-        return outputPrice;
-    }
-
-    public void setOutputPrice(Double outputPrice) {
-        this.outputPrice = outputPrice;
-    }
-
-    public Double getCacheInputPrice() {
-        return cacheInputPrice;
-    }
-
-    public void setCacheInputPrice(Double cacheInputPrice) {
-        this.cacheInputPrice = cacheInputPrice;
-    }
-
-    public Double getCacheWriteInputPrice() {
-        return cacheWriteInputPrice;
-    }
-
-    public void setCacheWriteInputPrice(Double cacheWriteInputPrice) {
-        this.cacheWriteInputPrice = cacheWriteInputPrice;
-    }
 }

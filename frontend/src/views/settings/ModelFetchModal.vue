@@ -8,7 +8,7 @@
       :show="visible"
       preset="card"
       title="模型列表"
-      style="max-width: 50em; width: 90%; max-height: 90vh;"
+      style="max-width: 50em; width: 90%; max-height: 92vh;"
       content-style="padding: 0; display: flex; flex-direction: column; overflow: hidden;"
       :mask-closable="false"
       @update:show="(v: boolean) => { if (!v) $emit('close') }"

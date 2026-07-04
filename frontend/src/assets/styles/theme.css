@@ -262,8 +262,13 @@ body {
  */
 
 .n-card > .n-card-header {
-    --n-padding-top: 10px;
-    --n-padding-bottom: 10px;
+    --n-padding-top: 8px;
+    --n-padding-bottom: 8px;
+}
+
+.n-card > .n-card-content {
+    max-height: 80vh;
+    overflow: auto;
 }
 
 /* ===== NSelect / NPopselect 全局字体跟随（兜底规则） =====

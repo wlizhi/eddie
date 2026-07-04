@@ -70,7 +70,7 @@ function handleSaveWithValidation() {
       :on-update:show="(v: boolean) => { if (!v) close() }"
       title="助手设置"
       preset="card"
-      style="max-width: 600px; width: 90%; max-height: 92vh;"
+      style="max-width: 600px; width: 90%;"
       :mask-closable="false"
   >
     <template #header>

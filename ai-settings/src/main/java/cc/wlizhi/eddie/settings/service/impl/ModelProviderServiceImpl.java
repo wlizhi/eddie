@@ -282,6 +282,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
                 vo.setOutputPrice(parseDouble(raw.get("output_price")));
                 vo.setCacheInputPrice(parseDouble(raw.get("cache_input_price")));
                 vo.setCacheWriteInputPrice(parseDouble(raw.get("cache_write_input_price")));
+                vo.setCallIntervalSec(parseInt(raw.get("call_interval_sec")));
                 result.add(vo);
             }
             return result;
@@ -359,6 +360,23 @@ public class ModelProviderServiceImpl implements ModelProviderService {
         }
         try {
             return Double.parseDouble(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 安全地将 Object 转为 Integer，非数字或 null 时返回 null
+     */
+    private Integer parseInt(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.parseInt(value.toString());
         } catch (NumberFormatException e) {
             return null;
         }

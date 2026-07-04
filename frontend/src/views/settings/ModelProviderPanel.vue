@@ -162,6 +162,7 @@ async function saveModelSettings(payload: {
   outputPrice: number
   cacheInputPrice?: number
   cacheWriteInputPrice?: number
+  callIntervalSec?: number
 }) {
   if (!activeProvider.value || !editingModel.value) return
 
@@ -179,6 +180,7 @@ async function saveModelSettings(payload: {
       outputPrice: payload.outputPrice,
       cacheInputPrice: payload.cacheInputPrice,
       cacheWriteInputPrice: payload.cacheWriteInputPrice,
+      callIntervalSec: payload.callIntervalSec,
     })
 
     // 更新本地数据
@@ -193,6 +195,7 @@ async function saveModelSettings(payload: {
           outputPrice: payload.outputPrice,
           cacheInputPrice: payload.cacheInputPrice,
           cacheWriteInputPrice: payload.cacheWriteInputPrice,
+          callIntervalSec: payload.callIntervalSec,
         }
       }
       return m

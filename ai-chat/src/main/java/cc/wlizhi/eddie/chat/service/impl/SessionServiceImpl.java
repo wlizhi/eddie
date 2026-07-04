@@ -279,7 +279,11 @@ public class SessionServiceImpl implements SessionService {
         try {
             ChatClientFactory factory = chatClientFactoryRouter.resolve(provider.getCode());
             ChatClient chatClient = factory.getChatClient(ctx);
-            String result = chatClient.prompt(prompt).call().content();
+            String result = chatClient.prompt(prompt)
+                    .advisors(a -> a
+                            .param("providerId", providerId)
+                            .param("modelCode", modelCode))
+                    .call().content();
             return result != null ? result.trim() : null;
         } catch (Exception e) {
             log.warn("调用模型(providerId={}, modelCode={})生成标题失败: {}", providerId, modelCode, e.getMessage());

@@ -5,6 +5,7 @@
 
 package cc.wlizhi.eddie.chat.service.impl;
 
+import cc.wlizhi.eddie.chat.advisor.ModelThrottleAdvisor;
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
@@ -98,6 +99,9 @@ public class ChatServiceImpl implements ChatService {
     @Resource
     private EventRegistry chatEventRegistry;
 
+    @Resource
+    private ModelThrottleAdvisor modelThrottleAdvisor;
+
     @Override
     public Flux<ServerSentEvent<String>> chat(ChatRequest request) {
         // 1. 初始化上下文
@@ -157,10 +161,11 @@ public class ChatServiceImpl implements ChatService {
         // 5. 工厂路由 + 构建 ChatClient
         ChatClientFactory factory = chatClientFactoryRouter.resolve(ctx.getProviderCode());
 
-        // 6. 注入工具 + 记忆 Advisor
+        // 6. 注入节流 Advisor + 工具 + 记忆 Advisor
         ChatClient chatClient = factory.getChatClient(ctx);
         var builder = chatClient.mutate()
                 .defaultAdvisors(
+                        modelThrottleAdvisor,
                         MessageChatMemoryAdvisor.builder(shortTermMemory)
                                 .scheduler(Schedulers.parallel())
                                 .build()

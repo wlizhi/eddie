@@ -48,7 +48,9 @@ public class ChatStreamExecutor {
                 .system(promptVariableResolver.resolve(ctx.getAssistant().getSystemPrompt()))
                 .user(ctx.getUserMessage())
                 .advisors(advisor -> advisor
-                        .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId()))
+                        .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId())
+                        .param("providerId", ctx.getProvider().getId())
+                        .param("modelCode", ctx.getOriginalRequest().getModelId()))
                 .stream()
                 .chatResponse()
                 .doOnNext(ctx::setLastResponse)

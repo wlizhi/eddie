@@ -65,6 +65,7 @@ public class ModelServiceImpl implements ModelService {
                 model.put("output_price", request.getOutputPrice());
                 model.put("cache_input_price", request.getCacheInputPrice());
                 model.put("cache_write_input_price", request.getCacheWriteInputPrice());
+                model.put("call_interval_sec", request.getCallIntervalSec());
                 found = true;
                 break;
             }

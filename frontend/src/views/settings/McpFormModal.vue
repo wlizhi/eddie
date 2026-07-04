@@ -8,10 +8,7 @@
       :show="true"
       :mask-closable="false"
       preset="card"
-      style="width: 90%; max-width: 35rem; max-height: 85vh;"
-      header-style="flex-shrink: 0;"
-      content-style="overflow-y: auto; min-height: 0;"
-      footer-style="flex-shrink: 0;"
+      style="width: 90%; max-width: 35rem;"
       @close="$emit('close')"
   >
     <template #header>

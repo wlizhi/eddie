@@ -124,6 +124,21 @@
           <span class="price-unit">{{ displayCurrency }}/百万Token</span>
         </div>
       </div>
+
+      <!-- 调用间隔 -->
+      <div class="modal-field">
+        <span class="field-label">调用间隔（秒）</span>
+        <div class="price-row">
+          <n-input-number
+              v-model:value="form.callIntervalSec"
+              :min="0"
+              :step="1"
+              placeholder="留空不限制"
+              :show-button="false"
+          />
+          <span class="price-unit">秒（两次调用之间的最小间隔）</span>
+        </div>
+      </div>
     </div>
 
     <template #footer>
@@ -158,6 +173,7 @@ const emit = defineEmits<{
     outputPrice: number
     cacheInputPrice?: number
     cacheWriteInputPrice?: number
+    callIntervalSec?: number
   }]
 }>()
 
@@ -171,6 +187,7 @@ const form = reactive({
   outputPrice: 0,
   cacheInputPrice: undefined as number | undefined,
   cacheWriteInputPrice: undefined as number | undefined,
+  callIntervalSec: undefined as number | undefined,
 })
 
 /** 当前显示的币种符号 */
@@ -194,6 +211,7 @@ watch(() => props.model, (m) => {
   form.outputPrice = m.outputPrice ?? 0
   form.cacheInputPrice = m.cacheInputPrice ?? undefined
   form.cacheWriteInputPrice = m.cacheWriteInputPrice ?? undefined
+  form.callIntervalSec = m.callIntervalSec ?? undefined
 }, {immediate: true})
 
 function toggle(code: string) {
@@ -211,6 +229,7 @@ function handleSave() {
     outputPrice: form.outputPrice,
     cacheInputPrice: form.cacheInputPrice,
     cacheWriteInputPrice: form.cacheWriteInputPrice,
+    callIntervalSec: form.callIntervalSec,
   })
 }
 </script>

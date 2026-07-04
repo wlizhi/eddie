@@ -92,6 +92,7 @@ export async function updateModel(providerId: number, payload: {
     outputPrice?: number
     cacheInputPrice?: number
     cacheWriteInputPrice?: number
+    callIntervalSec?: number
 }): Promise<void> {
     const res = await fetch(`${BASE}/${providerId}/model`, {
         method: 'PUT',

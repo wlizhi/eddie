@@ -45,6 +45,12 @@ export interface ModelItem {
     outputPrice?: number
     cacheInputPrice?: number
     cacheWriteInputPrice?: number
+
+    /**
+     * 调用间隔（秒），模型每次调用的最小时间间隔<br>
+     * null 或 0 表示不限制
+     */
+    callIntervalSec?: number
 }
 
 /**
