@@ -8,7 +8,7 @@ package cc.wlizhi.eddie.agent.service.impl;
 import cc.wlizhi.eddie.agent.context.AgentContext;
 import cc.wlizhi.eddie.agent.dao.AgentDao;
 import cc.wlizhi.eddie.agent.dao.AgentMsgDao;
-import cc.wlizhi.eddie.agent.dao.AgentMsgSegmentDao;
+import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
 import cc.wlizhi.eddie.agent.dao.AgentSessionDao;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentCreateRequest;
@@ -54,7 +54,7 @@ public class AgentServiceImpl implements AgentService {
     private AgentMsgDao agentMsgDao;
 
     @Resource
-    private AgentMsgSegmentDao agentMsgSegmentDao;
+    private AgentMsgStepDao agentMsgStepDao;
 
     @Resource
     private ModelProviderContext modelProviderContext;
@@ -207,7 +207,7 @@ public class AgentServiceImpl implements AgentService {
         if (!agentDao.existsById(id)) {
             throw new NotFoundException("智能体不存在: " + id);
         }
-        agentMsgSegmentDao.deleteByAgentId(id);
+        agentMsgStepDao.deleteByAgentId(id);
         agentMsgDao.deleteByAgentId(id);
         agentSessionDao.deleteByAgentId(id);
         ownerToolBindingDao.deleteByOwner(RoleType.AGENT, id);

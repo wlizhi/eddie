@@ -25,8 +25,8 @@ import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.event.SessionDeletedEvent;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
+import cc.wlizhi.eddie.memory.context.BuiltInPromptsContext;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
-import cc.wlizhi.eddie.memory.context.GlobalPromptsContext;
 import cc.wlizhi.eddie.memory.context.ModelProviderContext;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -71,7 +71,7 @@ public class SessionServiceImpl implements SessionService {
     private ChatClientFactoryRouter chatClientFactoryRouter;
 
     @Resource
-    private GlobalPromptsContext globalPromptsContext;
+    private BuiltInPromptsContext builtInPromptsContext;
 
     @Resource
     private ObjectMapper objectMapper;
@@ -255,13 +255,13 @@ public class SessionServiceImpl implements SessionService {
         }
 
         // 加载并解析 prompt 模板
-        String promptTemplate = globalPromptsContext.getSessionTitlePrompts();
+        String promptTemplate = builtInPromptsContext.getSessionTitlePrompts();
         if (promptTemplate == null) {
             log.warn("标题生成 prompt 未加载，跳过");
             return null;
         }
 
-        String prompt = globalPromptsContext.resolvePrompt(promptTemplate, Map.of(
+        String prompt = builtInPromptsContext.resolvePrompt(promptTemplate, Map.of(
                 "conversation", conversation != null ? conversation : ""
         ));
 

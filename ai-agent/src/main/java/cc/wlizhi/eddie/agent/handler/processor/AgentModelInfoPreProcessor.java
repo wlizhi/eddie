@@ -3,7 +3,7 @@
  * {@code @date} 2026-07-05
  */
 
-package cc.wlizhi.eddie.agent.handler.preprocessor;
+package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;

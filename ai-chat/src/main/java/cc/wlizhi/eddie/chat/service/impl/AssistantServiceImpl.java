@@ -6,7 +6,6 @@
 package cc.wlizhi.eddie.chat.service.impl;
 
 import cc.wlizhi.eddie.chat.context.AssistantContext;
-import cc.wlizhi.eddie.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddie.chat.entity.request.AssistantCreateRequest;
 import cc.wlizhi.eddie.chat.entity.request.AssistantUpdateRequest;
 import cc.wlizhi.eddie.chat.entity.response.AssistantDetailVO;
@@ -14,7 +13,11 @@ import cc.wlizhi.eddie.chat.entity.response.AssistantVO;
 import cc.wlizhi.eddie.chat.entity.response.ToolItemVO;
 import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
 import cc.wlizhi.eddie.chat.service.AssistantService;
-import cc.wlizhi.eddie.common.dao.*;
+import cc.wlizhi.eddie.common.ai.openai.ModelParams;
+import cc.wlizhi.eddie.common.dao.AssistantDao;
+import cc.wlizhi.eddie.common.dao.MessageDao;
+import cc.wlizhi.eddie.common.dao.OwnerToolBindingDao;
+import cc.wlizhi.eddie.common.dao.SessionDao;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
@@ -59,9 +62,6 @@ public class AssistantServiceImpl implements AssistantService {
 
     @Resource
     private OwnerToolBindingDao ownerToolBindingDao;
-
-    @Resource
-    private ToolDefinitionDao toolDefinitionDao;
 
     @Resource
     private OwnerToolBindingContext ownerToolBindingContext;

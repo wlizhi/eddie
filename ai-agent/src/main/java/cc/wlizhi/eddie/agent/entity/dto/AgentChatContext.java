@@ -9,6 +9,7 @@ import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
+import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +17,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.codec.ServerSentEvent;
-import reactor.core.publisher.Sinks;
+import reactor.core.publisher.FluxSink;
 
 @Getter
 @Setter
@@ -70,7 +71,7 @@ public class AgentChatContext {
     /**
      * SSE 事件 Sink — 虚拟线程通过此向前端推送事件
      */
-    private Sinks.Many<ServerSentEvent<String>> sink;
+    private FluxSink<ServerSentEvent<String>> sink;
 
     // ==================== 模型上下文 ====================
 
@@ -93,4 +94,9 @@ public class AgentChatContext {
      * 消耗统计
      */
     private AgentTokenStatists tokenStatists;
+
+    /**
+     * 当前所处的模式
+     */
+    private AgentMode agentMode;
 }

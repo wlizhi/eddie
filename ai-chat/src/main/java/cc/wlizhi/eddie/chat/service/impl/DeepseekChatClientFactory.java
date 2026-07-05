@@ -6,8 +6,8 @@
 package cc.wlizhi.eddie.chat.service.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
-import cc.wlizhi.eddie.chat.entity.dto.ModelParams;
 import cc.wlizhi.eddie.chat.service.ChatClientFactory;
+import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;

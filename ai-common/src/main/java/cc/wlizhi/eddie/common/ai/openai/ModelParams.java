@@ -3,7 +3,7 @@
  * {@code @date} 2026-06-21
  */
 
-package cc.wlizhi.eddie.chat.entity.dto;
+package cc.wlizhi.eddie.common.ai.openai;
 
 import lombok.Getter;
 import lombok.Setter;

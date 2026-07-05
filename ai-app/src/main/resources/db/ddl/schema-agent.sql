@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS ai_agent_session_msg
     cache_written_input_tokens INTEGER NOT NULL DEFAULT 0,
     currency                   TEXT    NOT NULL DEFAULT '',
     duration_ms                INTEGER NOT NULL DEFAULT 0,
-    msg_status                 TEXT    NOT NULL DEFAULT 'COMPLETED', -- COMPLETED / STREAMING / INTERRUPTED / ERROR
+    msg_status TEXT NOT NULL DEFAULT 'COMPLETED',                    -- COMPLETED（完成）/ PROCESSING（AI 处理中）/ INTERRUPTED（用户中断）/ FAILED（异常终止）
     created_at                 INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_agent_msg_session ON ai_agent_session_msg (session_id, id);

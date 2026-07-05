@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS ai_session_msg
     cache_written_input_tokens INTEGER NOT NULL DEFAULT 0, -- 缓存写入的 input token 数（来自 Usage）
     currency                TEXT    NOT NULL DEFAULT '', -- 费用货币符号，如 ¥ / $
     duration_ms INTEGER NOT NULL DEFAULT 0, -- 接口耗时（毫秒）
-    msg_status              TEXT    NOT NULL DEFAULT 'COMPLETED', -- 消息状态：COMPLETED（正常完成）/ STREAMING（流式进行中）/ INTERRUPTED（中断）
+    msg_status TEXT NOT NULL DEFAULT 'COMPLETED', -- 消息状态：COMPLETED（完成）/ PROCESSING（AI 处理中）/ INTERRUPTED（用户中断）/ FAILED（异常终止）
     created_at        INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_msg_session_id ON ai_session_msg (session_id, id);

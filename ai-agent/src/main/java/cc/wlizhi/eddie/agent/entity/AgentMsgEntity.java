@@ -12,7 +12,7 @@ import lombok.Setter;
  * 智能体消息记录 — 映射 ai_agent_session_msg 表
  * <p>
  * content 存精简摘要文本（前端对话气泡展示），
- * 完整执行过程（多轮次/工具调用）存 AgentMsgSegmentEntity。
+ * 完整执行过程（多轮次/工具调用）存 AgentMsgStepEntity。
  */
 @Setter
 @Getter
@@ -26,6 +26,7 @@ public class AgentMsgEntity {
     private Long providerId;
     private String modelCode;
     private String modelName;
+    private String prompt;
     private String thinking;
     private String content;
     private Integer promptTokens;

@@ -27,12 +27,13 @@ public class AgentMsgDao {
         jdbcTemplate.update(
                 "INSERT INTO ai_agent_session_msg " +
                         "(session_id, agent_id, task_id, role, provider_id, model_code, model_name, " +
-                        "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
+                        "prompt, thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
                         "currency, duration_ms, msg_status, created_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 entity.getSessionId(), entity.getAgentId(), entity.getTaskId(), entity.getRole(),
                 entity.getProviderId(), entity.getModelCode(), entity.getModelName(),
+                entity.getPrompt() != null ? entity.getPrompt() : "",
                 entity.getThinking() != null ? entity.getThinking() : "", entity.getContent(),
                 entity.getPromptTokens() != null ? entity.getPromptTokens() : 0,
                 entity.getCompletionTokens() != null ? entity.getCompletionTokens() : 0,
@@ -112,6 +113,7 @@ public class AgentMsgDao {
         e.setProviderId(rs.getObject("provider_id") != null ? rs.getLong("provider_id") : null);
         e.setModelCode(rs.getString("model_code"));
         e.setModelName(rs.getString("model_name"));
+        e.setPrompt(rs.getString("prompt"));
         e.setThinking(rs.getString("thinking"));
         e.setContent(rs.getString("content"));
         e.setPromptTokens(rs.getInt("prompt_tokens"));

@@ -5,7 +5,7 @@
 
 package cc.wlizhi.eddie.chat.entity.request;
 
-import cc.wlizhi.eddie.chat.entity.dto.ModelParams;
+import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

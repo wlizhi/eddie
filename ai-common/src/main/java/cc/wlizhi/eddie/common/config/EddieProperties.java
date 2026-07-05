@@ -17,6 +17,9 @@ import java.util.List;
 @ConfigurationProperties(prefix = "eddie")
 public class EddieProperties {
 
+    /**
+     * 软件版本
+     */
     private String version;
     @Resource
     private InitScheduler initScheduler;

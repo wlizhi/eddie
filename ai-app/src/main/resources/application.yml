@@ -38,6 +38,7 @@ eddie:
     - db/init/ai_assistant_init_1.sql
   prompts:
     session-title-prompts: prompts/title-generation.md
+    agent-chat-prompts: prompts/agent-chat.md
   agent-datasource:
     url: jdbc:sqlite:${eddie.data}/eddie-agent.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000
     driver-class-name: org.sqlite.JDBC

@@ -1,9 +1,12 @@
-package cc.wlizhi.eddie.agent.consts;
+package cc.wlizhi.eddie.common.agent.enums;
 
 import lombok.Getter;
 
 @Getter
 public enum AgentEvent {
+
+    // ==================== 模型事件 =======================
+    SWITCH_MODE_PLAN("切换至规划模式"),
 
     // ==================== SSE 事件（后端 → 前端） ====================
 

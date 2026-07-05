@@ -12,4 +12,5 @@ import lombok.Setter;
 @Setter
 public class BuiltInPrompts {
     private String sessionTitlePrompts;
+    private String agentChatPrompts;
 }

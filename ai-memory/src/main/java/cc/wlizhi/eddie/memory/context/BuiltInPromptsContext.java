@@ -2,6 +2,7 @@ package cc.wlizhi.eddie.memory.context;
 
 import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.config.BuiltInPrompts;
+import cc.wlizhi.eddie.common.config.EddieProperties;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.Getter;
@@ -13,7 +14,6 @@ import org.springframework.util.PropertyPlaceholderHelper;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
-import cc.wlizhi.eddie.common.config.EddieProperties;
 
 /**
  * 全局提示词模板上下文。<p>
@@ -24,7 +24,7 @@ import cc.wlizhi.eddie.common.config.EddieProperties;
  */
 @Slf4j
 @Component
-public class GlobalPromptsContext {
+public class BuiltInPromptsContext {
 
     /**
      * ${...} 占位符解析器，未匹配的占位符保留原样
@@ -43,6 +43,8 @@ public class GlobalPromptsContext {
      */
     @Getter
     private String sessionTitlePrompts;
+    @Getter
+    private String agentChatPrompts;
 
     @Resource
     private ResourceLoader resourceLoader;
@@ -64,6 +66,7 @@ public class GlobalPromptsContext {
             return;
         }
         this.sessionTitlePrompts = loadContent(prompts.getSessionTitlePrompts());
+        this.agentChatPrompts = loadContent(prompts.getAgentChatPrompts());
         log.info("Global prompts initialized: sessionTitlePrompts loaded={}", sessionTitlePrompts != null);
     }
 

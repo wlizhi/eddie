@@ -57,4 +57,21 @@ public class AgentChatRequest {
      * 临时覆盖的主模型 ID（优先级高于 Agent 配置，仅当前请求生效）
      */
     private String modelId;
+
+    /**
+     * 思考模式：auto / low / medium / high / max / disabled
+     * <p>
+     * - auto: 不传递参数，让模型自己决定
+     * - low/medium/high: 对应 reasoning_effort 参数
+     * - max: 最大思考力度（DeepSeek 特有）
+     * - disabled: 禁用思考
+     * <p>
+     * 优先级高于助手的 modelParams 中的配置。
+     */
+    private String thinkingMode;
+
+    /**
+     * 消息id，当用户继续一个任务的时候，需要传递基于哪个任务的消息id值
+     */
+    private Long msgId;
 }
