@@ -21,7 +21,9 @@ import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AbstractMessage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ import reactor.core.publisher.FluxSink;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -80,14 +83,31 @@ public class AgentChatServiceImpl implements AgentChatService {
                     .system(promptsResolver.resolvePrompts(ctx))
                     .user(ctx.getOriginalRequest().getMessage())
                     .advisors(advisor -> advisor
-                            .param("chat_memory_conversation_id", ctx.getOriginalRequest().getSessionId())
+                            .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId())
                             .param("providerId", ctx.getModelProvider().getId())
-                            .param("modelCode", ctx.getOriginalRequest().getModelId()))
+                            .param("modelCode", ctx.getUseModelInfo().getId()))
                     .stream()
                     .chatResponse().toStream();
 
             stream.forEach(res -> {
 
+                // 1. 提取并推送思考内容
+                String thinking = extractThinking(res);
+                if (thinking != null && !thinking.isEmpty()) {
+                    sink.next(ServerSentEvent.<String>builder()
+                            .event("thinking")
+                            .data(thinking)
+                            .build());
+                }
+
+                // 2. 提取并推送回答内容
+                String answer = extractAnswer(res);
+                if (answer != null && !answer.isEmpty()) {
+                    sink.next(ServerSentEvent.<String>builder()
+                            .event("answer")
+                            .data(answer)
+                            .build());
+                }
             });
 
             // 如果需要则切换模式
@@ -98,15 +118,48 @@ public class AgentChatServiceImpl implements AgentChatService {
             }
         }
 
-
         AgentChatRequest chatRequest = ctx.getOriginalRequest();
         String toolMode = chatRequest.getToolSelectionMode();
         if (toolMode == null) {
             toolMode = ctx.getAgent().getToolSelectionMode();
         }
 
-
     }
+
+    /**
+     * 从 ChatResponse 提取模型思考内容（reasoning_content）
+     * 兼容 OpenAI / DeepSeek 等不同服务商的 metadata key
+     */
+    private String extractThinking(ChatResponse response) {
+        try {
+            var metadata = Objects.requireNonNull(response.getResult()).getOutput().getMetadata();
+            // key "reasoningContent" 兼容 OpenAI reasoning API
+            Object reasoning = metadata.get("reasoningContent");
+            if (reasoning == null) {
+                // fallback: DeepSeek 使用的 key
+                reasoning = metadata.get("reasoning_content");
+            }
+            return reasoning != null ? reasoning.toString() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 从 ChatResponse 提取模型生成的文本内容
+     */
+    private String extractAnswer(ChatResponse response) {
+        try {
+            return response.getResults().stream()
+                    .map(Generation::getOutput)
+                    .map(AbstractMessage::getText).filter(Objects::nonNull)
+                    .filter(f -> !f.isEmpty())
+                    .collect(Collectors.joining());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 
     private void switchModeIfNecessary(AgentChatContext ctx) {
         Long reqMsgId = ctx.getOriginalRequest().getMsgId();
@@ -120,7 +173,7 @@ public class AgentChatServiceImpl implements AgentChatService {
 
     private ChatClient resolveChatClient(AgentChatContext ctx) {
         ToolCallback[] toolCallbacks = toolCallbackResolver.resolve(
-                RoleType.ASSISTANT.name(), ctx.getAgent().getId()
+                RoleType.AGENT.name(), ctx.getAgent().getId()
                 , ctx.getOriginalRequest().getToolSelectionMode()
                 , ctx.getOriginalRequest().getToolNames());
         // TODO 刚发起聊天时需要使用记忆窗口，根据配置设定窗口大小。（模型限流已在 preProcessor 中设置，这里不必设置）

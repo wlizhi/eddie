@@ -35,7 +35,7 @@ public class EddieOpenAiAgentClientFactory implements AgentChatClientFactory {
         EddieOpenAiChatOptions.Builder optionsBuilder = EddieOpenAiChatOptions.builder()
                 .apiKey(provider.getApiKey())
                 .baseUrl(provider.getBaseUrl())
-                .model(ctx.getOriginalRequest().getModelId())
+                .model(ctx.getUseModelInfo().getId())
                 .timeout(Duration.ofMinutes(30));
 
         // 应用助手级 modelParams

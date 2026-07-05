@@ -167,8 +167,13 @@ const groupedOptions = computed(() =>
     }))
 )
 
-/** 当前选中项的复合键（取智能体配置的主模型） */
+/** 当前选中项的复合键（优先读取用户临时选择，无则取智能体配置的主模型） */
 const selectedModelKey = computed<string | null>(() => {
+  // 用户已通过下拉框选择临时覆盖模型
+  if (agentChatStore.selectedModelId && agentChatStore.selectedProviderId) {
+    return `${agentChatStore.selectedProviderId}${MODEL_KEY_SEPARATOR}${agentChatStore.selectedModelId}`
+  }
+  // 无临时覆盖时回退到 agent 配置
   const agent = agentStore.activeAgent
   if (!agent?.mainProviderId || !agent?.mainModelId) return null
   return `${agent.mainProviderId}${MODEL_KEY_SEPARATOR}${agent.mainModelId}`

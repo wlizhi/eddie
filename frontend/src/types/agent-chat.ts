@@ -23,7 +23,7 @@ export interface AgentChatRequest {
     /** 会话 ID（续聊时传入，新会话不传） */
     conversationId?: number
     /** 用户消息内容 */
-    question: string
+    message: string
     /** 用户额外指令（可选） */
     extraInstruction?: string
     /** 思考模式：auto / low / medium / high / max / disabled */

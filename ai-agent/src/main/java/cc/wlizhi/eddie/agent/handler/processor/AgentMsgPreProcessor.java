@@ -69,6 +69,8 @@ public class AgentMsgPreProcessor implements AgentChatPreProcessor {
             userMsg.setRole("user");
             userMsg.setContent(request.getMessage());
             userMsg.setMsgStatus("COMPLETED");
+            userMsg.setModelCode(ctx.getUseModelInfo().getId());
+            userMsg.setModelName(ctx.getUseModelInfo().getName());
 
             log.info("保存用户消息, sessionId={}, agentId={}, content={}",
                     session.getId(), agent.getId(), truncate(request.getMessage()));

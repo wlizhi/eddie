@@ -26,6 +26,7 @@ import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'
 import type {MilestoneEvent} from '@/types/agent-chat'
 import type {SessionVO, ToolExecutionEventItem} from '@/types/session'
+import {useAgentStore} from '@/stores/agent'
 import type {ToolSourceVO} from '@/types/mcpServer'
 import {fetchAgentMessages, stopAgentChat, streamAgentChat} from '@/api/agent-chat'
 import {createAgentSession} from '@/api/agent-session'
@@ -122,6 +123,8 @@ function toChatMessage(vo: {
 }
 
 export const useAgentChatStore = defineStore('agentChat', () => {
+    const agentStore = useAgentStore()
+
     // ========== 状态 ==========
 
     /** 消息列表 */
@@ -338,15 +341,17 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         // 构建工具参数（根据 MCP 工具模式 + 联网开关）
         const toolParams = buildToolParams()
 
+        const agent = agentStore.activeAgent
+
         await streamAgentChat({
             request: {
                 agentId,
                 conversationId: Number(currentConversationId.value) || undefined,
-                question: rawText,
+                message: rawText,
                 ...toolParams,
-                // 用户临时覆盖参数（null 时后端自动使用 Agent 配置）
-                providerId: selectedProviderId.value ?? undefined,
-                modelId: selectedModelId.value ?? undefined,
+                // 用户临时覆盖参数 > Agent 配置（确保请求体始终包含模型信息）
+                providerId: selectedProviderId.value ?? agent?.mainProviderId ?? undefined,
+                modelId: selectedModelId.value ?? agent?.mainModelId ?? undefined,
                 webSearchEnabled: webSearchEnabled.value || undefined,
             },
             signal: abortController.signal,

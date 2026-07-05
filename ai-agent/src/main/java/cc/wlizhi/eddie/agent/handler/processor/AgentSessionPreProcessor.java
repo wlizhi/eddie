@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 /**
  * 会话数据预处理器 — 填充 {@link AgentChatContext#session}
  * <p>
- * 从 {@link AgentChatRequest#getSessionId()} 查询会话记录，
+ * 从 {@link AgentChatRequest#getConversationId()} 查询会话记录，
  * 验证会话存在性，将结果写入上下文。
  */
 @Component
@@ -31,7 +31,7 @@ public class AgentSessionPreProcessor implements AgentChatPreProcessor {
     @Override
     public void process(AgentChatContext ctx) {
         AgentChatRequest request = ctx.getOriginalRequest();
-        Long sessionId = request.getSessionId();
+        Long sessionId = request.getConversationId();
 
         AgentSessionEntity session = agentSessionDao.findById(sessionId);
         if (session == null) {

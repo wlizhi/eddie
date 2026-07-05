@@ -27,8 +27,8 @@ public class AgentChatRequest {
     /**
      * 会话 ID，用于记忆隔离（续聊时传入）
      */
-    @NotNull(message = "sessionId 不能为空")
-    private Long sessionId;
+    @NotNull(message = "conversationId 不能为空")
+    private Long conversationId;
 
     /**
      * 用户消息内容
