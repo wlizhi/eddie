@@ -13,6 +13,7 @@ public class DatabaseResourceHints implements RuntimeHintsRegistrar {
     @Override
     public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
         // 这里直接注册你的资源路径（支持 Ant 风格通配符）
+        hints.resources().registerPattern("db/ddl/*.sql");
         hints.resources().registerPattern("init/*.sql");
         hints.resources().registerPattern("prompts/*.md");
     }

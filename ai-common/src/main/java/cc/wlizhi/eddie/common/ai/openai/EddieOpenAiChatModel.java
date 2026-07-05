@@ -281,10 +281,13 @@ public class EddieOpenAiChatModel implements ChatModel {
                     roleMap.putIfAbsent(id, choice.message()._role().asString().isPresent()
                             ? choice.message()._role().asStringOrThrow() : "");
 
+                    // finishReason 在流式中间 chunk 可能为 null，Map.of 不接受 null 值
+                    String finishReason = choice.finishReason() != null
+                            ? choice.finishReason().value().toString() : "";
                     Map<String, Object> metadata = Map.of("id", id, //
                             "role", roleMap.getOrDefault(id, ""), //
                             "index", choice.index(), //
-                            "finishReason", choice.finishReason().value(), //
+                            "finishReason", finishReason, //
                             "refusal", choice.message().refusal().orElse(""), //
                             "annotations", choice.message().annotations().orElseGet(List::of), //
                             REASONING_CONTENT, getReasoningContent(choice) //

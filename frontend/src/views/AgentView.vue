@@ -1,30 +1,162 @@
-<!--
+gai wen<!--
  * @author Eddie
- * @date 2026-06-20
+ * @date 2026-07-04
 -->
 
+<!--
+  AgentView.vue — 智能体视图（编排器）
+
+  职责：
+  - 作为智能体页面的根容器
+  - 初始化加载智能体列表
+  - 始终显示输入区域（AgentInputArea）
+  - 有消息时展示 MessageList，无消息时展示空状态
+  - 切换智能体时自动重置到新对话
+-->
 <script setup lang="ts">
-// AgentView — 智能体任务执行页面
-// TODO: 智能体任务创建、步骤执行、结果展示
+import {nextTick, onMounted, ref, watch} from 'vue'
+import {useAgentStore} from '@/stores/agent'
+import {useAgentChatStore} from '@/stores/agent-chat'
+import {fetchAgentDetail} from '@/api/agent'
+import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
+import {useMobile} from '@/composables/useMobile'
+import AgentMessageList from '@/components/agent/AgentMessageList.vue'
+import AgentInputArea from '@/components/agent/AgentInputArea.vue'
+
+const agentStore = useAgentStore()
+const agentChatStore = useAgentChatStore()
+
+/** 输入框文本 */
+const inputText = ref('')
+
+const {isMobile} = useMobile()
+
+/** InputArea 组件引用 */
+const inputAreaRef = ref<InstanceType<typeof AgentInputArea> | null>(null)
+
+/**
+ * 从当前智能体详情中同步 preferences（联网、MCP 模式）配置
+ * 有配置则使用智能体的默认值，无配置则回退默认
+ */
+async function syncPreferredSettingsFromAgent() {
+  const id = agentStore.activeId
+  if (!id) {
+    agentChatStore.webSearchEnabled = false
+    agentChatStore.mcpToolMode = 'auto'
+    return
+  }
+  try {
+    const detail = await fetchAgentDetail(id)
+    const prefs = detail.preferences ?? {}
+    agentChatStore.webSearchEnabled = prefs.webSearchEnabled ?? false
+    agentChatStore.mcpToolMode = (prefs.mcpToolMode ?? 'auto') as 'disabled' | 'auto' | 'manual'
+    // 加载智能体已绑定的 MCP 工具列表（供手动模式选择弹窗使用）
+    await agentChatStore.loadBoundMcpTools(id)
+  } catch (err) {
+    console.error('获取智能体详情失败:', err)
+    agentChatStore.webSearchEnabled = false
+    agentChatStore.mcpToolMode = 'auto'
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([
+    loadDisplaySettings(),
+    agentStore.loadList(),
+    agentChatStore.loadModels(),
+  ])
+})
+
+// 切换智能体时同步偏好并重置对话
+watch(() => agentStore.activeId, async () => {
+  await syncPreferredSettingsFromAgent()
+  agentChatStore.newConversation()
+  inputText.value = ''
+})
+
+/** 发送消息 */
+function handleSend() {
+  const text = inputText.value
+  if (!text.trim() || agentChatStore.isStreaming) return
+  if (!agentStore.activeId) return
+  agentChatStore.sendMessage(text, agentStore.activeId)
+  if (!isMobile.value) {
+    nextTick(() => {
+      inputAreaRef.value?.focusInput()
+    })
+  }
+}
+
+/** 后端确认接收消息后清空输入框 */
+watch(() => agentChatStore.confirmedText, (text) => {
+  if (text) {
+    inputText.value = ''
+    agentChatStore.confirmedText = ''
+    if (!isMobile.value) {
+      nextTick(() => {
+        inputAreaRef.value?.focusInput()
+      })
+    }
+  }
+})
+
+/** 空状态建议问题点击 */
+function onSelectSuggestion(text: string) {
+  inputText.value = text
+}
 </script>
 
 <template>
-  <div class="agent-view">
-    <div class="agent-empty">
+  <div class="agent-view" :class="{ narrow: !displaySettings.wideMode }">
+    <!-- 消息列表 / 空状态 -->
+    <AgentMessageList v-if="agentChatStore.hasMessages"/>
+    <div v-else class="agent-empty">
       <div class="empty-icon">🤖</div>
-      <h2>智能体</h2>
-      <p class="empty-hint">创建任务，让 AI 智能体自动规划和执行</p>
+      <h2>{{ agentStore.activeAgent?.name || '智能体' }}</h2>
+      <p class="empty-hint">
+        {{
+          agentStore.activeAgent
+              ? (agentStore.activeAgent.description || '开始与智能体对话')
+              : '选择左侧列表中的智能体，或创建新的智能体开始使用'
+        }}
+      </p>
+      <div v-if="agentStore.activeAgent" class="suggestions">
+        <div class="suggestion-card" @click="onSelectSuggestion('你好，请介绍一下你自己')">
+          你好，请介绍一下你自己
+        </div>
+        <div class="suggestion-card" @click="onSelectSuggestion('你能帮我做什么？')">
+          你能帮我做什么？
+        </div>
+      </div>
     </div>
+
+    <!-- 输入区域（始终显示） -->
+    <AgentInputArea
+        ref="inputAreaRef"
+        v-model="inputText"
+        @send="handleSend"
+    />
   </div>
 </template>
 
 <style scoped>
 .agent-view {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
+/* 窄屏模式 */
+.agent-view.narrow :deep(.agent-message-list),
+.agent-view.narrow :deep(.agent-input-area) {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ===== 空状态 ===== */
 .agent-empty {
   flex: 1;
   display: flex;
@@ -41,12 +173,40 @@
 }
 
 h2 {
-  font-size: 24px;
+  font-size: var(--font-size-title);
   font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .empty-hint {
   color: var(--text-tertiary);
   font-size: var(--font-size-base);
+  margin: 0;
+  text-align: center;
+  max-width: 320px;
+}
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.suggestion-card {
+  padding: 10px 20px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.suggestion-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
 }
 </style>

@@ -5,6 +5,10 @@
 
 package cc.wlizhi.eddie.common.cache;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +46,10 @@ public class EventRegistry {
      */
     public <T> void register(String key, T data) {
         registry.put(key, new EventEntry<>(data, System.currentTimeMillis()));
+    }
+
+    public <T> void register(String type, String bizId, T data) {
+        registry.put(key(type, bizId), new EventEntry<>(data, System.currentTimeMillis()));
     }
 
     /**
@@ -107,6 +115,13 @@ public class EventRegistry {
      *
      * @param <T> 数据类型
      */
-    private record EventEntry<T>(T data, long createdAt) {
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EventEntry<T> {
+        private T data;
+        private long createdAt;
+
     }
 }

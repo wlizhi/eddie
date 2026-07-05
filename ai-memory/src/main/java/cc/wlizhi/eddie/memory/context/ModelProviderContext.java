@@ -9,11 +9,16 @@ import cc.wlizhi.eddie.common.cache.GlobalCache;
 import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.dao.ModelProviderDao;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
+import cc.wlizhi.eddie.common.entity.dto.ModelJsonItem;
 import cc.wlizhi.eddie.memory.cache.ModelThrottleCache;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -39,6 +44,8 @@ public class ModelProviderContext implements GlobalCache {
     private InitScheduler initScheduler;
     @Resource
     private ObjectProvider<ModelThrottleCache> modelThrottleCacheProvider;
+    @Resource
+    private ObjectMapper objectMapper;
 
     @PostConstruct
     void init() {
@@ -67,6 +74,19 @@ public class ModelProviderContext implements GlobalCache {
         }
         refresh();
         return modelProviderMap.get(providerId);
+    }
+
+    public List<ModelJsonItem> getModelsByProviderId(Long providerId) {
+        ModelProviderEntity entity = modelProviderMap.get(providerId);
+        if (ObjectUtils.isEmpty(entity.getModels())) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(entity.getModels(), new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void refresh() {

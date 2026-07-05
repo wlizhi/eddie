@@ -31,4 +31,19 @@ public class EddieProperties {
      */
     @NestedConfigurationProperty
     private BuiltInPrompts prompts;
+
+    /**
+     * Agent 独立数据库连接配置
+     */
+    @NestedConfigurationProperty
+    private AgentDatasource agentDatasource = new AgentDatasource();
+
+    @Getter
+    @Setter
+    public static class AgentDatasource {
+        private String url;
+        private String driverClassName;
+        private int maximumPoolSize = 1;
+        private String schemaLocation;
+    }
 }

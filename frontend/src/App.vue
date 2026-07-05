@@ -45,7 +45,7 @@ const isMobile = window.matchMedia('(max-width: 48rem)').matches
 /** 面板折叠状态（chat/agent/settings 各页面独立记忆） */
 const panelCollapsed = ref<Record<string, boolean>>({
   chat: isMobile,
-  agent: true,
+  agent: isMobile,
   settings: true,
 })
 

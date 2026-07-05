@@ -17,10 +17,14 @@
 /** 会话列表项 */
 export interface SessionVO {
     id: number
-    assistantId: number
+    /** 归属助手 ID（助手会话） */
+    assistantId?: number
+    /** 归属智能体 ID（智能体会话） */
+    agentId?: number
     title: string
     pinned: number          // 0=普通, 1=置顶
     messageCount: number
+    totalTokens?: number
     updatedAt: number
 }
 

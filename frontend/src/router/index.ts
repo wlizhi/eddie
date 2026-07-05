@@ -31,7 +31,10 @@ const router = createRouter({
         {
             path: '/agent',
             name: 'agent',
-            component: () => import('../views/AgentView.vue'),
+            components: {
+                default: () => import('../views/AgentView.vue'),
+                panel: () => import('../components/agent/AgentSidebar.vue'),
+            },
         },
         {
             path: '/roles',

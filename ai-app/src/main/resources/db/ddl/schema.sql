@@ -184,3 +184,4 @@ CREATE TABLE IF NOT EXISTS ai_mcp_server
 );
 CREATE INDEX IF NOT EXISTS idx_mcp_server_source_type ON ai_mcp_server (source_type);
 CREATE INDEX IF NOT EXISTS idx_mcp_server_enabled ON ai_mcp_server (enabled);
+

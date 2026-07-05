@@ -11,8 +11,8 @@
 import {onMounted, onUnmounted, ref} from 'vue'
 
 /** 格式化时间（响应式：now.value 变化时自动重算） */
-function formatTime(nowTs: number, dateStr: string): string {
-    const date = new Date(dateStr)
+function formatTime(nowTs: number, dateInput: string | number): string {
+    const date = new Date(dateInput)
     const diff = nowTs - date.getTime()
     const minutes = Math.floor(diff / 60000)
     if (minutes < 1) return '刚刚'
@@ -43,6 +43,6 @@ export function useRelativeTime() {
 
     return {
         now,
-        formatTime: (dateStr: string) => formatTime(now.value, dateStr),
+        formatTime: (dateInput: string | number) => formatTime(now.value, dateInput),
     }
 }

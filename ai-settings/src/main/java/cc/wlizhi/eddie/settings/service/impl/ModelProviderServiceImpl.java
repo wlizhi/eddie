@@ -7,6 +7,7 @@ package cc.wlizhi.eddie.settings.service.impl;
 
 import cc.wlizhi.eddie.common.dao.ModelProviderDao;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
+import cc.wlizhi.eddie.common.entity.dto.ModelJsonItem;
 import cc.wlizhi.eddie.common.enums.ModelCapability;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
 import cc.wlizhi.eddie.common.exception.ConflictException;
@@ -16,6 +17,7 @@ import cc.wlizhi.eddie.settings.entity.request.ModelProviderCreateRequest;
 import cc.wlizhi.eddie.settings.entity.request.ModelProviderUpdateRequest;
 import cc.wlizhi.eddie.settings.entity.response.ModelProviderVO;
 import cc.wlizhi.eddie.settings.entity.response.ModelVO;
+import cc.wlizhi.eddie.settings.mapper.ModelJsonMapper;
 import cc.wlizhi.eddie.settings.remote.ModelCapabilityResolver;
 import cc.wlizhi.eddie.settings.remote.RemoteModelFetcherRouter;
 import cc.wlizhi.eddie.settings.service.ModelProviderService;
@@ -52,6 +54,9 @@ public class ModelProviderServiceImpl implements ModelProviderService {
 
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private ModelJsonMapper modelJsonMapper;
 
     private volatile WeakReference<Map<Long, ModelCache>> remoteModelsCache = new WeakReference<>(new ConcurrentHashMap<>());
 
@@ -260,30 +265,13 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             return new ArrayList<>();
         }
         try {
-            List<Map<String, Object>> rawList = objectMapper.readValue(modelsJson,
-                    new TypeReference<List<Map<String, Object>>>() {
+            List<ModelJsonItem> items = objectMapper.readValue(modelsJson,
+                    new TypeReference<List<ModelJsonItem>>() {
                     });
-            List<ModelVO> result = new ArrayList<>();
-            for (Map<String, Object> raw : rawList) {
-                ModelVO vo = new ModelVO();
-                Object idObj = raw.get("id");
-                String modelId = idObj != null ? idObj.toString() : null;
-                vo.setCode(modelId);
-                Object objectObj = raw.get("object");
-                vo.setObject(objectObj != null ? objectObj.toString() : null);
-                Object ownedByObj = raw.get("owned_by");
-                vo.setOwnedBy(ownedByObj != null ? ownedByObj.toString() : null);
-                // capabilities：优先读 JSON 中已有标签，没有则从模型 ID 关键词推断
-                vo.setCapabilities(parseCapabilities(raw, modelId));
-                // 定价信息
-                Object currencyObj = raw.get("currency");
-                vo.setCurrency(currencyObj != null ? currencyObj.toString() : null);
-                vo.setInputPrice(parseDouble(raw.get("input_price")));
-                vo.setOutputPrice(parseDouble(raw.get("output_price")));
-                vo.setCacheInputPrice(parseDouble(raw.get("cache_input_price")));
-                vo.setCacheWriteInputPrice(parseDouble(raw.get("cache_write_input_price")));
-                vo.setCallIntervalSec(parseInt(raw.get("call_interval_sec")));
-                result.add(vo);
+            List<ModelVO> result = modelJsonMapper.toVoList(items);
+            // capabilities：优先读 JSON 中已有标签，没有则从模型 ID 关键词推断
+            for (int i = 0; i < items.size(); i++) {
+                result.get(i).setCapabilities(parseCapabilities(items.get(i)));
             }
             return result;
         } catch (Exception e) {
@@ -294,13 +282,11 @@ public class ModelProviderServiceImpl implements ModelProviderService {
     /**
      * 解析模型能力标签，优先读 JSON 中的 capabilities，否则根据模型 ID 关键词推断
      */
-    @SuppressWarnings("unchecked")
-    private List<ModelCapability> parseCapabilities(Map<String, Object> raw, String modelId) {
+    private List<ModelCapability> parseCapabilities(ModelJsonItem item) {
         // 1) 如果 JSON 中有 capabilities 字段，直接解析
-        Object capsObj = raw.get("capabilities");
-        if (capsObj instanceof List) {
-            List<String> capCodes = (List<String>) capsObj;
-            List<ModelCapability> caps = capCodes.stream()
+        List<String> rawCaps = item.getCapabilities();
+        if (rawCaps != null && !rawCaps.isEmpty()) {
+            List<ModelCapability> caps = rawCaps.stream()
                     .map(ModelCapability::fromCode)
                     .filter(c -> c != null)
                     .collect(Collectors.toList());
@@ -309,7 +295,7 @@ public class ModelProviderServiceImpl implements ModelProviderService {
             }
         }
         // 2) 兜底：根据模型 ID 关键词推断
-        return inferCapabilities(modelId);
+        return inferCapabilities(item.getId());
     }
 
     /**

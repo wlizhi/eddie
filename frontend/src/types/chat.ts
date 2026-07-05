@@ -96,7 +96,7 @@ export interface SSEEvent {
 /**
  * 消息角色
  */
-export type MessageRole = 'user' | 'assistant'
+export type MessageRole = 'user' | 'assistant' | 'agent'
 
 /**
  * 运行时工具执行记录（附属于 ChatMessage）

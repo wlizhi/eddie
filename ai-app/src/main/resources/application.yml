@@ -28,13 +28,18 @@ spring:
   sql:
     init:
       mode: always
-      schema-locations: classpath:schema.sql
+      schema-locations: classpath:db/ddl/schema.sql
 
 # 自定义属性
 eddie:
   version: 1.0.0-beta
   init-scripts:
-    - init/model_provider_init_1.sql
-    - init/ai_assistant_init_1.sql
+    - db/init/model_provider_init_1.sql
+    - db/init/ai_assistant_init_1.sql
   prompts:
     session-title-prompts: prompts/title-generation.md
+  agent-datasource:
+    url: jdbc:sqlite:${eddie.data}/eddie-agent.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000
+    driver-class-name: org.sqlite.JDBC
+    maximum-pool-size: 1
+    schema-location: classpath:db/ddl/schema-agent.sql
