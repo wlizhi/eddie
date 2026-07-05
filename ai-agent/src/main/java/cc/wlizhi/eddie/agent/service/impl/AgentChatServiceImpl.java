@@ -6,17 +6,18 @@
 package cc.wlizhi.eddie.agent.service.impl;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentIteratorState;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentChatPreProcessor;
-import cc.wlizhi.eddie.agent.handler.AgentPromptsResolver;
+import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessorRouter;
 import cc.wlizhi.eddie.agent.service.AgentChatService;
 import cc.wlizhi.eddie.chat.advisor.ModelThrottleAdvisor;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
-import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,16 +25,13 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AbstractMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
-import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class AgentChatServiceImpl implements AgentChatService {
@@ -47,16 +45,17 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Resource
     private ModelThrottleAdvisor modelThrottleAdvisor;
     @Resource
-    private AgentPromptsResolver promptsResolver;
+    private AgentClientPostProcessorRouter agentClientRouter;
     @Resource
     private ToolCallbackResolver toolCallbackResolver;
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public Flux<ServerSentEvent<String>> chat(AgentChatRequest request) {
         AgentChatContext ctx = new AgentChatContext();
         ctx.setStartTime(System.currentTimeMillis());
         ctx.setOriginalRequest(request);
-        ctx.setAgentMode(AgentMode.CHAT);
 
         // 按 @Order 顺序执行所有预处理器，填充 AgentChatContext 字段
         preProcessors(ctx);
@@ -72,58 +71,53 @@ public class AgentChatServiceImpl implements AgentChatService {
     }
 
     private void doChat(AgentChatContext ctx) {
-        int maxIterations = ctx.getAgent().getMaxIterations();
-        maxIterations = Math.clamp(maxIterations, 1, 1000);
-        int currentRound = 0;
-        FluxSink<ServerSentEvent<String>> sink = ctx.getSink();
-        while (currentRound++ < maxIterations) {
-            ChatClient client = resolveChatClient(ctx);
-            // TODO 先写死提示词测试一下
-            Stream<ChatResponse> stream = client.prompt()
-                    .system(promptsResolver.resolvePrompts(ctx))
-                    .user(ctx.getOriginalRequest().getMessage())
-                    .advisors(advisor -> advisor
-                            .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId())
-                            .param("providerId", ctx.getModelProvider().getId())
-                            .param("modelCode", ctx.getUseModelInfo().getId()))
-                    .stream()
-                    .chatResponse().toStream();
+        while (!shouldBreakIterator(ctx)) {
+            // 迭代次数 + 1
+            Integer currentIterator = ctx.getIteratorState().getCurrentIterator();
+            ctx.getIteratorState().setCurrentIterator(currentIterator + 1);
 
-            stream.forEach(res -> {
-
-                // 1. 提取并推送思考内容
-                String thinking = extractThinking(res);
-                if (thinking != null && !thinking.isEmpty()) {
-                    sink.next(ServerSentEvent.<String>builder()
-                            .event("thinking")
-                            .data(thinking)
-                            .build());
-                }
-
-                // 2. 提取并推送回答内容
-                String answer = extractAnswer(res);
-                if (answer != null && !answer.isEmpty()) {
-                    sink.next(ServerSentEvent.<String>builder()
-                            .event("answer")
-                            .data(answer)
-                            .build());
-                }
-            });
-
-            // 如果需要则切换模式
+            // 构建当前轮次合适的客户端，并获取阻塞式流
+            ChatClient.ChatClientRequestSpec requestSpec = agentClientRouter.buildChatClientRequestSpec(ctx);
+            // 处理流并向前端推送事件
+            processResponseStream(ctx, requestSpec);
+            // 如果感知到模式切换事件，切换当前模式为目标模式
             switchModeIfNecessary(ctx);
             // 会话结束还处于聊天模式，则退出循环
-            if (ctx.getAgentMode() == AgentMode.CHAT) {
+            if (shouldBreakIterator(ctx)) {
                 break;
             }
         }
+        // TODO 通知前端回复完毕，发射本轮对话结束/任务完成事件
+    }
 
-        AgentChatRequest chatRequest = ctx.getOriginalRequest();
-        String toolMode = chatRequest.getToolSelectionMode();
-        if (toolMode == null) {
-            toolMode = ctx.getAgent().getToolSelectionMode();
-        }
+    private boolean shouldBreakIterator(AgentChatContext ctx) {
+        AgentIteratorState iteratorState = ctx.getIteratorState();
+        return iteratorState.getAgentMode() == AgentMode.CHAT
+                || iteratorState.getCurrentIterator() >= iteratorState.getMaxIterations();
+    }
 
+    private void processResponseStream(AgentChatContext ctx, ChatClient.ChatClientRequestSpec requestSpec) {
+        // TODO 这里目前只是伪实现，每种模式的编排不太一样
+        requestSpec.stream().chatResponse().toStream().forEach(res -> {
+
+            // 1. 提取并推送思考内容
+            String thinking = extractThinking(res);
+            if (thinking != null && !thinking.isEmpty()) {
+                ctx.getSink().next(ServerSentEvent.<String>builder()
+                        .event("thinking")
+                        .data(thinking)
+                        .build());
+            }
+
+            // 2. 提取并推送回答内容
+            String answer = extractAnswer(res);
+            if (answer != null && !answer.isEmpty()) {
+                ctx.getSink().next(ServerSentEvent.<String>builder()
+                        .event("answer")
+                        .data(answer)
+                        .build());
+            }
+        });
     }
 
     /**
@@ -166,20 +160,9 @@ public class AgentChatServiceImpl implements AgentChatService {
         Long agentMsgId = ctx.getAgentMsg().getId();
         String key = EventRegistry.key(AgentEvent.class.getSimpleName(), reqMsgId != null ? reqMsgId.toString() : agentMsgId.toString());
         Object mode = eventRegistry.get(key);
-        if (mode instanceof AgentMode agentMode && agentMode == AgentMode.PLAN) {
-            ctx.setAgentMode(AgentMode.PLAN);
+        if (mode instanceof AgentEvent agentEvent && agentEvent == AgentEvent.SWITCH_MODE_PLAN) {
+            ctx.getIteratorState().setAgentMode(AgentMode.PLAN);
         }
-    }
-
-    private ChatClient resolveChatClient(AgentChatContext ctx) {
-        ToolCallback[] toolCallbacks = toolCallbackResolver.resolve(
-                RoleType.AGENT.name(), ctx.getAgent().getId()
-                , ctx.getOriginalRequest().getToolSelectionMode()
-                , ctx.getOriginalRequest().getToolNames());
-        // TODO 刚发起聊天时需要使用记忆窗口，根据配置设定窗口大小。（模型限流已在 preProcessor 中设置，这里不必设置）
-        return ctx.getChatClient().mutate()
-                .defaultTools((Object) toolCallbacks)
-                .build();
     }
 
     private void preProcessors(AgentChatContext ctx) {

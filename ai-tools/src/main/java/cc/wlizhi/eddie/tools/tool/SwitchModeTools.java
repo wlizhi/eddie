@@ -5,7 +5,7 @@
 
 package cc.wlizhi.eddie.tools.tool;
 
-import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
@@ -54,45 +54,41 @@ public class SwitchModeTools implements BuiltInToolProvider {
             description = """
                     切换当前消息的执行模式。
                     
-                    当需要规划任务步骤时，切换到 PLAN 模式；
-                    当执行过程中需要拆分为独立子任务时，切换到 SUB_TASK 模式。
-                    
-                    可用模式：
-                    - PLAN — 规划模式，拆解任务步骤
-                    - SUB_TASK — 子任务模式，独立子任务处理
+                    可选值：
+                    - SWITCH_MODE_PLAN — 切换至规划模式
+                    - SWITCH_MODE_SUB_TASK — 切换至子任务模式
                     """)
     public ApiResult<String> switchMode(
             @ToolParam(description = "消息 ID") Long msgId,
-            @ToolParam(description = "目标执行模式，可选值：PLAN / SUB_TASK") String agentMode) {
+            @ToolParam(description = "切换模式，可选值：SWITCH_MODE_PLAN / SWITCH_MODE_SUB_TASK") String switchMode) {
 
         // 1. 参数校验
         if (msgId == null) {
             return ApiResult.error(ApiResultCode.BAD_REQUEST, "messageId 不能为空");
         }
-        if (agentMode == null || agentMode.isBlank()) {
-            return ApiResult.error(ApiResultCode.BAD_REQUEST, "agentMode 不能为空");
+        if (switchMode == null || switchMode.isBlank()) {
+            return ApiResult.error(ApiResultCode.BAD_REQUEST, "switchMode 不能为空");
         }
 
-        // 2. 校验 agentMode 是否为有效的枚举值
-        AgentMode mode;
+        // 2. 校验并解析为 AgentEvent 常量
+        AgentEvent switchEvent;
         try {
-            mode = AgentMode.valueOf(agentMode.toUpperCase());
+            switchEvent = AgentEvent.valueOf(switchMode.toUpperCase());
         } catch (IllegalArgumentException e) {
             return ApiResult.error(ApiResultCode.BAD_REQUEST,
-                    "无效的执行模式: " + agentMode + "，可选值：PLAN, SUB_TASK");
+                    "无效的切换模式: " + switchMode + "，可选值：SWITCH_MODE_PLAN, SWITCH_MODE_SUB_TASK");
         }
-        if (mode == AgentMode.CHAT || mode == AgentMode.EXECUTE) {
+        if (switchEvent != AgentEvent.SWITCH_MODE_PLAN && switchEvent != AgentEvent.SWITCH_MODE_SUB_TASK) {
             return ApiResult.error(ApiResultCode.BAD_REQUEST,
-                    "无效的执行模式: " + agentMode + "，可选值：PLAN, SUB_TASK"
-            );
+                    "无效的切换模式: " + switchMode + "，可选值：SWITCH_MODE_PLAN, SWITCH_MODE_SUB_TASK");
         }
 
         // 3. 注册模式切换事件
-        // 以 AgentMode 枚举类名作为事件类型前缀，messageId 作为业务 ID
-        eventRegistry.register(AgentMode.class.getSimpleName(), msgId.toString(), mode);
+        // 使用 AgentEvent 类名作为事件类型前缀（与消费者 switchModeIfNecessary 约定一致）
+        eventRegistry.register(AgentEvent.class.getSimpleName(), msgId.toString(), switchEvent);
 
-        log.info("[SwitchModeTools] 模式切换事件已注册: messageId={}, agentMode={}", msgId, mode.name());
+        log.info("[SwitchModeTools] 模式切换事件已注册: messageId={}, switchEvent={}", msgId, switchEvent.name());
 
-        return ApiResult.success("智能体执行模式已切换为 " + mode.name() + "(" + mode.getDesc() + ")");
+        return ApiResult.success("智能体执行模式已切换为 " + switchEvent.name() + "(" + switchEvent.getEventDesc() + ")");
     }
 }

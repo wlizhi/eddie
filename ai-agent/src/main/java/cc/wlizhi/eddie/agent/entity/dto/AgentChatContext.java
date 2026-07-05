@@ -9,7 +9,6 @@ import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
-import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import lombok.Getter;
 import lombok.Setter;
@@ -96,7 +95,7 @@ public class AgentChatContext {
     private AgentTokenStatists tokenStatists;
 
     /**
-     * 当前所处的模式
+     * 迭代状态
      */
-    private AgentMode agentMode;
+    AgentIteratorState iteratorState;
 }

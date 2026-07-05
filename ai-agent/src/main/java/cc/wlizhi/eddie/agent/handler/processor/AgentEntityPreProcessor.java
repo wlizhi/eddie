@@ -8,7 +8,9 @@ package cc.wlizhi.eddie.agent.handler.processor;
 import cc.wlizhi.eddie.agent.context.AgentContext;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentIteratorState;
 import cc.wlizhi.eddie.agent.handler.AgentChatPreProcessor;
+import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
 import jakarta.annotation.Resource;
 import org.springframework.core.annotation.Order;
@@ -42,5 +44,10 @@ public class AgentEntityPreProcessor implements AgentChatPreProcessor {
         }
 
         ctx.setAgent(agent);
+        AgentIteratorState iteratorState = new AgentIteratorState();
+        iteratorState.setMaxIterations(Math.clamp(agent.getMaxIterations(), 1, 1000));
+        iteratorState.setCurrentIterator(0);
+        iteratorState.setAgentMode(AgentMode.CHAT);
+        ctx.setIteratorState(iteratorState);
     }
 }
