@@ -10,6 +10,7 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentIteratorState;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentChatPreProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessorRouter;
+import cc.wlizhi.eddie.agent.handler.ResponseStreamProcessorRouter;
 import cc.wlizhi.eddie.agent.service.AgentChatService;
 import cc.wlizhi.eddie.chat.advisor.ModelThrottleAdvisor;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
@@ -21,16 +22,12 @@ import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.AbstractMessage;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.model.Generation;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 public class AgentChatServiceImpl implements AgentChatService {
@@ -47,6 +44,8 @@ public class AgentChatServiceImpl implements AgentChatService {
     private AgentClientPostProcessorRouter agentClientRouter;
     @Resource
     private ObjectMapper objectMapper;
+    @Resource
+    private ResponseStreamProcessorRouter responseStreamRouter;
 
     @Override
     public Flux<ServerSentEvent<String>> chat(AgentChatRequest request) {
@@ -75,10 +74,10 @@ public class AgentChatServiceImpl implements AgentChatService {
 
             // 构建当前轮次合适的客户端，并获取阻塞式流
             ChatClient.ChatClientRequestSpec requestSpec = agentClientRouter.buildChatClientRequestSpec(ctx);
-            // 处理流并向前端推送事件
-            processResponseStream(ctx, requestSpec);
-            // 如果感知到模式切换事件，切换当前模式为目标模式
-            switchModeIfNecessary(ctx);
+            // 委托策略处理器处理流并向前端推送事件
+            responseStreamRouter.process(ctx, requestSpec);
+            // 智能体内置工具（如 built_in_switch_mode）已在执行过程中
+            // 通过 ToolContext 直接修改了 ctx.getIteratorState().agentMode
             // 会话结束还处于聊天模式，则退出循环
             if (shouldBreakIterator(ctx)) {
                 break;
@@ -91,75 +90,6 @@ public class AgentChatServiceImpl implements AgentChatService {
         AgentIteratorState iteratorState = ctx.getIteratorState();
         return iteratorState.getAgentMode() == AgentMode.CHAT
                 || iteratorState.getCurrentIterator() >= iteratorState.getMaxIterations();
-    }
-
-    private void processResponseStream(AgentChatContext ctx, ChatClient.ChatClientRequestSpec requestSpec) {
-        // TODO 这里目前只是伪实现，每种模式的编排不太一样
-        requestSpec.stream().chatResponse().toStream().forEach(res -> {
-
-            // 1. 提取并推送思考内容
-            String thinking = extractThinking(res);
-            if (thinking != null && !thinking.isEmpty()) {
-                ctx.getSink().next(ServerSentEvent.<String>builder()
-                        .event("thinking")
-                        .data(thinking)
-                        .build());
-            }
-
-            // 2. 提取并推送回答内容
-            String answer = extractAnswer(res);
-            if (answer != null && !answer.isEmpty()) {
-                ctx.getSink().next(ServerSentEvent.<String>builder()
-                        .event("answer")
-                        .data(answer)
-                        .build());
-            }
-        });
-    }
-
-    /**
-     * 从 ChatResponse 提取模型思考内容（reasoning_content）
-     * 兼容 OpenAI / DeepSeek 等不同服务商的 metadata key
-     */
-    private String extractThinking(ChatResponse response) {
-        try {
-            var metadata = Objects.requireNonNull(response.getResult()).getOutput().getMetadata();
-            // key "reasoningContent" 兼容 OpenAI reasoning API
-            Object reasoning = metadata.get("reasoningContent");
-            if (reasoning == null) {
-                // fallback: DeepSeek 使用的 key
-                reasoning = metadata.get("reasoning_content");
-            }
-            return reasoning != null ? reasoning.toString() : null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * 从 ChatResponse 提取模型生成的文本内容
-     */
-    private String extractAnswer(ChatResponse response) {
-        try {
-            return response.getResults().stream()
-                    .map(Generation::getOutput)
-                    .map(AbstractMessage::getText).filter(Objects::nonNull)
-                    .filter(f -> !f.isEmpty())
-                    .collect(Collectors.joining());
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-
-    private void switchModeIfNecessary(AgentChatContext ctx) {
-        Long reqMsgId = ctx.getOriginalRequest().getMsgId();
-        Long agentMsgId = ctx.getAgentMsg().getId();
-        String key = EventRegistry.key(AgentEvent.class.getSimpleName(), reqMsgId != null ? reqMsgId.toString() : agentMsgId.toString());
-        Object mode = eventRegistry.get(key);
-        if (mode instanceof AgentEvent agentEvent && agentEvent == AgentEvent.SWITCH_MODE_PLAN) {
-            ctx.getIteratorState().setAgentMode(AgentMode.PLAN);
-        }
     }
 
     private void preProcessors(AgentChatContext ctx) {

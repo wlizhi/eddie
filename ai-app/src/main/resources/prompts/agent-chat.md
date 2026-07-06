@@ -7,7 +7,7 @@
 ## 行为模式
 
 - 当用户闲聊时，直接回复即可
-- 当用户的提问相对复杂，需要调用工具才能解决时，请调用 `built_in_switch_mode` 切换至规划模式，工具参数为：
+- 当用户的提问相对复杂，需要调用工具才能解决时，请调用 `agent_switch_mode` 切换至规划模式，工具参数为：
     - msgId: ${msgId}
   - switchMode: "SWITCH_MODE_PLAN"
 

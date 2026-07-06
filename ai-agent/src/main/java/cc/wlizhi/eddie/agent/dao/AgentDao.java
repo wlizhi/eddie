@@ -29,15 +29,15 @@ public class AgentDao {
                         "main_provider_id, main_model_id, main_model_params, " +
                         "sub_provider_id, sub_model_id, sub_model_params, " +
                         "semaphore, max_iterations, max_execution_time_sec, execution_mode, " +
-                        "tool_selection_mode, preferences, enabled, built_in, sort_order, " +
+                        "tool_selection_mode, memory_rounds, preferences, enabled, built_in, sort_order, " +
                         "created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 entity.getName(), entity.getAvatar(), entity.getDescription(), entity.getSystemPrompt(),
                 entity.getMainProviderId(), entity.getMainModelId(), entity.getMainModelParams(),
                 entity.getSubProviderId(), entity.getSubModelId(), entity.getSubModelParams(),
                 entity.getSemaphore(), entity.getMaxIterations(), entity.getMaxExecutionTimeSec(),
                 entity.getExecutionMode(),
-                entity.getToolSelectionMode(), entity.getPreferences(),
+                entity.getToolSelectionMode(), entity.getMemoryRounds(), entity.getPreferences(),
                 entity.getEnabled(), entity.getBuiltIn(), entity.getSortOrder(),
                 now, now);
     }
@@ -77,14 +77,14 @@ public class AgentDao {
                         "main_provider_id=?, main_model_id=?, main_model_params=?, " +
                         "sub_provider_id=?, sub_model_id=?, sub_model_params=?, " +
                         "semaphore=?, max_iterations=?, max_execution_time_sec=?, execution_mode=?, " +
-                        "tool_selection_mode=?, preferences=?, enabled=?, built_in=?, sort_order=?, " +
+                        "tool_selection_mode=?, memory_rounds=?, preferences=?, enabled=?, built_in=?, sort_order=?, " +
                         "updated_at=? WHERE id=?",
                 entity.getName(), entity.getAvatar(), entity.getDescription(), entity.getSystemPrompt(),
                 entity.getMainProviderId(), entity.getMainModelId(), entity.getMainModelParams(),
                 entity.getSubProviderId(), entity.getSubModelId(), entity.getSubModelParams(),
                 entity.getSemaphore(), entity.getMaxIterations(), entity.getMaxExecutionTimeSec(),
                 entity.getExecutionMode(),
-                entity.getToolSelectionMode(), entity.getPreferences(),
+                entity.getToolSelectionMode(), entity.getMemoryRounds(), entity.getPreferences(),
                 entity.getEnabled(), entity.getBuiltIn(), entity.getSortOrder(),
                 now, entity.getId());
     }
@@ -135,6 +135,7 @@ public class AgentDao {
         e.setMaxExecutionTimeSec(rs.getInt("max_execution_time_sec"));
         e.setExecutionMode(rs.getString("execution_mode"));
         e.setToolSelectionMode(rs.getString("tool_selection_mode"));
+        e.setMemoryRounds(rs.getObject("memory_rounds") != null ? rs.getInt("memory_rounds") : null);
         e.setPreferences(rs.getString("preferences"));
         e.setEnabled(rs.getInt("enabled"));
         e.setBuiltIn(rs.getInt("built_in"));

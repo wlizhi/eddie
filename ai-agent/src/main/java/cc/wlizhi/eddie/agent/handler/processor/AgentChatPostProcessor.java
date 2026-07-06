@@ -4,15 +4,21 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentPromptsResolver;
 import cc.wlizhi.eddie.agent.handler.AgentToolCallbackWrapper;
+import cc.wlizhi.eddie.agent.service.impl.AgentShortTermMemory;
+import cc.wlizhi.eddie.agent.tool.AgentToolProvider;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class AgentChatPostProcessor implements AgentClientPostProcessor {
@@ -20,6 +26,10 @@ public class AgentChatPostProcessor implements AgentClientPostProcessor {
     private ToolCallbackResolver toolCallbackResolver;
     @Resource
     private AgentPromptsResolver agentPromptsResolver;
+    @Resource
+    private List<AgentToolProvider> agentToolProviders;
+    @Resource
+    private AgentShortTermMemory agentShortTermMemory;
 
     @Override
     public boolean support(AgentMode agentMode) {
@@ -28,21 +38,35 @@ public class AgentChatPostProcessor implements AgentClientPostProcessor {
 
     @Override
     public ChatClient.ChatClientRequestSpec buildChatClientRequestSpec(AgentChatContext ctx) {
-        ToolCallback[] toolCallbacks = toolCallbackResolver.resolve(
+        // 1. 解析用户可配置的工具
+        ToolCallback[] configurableTools = toolCallbackResolver.resolve(
                 RoleType.AGENT.name(), ctx.getAgent().getId()
                 , ctx.getOriginalRequest().getToolSelectionMode()
                 , ctx.getOriginalRequest().getToolNames());
-        ChatClient client;
-        if (toolCallbacks == null || toolCallbacks.length == 0) {
-            client = ctx.getChatClient().mutate().build();
-        } else {
-            Object[] wrappers = Arrays.stream(toolCallbacks)
-                    .map(t -> new AgentToolCallbackWrapper(t, ctx)).toArray();
-            client = ctx.getChatClient().mutate()
-                    .defaultTools(wrappers)
-                    .build();
+
+        // 2. 收集所有工具（用户可配 + 智能体内置）
+        List<ToolCallback> allTools = new ArrayList<>();
+        if (configurableTools != null) {
+            allTools.addAll(Arrays.asList(configurableTools));
         }
-        return client.prompt()
+        for (AgentToolProvider provider : agentToolProviders) {
+            ToolCallback[] internalTools = ToolCallbacks.from(provider);
+            allTools.addAll(Arrays.asList(internalTools));
+        }
+
+        // 3. 构建 ChatClient（仅在 chatting 模式注入记忆窗口 advisor）
+        ChatClient.Builder builder = ctx.getChatClient().mutate();
+        if (ctx.getIteratorState().getAgentMode() == AgentMode.CHAT) {
+            var memoryAdvisor = MessageChatMemoryAdvisor.builder(agentShortTermMemory).build();
+            builder.defaultAdvisors(memoryAdvisor);
+        }
+        if (!allTools.isEmpty()) {
+            Object[] wrappers = allTools.stream()
+                    .map(t -> new AgentToolCallbackWrapper(t, ctx)).toArray();
+            builder.defaultTools(wrappers);
+        }
+
+        return builder.build().prompt()
                 .system(agentPromptsResolver.resolvePrompts(ctx))
                 .user(ctx.getOriginalRequest().getMessage())
                 .advisors(advisor -> advisor

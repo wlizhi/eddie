@@ -70,6 +70,11 @@ public class AgentEntity {
     private String toolSelectionMode;
 
     /**
+     * 记忆轮数
+     */
+    private Integer memoryRounds;
+
+    /**
      * 偏好设置 JSON
      */
     private String preferences;

@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS ai_agent
     -- 工具选择模式
     tool_selection_mode    TEXT    NOT NULL DEFAULT 'auto',
 
+    -- 记忆轮数（每轮 = user + assistant 两条消息，0 = 无记忆）
+    memory_rounds INTEGER NOT NULL DEFAULT 20,
+
     -- 偏好设置 JSON
     preferences            TEXT    NOT NULL DEFAULT '{}',
 

@@ -54,6 +54,11 @@ public class AgentToolCallbackWrapper implements ToolCallback {
     public String call(String toolInput, @Nullable ToolContext toolContext) {
         String toolName = delegate.getToolDefinition().name();
 
+        // 将 AgentChatContext 注入 ToolContext，供 @Tool 方法通过 ToolContext 参数获取
+        if (toolContext != null) {
+            toolContext.getContext().put("agentChatContext", ctx);
+        }
+
         // 推送"开始"事件
         emitSse(ToolExecutionEvent.start(toolName, toolInput));
 
