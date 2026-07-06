@@ -27,6 +27,7 @@ import {renderMd} from '@/utils/markdown'
 import {formatShortTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
 import {displaySettings, getEffectiveFontSize} from '@/composables/useDisplaySettings'
+import AgentPlanTodoList from '@/components/agent/AgentPlanTodoList.vue'
 
 const agentChatStore = useAgentChatStore()
 const agentStore = useAgentStore()
@@ -253,6 +254,12 @@ function onScroll() {
 
           <!-- 消息气泡 -->
           <div class="message-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'">
+            <!-- 计划清单（仅 assistant，规划模式） -->
+            <AgentPlanTodoList
+                v-if="msg.role === 'assistant' && msg.taskPlan"
+                :plan="msg.taskPlan"
+            />
+
             <!-- thinking（仅 assistant） -->
             <div
                 v-if="msg.role === 'assistant' && (msg.thinking || (agentChatStore.isStreaming && msg === agentChatStore.messages[agentChatStore.messages.length - 1] && !msg.content))"

@@ -34,6 +34,7 @@ public class AgentMsgEntity {
     private Integer totalTokens;
     private Double priceEstimate;
     private String toolCalls;
+    private String taskPlan;
     private Integer cacheReadInputTokens;
     private Integer cacheWriteInputTokens;
     private String currency;

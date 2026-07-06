@@ -4,11 +4,12 @@ import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Getter
 @Setter
 public class AgentIteratorState {
-    private AgentMode agentMode;
+    private volatile AgentMode agentMode;
     private Integer maxIterations;
-    private Integer currentIterator;
-
+    private AtomicInteger currentIterator;
 }

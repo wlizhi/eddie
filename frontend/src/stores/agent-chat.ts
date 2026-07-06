@@ -24,7 +24,7 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'
-import type {MilestoneEvent} from '@/types/agent-chat'
+import type {AgentTaskPlan, MilestoneEvent} from '@/types/agent-chat'
 import type {SessionVO, ToolExecutionEventItem} from '@/types/session'
 import {useAgentStore} from '@/stores/agent'
 import type {ToolSourceVO} from '@/types/mcpServer'
@@ -159,15 +159,15 @@ export const useAgentChatStore = defineStore('agentChat', () => {
     /** 里程碑事件列表 */
     const milestones = ref<MilestoneEvent[]>([])
 
+    /** 当前任务计划清单（规划模式） */
+    const currentTaskPlan = ref<AgentTaskPlan | null>(null)
+
     /** 最新被后端确认已接收的文本（供 ChatView 清空输入框） */
     const confirmedText = ref('')
 
     /** AbortController，用于中断请求 */
     let abortController: AbortController | null = null
 
-
-    /** 停止回答点击次数（第 1 次 stop_msg，第 2 次 force_stop_msg） */
-    let stopClickCount = 0
 
     /** 当前正在执行的 agent 消息 ID（来自 SSE message_created 事件） */
     let currentAgentMsgId: number | null = null
@@ -231,6 +231,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentToolExecutions.value = []
         currentRound.value = 0
         milestones.value = []
+        currentTaskPlan.value = null
     }
 
     /**
@@ -336,9 +337,9 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentToolExecutions.value = []
         currentRound.value = 0
         milestones.value = []
+        currentTaskPlan.value = null
 
         abortController = new AbortController()
-        stopClickCount = 0
 
         // 构建工具参数（根据 MCP 工具模式 + 联网开关）
         const toolParams = buildToolParams()
@@ -436,6 +437,14 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 milestones.value.push(event)
                 // 里程碑也附加到最后一条 assistant 消息中（可选增强）
             },
+            onTaskPlan: (plan) => {
+                currentTaskPlan.value = plan
+                // 同时附加到最后一条 assistant 消息
+                const last = messages.value[messages.value.length - 1]
+                if (last?.role === 'assistant') {
+                    last.taskPlan = plan
+                }
+            },
             onRoundStart: (round) => {
                 currentRound.value = round
             },
@@ -503,18 +512,12 @@ export const useAgentChatStore = defineStore('agentChat', () => {
 
     /**
      * 停止智能体执行
-     *
-     * 第 1 次点击：stop_msg（优雅停止）→ 后端停止模型回答
-     * 第 2 次点击：force_stop_msg（强制停止）→ 后端强制断开模型连接
      */
     function abortStream(): void {
         if (!abortController) return
 
-        stopClickCount++
-        const mode = stopClickCount >= 2 ? 'force_stop_msg' : 'stop_msg'
-
         if (currentAgentMsgId) {
-            stopAgentChat(currentAgentMsgId, mode).catch(() => {
+            stopAgentChat(currentAgentMsgId).catch(() => {
                 // stop 请求失败时，降级为前端主动断开
                 abortController?.abort()
                 abortController = null
@@ -545,7 +548,6 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentToolExecutions.value = []
         isStreaming.value = false
         abortController = null
-        stopClickCount = 0
         // 通知侧边栏本地更新当前会话的消息数（+2）和更新时间
         sessionMessageSignal.value++
 
@@ -604,6 +606,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentToolExecutions,
         currentRound,
         milestones,
+        currentTaskPlan,
         confirmedText,
         sessionMessageSignal,
         hasMoreMessages,

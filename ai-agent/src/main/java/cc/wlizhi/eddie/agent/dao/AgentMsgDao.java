@@ -114,6 +114,15 @@ public class AgentMsgDao {
     }
 
     /**
+     * 更新消息的 task_plan 字段（规划模式持久化规划清单 JSON）
+     */
+    public void updateTaskPlan(Long id, String taskPlan) {
+        jdbcTemplate.update(
+                "UPDATE ai_agent_session_msg SET task_plan = ? WHERE id = ?",
+                taskPlan, id);
+    }
+
+    /**
      * 更新 AI 回复内容 + 状态（仅更新内容字段，不影响 token 统计）
      * <p>
      * 流式处理结束后调用，写入累积的 thinking/content/toolCalls，
@@ -170,6 +179,7 @@ public class AgentMsgDao {
         e.setTotalTokens(rs.getInt("total_tokens"));
         e.setPriceEstimate(rs.getDouble("price_estimate"));
         e.setToolCalls(rs.getString("tool_calls"));
+        e.setTaskPlan(rs.getString("task_plan"));
         e.setCacheReadInputTokens(rs.getInt("cache_read_input_tokens"));
         e.setCacheWriteInputTokens(rs.getInt("cache_written_input_tokens"));
         e.setCurrency(rs.getString("currency"));

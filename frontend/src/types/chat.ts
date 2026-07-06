@@ -128,6 +128,8 @@ export interface ChatMessage {
     renderedThinking?: string
     /** 模型名称（仅 assistant 角色） */
     modelName?: string
+    /** 任务计划清单（仅 agent 规划模式的消息有此字段） */
+    taskPlan?: import('./agent-chat').AgentTaskPlan | null
 }
 
 /**

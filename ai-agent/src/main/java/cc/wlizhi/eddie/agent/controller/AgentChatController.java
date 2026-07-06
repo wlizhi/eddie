@@ -49,8 +49,6 @@ public class AgentChatController {
 
     /**
      * 停止 Agent 执行
-     * <p>
-     * 第 1 次点击发送 STOP_MSG（优雅停止），第 2 次点击发送 FORCE_STOP_MSG（强制中断）。
      */
     @PostMapping("/stop")
     public ApiResult<Void> stop(@RequestParam(name = "messageId") Long messageId,

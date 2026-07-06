@@ -44,6 +44,34 @@ export interface AgentChatRequest {
 }
 
 /**
+ * 待办事项 — 计划清单中的单个步骤
+ */
+export interface AgentTodoItem {
+    /** 步骤序号（从 1 开始） */
+    id: number
+    /** 步骤描述 */
+    description: string
+    /** pending / processing / completed / failed */
+    status: string
+}
+
+/**
+ * 任务计划 — 对应后端 AgentTaskPlan
+ */
+export interface AgentTaskPlan {
+    /** 任务标题 */
+    title: string
+    /** 任务概述 */
+    summary: string
+    /** planned / executing / completed / failed */
+    status: string
+    /** 最终汇总文本 */
+    result: string
+    /** 待办步骤列表 */
+    todos: AgentTodoItem[]
+}
+
+/**
  * 智能体 SSE 事件类型
  */
 export type AgentSSEEventType =
@@ -56,6 +84,7 @@ export type AgentSSEEventType =
     | 'message_created'
     | 'cancelled'
     | 'error'
+    | 'update_task_plan'
 
 /**
  * 里程碑事件数据
@@ -127,6 +156,8 @@ export interface AgentStreamChatOptions {
     onRoundStart?: (round: number) => void
     /** 收到 message_created 事件时的回调 */
     onMessageCreated?: (data: { userMsgId?: number; assistantMsgId?: number }) => void
+    /** 收到 update_task_plan 事件时的回调 */
+    onTaskPlan?: (plan: AgentTaskPlan) => void
     /** 收到 cancelled 事件时的回调 */
     onCancelled?: (reason: string) => void
     /** 流结束时的回调 */

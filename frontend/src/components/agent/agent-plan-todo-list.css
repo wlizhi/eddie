@@ -1,0 +1,275 @@
+/* ===== 计划待办清单 ===== */
+
+.plan-todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-2);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-base);
+    border-radius: 8px;
+}
+
+/* ===== 标题行 ===== */
+
+.plan-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.plan-title-text {
+    font-size: var(--font-size-body);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.plan-status-tag {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    padding: 0.0625rem var(--space-2);
+    border-radius: 3px;
+    background: var(--bg-hover);
+    line-height: 1.5;
+}
+
+/* ===== 进度横条 ===== */
+
+.plan-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.plan-bar-track {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: var(--space-2) 0;
+}
+
+/* 节点之间的连接线 */
+.plan-bar-track::before {
+    content: '';
+    position: absolute;
+    left: calc(0.625rem + var(--space-1));
+    right: calc(0.625rem + var(--space-1));
+    top: 50%;
+    height: 2px;
+    background: var(--border-base);
+    transform: translateY(-50%);
+    z-index: 0;
+}
+
+/* 已完成段用绿色覆盖 */
+.plan-bar-node.completed ~ .plan-bar-node::before {
+    /* 后续节点连接线恢复灰色 */
+}
+
+/* 使用 flex 子项的间隔模拟分段着色，不依赖伪元素覆盖 */
+.plan-bar-node {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    position: relative;
+    min-width: 0;
+}
+
+.plan-bar-node + .plan-bar-node::before {
+    content: '';
+    position: absolute;
+    left: calc(-50% + 0.625rem);
+    right: calc(50% + 0.625rem);
+    top: 0.3125rem;
+    height: 2px;
+    background: var(--border-base);
+    z-index: 0;
+}
+
+/* 当前节点之前的连接线（已完成）使用绿色 */
+.plan-bar-node.completed + .plan-bar-node::before,
+.plan-bar-node.processing + .plan-bar-node::before {
+    background: var(--success-default);
+}
+
+/* 当前节点之后的连接线保持灰色 */
+.plan-bar-node.pending ~ .plan-bar-node::before {
+    background: var(--border-base);
+}
+
+/* 失败节点之后的连接线用红色 */
+.plan-bar-node.failed + .plan-bar-node::before {
+    background: var(--danger-default);
+}
+
+.node-dot {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    transition: background 0.3s, border-color 0.3s;
+}
+
+.node-dot.pending {
+    background: transparent;
+    border: 2px solid var(--text-muted);
+    opacity: 0.5;
+}
+
+.node-dot.processing {
+    background: var(--accent-default);
+    border: 2px solid var(--accent-default);
+    animation: aptl-pulse 1.5s ease-in-out infinite;
+}
+
+.node-dot.completed {
+    background: var(--success-default);
+    border: 2px solid var(--success-default);
+}
+
+.node-dot.failed {
+    background: var(--danger-default);
+    border: 2px solid var(--danger-default);
+}
+
+.node-icon {
+    color: var(--bg-primary);
+}
+
+.processing-icon {
+    animation: aptl-spin 1s linear infinite;
+}
+
+.pending-icon {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.node-label {
+    font-size: var(--font-size-xxs);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 4rem;
+    text-align: center;
+}
+
+.plan-bar-count {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+@keyframes aptl-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(var(--accent-default-rgb, 99, 102, 241), 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(var(--accent-default-rgb, 99, 102, 241), 0);
+    }
+}
+
+@keyframes aptl-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== 待办清单 ===== */
+
+.plan-todos {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--border-base);
+}
+
+.plan-todo-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-1);
+    border-radius: 4px;
+    font-size: var(--font-size-small);
+    transition: background 0.15s;
+}
+
+.plan-todo-item:hover {
+    background: var(--bg-hover);
+}
+
+.plan-todo-item.failed {
+    color: var(--danger-default);
+}
+
+.todo-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.3s, border-color 0.3s;
+}
+
+.todo-dot.pending {
+    background: transparent;
+    border: 1.5px solid var(--text-muted);
+    opacity: 0.5;
+}
+
+.todo-dot.processing {
+    background: var(--accent-default);
+    border: 1.5px solid var(--accent-default);
+    animation: aptl-dot-pulse 1.5s ease-in-out infinite;
+}
+
+.todo-dot.completed {
+    background: var(--success-default);
+    border: 1.5px solid var(--success-default);
+}
+
+.todo-dot.failed {
+    background: var(--danger-default);
+    border: 1.5px solid var(--danger-default);
+}
+
+@keyframes aptl-dot-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.todo-step-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-size: var(--font-size-xs);
+    min-width: 3.5rem;
+}
+
+.todo-desc {
+    color: var(--text-primary);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

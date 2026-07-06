@@ -18,6 +18,7 @@ import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatModel;
 import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import cc.wlizhi.eddie.common.dao.ChatModelProviderDao;
+import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
@@ -64,6 +65,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(ModelJsonItem.class, members);
         reflection.registerType(AgentMode.class, members);
         reflection.registerType(AgentTaskPlan.class, members);
+        reflection.registerType(ApiResult.class, members);
         reflection.registerType(cc.wlizhi.eddie.agent.context.AgentTaskStep.class, members);
     }
 }

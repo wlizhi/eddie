@@ -90,6 +90,19 @@ public abstract class AbstractWindowedMemory implements ShortTermMemory {
      */
     protected abstract int resolveMaxRounds(String conversationId);
 
+    /**
+     * 从持久化存储加载指定会话的历史消息（懒加载）
+     * <p>
+     * 当 {@link #get(String)} 缓存未命中时调用，子类需从数据库查询最近 N 轮消息，
+     * 并转换为 Spring AI {@link Message} 列表返回。
+     *
+     * @param conversationId 会话 ID
+     * @param maxRounds      最大记忆轮数（{@code >0} 时取最近 {@code maxRounds} 轮，每轮 2 条消息）
+     * @return 历史消息列表（按时间正序），可为空列表
+     */
+    @NonNull
+    protected abstract List<Message> loadHistory(String conversationId, int maxRounds);
+
     // ======================== ShortTermMemory 接口 ========================
 
     @Override
@@ -149,7 +162,26 @@ public abstract class AbstractWindowedMemory implements ShortTermMemory {
         try {
             ConversationEntry entry = store.get(conversationId);
             if (entry == null) {
-                return List.of();
+                // 缓存未命中，从持久化存储懒加载历史消息
+                int maxRounds = resolveMaxRounds(conversationId);
+                if (maxRounds <= 0) {
+                    return List.of();
+                }
+                List<Message> history = loadHistory(conversationId, maxRounds);
+                if (history.isEmpty()) {
+                    return List.of();
+                }
+                entry = new ConversationEntry(maxRounds);
+                entry.messages.addAll(history);
+                for (Message msg : history) {
+                    String text = msg.getText();
+                    if (text != null) {
+                        entry.totalChars += text.length();
+                    }
+                }
+                trimToRounds(entry, entry.maxRounds);
+                store.put(conversationId, entry);
+                return new ArrayList<>(entry.messages);
             }
             // accessOrder=true，get() 已将 entry 移至链表尾部
 

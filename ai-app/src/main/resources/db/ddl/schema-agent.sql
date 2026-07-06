@@ -68,12 +68,12 @@ CREATE TABLE IF NOT EXISTS ai_agent_session_msg
     id                         INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id                 INTEGER NOT NULL,                     -- 归属会话 ID
     agent_id                   INTEGER NOT NULL,                     -- 冗余：归属 Agent ID
-    task_id                    INTEGER,                              -- 父任务id
+    task_id                    INTEGER,                              -- 父任务id 已废弃，待删除
     role                       TEXT    NOT NULL,                     -- user / assistant / system
     provider_id                INTEGER,                              -- 模型服务商实例 ID
     model_code                 TEXT    NOT NULL DEFAULT '',          -- 模型 code
     model_name                 TEXT    NOT NULL DEFAULT '',          -- 模型显示名称
-    prompt                     TEXT    NOT NULL DEFAULT '',          -- 提示词
+    prompt                     TEXT    NOT NULL DEFAULT '',          -- 提示词 已废弃，待删除
     thinking                   TEXT    NOT NULL DEFAULT '',          -- 思考内容
     content                    TEXT    NOT NULL DEFAULT '',          -- 模型回复正文（前端对话气泡展示，完整执行过程查 segment 表）
     prompt_tokens              INTEGER NOT NULL DEFAULT 0,
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS ai_agent_session_msg_step
     msg_id        INTEGER NOT NULL,            -- 关联 ai_agent_session_msg.id
     msg_type      INTEGER NOT NULL DEFAULT 0,  -- 消息类型，0 前端展示，1 后端任务规划
     msg_data_type INTEGER NOT NULL DEFAULT 0,  -- 消息数据类型，0 文本，1 json字符串
-    step          INTEGER NOT NULL DEFAULT 0,  -- 阶段，后端流程编排中的任务阶段
+    step          INTEGER NOT NULL DEFAULT 0,  -- 阶段，步骤索引，对应清单中的步骤
     step_desc     TEXT    NOT NULL DEFAULT '', -- 阶段描述信息
     prompt        TEXT    NOT NULL DEFAULT '', -- 提示词
     thinking      TEXT    NOT NULL DEFAULT '', -- 思考内容

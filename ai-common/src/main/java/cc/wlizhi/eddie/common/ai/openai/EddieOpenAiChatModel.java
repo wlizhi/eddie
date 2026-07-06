@@ -677,7 +677,7 @@ public class EddieOpenAiChatModel implements ChatModel {
             builder.presencePenalty(requestOptions.getPresencePenalty());
         }
         if (requestOptions.getResponseFormat() != null) {
-            OpenAiChatModel.ResponseFormat responseFormat = requestOptions.getResponseFormat();
+            EddieOpenAiChatModel.ResponseFormat responseFormat = requestOptions.getResponseFormat();
             if (responseFormat.getType().equals(ResponseFormat.Type.TEXT)) {
                 builder.responseFormat(ResponseFormatText.builder().build());
             } else if (responseFormat.getType().equals(ResponseFormat.Type.JSON_OBJECT)) {

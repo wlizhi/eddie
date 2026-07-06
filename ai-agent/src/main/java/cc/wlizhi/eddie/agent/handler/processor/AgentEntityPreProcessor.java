@@ -17,6 +17,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 智能体数据预处理器 — 填充 {@link AgentChatContext#agent}
@@ -46,7 +47,7 @@ public class AgentEntityPreProcessor implements AgentChatPreProcessor {
         ctx.setAgent(agent);
         AgentIteratorState iteratorState = new AgentIteratorState();
         iteratorState.setMaxIterations(Math.clamp(agent.getMaxIterations(), 1, 1000));
-        iteratorState.setCurrentIterator(0);
+        iteratorState.setCurrentIterator(new AtomicInteger(0));
         iteratorState.setAgentMode(AgentMode.CHAT);
         ctx.setIteratorState(iteratorState);
     }

@@ -36,7 +36,7 @@ const BASE = '/api/agent'
 export async function streamAgentChat(options: AgentStreamChatOptions): Promise<void> {
     const {
         request, onThinking, onAnswer, onMetadata, onToolExecution,
-        onMilestone, onRoundStart, onMessageCreated, onCancelled,
+        onMilestone, onRoundStart, onMessageCreated, onTaskPlan, onCancelled,
         onComplete, onError, signal,
     } = options
 
@@ -187,6 +187,21 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                         // ignore parse error
                     }
                     break
+                case 'update_task_plan':
+                    try {
+                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: AgentTaskPlan }
+                        const envelope = JSON.parse(data) as {
+                            msgId?: number
+                            stepId?: number
+                            data?: import('@/types/agent-chat').AgentTaskPlan
+                        }
+                        if (envelope.data) {
+                            onTaskPlan?.(envelope.data)
+                        }
+                    } catch {
+                        // ignore parse error
+                    }
+                    break
                 case 'cancelled':
                     try {
                         const parsed = JSON.parse(data) as { reason: string }
@@ -273,12 +288,10 @@ function parseSSELine(line: string): { event: string; data: string } | null {
  * POST /api/agent/stop
  *
  * @param messageId 消息 ID（来自 SSE message_created 事件的 assistantMsgId）
- * @param mode 停止模式：stop_msg（优雅）/ force_stop_msg（强制）
  */
-export async function stopAgentChat(messageId: number, mode: 'stop_msg' | 'force_stop_msg'): Promise<void> {
+export async function stopAgentChat(messageId: number): Promise<void> {
     const params = new URLSearchParams()
     params.set('messageId', String(messageId))
-    params.set('mode', mode)
     const res = await fetch(`${BASE}/stop?${params}`, {method: 'POST'})
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
     const json: ApiResult<void> = await res.json()

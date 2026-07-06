@@ -121,7 +121,7 @@ public class EddieOpenAiChatOptions implements ToolCallingChatOptions, Structure
 
     private final @Nullable Double presencePenalty;
 
-    private final OpenAiChatModel.@Nullable ResponseFormat responseFormat;
+    private final EddieOpenAiChatModel.@Nullable ResponseFormat responseFormat;
 
     private final EddieOpenAiChatOptions.@Nullable StreamOptions streamOptions;
 
@@ -173,7 +173,7 @@ public class EddieOpenAiChatOptions implements ToolCallingChatOptions, Structure
                                      @Nullable List<ToolCallback> toolCallbacks, @Nullable Map<String, Object> toolContext,
                                      @Nullable Map<String, Integer> logitBias, @Nullable Boolean logprobs, @Nullable Integer topLogprobs,
                                      @Nullable Integer maxCompletionTokens, @Nullable Integer n, @Nullable List<String> outputModalities,
-                                     @Nullable AudioParameters outputAudio, OpenAiChatModel.@Nullable ResponseFormat responseFormat,
+                                     @Nullable AudioParameters outputAudio, EddieOpenAiChatModel.@Nullable ResponseFormat responseFormat,
                                      @Nullable StreamOptions streamOptions, @Nullable Integer seed, @Nullable Object toolChoice,
                                      @Nullable String user, @Nullable Boolean parallelToolCalls, @Nullable Boolean store,
                                      @Nullable Map<String, String> metadata, @Nullable String reasoningEffort, @Nullable String verbosity,
@@ -372,7 +372,7 @@ public class EddieOpenAiChatOptions implements ToolCallingChatOptions, Structure
      *
      * @return the response format
      */
-    public OpenAiChatModel.@Nullable ResponseFormat getResponseFormat() {
+    public EddieOpenAiChatModel.@Nullable ResponseFormat getResponseFormat() {
         return this.responseFormat;
     }
 
@@ -520,7 +520,7 @@ public class EddieOpenAiChatOptions implements ToolCallingChatOptions, Structure
 
     @Override
     public @Nullable String getOutputSchema() {
-        OpenAiChatModel.ResponseFormat format = this.getResponseFormat();
+        EddieOpenAiChatModel.ResponseFormat format = this.getResponseFormat();
         return format != null ? format.getJsonSchema() : null;
     }
 
@@ -771,7 +771,7 @@ public class EddieOpenAiChatOptions implements ToolCallingChatOptions, Structure
 
         protected @Nullable AudioParameters outputAudio;
 
-        protected OpenAiChatModel.@Nullable ResponseFormat responseFormat;
+        protected EddieOpenAiChatModel.@Nullable ResponseFormat responseFormat;
 
         protected @Nullable StreamOptions streamOptions;
 
@@ -938,7 +938,7 @@ public class EddieOpenAiChatOptions implements ToolCallingChatOptions, Structure
             return self();
         }
 
-        public B responseFormat(OpenAiChatModel.@Nullable ResponseFormat responseFormat) {
+        public B responseFormat(EddieOpenAiChatModel.@Nullable ResponseFormat responseFormat) {
             this.responseFormat = responseFormat;
             return self();
         }
@@ -1015,8 +1015,8 @@ public class EddieOpenAiChatOptions implements ToolCallingChatOptions, Structure
         @Override
         public B outputSchema(@Nullable String outputSchema) {
             if (outputSchema != null) {
-                this.responseFormat = OpenAiChatModel.ResponseFormat.builder()
-                        .type(OpenAiChatModel.ResponseFormat.Type.JSON_SCHEMA)
+                this.responseFormat = EddieOpenAiChatModel.ResponseFormat.builder()
+                        .type(EddieOpenAiChatModel.ResponseFormat.Type.JSON_SCHEMA)
                         .jsonSchema(outputSchema)
                         .build();
             } else {

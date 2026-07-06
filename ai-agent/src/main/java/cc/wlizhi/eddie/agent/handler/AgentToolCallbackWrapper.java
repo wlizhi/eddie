@@ -21,12 +21,20 @@ package cc.wlizhi.eddie.agent.handler;
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
+import cc.wlizhi.eddie.common.cache.EventRegistry;
+import cc.wlizhi.eddie.common.dto.ApiResult;
+import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
+import cc.wlizhi.eddie.common.exception.UserStopException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.ai.tool.metadata.ToolMetadata;
 import org.springframework.lang.Nullable;
+
+import java.util.Objects;
 
 @Slf4j
 public class AgentToolCallbackWrapper implements ToolCallback {
@@ -66,9 +74,23 @@ public class AgentToolCallbackWrapper implements ToolCallback {
         // 推送"开始"事件
         emitSse(startEvent);
 
+        // 工具执行前检查用户是否已点击停止
+        if (isStopRequested()) {
+            log.info("用户已停止，跳过工具执行: {}", toolName);
+            throw new UserStopException();
+        }
+
         try {
             // 执行实际工具
             String result = delegate.call(toolInput, toolContext);
+
+            // 工具执行后再次检查用户是否已点击停止
+            if (isStopRequested()) {
+                log.info("用户已停止，丢弃工具结果: {}", toolName);
+                throw new UserStopException();
+            }
+            // 切换至计划模式执行后，退出当前对话
+            checkSwitchToPlan(result);
 
             // ═══ 工具结果加工点 ═══
             // 三层截断，互不影响：
@@ -102,6 +124,8 @@ public class AgentToolCallbackWrapper implements ToolCallback {
 
             return modelResult;
 
+        } catch (UserStopException | SwitchModeToPlanException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("[AgentToolCallbackWrapper] 工具执行失败: {}", toolName, e);
             ToolExecutionEvent errorEvent = ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true);
@@ -111,10 +135,43 @@ public class AgentToolCallbackWrapper implements ToolCallback {
         }
     }
 
+    private void checkSwitchToPlan(String result) {
+        try {
+            ApiResult<String> apiResult = ctx.getObjectMapper().readValue(result, new TypeReference<>() {
+            });
+            if (apiResult != null && Objects.equals(apiResult.getData(), AgentEvent.SWITCH_MODE_PLAN.name())) {
+                throw new SwitchModeToPlanException();
+            }
+        } catch (JsonProcessingException ignored) {
+        }
+    }
+
     /**
      * 将 ToolExecutionEvent 序列化为 SSE 事件并推送
      */
     private void emitSse(ToolExecutionEvent event) {
         ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, event);
+    }
+
+    /**
+     * 检查用户是否已点击停止回答，在工具执行前后调用，
+     * 消除工具执行期间停止检测的盲区。
+     */
+    private boolean isStopRequested() {
+        EventRegistry registry = ctx.getEventRegistry();
+        if (registry == null || ctx.getAgentMsg() == null) {
+            return false;
+        }
+        Long msgId = ctx.getAgentMsg().getId();
+
+        String stopKey = EventRegistry.key(
+                AgentEvent.STOP_MSG.name().toLowerCase(), msgId.toString());
+        String stopVal = registry.get(stopKey);
+
+        if (Objects.equals(stopVal, AgentEvent.STOP_MSG.name().toLowerCase())) {
+            log.info("用户点击停止回答");
+            return true;
+        }
+        return false;
     }
 }

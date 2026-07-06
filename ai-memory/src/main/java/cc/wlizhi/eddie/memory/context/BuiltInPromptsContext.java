@@ -45,6 +45,8 @@ public class BuiltInPromptsContext {
     private String sessionTitlePrompts;
     @Getter
     private String agentChatPrompts;
+    @Getter
+    private String agentTaskPlanPrompts;
 
     @Resource
     private ResourceLoader resourceLoader;
@@ -69,6 +71,7 @@ public class BuiltInPromptsContext {
         }
         this.sessionTitlePrompts = loadContent(prompts.getSessionTitlePrompts());
         this.agentChatPrompts = loadContent(prompts.getAgentChatPrompts());
+        this.agentTaskPlanPrompts = loadContent(prompts.getAgentTaskPlanPrompts());
         log.info("Global prompts initialized: sessionTitlePrompts loaded={}", sessionTitlePrompts != null);
     }
 

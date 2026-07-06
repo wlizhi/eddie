@@ -7,18 +7,20 @@ package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.dao.AgentMsgDao;
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
-import cc.wlizhi.eddie.agent.entity.dto.AgentModelInfo;
-import cc.wlizhi.eddie.agent.entity.dto.AgentTokenStatists;
 import cc.wlizhi.eddie.agent.handler.AgentEventPublisher;
 import cc.wlizhi.eddie.agent.handler.ResponseStreamProcessor;
-import cc.wlizhi.eddie.common.util.PriceCalculator;
+import cc.wlizhi.eddie.agent.util.TokenStatsHelper;
+import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
+import cc.wlizhi.eddie.common.cache.EventRegistry;
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
+import cc.wlizhi.eddie.common.exception.AppException;
+import cc.wlizhi.eddie.common.exception.ProviderCallException;
+import cc.wlizhi.eddie.common.exception.UserStopException;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AbstractMessage;
-import org.springframework.ai.chat.metadata.ChatResponseMetadata;
-import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 
@@ -54,6 +56,8 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
 
     @Resource
     protected AgentMsgDao agentMsgDao;
+    @Resource
+    private EventRegistry eventRegistry;
 
     @Override
     public void process(AgentChatContext ctx, ChatClient.ChatClientRequestSpec requestSpec) {
@@ -64,10 +68,15 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
         AtomicInteger chunkCount = new AtomicInteger(0);
         long streamStart = System.currentTimeMillis();
 
-        // 遍历响应流 — 使用 10 分钟超时防止 Flux 无限阻塞
         try {
             requestSpec.stream().chatResponse()
-                    .toStream()
+                    .takeWhile(res -> {
+                        // 聊天模式切换到规划模式时，应当中断
+                        if (breakInStreamIfNecessary(ctx)) {
+                            return false;
+                        }
+                        return !checkUserStopEvent(ctx);
+                    }).toStream()
                     .forEach(res -> {
                         int idx = chunkCount.incrementAndGet();
                         // 保存最后一次响应，供后续提取 tool_calls / token 用量
@@ -100,16 +109,36 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
             long elapsed = System.currentTimeMillis() - streamStart;
             log.debug("[StreamDiagnostic] 流处理完成, 共 {} chunks, 耗时 {}ms", chunkCount.get(), elapsed);
 
+        } catch (UserStopException e) {
+            // 用户终止回答，直接透传，不打印 warn 日志
+            throw e;
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - streamStart;
             log.warn("[StreamDiagnostic] 流处理异常终止 after {} chunks, {}ms: {}",
                     chunkCount.get(), elapsed, e.getMessage(), e);
-            // 向前端推送错误事件
-            publisher.error(ctx, "模型响应流异常: " + e.getMessage());
+            if (e instanceof AppException) {
+                throw e;
+            } else {
+                throw new ProviderCallException(ApiResultCode.PROVIDER_CALL_FAILED, e.getMessage(), null, e);
+            }
         }
 
         // 钩子：流结束后的收尾
         afterStream(ctx);
+    }
+
+    private boolean checkUserStopEvent(AgentChatContext ctx) {
+        // 用户中断指令发出，应当中断。
+        String stopKey = EventRegistry.key(AgentEvent.STOP_MSG.name().toLowerCase(), ctx.getAgentMsg().getId().toString());
+        if (Objects.equals(eventRegistry.get(stopKey), AgentEvent.STOP_MSG.name().toLowerCase())) {
+            log.info("用户点击停止回答");
+            return true;
+        }
+        return false;
+    }
+
+    protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
+        return false;
     }
 
     // ================ 公共方法（子类通常无需覆盖） ================
@@ -183,95 +212,14 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
      */
     protected void afterStream(AgentChatContext ctx) {
         // 1. 从最后一条 ChatResponse 提取 token 统计，增量合并到 ctx.tokenStatists
-        extractAndMergeTokenStats(ctx);
+        TokenStatsHelper.extractAndMergeTokenStats(ctx);
 
-        // 2. 增量持久化到数据库
-        persistTokenStats(ctx);
-
-        // 3. 发射 metadata 事件给前端
+        // 2. 先推流给前端（低延迟，用户先看到数据）
         if (ctx.getTokenStatists() != null) {
             publisher.metadata(ctx, ctx.getTokenStatists());
         }
-    }
 
-    // ==================== 通用 token 提取与持久化（AOT 安全，零反射） ====================
-
-    /**
-     * 从 ChatResponse metadata 提取 token 统计，增量合并到 {@link AgentChatContext#getTokenStatists()}。
-     * <p>
-     * 使用 Spring AI 2.0.0 编译时类型安全 API：
-     * <pre>
-     *   ChatResponseMetadata → getUsage() → Usage
-     * </pre>
-     * 费用计算复用 {@link PriceCalculator#calculate(int, int, int, int, double, double, double, double)}，
-     * 价格来源优先使用 {@link AgentChatContext#getUseModelInfo()} 中的定价字段。
-     */
-    private void extractAndMergeTokenStats(AgentChatContext ctx) {
-        ChatResponse last = ctx.getLastResponse();
-        if (last == null) return;
-
-        ChatResponseMetadata responseMetadata = last.getMetadata();
-        if (responseMetadata == null) return;
-
-        Usage usage = responseMetadata.getUsage();
-        if (usage == null) return;
-
-        AgentTokenStatists stats = ctx.getTokenStatists();
-        if (stats == null) {
-            stats = new AgentTokenStatists();
-            ctx.setTokenStatists(stats);
-        }
-
-        // 标准 token 字段（Usage.getXxx() 返回 int）
-        stats.setPromptTokens(stats.getPromptTokens() != null ? stats.getPromptTokens() + usage.getPromptTokens() : usage.getPromptTokens());
-        stats.setCompletionTokens(stats.getCompletionTokens() != null ? stats.getCompletionTokens() + usage.getCompletionTokens() : usage.getCompletionTokens());
-        stats.setTotalTokens(stats.getTotalTokens() != null ? stats.getTotalTokens() + usage.getTotalTokens() : usage.getTotalTokens());
-
-        // 缓存字段（Usage.getXxx() 返回 Long，可为 null）
-        Long cacheRead = usage.getCacheReadInputTokens();
-        Long cacheWrite = usage.getCacheWriteInputTokens();
-        int cacheReadTokens = cacheRead != null ? cacheRead.intValue() : 0;
-        int cacheWriteTokens = cacheWrite != null ? cacheWrite.intValue() : 0;
-        stats.setCacheReadInputTokens(cacheReadTokens + (stats.getCacheReadInputTokens() != null ? stats.getCacheReadInputTokens() : 0));
-        stats.setCacheWriteInputTokens(cacheWriteTokens + (stats.getCacheWriteInputTokens() != null ? stats.getCacheWriteInputTokens() : 0));
-
-        // 预估费用：复用 PriceCalculator（与 chat 模块相同的计算逻辑）
-        AgentModelInfo modelInfo = ctx.getUseModelInfo();
-        if (modelInfo != null && modelInfo.getInputPrice() != null && modelInfo.getOutputPrice() != null) {
-            double cost = PriceCalculator.calculate(
-                    usage.getPromptTokens(), usage.getCompletionTokens(),
-                    cacheReadTokens, cacheWriteTokens,
-                    modelInfo.getInputPrice(), modelInfo.getOutputPrice(),
-                    modelInfo.getCacheInputPrice() != null ? modelInfo.getCacheInputPrice() : modelInfo.getInputPrice(),
-                    modelInfo.getCacheWriteInputPrice() != null ? modelInfo.getCacheWriteInputPrice() : modelInfo.getInputPrice());
-            stats.setPriceEstimate((stats.getPriceEstimate() != null ? stats.getPriceEstimate() : 0.0) + cost);
-            stats.setCurrency(modelInfo.getCurrency());
-        }
-
-        // 耗时（从请求开始时间到当前）
-        long now = System.currentTimeMillis();
-        int elapsedMs = (int) (now - ctx.getStartTime());
-        stats.setDurationMs((stats.getDurationMs() != null ? stats.getDurationMs() : 0) + elapsedMs);
-    }
-
-    /**
-     * 增量持久化 token 统计到数据库
-     */
-    private void persistTokenStats(AgentChatContext ctx) {
-        AgentTokenStatists stats = ctx.getTokenStatists();
-        if (stats == null) return;
-        Long agentMsgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        if (agentMsgId == null) return;
-
-        agentMsgDao.updateTokenIncremental(
-                agentMsgId,
-                stats.getPromptTokens() != null ? stats.getPromptTokens() : 0,
-                stats.getCompletionTokens() != null ? stats.getCompletionTokens() : 0,
-                stats.getTotalTokens() != null ? stats.getTotalTokens() : 0,
-                stats.getCacheReadInputTokens() != null ? stats.getCacheReadInputTokens() : 0,
-                stats.getCacheWriteInputTokens() != null ? stats.getCacheWriteInputTokens() : 0,
-                stats.getCurrency() != null ? stats.getCurrency() : "",
-                stats.getPriceEstimate() != null ? stats.getPriceEstimate() : 0.0,
-                stats.getDurationMs() != null ? stats.getDurationMs() : 0);
+        // 3. 后持久化到数据库（I/O 操作，不阻塞用户体验）
+        TokenStatsHelper.persistTokenStats(ctx, agentMsgDao);
     }
 }

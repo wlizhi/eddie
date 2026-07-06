@@ -7,7 +7,6 @@ public enum AgentEvent {
 
     // ==================== 模型事件 =======================
     SWITCH_MODE_PLAN("切换至规划模式"),
-    SWITCH_MODE_SUB_TASK("切换至子任务模式"),
 
     // ==================== SSE 事件（后端 → 前端） ====================
 
@@ -25,7 +24,6 @@ public enum AgentEvent {
     // ==================== 内部事件（EventRegistry 跨请求通信），由前端发起 ====================
     NEW_MSG_IN_TASK("任务中途用户发出新的指示"),
     STOP_MSG("停止本次对话回复或当前任务"),
-    FORCE_STOP_MSG("强制停止本次对话回复或当前任务"),
     ;
 
     private final String eventDesc;

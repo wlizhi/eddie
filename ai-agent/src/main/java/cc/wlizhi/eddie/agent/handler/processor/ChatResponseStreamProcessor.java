@@ -32,6 +32,11 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
     }
 
     @Override
+    protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
+        return ctx.getIteratorState().getAgentMode() == AgentMode.PLAN;
+    }
+
+    @Override
     protected void afterStream(AgentChatContext ctx) {
         // 1. 基类通用逻辑：token 提取 + 增量持久化 + metadata 推送
         super.afterStream(ctx);

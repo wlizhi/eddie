@@ -5,12 +5,14 @@
 
 package cc.wlizhi.eddie.agent.entity.dto;
 
+import cc.wlizhi.eddie.agent.context.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentEventPublisher;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -38,6 +40,8 @@ public class AgentChatContext {
      * 用户原始请求
      */
     private AgentChatRequest originalRequest;
+
+    private Thread agentThread;
 
     // ==================== 阶段二：预处理，必要信息填充 ====================
 
@@ -114,6 +118,18 @@ public class AgentChatContext {
      * 事件发射器
      */
     private AgentEventPublisher eventPublisher;
+
+    /**
+     * 事件注册表（用于跨线程停止检测）
+     */
+    private EventRegistry eventRegistry;
+
+    // ==================== 规划上下文 ====================
+
+    /**
+     * 任务规划清单（PLAN 模式由模型输出，供后续执行步骤使用）
+     */
+    private AgentTaskPlan taskPlan;
 
     // ==================== 流式累加（用于最终持久化） ====================
 

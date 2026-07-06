@@ -6,12 +6,22 @@
 package cc.wlizhi.eddie.agent.service.impl;
 
 import cc.wlizhi.eddie.agent.context.AgentContext;
+import cc.wlizhi.eddie.agent.dao.AgentMsgDao;
 import cc.wlizhi.eddie.agent.dao.AgentSessionDao;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
+import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.memory.shortterm.AbstractWindowedMemory;
 import jakarta.annotation.Resource;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 智能体短期记忆实现 — 从智能体配置中读取 memoryRounds
@@ -28,6 +38,9 @@ public class AgentShortTermMemory extends AbstractWindowedMemory {
     @Resource
     private AgentContext agentContext;
 
+    @Resource
+    private AgentMsgDao agentMsgDao;
+
     @Override
     protected int resolveMaxRounds(String conversationId) {
         Long sessionId = Long.parseLong(conversationId);
@@ -41,5 +54,29 @@ public class AgentShortTermMemory extends AbstractWindowedMemory {
         }
         // 0 = 无记忆，>0 = 保留 N 轮
         return agent.getMemoryRounds();
+    }
+
+    @Override
+    @NonNull
+    protected List<Message> loadHistory(String conversationId, int maxRounds) {
+        Long sessionId = Long.parseLong(conversationId);
+        // 取最近 maxRounds 轮（每轮 = user + assistant 两条消息）
+        int limit = maxRounds * 2;
+        List<AgentMsgEntity> messages = agentMsgDao.findBySessionId(sessionId, null, limit);
+        if (messages.isEmpty()) {
+            return List.of();
+        }
+        // findBySessionId 返回倒序（最新在前），翻转成正序
+        Collections.reverse(messages);
+        List<Message> result = new ArrayList<>(messages.size());
+        for (AgentMsgEntity msg : messages) {
+            String content = msg.getContent() != null ? msg.getContent() : "";
+            if ("user".equals(msg.getRole())) {
+                result.add(new UserMessage(content));
+            } else if ("assistant".equals(msg.getRole())) {
+                result.add(new AssistantMessage(content));
+            }
+        }
+        return result;
     }
 }
