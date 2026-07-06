@@ -22,7 +22,7 @@ public class AgentPromptPreProcessor implements AgentChatPreProcessor {
         if (ctx.getIteratorState().getAgentMode() == AgentMode.CHAT) {
             String systemPrompt = ctx.getAgent().getSystemPrompt();
             String resolvePrompt = promptVariableResolver.resolve(systemPrompt);
-            log.debug("{} 模式系统提示词预处理结果：{}", AgentMode.CHAT, resolvePrompt);
+            log.debug("系统提示词预处理结果：{}", resolvePrompt);
             ctx.getAgent().setSystemPrompt(resolvePrompt);
         }
         // TODO 规划模式系统提示词

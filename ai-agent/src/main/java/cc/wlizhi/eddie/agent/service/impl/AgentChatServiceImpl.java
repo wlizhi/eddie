@@ -18,7 +18,6 @@ import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +43,6 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Resource
     private AgentClientPostProcessorRouter agentClientRouter;
     @Resource
-    private ObjectMapper objectMapper;
-    @Resource
     private ResponseStreamProcessorRouter responseStreamRouter;
     @Resource
     private AgentEventPublisher publisher;
@@ -55,6 +52,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         AgentChatContext ctx = new AgentChatContext();
         ctx.setStartTime(System.currentTimeMillis());
         ctx.setOriginalRequest(request);
+        ctx.setEventPublisher(publisher);
 
         // 按 @Order 顺序执行所有预处理器，填充 AgentChatContext 字段
         preProcessors(ctx);
@@ -72,31 +70,60 @@ public class AgentChatServiceImpl implements AgentChatService {
     }
 
     private void doChat(AgentChatContext ctx) {
-        while (!shouldBreakIterator(ctx)) {
-            // 迭代次数 + 1
-            Integer currentIterator = ctx.getIteratorState().getCurrentIterator();
-            ctx.getIteratorState().setCurrentIterator(currentIterator + 1);
+        try {
+            while (!shouldBreakIterator(ctx)) {
+                // 迭代次数 + 1
+                Integer currentIterator = ctx.getIteratorState().getCurrentIterator();
+                ctx.getIteratorState().setCurrentIterator(currentIterator + 1);
 
-            // 构建当前轮次合适的客户端，并获取阻塞式流
-            ChatClient.ChatClientRequestSpec requestSpec = agentClientRouter.buildChatClientRequestSpec(ctx);
-            // 委托策略处理器处理流并向前端推送事件
-            responseStreamRouter.process(ctx, requestSpec);
-            // 智能体内置工具（如 built_in_switch_mode）已在执行过程中
-            // 通过 ToolContext 直接修改了 ctx.getIteratorState().agentMode
-            // 会话结束还处于聊天模式，则退出循环
-            if (shouldBreakIterator(ctx)) {
-                break;
+                // 通知前端本轮迭代开始
+                publisher.roundStart(ctx, currentIterator + 1);
+
+                // 构建当前轮次合适的客户端，并获取阻塞式流
+                ChatClient.ChatClientRequestSpec requestSpec = agentClientRouter.buildChatClientRequestSpec(ctx);
+                // 委托策略处理器处理流并向前端推送事件
+                // process() 内部在 afterStream() 中自动完成 token 提取 + 持久化 + metadata 推送
+                responseStreamRouter.process(ctx, requestSpec);
+                // 智能体内置工具（如 built_in_switch_mode）已在执行过程中
+                // 通过 ToolContext 直接修改了 ctx.getIteratorState().agentMode
+                // 会话结束还处于聊天模式，则退出循环
+                if (shouldBreakIterator(ctx)) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            // 检查是否被中断（sink.onDispose 触发）
+            if (Thread.currentThread().isInterrupted()) {
+                log.warn("Agent 虚拟线程被中断: messageId={}", ctx.getAgentMsg().getId());
+                publisher.cancelled(ctx, "线程中断");
+            } else {
+                log.warn("Agent doChat 异常: messageId={}", ctx.getAgentMsg().getId(), e);
+                publisher.error(ctx, "处理异常: " + e.getMessage());
+            }
+        } finally {
+            // 通知前端本轮对话结束
+            publisher.taskFinish(ctx);
+            // 显式关闭 Flux，结束 SSE 连接
+            try {
+                ctx.getSink().complete();
+            } catch (Exception ignored) {
+                // sink 可能已被关闭或因中断异常
             }
         }
-        // TODO 通知前端回复完毕，发射本轮对话结束/任务完成事件
     }
 
     private boolean shouldBreakIterator(AgentChatContext ctx) {
         AgentIteratorState iteratorState = ctx.getIteratorState();
         String stopKey = EventRegistry.key(AgentEvent.STOP_MSG.name().toLowerCase(), ctx.getAgentMsg().getId().toString());
-        boolean hasStopEvent = eventRegistry.get(stopKey) != null;
-        return hasStopEvent || iteratorState.getAgentMode() == AgentMode.CHAT
-                || iteratorState.getCurrentIterator() >= iteratorState.getMaxIterations();
+        // 用户发送了停止事件
+        if (eventRegistry.get(stopKey) != null) {
+            return true;
+        }
+        // 聊天模式，已经经过了一轮。
+        if (iteratorState.getAgentMode() == AgentMode.CHAT && ctx.getIteratorState().getCurrentIterator() > 0) {
+            return true;
+        }
+        return iteratorState.getCurrentIterator() >= iteratorState.getMaxIterations();
     }
 
     private void preProcessors(AgentChatContext ctx) {

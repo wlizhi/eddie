@@ -91,24 +91,60 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
 
             switch (currentEvent) {
                 case 'thinking':
-                    onThinking?.(data)
+                    try {
+                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: { text } }
+                        const envelope = JSON.parse(data) as {
+                            msgId?: number;
+                            stepId?: number;
+                            data?: { text: string }
+                        }
+                        onThinking?.(envelope.data?.text ?? data)
+                    } catch {
+                        onThinking?.(data)
+                    }
                     break
                 case 'answer':
-                    onAnswer?.(data)
+                    try {
+                        const envelope = JSON.parse(data) as {
+                            msgId?: number;
+                            stepId?: number;
+                            data?: { text: string }
+                        }
+                        onAnswer?.(envelope.data?.text ?? data)
+                    } catch {
+                        onAnswer?.(data)
+                    }
                     break
                 case 'metadata':
-                    onMetadata?.(data)
+                    try {
+                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: { ...stats } }
+                        const envelope = JSON.parse(data) as {
+                            msgId?: number;
+                            stepId?: number;
+                            data?: Record<string, unknown>
+                        }
+                        onMetadata?.(JSON.stringify(envelope.data ?? {}))
+                    } catch {
+                        onMetadata?.(data)
+                    }
                     break
                 case 'tool_execution':
                     try {
-                        const parsed = JSON.parse(data) as {
-                            status: string
-                            toolName: string
-                            arguments?: string
-                            result?: string
-                            error?: boolean
+                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: { status, toolName, ... } }
+                        const envelope = JSON.parse(data) as {
+                            msgId?: number
+                            stepId?: number
+                            data?: {
+                                status: string
+                                toolName: string
+                                arguments?: string
+                                result?: string
+                                error?: boolean
+                            }
                         }
-                        onToolExecution?.(parsed)
+                        if (envelope.data) {
+                            onToolExecution?.(envelope.data)
+                        }
                     } catch {
                         // ignore parse error
                     }

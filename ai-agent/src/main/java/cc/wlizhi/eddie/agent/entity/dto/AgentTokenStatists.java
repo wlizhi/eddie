@@ -1,5 +1,10 @@
 package cc.wlizhi.eddie.agent.entity.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class AgentTokenStatists {
     // ==================== Token 统计 ====================
 

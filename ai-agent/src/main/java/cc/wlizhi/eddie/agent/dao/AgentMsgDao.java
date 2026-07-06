@@ -90,6 +90,42 @@ public class AgentMsgDao {
     }
 
     /**
+     * 增量更新 token 统计（每轮迭代结束后调用，field = field + delta）
+     */
+    public void updateTokenIncremental(Long id,
+                                       int deltaPromptTokens, int deltaCompletionTokens, int deltaTotalTokens,
+                                       int deltaCacheReadInputTokens, int deltaCacheWriteInputTokens,
+                                       String currency, double priceEstimate,
+                                       int deltaDurationMs) {
+        jdbcTemplate.update(
+                "UPDATE ai_agent_session_msg SET " +
+                        "prompt_tokens = COALESCE(prompt_tokens, 0) + ?, " +
+                        "completion_tokens = COALESCE(completion_tokens, 0) + ?, " +
+                        "total_tokens = COALESCE(total_tokens, 0) + ?, " +
+                        "cache_read_input_tokens = COALESCE(cache_read_input_tokens, 0) + ?, " +
+                        "cache_written_input_tokens = COALESCE(cache_written_input_tokens, 0) + ?, " +
+                        "currency = ?, " +
+                        "price_estimate = COALESCE(price_estimate, 0) + ?, " +
+                        "duration_ms = COALESCE(duration_ms, 0) + ?, " +
+                        "msg_status = 'COMPLETED' WHERE id = ?",
+                deltaPromptTokens, deltaCompletionTokens, deltaTotalTokens,
+                deltaCacheReadInputTokens, deltaCacheWriteInputTokens,
+                currency, priceEstimate, deltaDurationMs, id);
+    }
+
+    /**
+     * 更新 AI 回复内容 + 状态（仅更新内容字段，不影响 token 统计）
+     * <p>
+     * 流式处理结束后调用，写入累积的 thinking/content/toolCalls，
+     * 并将 msgStatus 从 PROCESSING 改为 COMPLETED。
+     */
+    public void updateContentAndStatus(Long id, String content, String thinking, String toolCalls, String msgStatus) {
+        jdbcTemplate.update(
+                "UPDATE ai_agent_session_msg SET content = ?, thinking = ?, tool_calls = ?, msg_status = ? WHERE id = ?",
+                content, thinking, toolCalls, msgStatus, id);
+    }
+
+    /**
      * 根据智能体 ID 删除所有消息（级联删除用）
      */
     public void deleteByAgentId(Long agentId) {

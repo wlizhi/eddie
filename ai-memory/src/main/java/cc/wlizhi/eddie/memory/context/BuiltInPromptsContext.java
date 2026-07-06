@@ -3,6 +3,7 @@ package cc.wlizhi.eddie.memory.context;
 import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.config.BuiltInPrompts;
 import cc.wlizhi.eddie.common.config.EddieProperties;
+import cc.wlizhi.eddie.common.util.PromptVariableResolver;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.Getter;
@@ -13,7 +14,6 @@ import org.springframework.util.PropertyPlaceholderHelper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * 全局提示词模板上下文。<p>
@@ -48,6 +48,8 @@ public class BuiltInPromptsContext {
 
     @Resource
     private ResourceLoader resourceLoader;
+    @Resource
+    private PromptVariableResolver promptVariableResolver;
 
     @PostConstruct
     void doInit() {
@@ -103,11 +105,6 @@ public class BuiltInPromptsContext {
      * @return 替换后的文本，template 为 null 时返回 null
      */
     public String resolvePrompt(String template, Map<String, String> variables) {
-        if (template == null) return null;
-        Properties props = new Properties();
-        if (variables != null) {
-            props.putAll(variables);
-        }
-        return PLACEHOLDER_HELPER.replacePlaceholders(template, props::getProperty);
+        return promptVariableResolver.resolve(template, variables);
     }
 }

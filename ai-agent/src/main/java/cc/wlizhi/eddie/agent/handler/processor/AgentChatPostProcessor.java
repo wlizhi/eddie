@@ -10,6 +10,7 @@ import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.support.ToolCallbacks;
@@ -19,7 +20,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Component
 public class AgentChatPostProcessor implements AgentClientPostProcessor {
     @Resource
@@ -65,10 +68,12 @@ public class AgentChatPostProcessor implements AgentClientPostProcessor {
                     .map(t -> new AgentToolCallbackWrapper(t, ctx)).toArray();
             builder.defaultTools(wrappers);
         }
-
+        String resolvePrompts = agentPromptsResolver.resolvePrompts(ctx);
+        log.debug("当前模式：{}，系统提示词：\n{}", ctx.getIteratorState().getAgentMode().name(), resolvePrompts);
         return builder.build().prompt()
-                .system(agentPromptsResolver.resolvePrompts(ctx))
+                .system(resolvePrompts)
                 .user(ctx.getOriginalRequest().getMessage())
+                .toolContext(Map.of("agentChatContext", ctx))
                 .advisors(advisor -> advisor
                         .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId())
                         .param("providerId", ctx.getModelProvider().getId())

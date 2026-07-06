@@ -34,6 +34,8 @@ public class PlanResponseStreamProcessor extends AbstractStreamProcessor {
 
     @Override
     protected void afterStream(AgentChatContext ctx) {
+        // 先执行基类通用逻辑（token 提取 + 持久化 + metadata 推送）
+        super.afterStream(ctx);
         ctx.getSink().next(ServerSentEvent.<String>builder()
                 .event("plan_complete")
                 .data("规划完成")

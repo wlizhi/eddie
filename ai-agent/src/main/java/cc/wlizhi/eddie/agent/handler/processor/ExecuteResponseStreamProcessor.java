@@ -37,19 +37,20 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
     @Override
     protected void handleCustomEvent(AgentChatContext ctx, ChatResponse response) {
         // 检测是否有工具调用，若有则推送 tool_call 事件
-        if (response.getResult() != null
-                && response.getResult().getOutput() != null
-                && response.getResult().getOutput().getToolCalls() != null
-                && !response.getResult().getOutput().getToolCalls().isEmpty()) {
-            ctx.getSink().next(ServerSentEvent.<String>builder()
-                    .event("tool_call")
-                    .data("工具调用中...")
-                    .build());
+        if (response.getResult() != null) {
+            if (!response.getResult().getOutput().getToolCalls().isEmpty()) {
+                ctx.getSink().next(ServerSentEvent.<String>builder()
+                        .event("tool_call")
+                        .data("工具调用中...")
+                        .build());
+            }
         }
     }
 
     @Override
     protected void afterStream(AgentChatContext ctx) {
+        // 先执行基类通用逻辑（token 提取 + 持久化 + metadata 推送）
+        super.afterStream(ctx);
         ctx.getSink().next(ServerSentEvent.<String>builder()
                 .event("execute_complete")
                 .data("执行完成")
