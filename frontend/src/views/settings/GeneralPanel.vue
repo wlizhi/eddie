@@ -82,13 +82,34 @@
         />
       </div>
     </div>
+
+    <!-- ===== 日志设置 ===== -->
+    <div class="settings-group">
+      <div class="group-label">
+        <Terminal :size="16" :stroke-width="2" class="group-icon"/>
+        日志设置
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">业务日志级别</span>
+          <span class="setting-hint">控制 cc.wlizhi.eddie 包及子包的日志输出，重启应用生效</span>
+        </div>
+        <n-select
+            :value="logLevel"
+            :options="logLevelOptions"
+            style="width: 120px"
+            @update:value="onLogLevelChange"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
-import {NInputNumber, NSwitch} from 'naive-ui'
-import {Search, Sparkles} from '@lucide/vue'
+import {NInputNumber, NSelect, NSwitch} from 'naive-ui'
+import {Search, Sparkles, Terminal} from '@lucide/vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {showToast} from '@/composables/useToast'
 
@@ -98,6 +119,16 @@ const searchResultCount = ref<number | null>(null)
 const webFetchMaxChars = ref<number | null>(null)
 const enableAutoTitle = ref(true)
 const titleGenerationRounds = ref<number | null>(1)
+const logLevel = ref('')
+const logLevelOptions = [
+  {label: '默认 (INFO)', value: ''},
+  {label: 'TRACE', value: 'TRACE'},
+  {label: 'DEBUG', value: 'DEBUG'},
+  {label: 'INFO', value: 'INFO'},
+  {label: 'WARN', value: 'WARN'},
+  {label: 'ERROR', value: 'ERROR'},
+  {label: 'OFF', value: 'OFF'},
+]
 
 onMounted(async () => {
   try {
@@ -116,6 +147,9 @@ onMounted(async () => {
     }
     if (settings.titleGenerationRounds != null) {
       titleGenerationRounds.value = Math.min(Math.max(settings.titleGenerationRounds, 1), 5)
+    }
+    if (settings.logLevel != null) {
+      logLevel.value = settings.logLevel
     }
   } catch (err: any) {
     showToast('加载配置失败: ' + (err.message || '未知错误'), 'error')
@@ -147,6 +181,24 @@ async function saveField(key: string, value: number | boolean | null) {
 async function onAutoTitleChange(val: boolean) {
   enableAutoTitle.value = val
   await saveField('enableAutoTitle', val)
+}
+
+/** 日志级别变更立即保存 */
+function onLogLevelChange(val: string) {
+  logLevel.value = val
+  // 从本地 ref 构造完整的 GENERAL_SETTINGS JSON，避免先 GET 再 PUT
+  const settings: Record<string, any> = {
+    searchResultCount: searchResultCount.value,
+    webFetchMaxChars: webFetchMaxChars.value,
+    enableAutoTitle: enableAutoTitle.value,
+    titleGenerationRounds: titleGenerationRounds.value,
+    logLevel: val,
+  }
+  Object.keys(settings).forEach(k => {
+    if (settings[k] == null) delete settings[k]
+  })
+  updateConfigs({[GENERAL_SETTINGS_KEY]: JSON.stringify(settings)})
+      .catch(err => showToast('保存失败: ' + (err.message || '未知错误'), 'error'))
 }
 </script>
 

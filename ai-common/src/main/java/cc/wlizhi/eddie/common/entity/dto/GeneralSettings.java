@@ -34,4 +34,11 @@ public class GeneralSettings {
      */
     private int titleGenerationRounds = 1;
 
+    /**
+     * 业务日志级别。<p>
+     * 控制 {@code cc.wlizhi.eddie} 包及子包的日志输出级别。<br>
+     * 可选值：TRACE / DEBUG / INFO / WARN / ERROR / OFF，空字符串表示不覆盖使用框架默认值。
+     */
+    private String logLevel = "";
+
 }

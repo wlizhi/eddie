@@ -10,6 +10,7 @@ import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.ai.chat.client.ChatClient;
@@ -98,4 +99,9 @@ public class AgentChatContext {
      * 迭代状态
      */
     AgentIteratorState iteratorState;
+
+    /**
+     * JSON 序列化器 — 供 AgentToolCallbackWrapper 等组件使用
+     */
+    private ObjectMapper objectMapper;
 }

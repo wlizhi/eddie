@@ -13,9 +13,9 @@
 
 package cc.wlizhi.eddie.agent.handler;
 
+import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
@@ -23,21 +23,16 @@ import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.ai.tool.metadata.ToolMetadata;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.lang.Nullable;
-import reactor.core.publisher.FluxSink;
 
 @Slf4j
 public class AgentToolCallbackWrapper implements ToolCallback {
 
     private final ToolCallback delegate;
-    private final FluxSink<ServerSentEvent<String>> sink;
-    private final ObjectMapper objectMapper;
+    private final AgentChatContext ctx;
 
-    public AgentToolCallbackWrapper(ToolCallback delegate,
-                                    FluxSink<ServerSentEvent<String>> sink,
-                                    ObjectMapper objectMapper) {
+    public AgentToolCallbackWrapper(ToolCallback delegate, AgentChatContext ctx) {
         this.delegate = delegate;
-        this.sink = sink;
-        this.objectMapper = objectMapper;
+        this.ctx = ctx;
     }
 
     @Override
@@ -87,8 +82,8 @@ public class AgentToolCallbackWrapper implements ToolCallback {
      */
     private void emitSse(ToolExecutionEvent event) {
         try {
-            String json = objectMapper.writeValueAsString(event);
-            sink.next(ServerSentEvent.<String>builder()
+            String json = ctx.getObjectMapper().writeValueAsString(event);
+            ctx.getSink().next(ServerSentEvent.<String>builder()
                     .event("tool_execution")
                     .data(json)
                     .build());

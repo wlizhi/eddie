@@ -16,7 +16,6 @@ import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
-import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -46,8 +45,6 @@ public class AgentChatServiceImpl implements AgentChatService {
     private ModelThrottleAdvisor modelThrottleAdvisor;
     @Resource
     private AgentClientPostProcessorRouter agentClientRouter;
-    @Resource
-    private ToolCallbackResolver toolCallbackResolver;
     @Resource
     private ObjectMapper objectMapper;
 

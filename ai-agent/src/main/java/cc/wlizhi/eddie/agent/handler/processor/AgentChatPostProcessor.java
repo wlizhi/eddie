@@ -7,7 +7,6 @@ import cc.wlizhi.eddie.agent.handler.AgentToolCallbackWrapper;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.tool.ToolCallback;
@@ -19,8 +18,6 @@ import java.util.Arrays;
 public class AgentChatPostProcessor implements AgentClientPostProcessor {
     @Resource
     private ToolCallbackResolver toolCallbackResolver;
-    @Resource
-    private ObjectMapper objectMapper;
     @Resource
     private AgentPromptsResolver agentPromptsResolver;
 
@@ -40,7 +37,7 @@ public class AgentChatPostProcessor implements AgentClientPostProcessor {
             client = ctx.getChatClient().mutate().build();
         } else {
             Object[] wrappers = Arrays.stream(toolCallbacks)
-                    .map(t -> new AgentToolCallbackWrapper(t, ctx.getSink(), objectMapper)).toArray();
+                    .map(t -> new AgentToolCallbackWrapper(t, ctx)).toArray();
             client = ctx.getChatClient().mutate()
                     .defaultTools(wrappers)
                     .build();
