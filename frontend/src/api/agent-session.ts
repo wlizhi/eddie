@@ -77,3 +77,11 @@ export async function unpinAgentSession(id: number): Promise<void> {
     const json: ApiResult<void> = await res.json()
     if (json.code !== 200) throw new Error(json.message || '取消置顶智能体会话失败')
 }
+
+export async function generateAgentSessionTitle(id: number): Promise<string> {
+    const res = await fetch(`${BASE}/${id}/generate-title`, {method: 'POST'})
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<string> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '生成智能体会话标题失败')
+    return json.data
+}

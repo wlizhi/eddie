@@ -126,6 +126,19 @@ public class AgentMsgDao {
     }
 
     /**
+     * 查询会话前 N 轮对话消息，用于生成标题
+     *
+     * @param sessionId 会话 ID
+     * @param rounds    轮数（每轮含 user + assistant 两条消息，取 rounds * 2 条）
+     */
+    public List<AgentMsgEntity> findRounds(Long sessionId, int rounds) {
+        int limit = Math.max(rounds * 2, 2);
+        return jdbcTemplate.query(
+                "SELECT * FROM ai_agent_session_msg WHERE session_id = ? ORDER BY id ASC LIMIT ?",
+                rowMapper, sessionId, limit);
+    }
+
+    /**
      * 根据智能体 ID 删除所有消息（级联删除用）
      */
     public void deleteByAgentId(Long agentId) {

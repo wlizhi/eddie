@@ -5,7 +5,7 @@
 
 <script setup lang="ts">
 import {computed, nextTick, ref} from 'vue'
-import {MessageSquare, Pencil, Pin, Plus, Search, Trash2} from '@lucide/vue'
+import {MessageSquare, Pencil, Pin, Plus, Search, Sparkles, Trash2} from '@lucide/vue'
 import {useAgentChatStore} from '@/stores/agent-chat'
 import {useAgentStore} from '@/stores/agent'
 import type {SessionVO} from '@/types/session'
@@ -23,7 +23,7 @@ const editTitle = ref('')
 // 会话列表（分页 + 服务端搜索）
 const {
   searchQuery, sessions, loadMore,
-  removeSession, togglePin, renameSession,
+  removeSession, togglePin, renameSession, aiGenerateTitle,
 } = useAgentSessionList(
     computed(() => agentStore.activeId),
 )
@@ -129,6 +129,9 @@ async function selectSession(session: SessionVO) {
             <div class="session-actions">
               <button class="session-rename" title="重命名" @click.stop="startRename(session)">
                 <Pencil :size="11" :stroke-width="2"/>
+              </button>
+              <button class="session-ai-title" title="AI 生成标题" @click.stop="aiGenerateTitle(session.id)">
+                <Sparkles :size="11" :stroke-width="2"/>
               </button>
               <button class="session-pin" title="置顶" @click.stop="togglePin(session)">
                 <Pin :size="11" :stroke-width="2" :class="{ pinned: session.pinned }"/>
@@ -362,6 +365,7 @@ async function selectSession(session: SessionVO) {
 }
 
 .session-rename,
+.session-ai-title,
 .session-pin,
 .session-delete {
   width: 22px;
@@ -380,6 +384,11 @@ async function selectSession(session: SessionVO) {
 .session-rename:hover {
   color: var(--text-secondary);
   background: var(--border-light);
+}
+
+.session-ai-title:hover {
+  color: var(--tag-vision-text);
+  background: var(--accent-light-bg);
 }
 
 .session-pin:hover {

@@ -81,6 +81,17 @@ public class AgentSessionController {
     }
 
     /**
+     * AI 生成标题（无需请求体，模型从全局配置自动降级读取）
+     *
+     * @param id 会话 ID
+     * @return 生成/截取的标题
+     */
+    @PostMapping("/{id}/generate-title")
+    public ApiResult<String> generateTitle(@PathVariable(name = "id") Long id) {
+        return ApiResult.success(agentSessionService.generateTitle(id));
+    }
+
+    /**
      * 置顶
      *
      * @param id 会话 ID

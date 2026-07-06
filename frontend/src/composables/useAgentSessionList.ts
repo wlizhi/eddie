@@ -14,6 +14,7 @@ import {useAgentChatStore} from '@/stores/agent-chat'
 import {
     deleteAgentSession,
     fetchAgentSessionList,
+    generateAgentSessionTitle,
     pinAgentSession,
     renameAgentSessionTitle,
     unpinAgentSession
@@ -150,6 +151,16 @@ export function useAgentSessionList(
         }
     }
 
+    /** AI 生成标题 */
+    async function aiGenerateTitle(sessionId: number) {
+        try {
+            await generateAgentSessionTitle(sessionId)
+            loadSessions(true)
+        } catch (err) {
+            console.error('AI 生成标题失败:', err)
+        }
+    }
+
     return {
         searchQuery,
         sessions,
@@ -161,5 +172,6 @@ export function useAgentSessionList(
         removeSession,
         togglePin,
         renameSession,
+        aiGenerateTitle,
     }
 }

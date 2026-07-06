@@ -5,6 +5,7 @@
 
 package cc.wlizhi.eddie.app.aot;
 
+import cc.wlizhi.eddie.agent.context.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentModelInfo;
@@ -62,5 +63,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(GeneralSettings.class, members);
         reflection.registerType(ModelJsonItem.class, members);
         reflection.registerType(AgentMode.class, members);
+        reflection.registerType(AgentTaskPlan.class, members);
+        reflection.registerType(cc.wlizhi.eddie.agent.context.AgentTaskStep.class, members);
     }
 }

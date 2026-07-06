@@ -29,7 +29,7 @@ import type {SessionVO, ToolExecutionEventItem} from '@/types/session'
 import {useAgentStore} from '@/stores/agent'
 import type {ToolSourceVO} from '@/types/mcpServer'
 import {fetchAgentMessages, stopAgentChat, streamAgentChat} from '@/api/agent-chat'
-import {createAgentSession} from '@/api/agent-session'
+import {createAgentSession, generateAgentSessionTitle} from '@/api/agent-session'
 import {fetchAgentBoundMcpTools} from '@/api/agent'
 import {renderMd} from '@/utils/markdown'
 
@@ -548,6 +548,16 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         stopClickCount = 0
         // 通知侧边栏本地更新当前会话的消息数（+2）和更新时间
         sessionMessageSignal.value++
+
+        // 首轮对话后自动生成标题（2 条消息：1 user + 1 assistant）
+        if (messages.value.length === 2) {
+            const sid = Number(currentConversationId.value)
+            if (sid) {
+                generateAgentSessionTitle(sid).catch(err => {
+                    console.error('自动生成智能体会话标题失败:', err)
+                })
+            }
+        }
     }
 
     /**

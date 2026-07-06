@@ -52,6 +52,16 @@ public interface AgentSessionService {
     AgentSessionVO renameTitle(Long id, String title);
 
     /**
+     * AI 生成标题（取首轮对话，通过模型降级链获取快速模型后调 AI 生成）
+     * <p>
+     * 降级链：FAST_MODEL → DEFAULT_MODEL → 智能体绑定模型 → 截取首条消息前 20 字
+     *
+     * @param sessionId 会话 ID
+     * @return 生成/截取的标题
+     */
+    String generateTitle(Long sessionId);
+
+    /**
      * 置顶
      *
      * @param id 会话 ID
