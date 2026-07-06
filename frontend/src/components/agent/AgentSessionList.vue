@@ -5,7 +5,7 @@
 
 <script setup lang="ts">
 import {computed, nextTick, ref} from 'vue'
-import {Loader2, MessageSquare, Pencil, Pin, Plus, Search, Trash2} from '@lucide/vue'
+import {MessageSquare, Pencil, Pin, Plus, Search, Trash2} from '@lucide/vue'
 import {useAgentChatStore} from '@/stores/agent-chat'
 import {useAgentStore} from '@/stores/agent'
 import type {SessionVO} from '@/types/session'
@@ -22,7 +22,7 @@ const editTitle = ref('')
 
 // 会话列表（分页 + 服务端搜索）
 const {
-  searchQuery, sessions, sessionsLoading, loadingMore, loadMore,
+  searchQuery, sessions, loadMore,
   removeSession, togglePin, renameSession,
 } = useAgentSessionList(
     computed(() => agentStore.activeId),
@@ -89,15 +89,8 @@ async function selectSession(session: SessionVO) {
       <input v-model="searchQuery" type="text" class="search-input" placeholder="搜索会话..."/>
     </div>
 
-    <!-- 首次加载中 -->
-    <div v-if="sessionsLoading" class="loading-state">
-      <Loader2 :size="16" :stroke-width="2" class="spin"/>
-      <span>加载中...</span>
-    </div>
-
     <!-- 虚拟滚动会话列表 -->
     <div
-        v-else
         ref="listContainer"
         class="session-list"
         @scroll="onScroll"
@@ -148,14 +141,8 @@ async function selectSession(session: SessionVO) {
         </div>
       </div>
 
-      <!-- 加载更多指示器 -->
-      <div v-if="loadingMore" class="loading-more">
-        <Loader2 :size="12" :stroke-width="2" class="spin"/>
-        <span>加载更多...</span>
-      </div>
-
       <!-- 无数据 -->
-      <div v-if="!sessionsLoading && sessions.length === 0" class="empty-state">
+      <div v-if="sessions.length === 0" class="empty-state">
         <span>暂无会话</span>
       </div>
     </div>
@@ -214,8 +201,7 @@ async function selectSession(session: SessionVO) {
   border-color: var(--accent-default);
 }
 
-/* 加载 / 空状态 */
-.loading-state,
+/* 空状态 */
 .empty-state {
   flex: 1;
   display: flex;
@@ -224,29 +210,6 @@ async function selectSession(session: SessionVO) {
   gap: 6px;
   font-size: var(--font-size-small);
   color: var(--text-tertiary);
-}
-
-.loading-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-}
-
-.spin {
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 /* 会话列表（虚拟滚动容器） */

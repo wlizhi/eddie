@@ -244,7 +244,7 @@ function onScroll() {
             {{ displaySettings.nickname }}
           </div>
           <!-- 助手名称 + 轮次 -->
-          <div v-if="msg.role === 'agent'" class="assistant-name-label">
+          <div v-if="msg.role === 'assistant'" class="assistant-name-label">
             <span v-if="agentStore.activeAgent">{{ agentStore.activeAgent.name }}</span>
             <span v-if="msg.modelName && displaySettings.showMetaModel" class="assistant-model-name">
               ({{ msg.modelName }})
@@ -255,7 +255,7 @@ function onScroll() {
           <div class="message-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'">
             <!-- thinking（仅 assistant） -->
             <div
-                v-if="msg.role === 'agent' && (msg.thinking || (agentChatStore.isStreaming && msg === agentChatStore.messages[agentChatStore.messages.length - 1] && !msg.content))"
+                v-if="msg.role === 'assistant' && (msg.thinking || (agentChatStore.isStreaming && msg === agentChatStore.messages[agentChatStore.messages.length - 1] && !msg.content))"
                 class="thinking-section"
             >
               <button class="thinking-toggle" @click="toggleThinking(msg.id)">
@@ -277,7 +277,7 @@ function onScroll() {
             </div>
 
             <!-- tool_calls -->
-            <div v-if="msg.role === 'agent'" class="tool-calls-section">
+            <div v-if="msg.role === 'assistant'" class="tool-calls-section">
               <div
                   v-for="(tc, ti) in msg.toolCalls"
                   :key="'h-' + ti"
@@ -325,7 +325,7 @@ function onScroll() {
           <!-- 底部：元数据 + 操作按钮 -->
           <div v-if="msg.content" class="msg-footer">
             <!-- 元数据（仅 agent）— 桌面端完整版 -->
-            <div v-if="msg.role === 'agent' && msg.metadata"
+            <div v-if="msg.role === 'assistant' && msg.metadata"
                  class="metadata-desktop">
               <template v-if="msg.metadata.timestamp && displaySettings.showMetaTime">
                 <span class="meta-time">{{ formatShortTime(msg.metadata.timestamp) }}</span>
@@ -376,7 +376,7 @@ function onScroll() {
             </div>
 
             <!-- 元数据（仅 agent）— 移动端精简版 -->
-            <div v-if="msg.role === 'agent' && msg.metadata"
+            <div v-if="msg.role === 'assistant' && msg.metadata"
                  class="metadata-compact">
               <span v-if="msg.metadata.totalTokens != null && displaySettings.showMetaTokens"
                     class="meta-tokens">{{ msg.metadata.totalTokens }}tokens</span>

@@ -65,24 +65,42 @@ public class AgentToolCallbackWrapper implements ToolCallback {
         ToolExecutionEvent startEvent = ToolExecutionEvent.start(toolName, toolInput);
         // 推送"开始"事件
         emitSse(startEvent);
-        // 累积到上下文（用于持久化）
-        ctx.getToolCalls().add(startEvent);
 
         try {
             // 执行实际工具
             String result = delegate.call(toolInput, toolContext);
 
             // ═══ 工具结果加工点 ═══
-            // 可在返回模型前修改 result，例如：截断、过滤、格式化
-            String modified = result;
+            // 三层截断，互不影响：
+            //   模型级 → 返回给 LLM（上限最高）
+            //   SSE 级  → 推送给前端渲染（上限中等）
+            //   存储级  → 持久化到数据库（上限最低）
+            String modelResult = result;
+            int modelMaxLen = ctx.getToolResultModelMaxLength();
+            if (modelMaxLen > 0 && modelResult != null && modelResult.length() > modelMaxLen) {
+                modelResult = modelResult.substring(0, modelMaxLen) + "\n\n...（工具结果已截断，更多内容请参考原始数据）";
+            }
 
-            ToolExecutionEvent completeEvent = ToolExecutionEvent.complete(toolName, toolInput, modified, false);
-            // 推送"完成"事件（使用修改后的结果，以便前端实时看到）
-            emitSse(completeEvent);
-            // 累积到上下文（用于持久化）
-            ctx.getToolCalls().add(completeEvent);
+            int sseMaxLen = ctx.getToolCallMaxLength();
+            String sseResult = modelResult;
+            if (sseMaxLen > 0 && sseResult != null && sseResult.length() > sseMaxLen) {
+                sseResult = sseResult.substring(0, sseMaxLen) + "...（已截断）";
+            }
 
-            return modified;
+            int storeMaxLen = ctx.getToolCallStoreMaxLength();
+            String storeResult = modelResult;
+            if (storeMaxLen > 0 && storeResult != null && storeResult.length() > storeMaxLen) {
+                storeResult = storeResult.substring(0, storeMaxLen) + "...（已截断）";
+            }
+
+            // SSE 事件使用前端渲染截断后的结果
+            ToolExecutionEvent sseEvent = ToolExecutionEvent.complete(toolName, toolInput, sseResult, false);
+            emitSse(sseEvent);
+            // 存储使用持久化截断后的结果
+            ToolExecutionEvent storeEvent = ToolExecutionEvent.complete(toolName, toolInput, storeResult, false);
+            ctx.getToolCalls().add(storeEvent);
+
+            return modelResult;
 
         } catch (Exception e) {
             log.warn("[AgentToolCallbackWrapper] 工具执行失败: {}", toolName, e);

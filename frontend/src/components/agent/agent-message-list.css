@@ -277,6 +277,23 @@
     transform: rotate(180deg);
 }
 
+/* token 详情（←prompt →completion 及缓存图标）内联 flex 布局 */
+.meta-tokens-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--text-muted);
+    font-size: var(--font-size-xxs);
+}
+
+/* 缓存图标内联于 tokens 详情中 */
+.cache-icon {
+    width: 1em;
+    height: 1em;
+    display: inline;
+    vertical-align: -0.125em;
+}
+
 @media (max-width: 48rem) {
     .meta-expand-btn {
         display: inline-flex;

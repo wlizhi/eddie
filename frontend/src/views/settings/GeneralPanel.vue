@@ -93,7 +93,7 @@
       <div class="setting-row">
         <div class="setting-info">
           <span class="setting-label">业务日志级别</span>
-          <span class="setting-hint">控制 cc.wlizhi.eddie 包及子包的日志输出，重启应用生效</span>
+          <span class="setting-hint">控制 cc.wlizhi.eddie 包及子包的日志输出，实时生效</span>
         </div>
         <n-select
             :value="logLevel"
@@ -103,13 +103,38 @@
         />
       </div>
     </div>
+
+    <!-- ===== 工具调用设置 ===== -->
+    <div class="settings-group">
+      <div class="group-label">
+        <Wrench :size="16" :stroke-width="2" class="group-icon"/>
+        工具调用设置
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">工具结果模型上下文最大长度</span>
+          <span class="setting-hint">工具执行结果返回给 AI 模型的最大字符数，超出部分将被截断（0=不截断，范围 0~100,000）</span>
+        </div>
+        <n-input-number
+            v-model:value="toolResultModelMaxLength"
+            :min="0"
+            :max="100000"
+            :step="1000"
+            :show-button="false"
+            class="number-input"
+            placeholder="20000"
+            @update:value="onToolResultModelMaxLengthChange"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {NInputNumber, NSelect, NSwitch} from 'naive-ui'
-import {Search, Sparkles, Terminal} from '@lucide/vue'
+import {Search, Sparkles, Terminal, Wrench} from '@lucide/vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {showToast} from '@/composables/useToast'
 
@@ -129,6 +154,9 @@ const logLevelOptions = [
   {label: 'ERROR', value: 'ERROR'},
   {label: 'OFF', value: 'OFF'},
 ]
+
+const TOOL_RESULT_MODEL_MAX_LENGTH_KEY = 'TOOL_RESULT_MODEL_MAX_LENGTH'
+const toolResultModelMaxLength = ref<number>(20000)
 
 onMounted(async () => {
   try {
@@ -150,6 +178,12 @@ onMounted(async () => {
     }
     if (settings.logLevel != null) {
       logLevel.value = settings.logLevel
+    }
+    if (configs[TOOL_RESULT_MODEL_MAX_LENGTH_KEY] != null) {
+      const val = parseInt(configs[TOOL_RESULT_MODEL_MAX_LENGTH_KEY], 10)
+      if (!isNaN(val)) {
+        toolResultModelMaxLength.value = Math.min(Math.max(val, 0), 100000)
+      }
     }
   } catch (err: any) {
     showToast('加载配置失败: ' + (err.message || '未知错误'), 'error')
@@ -199,6 +233,18 @@ function onLogLevelChange(val: string) {
   })
   updateConfigs({[GENERAL_SETTINGS_KEY]: JSON.stringify(settings)})
       .catch(err => showToast('保存失败: ' + (err.message || '未知错误'), 'error'))
+}
+
+/** 工具结果模型上下文最大长度变更立即保存 */
+async function onToolResultModelMaxLengthChange(val: number | null) {
+  if (val === undefined || val === null) return
+  const clamped = Math.min(Math.max(val, 0), 100000)
+  toolResultModelMaxLength.value = clamped
+  try {
+    await updateConfigs({[TOOL_RESULT_MODEL_MAX_LENGTH_KEY]: String(clamped)})
+  } catch (err: any) {
+    showToast('保存失败: ' + (err.message || '未知错误'), 'error')
+  }
 }
 </script>
 

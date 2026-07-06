@@ -96,29 +96,28 @@ function toChatMessage(vo: {
     cacheWriteInputTokens: number
     createdAt: number
 }): ChatMessage {
-    const hasTokens = vo.totalTokens > 0 || vo.promptTokens > 0
     const content = vo.content || ''
     return {
         id: generateId(),
         dbId: vo.id,
-        role: vo.role as 'user' | 'agent',
+        role: vo.role as 'user' | 'assistant',
         content,
         renderedContent: content ? renderMd(content) : '',
         thinking: vo.thinking || undefined,
         toolCalls: parseToolCalls(vo.toolCalls),
         timestamp: vo.createdAt,
-        metadata: hasTokens ? {
-            durationMs: vo.durationMs || undefined,
-            promptTokens: vo.promptTokens || undefined,
-            completionTokens: vo.completionTokens || undefined,
-            totalTokens: vo.totalTokens || undefined,
-            costEstimate: vo.priceEstimate || undefined,
-            currency: vo.currency || undefined,
-            cacheReadInputTokens: vo.cacheReadInputTokens || undefined,
-            cacheWriteInputTokens: vo.cacheWriteInputTokens || undefined,
-            timestamp: vo.createdAt,
-        } : null,
         modelName: vo.modelName || undefined,
+        metadata: {
+            timestamp: vo.createdAt,
+            ...(vo.durationMs != null ? {durationMs: vo.durationMs} : {}),
+            ...(vo.promptTokens != null ? {promptTokens: vo.promptTokens} : {}),
+            ...(vo.completionTokens != null ? {completionTokens: vo.completionTokens} : {}),
+            ...(vo.totalTokens != null ? {totalTokens: vo.totalTokens} : {}),
+            ...(vo.cacheReadInputTokens != null ? {cacheReadInputTokens: vo.cacheReadInputTokens} : {}),
+            ...(vo.cacheWriteInputTokens != null ? {cacheWriteInputTokens: vo.cacheWriteInputTokens} : {}),
+            ...(vo.priceEstimate != null ? {costEstimate: vo.priceEstimate} : {}),
+            ...(vo.currency ? {currency: vo.currency} : {}),
+        },
     }
 }
 
@@ -377,7 +376,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     })
                     messages.value.push({
                         id: generateId(),
-                        role: 'agent',
+                        role: 'assistant',
                         content: '',
                         thinking: '',
                         timestamp: Date.now(),
@@ -386,7 +385,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     // 仅 assistantMsgId → 子任务副消息，只创建 agent slot
                     messages.value.push({
                         id: generateId(),
-                        role: 'agent',
+                        role: 'assistant',
                         content: '',
                         thinking: '',
                         timestamp: Date.now(),
@@ -396,14 +395,14 @@ export const useAgentChatStore = defineStore('agentChat', () => {
             onThinking: (chunk) => {
                 currentThinking.value += chunk
                 const last = messages.value[messages.value.length - 1]
-                if (last && last.role === 'agent') {
+                if (last && last.role === 'assistant') {
                     last.thinking = currentThinking.value
                 }
             },
             onAnswer: (chunk) => {
                 currentAnswer.value += chunk
                 const last = messages.value[messages.value.length - 1]
-                if (last && last.role === 'agent') {
+                if (last && last.role === 'assistant') {
                     last.content = currentAnswer.value
                     debounceRender(last)
                 }
@@ -444,7 +443,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 try {
                     currentMetadata.value = JSON.parse(json) as ChatMetadata
                     const last = messages.value[messages.value.length - 1]
-                    if (last && last.role === 'agent') {
+                    if (last && last.role === 'assistant') {
                         last.metadata = currentMetadata.value
                         // metadata 到达时强制最终渲染
                         cancelAnimationFrame(renderRafId)
@@ -530,7 +529,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
     function finishStream(): void {
         // 将流式工具执行记录赋给最后一条 agent 消息
         const last = messages.value[messages.value.length - 1]
-        if (last?.role === 'agent') {
+        if (last?.role === 'assistant') {
             if (currentToolExecutions.value.length > 0) {
                 last.toolCalls = [...currentToolExecutions.value]
             }
@@ -607,6 +606,10 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         mcpToolMode,
         selectedMcpServerIds,
         boundMcpTools,
+
+        // 用户临时覆盖参数
+        selectedProviderId,
+        selectedModelId,
 
         // 计算属性
         hasMessages,

@@ -53,6 +53,11 @@ public enum GlobalConfigKey {
      */
     TOOL_CALL_MAX_LENGTH("工具调用响应最大长度", ConfigType.BACKEND),
 
+    /**
+     * 工具结果返回模型的最大字符数（纯数字字符串，如 "20000"，0=不截断）
+     */
+    TOOL_RESULT_MODEL_MAX_LENGTH("工具结果模型上下文最大长度", ConfigType.BACKEND),
+
     ;
 
     private final String description;
