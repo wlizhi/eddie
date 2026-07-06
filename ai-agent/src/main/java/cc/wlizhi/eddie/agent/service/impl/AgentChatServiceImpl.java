@@ -10,6 +10,7 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentIteratorState;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentChatPreProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessorRouter;
+import cc.wlizhi.eddie.agent.handler.AgentEventPublisher;
 import cc.wlizhi.eddie.agent.handler.ResponseStreamProcessorRouter;
 import cc.wlizhi.eddie.agent.service.AgentChatService;
 import cc.wlizhi.eddie.chat.advisor.ModelThrottleAdvisor;
@@ -46,6 +47,8 @@ public class AgentChatServiceImpl implements AgentChatService {
     private ObjectMapper objectMapper;
     @Resource
     private ResponseStreamProcessorRouter responseStreamRouter;
+    @Resource
+    private AgentEventPublisher publisher;
 
     @Override
     public Flux<ServerSentEvent<String>> chat(AgentChatRequest request) {
@@ -58,6 +61,8 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         return Flux.create(sink -> {
             ctx.setSink(sink);
+            // 消息已持久化（preProcessors 中已完成），通知前端消息 ID
+            publisher.messageCreated(ctx);
             Thread agentThread = Thread.ofVirtual().name("demo-agent").start(() -> {
                 doChat(ctx);
             });
@@ -88,7 +93,9 @@ public class AgentChatServiceImpl implements AgentChatService {
 
     private boolean shouldBreakIterator(AgentChatContext ctx) {
         AgentIteratorState iteratorState = ctx.getIteratorState();
-        return iteratorState.getAgentMode() == AgentMode.CHAT
+        String stopKey = EventRegistry.key(AgentEvent.STOP_MSG.name().toLowerCase(), ctx.getAgentMsg().getId().toString());
+        boolean hasStopEvent = eventRegistry.get(stopKey) != null;
+        return hasStopEvent || iteratorState.getAgentMode() == AgentMode.CHAT
                 || iteratorState.getCurrentIterator() >= iteratorState.getMaxIterations();
     }
 
@@ -102,11 +109,13 @@ public class AgentChatServiceImpl implements AgentChatService {
 
     @Override
     public void stop(Long messageId, String mode) {
-        if (!Objects.equals(AgentEvent.STOP_MSG.name(), mode) && !Objects.equals(AgentEvent.FORCE_STOP_MSG.name(), mode)) {
+        String stopMsg = AgentEvent.STOP_MSG.name().toLowerCase();
+        String forceStopMsg = AgentEvent.FORCE_STOP_MSG.name().toLowerCase();
+        if (!Objects.equals(stopMsg, mode) && !Objects.equals(forceStopMsg, mode)) {
             throw new BadRequestException("事件类型不正确，支持的事件名称：[" + AgentEvent.STOP_MSG.name()
                     + ", " + AgentEvent.FORCE_STOP_MSG.name() + "]");
         }
         log.info("用户发送聊天中止指令：{}, Agent 任务: messageId={}", mode, messageId);
-        eventRegistry.register(AgentEvent.class.getSimpleName(), messageId.toString(), null);
+        eventRegistry.register(mode, messageId.toString(), mode);
     }
 }

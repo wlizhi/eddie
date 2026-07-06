@@ -94,6 +94,11 @@ export interface AgentDetailVO {
     /** 执行模式 */
     executionMode: string
 
+    // ==================== 记忆轮数 ====================
+
+    /** 记忆轮数 */
+    memoryRounds?: number
+
     // ==================== 工具选择 ====================
 
     /** 工具选择模式 */
@@ -144,6 +149,9 @@ export interface AgentCreateRequest {
     maxExecutionTimeSec?: number
     executionMode?: string
 
+    // ==================== 记忆轮数 ====================
+    memoryRounds?: number
+
     // ==================== 工具选择 ====================
     toolSelectionMode?: string
 
@@ -179,6 +187,9 @@ export interface AgentUpdateRequest {
     maxIterations?: number
     maxExecutionTimeSec?: number
     executionMode?: string
+
+    // ==================== 记忆轮数 ====================
+    memoryRounds?: number
 
     // ==================== 工具选择 ====================
     toolSelectionMode?: string

@@ -340,3 +340,18 @@
     padding: 8px 0;
     line-height: 1.5;
 }
+
+/* ===== MCP 默认模式下拉框最大宽度 30%（与助手设置一致） ===== */
+.mcp-mode-select {
+    max-width: 30%;
+}
+
+/* MCP 模式下拉框触发区高度自适应 */
+.mcp-mode-select :deep(.n-base-selection) {
+    min-height: auto !important;
+}
+
+.mcp-mode-select :deep(.n-base-selection-label) {
+    min-height: auto !important;
+    height: auto !important;
+}

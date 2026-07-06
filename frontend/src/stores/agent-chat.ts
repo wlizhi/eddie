@@ -167,8 +167,11 @@ export const useAgentChatStore = defineStore('agentChat', () => {
     let abortController: AbortController | null = null
 
 
-    /** 停止回答点击次数（第 1 次 graceful，第 2 次 forced） */
+    /** 停止回答点击次数（第 1 次 stop_msg，第 2 次 force_stop_msg） */
     let stopClickCount = 0
+
+    /** 当前正在执行的 agent 消息 ID（来自 SSE message_created 事件） */
+    let currentAgentMsgId: number | null = null
 
     /** 会话消息数 +2 信号（模型回复完毕后递增，驱动侧边栏本地更新） */
     const sessionMessageSignal = ref(0)
@@ -356,6 +359,11 @@ export const useAgentChatStore = defineStore('agentChat', () => {
             },
             signal: abortController.signal,
             onMessageCreated: (data) => {
+                // 缓存 assistantMsgId，供停止请求使用
+                if (data.assistantMsgId) {
+                    currentAgentMsgId = data.assistantMsgId
+                }
+
                 // 不含任何消息 ID → 非消息创建事件（如 agent 初始化确认），忽略
                 if (!data.userMsgId && !data.assistantMsgId) return
 
@@ -497,18 +505,17 @@ export const useAgentChatStore = defineStore('agentChat', () => {
     /**
      * 停止智能体执行
      *
-     * 第 1 次点击：优雅停止 → 后端停止模型回答
-     * 第 2 次点击：强制停止 → 后端强制断开模型连接
+     * 第 1 次点击：stop_msg（优雅停止）→ 后端停止模型回答
+     * 第 2 次点击：force_stop_msg（强制停止）→ 后端强制断开模型连接
      */
     function abortStream(): void {
         if (!abortController) return
 
         stopClickCount++
-        const mode = stopClickCount >= 2 ? 'forced' : 'graceful'
-        const taskId = currentConversationId.value
+        const mode = stopClickCount >= 2 ? 'force_stop_msg' : 'stop_msg'
 
-        if (taskId) {
-            stopAgentChat(taskId, mode).catch(() => {
+        if (currentAgentMsgId) {
+            stopAgentChat(currentAgentMsgId, mode).catch(() => {
                 // stop 请求失败时，降级为前端主动断开
                 abortController?.abort()
                 abortController = null

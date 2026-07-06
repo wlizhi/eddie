@@ -89,6 +89,13 @@ public class AgentDetailVO {
      */
     private String executionMode;
 
+    // ==================== 记忆轮数 ====================
+
+    /**
+     * 记忆轮数
+     */
+    private Integer memoryRounds;
+
     // ==================== 工具选择 ====================
 
     /**

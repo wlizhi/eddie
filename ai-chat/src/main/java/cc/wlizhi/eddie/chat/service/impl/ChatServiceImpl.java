@@ -23,7 +23,6 @@ import cc.wlizhi.eddie.common.dao.MessageDao;
 import cc.wlizhi.eddie.common.dao.SessionDao;
 import cc.wlizhi.eddie.common.entity.MessageEntity;
 import cc.wlizhi.eddie.common.enums.RoleType;
-import cc.wlizhi.eddie.memory.shortterm.ShortTermMemory;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -70,7 +69,7 @@ public class ChatServiceImpl implements ChatService {
     private ChatClientFactoryRouter chatClientFactoryRouter;
 
     @Resource
-    private ShortTermMemory shortTermMemory;
+    private AssistantShortTermMemory shortTermMemory;
 
     @Resource
     private ChatStreamExecutor chatStreamExecutor;
@@ -222,7 +221,6 @@ public class ChatServiceImpl implements ChatService {
      * 事务性持久化：user 消息 + 占位 assistant 消息
      * <p>
      * 保证 user 和占位 assistant 始终成对写入，不会出现孤立数据。
-     * 占位助理消息在流结束后由 {@link ChatMessagePersistPostProcessor} 更新为实际内容。
      * 使用 TransactionTemplate 而非 @Transactional 避免自调用代理失效问题。
      */
     protected void persistInitialMessages(ChatContext ctx) {

@@ -139,6 +139,8 @@ public class AgentServiceImpl implements AgentService {
 
         entity.setToolSelectionMode(request.getToolSelectionMode() != null ? request.getToolSelectionMode() : "auto");
 
+        entity.setMemoryRounds(request.getMemoryRounds() != null ? request.getMemoryRounds() : 20);
+
         entity.setPreferences(serializePreferences(request.getPreferences()));
 
         entity.setEnabled(1);
@@ -184,6 +186,8 @@ public class AgentServiceImpl implements AgentService {
         entity.setExecutionMode(request.getExecutionMode() != null ? request.getExecutionMode() : "FOREGROUND");
 
         entity.setToolSelectionMode(request.getToolSelectionMode() != null ? request.getToolSelectionMode() : "auto");
+
+        entity.setMemoryRounds(request.getMemoryRounds() != null ? request.getMemoryRounds() : 20);
 
         entity.setPreferences(serializePreferences(request.getPreferences()));
 
@@ -269,6 +273,8 @@ public class AgentServiceImpl implements AgentService {
         vo.setExecutionMode(entity.getExecutionMode());
 
         vo.setToolSelectionMode(entity.getToolSelectionMode());
+
+        vo.setMemoryRounds(entity.getMemoryRounds());
 
         List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools("AGENT", entity.getId());
         List<Long> boundIds = boundTools.stream()

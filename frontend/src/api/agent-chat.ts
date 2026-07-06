@@ -141,8 +141,12 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                     break
                 case 'message_created':
                     try {
-                        const parsed = JSON.parse(data) as { userMsgId: number }
-                        onMessageCreated?.(parsed)
+                        // 后端 emit 使用 envelope 包装：{ msgId, stepId, data: { ... } }
+                        const envelope = JSON.parse(data) as {
+                            msgId?: number
+                            data?: { userMsgId?: number; assistantMsgId?: number }
+                        }
+                        onMessageCreated?.(envelope.data ?? {})
                     } catch {
                         // ignore parse error
                     }
@@ -232,12 +236,12 @@ function parseSSELine(line: string): { event: string; data: string } | null {
  * 停止智能体执行
  * POST /api/agent/stop
  *
- * @param taskId 任务唯一标识（conversationId）
- * @param mode 停止模式：graceful / forced
+ * @param messageId 消息 ID（来自 SSE message_created 事件的 assistantMsgId）
+ * @param mode 停止模式：stop_msg（优雅）/ force_stop_msg（强制）
  */
-export async function stopAgentChat(taskId: string, mode: 'graceful' | 'forced'): Promise<void> {
+export async function stopAgentChat(messageId: number, mode: 'stop_msg' | 'force_stop_msg'): Promise<void> {
     const params = new URLSearchParams()
-    params.set('taskId', taskId)
+    params.set('messageId', String(messageId))
     params.set('mode', mode)
     const res = await fetch(`${BASE}/stop?${params}`, {method: 'POST'})
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)

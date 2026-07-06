@@ -74,12 +74,16 @@ public class AgentEventPublisher {
 
     /**
      * 消息已创建
+     * <p>
+     * 发送 {@code userMsgId} 和 {@code assistantMsgId} 供前端缓存，
+     * 前端停止请求时使用 {@code assistantMsgId} 作为 {@code messageId}。
      */
     public void messageCreated(AgentChatContext ctx) {
-        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        Long userMsgId = ctx.getUserMsg() != null ? ctx.getUserMsg().getId() : null;
+        Long assistantMsgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         emit(ctx, AgentEvent.MESSAGE_CREATED, Map.of(
-                "msgId", msgId,
-                "role", "assistant"
+                "userMsgId", userMsgId,
+                "assistantMsgId", assistantMsgId
         ));
     }
 

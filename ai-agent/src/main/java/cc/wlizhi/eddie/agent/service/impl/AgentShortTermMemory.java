@@ -11,7 +11,7 @@ import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.memory.shortterm.AbstractWindowedMemory;
 import jakarta.annotation.Resource;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 /**
  * 智能体短期记忆实现 — 从智能体配置中读取 memoryRounds
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
  * 通过 {@link AgentSessionDao} 查询会话 → 获取 {@link AgentEntity#getMemoryRounds()}，
  * 实现每个智能体可独立配置记忆轮数的能力。
  */
-@Service
+@Component
 public class AgentShortTermMemory extends AbstractWindowedMemory {
 
     @Resource

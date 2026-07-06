@@ -107,6 +107,13 @@ public class AgentCreateRequest {
      */
     private String executionMode;
 
+    // ==================== 记忆轮数 ====================
+
+    /**
+     * 记忆轮数，默认 20
+     */
+    private Integer memoryRounds;
+
     // ==================== 工具选择 ====================
 
     /**

@@ -54,7 +54,7 @@ public class AgentChatController {
      */
     @PostMapping("/stop")
     public ApiResult<Void> stop(@RequestParam(name = "messageId") Long messageId,
-                                @RequestParam(name = "mode", defaultValue = "STOP_MSG") String mode) {
+                                @RequestParam(name = "mode", defaultValue = "stop_msg") String mode) {
         agentChatService.stop(messageId, mode);
         return ApiResult.success();
     }

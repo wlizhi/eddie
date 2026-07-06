@@ -55,6 +55,7 @@ const {
   formSubProviderId, formSubModelId,
   formSemaphore, formMaxIterations, formMaxExecutionTimeSec,
   formExecutionMode, formToolSelectionMode,
+  formMemoryRounds,
   formEnabledMcpServerIds, mcpServerList,
 } = useAgentForm(props, emit)
 
@@ -126,6 +127,21 @@ function handleSaveWithValidation() {
         <textarea ref="systemPromptRef" v-model="formSystemPrompt" class="textarea" rows="4"
                   placeholder="任务指令 — 可使用 ${变量名} 嵌入动态内容"/>
         <PromptVariablePanel @insert="insertVariable"/>
+      </div>
+
+      <!-- ===== 聊天记忆轮数 ===== -->
+      <div class="field">
+        <label class="label">
+          聊天记忆轮数
+          <NTooltip trigger="hover" placement="top" :theme-overrides="tipTheme" :show-arrow="false">
+            <template #trigger>
+              <span class="hint-icon">ⓘ</span>
+            </template>
+            普通聊天模式下能记住的对话轮数，越大记忆越久但也更耗 tokens。智能体在任务执行模式下会根据策略自动管理上下文，此设置仅对普通聊天生效。推荐
+            10~30
+          </NTooltip>
+        </label>
+        <n-input-number v-model:value="formMemoryRounds" :min="1" :max="100" :step="1" style="width: 100px"/>
       </div>
 
       <hr class="section-divider"/>

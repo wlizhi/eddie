@@ -74,6 +74,8 @@ export function useAgentForm(
     const formExecutionMode = ref('FOREGROUND')
     const formToolSelectionMode = ref('auto')
 
+    const formMemoryRounds = ref(20)
+
     const formMainModelParams = reactive<Record<string, any>>(
         Object.fromEntries(MODEL_PARAM_DEFS.map(d => [d.key, d.componentType === 'select' ? 'auto' : null]))
     )
@@ -152,6 +154,8 @@ export function useAgentForm(
         formExecutionMode.value = 'FOREGROUND'
         formToolSelectionMode.value = 'auto'
 
+        formMemoryRounds.value = 20
+
         formEnabledMcpServerIds.value = []
 
         formPreferences.webSearchEnabled = false
@@ -204,6 +208,8 @@ export function useAgentForm(
             formMaxExecutionTimeSec.value = d.maxExecutionTimeSec ?? 300
             formExecutionMode.value = d.executionMode ?? 'FOREGROUND'
             formToolSelectionMode.value = d.toolSelectionMode ?? 'auto'
+
+            formMemoryRounds.value = d.memoryRounds ?? 20
 
             // MCP 工具绑定
             formEnabledMcpServerIds.value = d.boundMcpServerIds ?? []
@@ -410,6 +416,8 @@ export function useAgentForm(
                     maxExecutionTimeSec: formMaxExecutionTimeSec.value,
                     executionMode: formExecutionMode.value,
 
+                    memoryRounds: formMemoryRounds.value,
+
                     toolSelectionMode: formToolSelectionMode.value,
 
                     enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
@@ -463,6 +471,8 @@ export function useAgentForm(
                 maxIterations: formMaxIterations.value,
                 maxExecutionTimeSec: formMaxExecutionTimeSec.value,
                 executionMode: formExecutionMode.value,
+
+                memoryRounds: formMemoryRounds.value,
 
                 toolSelectionMode: formToolSelectionMode.value,
 
@@ -548,6 +558,9 @@ export function useAgentForm(
         formMaxExecutionTimeSec,
         formExecutionMode,
         formToolSelectionMode,
+
+        // 记忆轮数
+        formMemoryRounds,
 
         // 偏好
         formPreferences,
