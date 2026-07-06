@@ -7,9 +7,11 @@ import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.enums.ConfigType;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.memory.dao.GlobalConfigDao;
+import cc.wlizhi.eddie.memory.event.GlobalConfigChangedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -38,6 +40,9 @@ public class GlobalConfigContext implements GlobalCache {
 
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private ApplicationEventPublisher eventPublisher;
 
     @PostConstruct
     void init() {
@@ -115,6 +120,8 @@ public class GlobalConfigContext implements GlobalCache {
                 }
             }
             this.configMap = map;
+            // 发布配置变更事件，通知各监听方（如 LogLevelInitializer）重新初始化
+            eventPublisher.publishEvent(new GlobalConfigChangedEvent(this, map));
         } finally {
             lock.unlock();
         }

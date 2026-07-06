@@ -11,6 +11,7 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentChatPreProcessor;
 import cc.wlizhi.eddie.common.exception.BadRequestException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,8 @@ public class AgentSessionPreProcessor implements AgentChatPreProcessor {
 
     @Resource
     private AgentSessionDao agentSessionDao;
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public void process(AgentChatContext ctx) {
@@ -39,5 +42,6 @@ public class AgentSessionPreProcessor implements AgentChatPreProcessor {
         }
 
         ctx.setSession(session);
+        ctx.setObjectMapper(objectMapper);
     }
 }

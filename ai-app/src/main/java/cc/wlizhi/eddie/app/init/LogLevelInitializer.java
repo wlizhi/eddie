@@ -8,12 +8,14 @@ package cc.wlizhi.eddie.app.init;
 import cc.wlizhi.eddie.common.cache.InitScheduler;
 import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
+import cc.wlizhi.eddie.memory.event.GlobalConfigChangedEvent;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
@@ -56,6 +58,16 @@ public class LogLevelInitializer {
         Logger logger = (Logger) LoggerFactory.getLogger("cc.wlizhi.eddie");
         logger.setLevel(level);
         log.info("业务日志级别已设置为: {}", level);
+    }
+
+    /**
+     * 监听全局配置变更事件，重新初始化日志级别。<p>
+     * 当用户在设置页面修改日志级别后，{@link GlobalConfigContext} 触发 {@code refresh()} 并发布此事件。
+     */
+    @EventListener
+    public void onConfigChanged(GlobalConfigChangedEvent event) {
+        log.info("全局配置已变更，重新初始化业务日志级别");
+        doInit();
     }
 
 }
