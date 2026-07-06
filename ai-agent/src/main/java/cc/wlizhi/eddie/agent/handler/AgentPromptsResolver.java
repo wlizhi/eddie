@@ -25,7 +25,7 @@ public class AgentPromptsResolver {
     }
 
     public String resolvePrompts(AgentChatContext context) {
-        if (context.getAgentMode() == AgentMode.CHAT) {
+        if (context.getIteratorState().getAgentMode() == AgentMode.CHAT) {
             return resolveChatPrompts(context);
         }
         return resolveChatPrompts(context);
