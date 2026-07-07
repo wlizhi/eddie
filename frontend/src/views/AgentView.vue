@@ -15,10 +15,12 @@ gai wen<!--
 -->
 <script setup lang="ts">
 import {nextTick, onMounted, ref, watch} from 'vue'
+import {Bot} from '@lucide/vue'
 import {useAgentStore} from '@/stores/agent'
 import {useAgentChatStore} from '@/stores/agent-chat'
 import {fetchAgentDetail} from '@/api/agent'
 import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
+import {useIconSize} from '@/composables/useIconSize'
 import {useMobile} from '@/composables/useMobile'
 import Toolbar from '@/views/chat/Toolbar.vue'
 import AgentMessageList from '@/components/agent/AgentMessageList.vue'
@@ -31,9 +33,38 @@ const agentChatStore = useAgentChatStore()
 const inputText = ref('')
 
 const {isMobile} = useMobile()
+const {iconSizeXxl} = useIconSize()
 
 /** InputArea 组件引用 */
 const inputAreaRef = ref<InstanceType<typeof AgentInputArea> | null>(null)
+
+/** 空状态示例问题列表 */
+const SUGGESTIONS = [
+  '你好，请介绍一下你自己',
+  '你能帮我做什么？',
+  '帮我搜索一下今天的科技新闻',
+  '总结一下 AI 领域的最新进展',
+  '帮我写一封正式的商务邮件',
+  '有什么好听的音乐推荐？',
+  '今天天气怎么样？',
+  '帮我制定一个学习计划',
+  '解释一下什么是量子计算',
+  '推荐几本值得阅读的书籍',
+  '写一首关于秋天的诗',
+  '帮我分析一下这个问题的思路',
+]
+
+/** 当前随机展示的示例问题（每次打开随机选 3 条）*/
+const randomSuggestions = ref<string[]>([])
+
+function shuffleSuggestions() {
+  const copy = [...SUGGESTIONS]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  randomSuggestions.value = copy.slice(0, 4)
+}
 
 /**
  * 从当前智能体详情中同步 preferences（联网、MCP 模式）配置
@@ -61,6 +92,7 @@ async function syncPreferredSettingsFromAgent() {
 }
 
 onMounted(async () => {
+  shuffleSuggestions()
   await Promise.all([
     loadDisplaySettings(),
     agentStore.loadList(),
@@ -113,7 +145,11 @@ function onSelectSuggestion(text: string) {
     <!-- 消息列表 / 空状态 -->
     <AgentMessageList v-if="agentChatStore.hasMessages" :qa-mode="!displaySettings.chatMode"/>
     <div v-else class="agent-empty">
-      <div class="empty-icon">🤖</div>
+      <Bot
+          :size="iconSizeXxl"
+          :stroke-width="1.5"
+          class="empty-icon"
+      />
       <h2>{{ agentStore.activeAgent?.name || '智能体' }}</h2>
       <p class="empty-hint">
         {{
@@ -123,11 +159,13 @@ function onSelectSuggestion(text: string) {
         }}
       </p>
       <div v-if="agentStore.activeAgent" class="suggestions">
-        <div class="suggestion-card" @click="onSelectSuggestion('你好，请介绍一下你自己')">
-          你好，请介绍一下你自己
-        </div>
-        <div class="suggestion-card" @click="onSelectSuggestion('你能帮我做什么？')">
-          你能帮我做什么？
+        <div
+            v-for="(item, idx) in randomSuggestions"
+            :key="idx"
+            class="suggestion-card"
+            @click="onSelectSuggestion(item)"
+        >
+          {{ item }}
         </div>
       </div>
     </div>
@@ -177,13 +215,13 @@ function onSelectSuggestion(text: string) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 40px;
+  gap: var(--space-6);
+  padding: var(--space-20);
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-4);
 }
 
 h2 {
@@ -198,25 +236,28 @@ h2 {
   font-size: var(--font-size-base);
   margin: 0;
   text-align: center;
-  max-width: 320px;
+  max-width: 20rem;
 }
 
 .suggestions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-12);
+  max-width: 28rem;
+  width: 100%;
 }
 
 .suggestion-card {
-  padding: 10px 20px;
+  padding: var(--space-6) var(--space-8);
   border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border-radius: var(--space-4);
   cursor: pointer;
   font-size: var(--font-size-base);
   color: var(--text-secondary);
   text-align: center;
   transition: background 0.15s, border-color 0.15s;
+  line-height: 1.5;
 }
 
 .suggestion-card:hover {

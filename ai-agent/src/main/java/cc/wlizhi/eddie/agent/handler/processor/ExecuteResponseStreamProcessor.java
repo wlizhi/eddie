@@ -15,6 +15,7 @@ import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
+import cc.wlizhi.eddie.common.dto.ApiResult;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +69,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
                 stepList.get(currentStep - 1).isEmpty();
         if (isFirstExecution) {
             ctx.getEventPublisher().emit(ctx, AgentEvent.STEP_STARTED,
-                    null, currentStep, Map.of("stepDesc", stepDesc));
+                    ApiResult.success(Map.of("stepDesc", stepDesc)));
         }
 
         // 2. 获取已初始化的步骤级流式累加器（由 AgentExecutePostProcessor 创建并设好 prompt）
@@ -160,8 +161,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
         Integer currentStep = ctx.getCurrentStep();
         ctx.getEventPublisher().emit(ctx, AgentEvent.EXECUTE_COMPLETE,
-                stepCtx != null ? stepCtx.getStepId() : null,
-                currentStep, Map.of());
+                ApiResult.success(Map.of()));
     }
 
     /**

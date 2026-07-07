@@ -8,6 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {darkTheme, NConfigProvider, NDialogProvider} from 'naive-ui'
 import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
+import {loadDeveloperMode} from '@/composables/useDeveloperMode'
 import {naiveThemeOverrides} from '@/composables/useNaiveThemeOverrides'
 import AppNavRail from '@/components/layout/AppNavRail.vue'
 import AppContextPanel from '@/components/layout/AppContextPanel.vue'
@@ -22,6 +23,7 @@ let resizeTimer = 0
 
 onMounted(() => {
   loadDisplaySettings()
+  loadDeveloperMode()
 
   // 窗口缩放期间暂停所有动画/过渡（配合 .is-resizing CSS 规则）
   window.addEventListener('resize', () => {

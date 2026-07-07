@@ -24,6 +24,15 @@
 
 import type {ApiResult} from '@/types/chat'
 import type {AgentMessageVO, AgentStreamChatOptions} from '@/types/agent-chat'
+import type {
+    ApiResult as AgentApiResult,
+    ThinkingPayload,
+    AnswerPayload,
+    ToolExecutionPayload,
+    MessageCreatedPayload,
+    RoundStartPayload,
+    CancelledPayload,
+} from '@/types/agent-event'
 
 const BASE = '/api/agent'
 
@@ -86,171 +95,106 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
 
         function flushEvent() {
             if (!currentEvent || dataLines.length === 0) return
-            const data = dataLines.join('\n')
+            const raw = dataLines.join('\n')
             dataLines = []
 
+            // 统一解析 ApiResult 信封
+            let envelope: AgentApiResult
+            try {
+                envelope = JSON.parse(raw) as AgentApiResult
+            } catch {
+                // JSON 解析失败，降级原始字符串
+                if (currentEvent === 'error') {
+                    onError?.(new Error(raw))
+                }
+                return
+            }
+
+            // 统一错误判断（与 REST API 同一套语义：code === 200 为成功）
+            if (envelope.code !== 200) {
+                const errMsg = envelope.message || '请求被拒绝'
+                const err = new Error(errMsg)
+                ;(err as unknown as Record<string, unknown>).detail = envelope.detail
+                onError?.(err)
+                return
+            }
+
+            // 按事件类型分发，data 为类型化的 Payload
             switch (currentEvent) {
-                case 'thinking':
-                    try {
-                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, step, data: { text } }
-                        const thinkingEnvelope = JSON.parse(data) as {
-                            msgId?: number;
-                            stepId?: number;
-                            step?: number;
-                            data?: { text: string }
-                        }
-                        onThinking?.(thinkingEnvelope.data?.text ?? data, thinkingEnvelope.step)
-                    } catch {
-                        onThinking?.(data)
+                case 'thinking': {
+                    const payload = envelope.data as ThinkingPayload
+                    onThinking?.(payload?.text ?? raw, payload?.step)
+                    break
+                }
+                case 'answer': {
+                    const payload = envelope.data as AnswerPayload
+                    onAnswer?.(payload?.text ?? raw, payload?.step)
+                    break
+                }
+                case 'tool_execution': {
+                    const payload = envelope.data as ToolExecutionPayload
+                    if (payload) {
+                        onToolExecution?.(payload, payload.step)
                     }
                     break
-                case 'answer':
-                    try {
-                        const answerEnvelope = JSON.parse(data) as {
-                            msgId?: number;
-                            stepId?: number;
-                            step?: number;
-                            data?: { text: string }
-                        }
-                        onAnswer?.(answerEnvelope.data?.text ?? data, answerEnvelope.step)
-                    } catch {
-                        onAnswer?.(data)
-                    }
+                }
+                case 'round_start': {
+                    const payload = envelope.data as RoundStartPayload
+                    onRoundStart?.(payload?.round ?? 0)
                     break
-                case 'metadata':
-                    try {
-                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: { ...stats } }
-                        const envelope = JSON.parse(data) as {
-                            msgId?: number;
-                            stepId?: number;
-                            data?: Record<string, unknown>
-                        }
-                        onMetadata?.(JSON.stringify(envelope.data ?? {}))
-                    } catch {
-                        onMetadata?.(data)
-                    }
+                }
+                case 'message_created': {
+                    const payload = envelope.data as MessageCreatedPayload
+                    onMessageCreated?.(payload ?? {})
                     break
-                case 'tool_execution':
-                    try {
-                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, step, data: { status, toolName, ... } }
-                        const envelope = JSON.parse(data) as {
-                            msgId?: number
-                            stepId?: number
-                            step?: number
-                            data?: {
-                                status: string
-                                toolName: string
-                                arguments?: string
-                                result?: string
-                                error?: boolean
-                            }
-                        }
-                        if (envelope.data) {
-                            onToolExecution?.(envelope.data, envelope.step)
-                        }
-                    } catch {
-                        // ignore parse error
-                    }
+                }
+                case 'metadata': {
+                    onMetadata?.(JSON.stringify(envelope.data ?? {}))
                     break
-                case 'milestone':
-                    try {
-                        const parsed = JSON.parse(data) as {
-                            title: string
-                            description?: string
-                            type?: string
-                            details?: Record<string, unknown>
-                        }
+                }
+                case 'cancelled': {
+                    const payload = envelope.data as CancelledPayload
+                    onCancelled?.(payload?.reason ?? 'unknown')
+                    break
+                }
+                case 'error': {
+                    const errMsg = envelope.message || '请求被拒绝'
+                    const err = new Error(errMsg)
+                    ;(err as unknown as Record<string, unknown>).detail = envelope.detail
+                    onError?.(err)
+                    break
+                }
+                case 'milestone': {
+                    const parsed = envelope.data as {
+                        title: string
+                        description?: string
+                        type?: string
+                        details?: Record<string, unknown>
+                    }
+                    if (parsed?.title) {
                         onMilestone?.({
                             title: parsed.title,
                             description: parsed.description,
                             type: parsed.type as 'info' | 'success' | 'warning' | 'error' | undefined,
                             details: parsed.details,
                         })
-                    } catch {
-                        // ignore parse error
                     }
                     break
-                case 'round_start':
-                    try {
-                        const parsed = JSON.parse(data) as { round: number }
-                        onRoundStart?.(parsed.round)
-                    } catch {
-                        onRoundStart?.(0)
-                    }
-                    break
-                case 'message_created':
-                    try {
-                        // 后端 emit 使用 envelope 包装：{ msgId, stepId, data: { ... } }
-                        const envelope = JSON.parse(data) as {
-                            msgId?: number
-                            data?: { userMsgId?: number; assistantMsgId?: number }
-                        }
-                        onMessageCreated?.(envelope.data ?? {})
-                    } catch {
-                        // ignore parse error
-                    }
-                    break
+                }
                 case 'plan_started':
                     onPlanStarted?.()
                     break
                 case 'plan_generated':
-                    try {
-                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: AgentTaskPlan }
-                        const planEnvelope = JSON.parse(data) as {
-                            msgId?: number
-                            stepId?: number
-                            data?: import('@/types/agent-chat').AgentTaskPlan
-                        }
-                        if (planEnvelope.data) {
-                            onPlanGenerated?.(planEnvelope.data)
-                        }
-                    } catch {
-                        // ignore parse error
-                    }
+                    onPlanGenerated?.(envelope.data as import('@/types/agent-chat').AgentTaskPlan)
                     break
                 case 'update_task_plan':
-                    try {
-                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: AgentTaskPlan }
-                        const envelope = JSON.parse(data) as {
-                            msgId?: number
-                            stepId?: number
-                            data?: import('@/types/agent-chat').AgentTaskPlan
-                        }
-                        if (envelope.data) {
-                            onTaskPlan?.(envelope.data)
-                        }
-                    } catch {
-                        // ignore parse error
-                    }
+                    onTaskPlan?.(envelope.data as import('@/types/agent-chat').AgentTaskPlan)
                     break
                 case 'execute_complete':
-                    try {
-                        // 后端发射 JSON envelope: { msgId, stepId, step, data: {} }
-                        const execEnvelope = JSON.parse(data) as {
-                            msgId?: number;
-                            step?: number;
-                        }
-                        onExecuteComplete?.(execEnvelope.step ?? 0)
-                    } catch {
-                        // ignore parse error
-                    }
+                    onExecuteComplete?.((envelope.data as { step?: number })?.step ?? 0)
                     break
-                case 'cancelled':
-                    try {
-                        const parsed = JSON.parse(data) as { reason: string }
-                        onCancelled?.(parsed.reason)
-                    } catch {
-                        onCancelled?.('unknown')
-                    }
-                    break
-                case 'error':
-                    try {
-                        const parsed = JSON.parse(data) as { message: string }
-                        onError?.(new Error(parsed.message))
-                    } catch {
-                        onError?.(new Error('请求被拒绝'))
-                    }
-                    break
+                default:
+                    console.warn('未知 SSE 事件类型:', currentEvent)
             }
         }
 

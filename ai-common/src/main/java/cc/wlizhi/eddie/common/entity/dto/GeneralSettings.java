@@ -41,4 +41,10 @@ public class GeneralSettings {
      */
     private String logLevel = "";
 
+    /**
+     * 开发者模式。<p>
+     * 开启后页面中显示更多详尽的调试信息，方便开发和问题排查。
+     */
+    private boolean developerMode = false;
+
 }

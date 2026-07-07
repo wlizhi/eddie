@@ -161,7 +161,7 @@ public class AgentToolCallbackWrapper implements ToolCallback {
      * 将 ToolExecutionEvent 序列化为 SSE 事件并推送
      */
     private void emitSse(ToolExecutionEvent event) {
-        ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, event);
+        ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(event));
     }
 
     /**
