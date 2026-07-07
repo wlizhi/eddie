@@ -19,6 +19,7 @@ import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -112,13 +113,17 @@ public class AgentChatServiceImpl implements AgentChatService {
             // 用户终止回答，仅打印一行 info 日志，不触发错误告警
             log.info("用户已停止回答: messageId={}", ctx.getAgentMsg().getId());
         } catch (Exception e) {
+            Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
             // 检查是否被中断（sink.onDispose 触发）
             if (Thread.currentThread().isInterrupted()) {
-                log.warn("Agent 虚拟线程被中断: messageId={}", ctx.getAgentMsg().getId());
+                log.warn("Agent 虚拟线程被中断: messageId={}", msgId);
                 publisher.cancelled(ctx, "线程中断");
             } else {
-                log.warn("Agent doChat 异常: messageId={}", ctx.getAgentMsg().getId(), e);
-                publisher.error(ctx, "处理异常: " + e.getMessage());
+                log.warn("Agent doChat 异常: messageId={}, exceptionType={}, message={}",
+                        msgId, e.getClass().getName(), e.getMessage(), e);
+                String detail = e.getClass().getName() + ": " + e.getMessage();
+                publisher.error(ctx, ApiResultCode.AGENT_INTERNAL_ERROR,
+                        "智能体处理异常，请稍后重试", detail);
             }
         } finally {
             // 通知前端本轮对话结束

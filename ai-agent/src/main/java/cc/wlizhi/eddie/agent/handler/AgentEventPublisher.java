@@ -7,30 +7,32 @@ package cc.wlizhi.eddie.agent.handler;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTokenStatists;
+import cc.wlizhi.eddie.agent.entity.event.payload.*;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
+import cc.wlizhi.eddie.common.dto.ApiResult;
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * Agent 事件发布器 — 统一管理所有 SSE 事件的构建与发射。
  * <p>
- * 每个事件 payload 统一包装为 JSON envelope：
- * <pre>{@code
- * {"msgId":123, "stepId":null, "data":{...}}
- * }</pre>
- * SSE event name 为 AgentEvent 枚举名的小写下划线形式（如 {@code thinking}、{@code tool_execution}）。
+ * 所有事件统一使用 {@link ApiResult} 作为数据容器，<code>data</code> 字段为独立的 Payload 实体类。
+ * SSE event name 为 {@link AgentEvent} 枚举名的小写下划线形式（如 {@code thinking}、{@code tool_execution}）。
  * <p>
- * 调用方只需关心业务数据，序列化与 envelope 包装由此类统一处理。
+ * 前端统一通过 {@code code === 200} 判断事件是否成功，与 REST API 同一套语义。
  */
 @Component
 public class AgentEventPublisher {
+
+    private static final Logger log = LoggerFactory.getLogger(AgentEventPublisher.class);
 
     @Resource
     private ObjectMapper objectMapper;
@@ -38,54 +40,24 @@ public class AgentEventPublisher {
     // ==================== 通用发射 ====================
 
     /**
-     * 发射消息级别事件（无 stepId，无 step）
-     */
-    public void emit(AgentChatContext ctx, AgentEvent event, Object data) {
-        AgentStepStreamContext stepStreamContext = ctx.getStepStreamContext();
-        emit(ctx, event, stepStreamContext == null ? null : stepStreamContext.getStepId(), ctx.getCurrentStep(), data);
-    }
-
-    /**
-     * 发射步骤级别事件（含 stepId，step 从 ctx.getCurrentStep() 自动推导）
-     */
-    public void emit(AgentChatContext ctx, AgentEvent event, Long stepId, Object data) {
-        emit(ctx, event, stepId, ctx.getCurrentStep(), data);
-    }
-
-    /**
-     * 发射步骤级别事件（显式指定 stepId + step）
+     * 发射 SSE 事件。从 ctx 自动提取 msgId/stepId/step。
      *
-     * @param ctx    上下文
-     * @param event  事件类型
-     * @param stepId 步骤记录 ID，可为 null
-     * @param step   步骤序号（1-based），为 null 时从 ctx.getCurrentStep() 自动推导
-     * @param data   业务数据
+     * @param ctx     上下文
+     * @param event   事件类型
+     * @param result  已构建的 ApiResult（包含 code/message/detail/data）
      */
-    public void emit(AgentChatContext ctx, AgentEvent event, Long stepId, Integer step, Object data) {
+    public <T> void emit(AgentChatContext ctx, AgentEvent event, ApiResult<T> result) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        if (step == null) {
-            step = ctx.getCurrentStep();
-        }
-
-        Map<String, Object> envelope = new LinkedHashMap<>();
-        envelope.put("msgId", msgId);
-        envelope.put("stepId", stepId);
-        envelope.put("step", step);
-        envelope.put("data", data != null ? data : Map.of());
-
         try {
-            String json = objectMapper.writeValueAsString(envelope);
+            String json = objectMapper.writeValueAsString(result);
             String sseEventName = event.name().toLowerCase();
             ctx.getSink().next(ServerSentEvent.<String>builder()
                     .event(sseEventName)
                     .data(json)
                     .build());
         } catch (JsonProcessingException e) {
-            // 序列化失败不应影响主流程，降级推送错误提示
-            ctx.getSink().next(ServerSentEvent.<String>builder()
-                    .event("error")
-                    .data("{\"msgId\":" + msgId + ",\"stepId\":" + stepId + ",\"step\":" + step + ",\"data\":{\"message\":\"Event serialization error\"}}")
-                    .build());
+            log.warn("SSE 事件序列化失败, event={}, msgId={}", event, msgId, e);
+            emitFallbackError(ctx, msgId, "SSE 事件序列化失败: " + event.name());
         }
     }
 
@@ -93,107 +65,131 @@ public class AgentEventPublisher {
 
     /**
      * 消息已创建
-     * <p>
-     * 发送 {@code userMsgId} 和 {@code assistantMsgId} 供前端缓存，
-     * 前端停止请求时使用 {@code assistantMsgId} 作为 {@code messageId}。
      */
     public void messageCreated(AgentChatContext ctx) {
         Long userMsgId = ctx.getUserMsg() != null ? ctx.getUserMsg().getId() : null;
         Long assistantMsgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        emit(ctx, AgentEvent.MESSAGE_CREATED, Map.of(
-                "userMsgId", userMsgId,
-                "assistantMsgId", assistantMsgId
-        ));
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        MessageCreatedPayload payload = new MessageCreatedPayload(
+                "message_created", msgId, null, null, userMsgId, assistantMsgId);
+        emit(ctx, AgentEvent.MESSAGE_CREATED, ApiResult.success(payload));
     }
 
     /**
      * 模型思考内容（流式）
      */
     public void thinking(AgentChatContext ctx, Long stepId, String text) {
-        emit(ctx, AgentEvent.THINKING, stepId, Map.of("text", text));
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        Integer step = resolveStep(ctx);
+        ThinkingPayload payload = new ThinkingPayload("thinking", msgId, stepId, step, text);
+        emit(ctx, AgentEvent.THINKING, ApiResult.success(payload));
     }
 
     /**
      * 模型回答内容（流式）
      */
     public void answer(AgentChatContext ctx, Long stepId, String text) {
-        emit(ctx, AgentEvent.ANSWER, stepId, Map.of("text", text));
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        Integer step = resolveStep(ctx);
+        AnswerPayload payload = new AnswerPayload("answer", msgId, stepId, step, text);
+        emit(ctx, AgentEvent.ANSWER, ApiResult.success(payload));
     }
 
     /**
      * 工具执行结果
      */
     public void toolExecution(AgentChatContext ctx, Long stepId, String toolName, String status, Object result) {
-        emit(ctx, AgentEvent.TOOL_EXECUTION, stepId, Map.of(
-                "toolName", toolName,
-                "status", status,
-                "result", result
-        ));
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        Integer step = resolveStep(ctx);
+        ToolExecutionPayload payload = new ToolExecutionPayload(
+                "tool_execution", msgId, stepId, step, toolName, status, null, result, false);
+        emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
     }
 
     /**
-     * 规划开始：模型开始生成任务清单
+     * 规划开始
      */
     public void planStarted(AgentChatContext ctx) {
-        emit(ctx, AgentEvent.PLAN_STARTED, Map.of());
+        emit(ctx, AgentEvent.PLAN_STARTED, ApiResult.success());
     }
 
     /**
-     * 规划生成成功：任务清单首次生成完毕
+     * 规划生成成功
      */
-    public void planGenerated(AgentChatContext ctx, Object taskPlan) {
-        emit(ctx, AgentEvent.PLAN_GENERATED, taskPlan);
+    public void planGenerated(AgentChatContext ctx, AgentTaskPlan taskPlan) {
+        emit(ctx, AgentEvent.PLAN_GENERATED, ApiResult.success(taskPlan));
     }
 
     /**
-     * 更新任务清单（后续更新的全量推送）
+     * 更新任务清单（全量推送）
      */
-    public void updateTaskPlan(AgentChatContext ctx, Object taskPlan) {
-        emit(ctx, AgentEvent.UPDATE_TASK_PLAN, taskPlan);
+    public void updateTaskPlan(AgentChatContext ctx, AgentTaskPlan taskPlan) {
+        emit(ctx, AgentEvent.UPDATE_TASK_PLAN, ApiResult.success(taskPlan));
     }
 
     /**
      * 循环开始
      */
     public void roundStart(AgentChatContext ctx, int round) {
-        emit(ctx, AgentEvent.ROUND_START, Map.of("round", round));
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        RoundStartPayload payload = new RoundStartPayload("round_start", msgId, null, null, round);
+        emit(ctx, AgentEvent.ROUND_START, ApiResult.success(payload));
     }
 
     /**
      * 元数据（token 用量、耗时等）
      */
     public void metadata(AgentChatContext ctx, AgentTokenStatists stats) {
-        emit(ctx, AgentEvent.METADATA, stats);
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        Integer step = resolveStep(ctx);
+        MetadataPayload payload = new MetadataPayload("metadata", msgId, null, step, stats);
+        emit(ctx, AgentEvent.METADATA, ApiResult.success(payload));
     }
 
     /**
      * 任务取消
      */
     public void cancelled(AgentChatContext ctx, String reason) {
-        emit(ctx, AgentEvent.CANCELLED, Map.of("reason", reason));
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        CancelledPayload payload = new CancelledPayload("cancelled", msgId, null, null, reason);
+        emit(ctx, AgentEvent.CANCELLED, ApiResult.success(payload));
     }
 
     /**
-     * 执行过程错误
+     * 执行过程错误（结构化错误信息）
      */
-    public void error(AgentChatContext ctx, String message) {
-        emit(ctx, AgentEvent.ERROR, Map.of("message", message));
+    public void error(AgentChatContext ctx, ApiResultCode resultCode, String message, String detail) {
+        emit(ctx, AgentEvent.ERROR, ApiResult.error(resultCode, message, detail));
     }
 
     /**
      * 任务结束
      */
     public void taskFinish(AgentChatContext ctx) {
-        emit(ctx, AgentEvent.TASK_FINISH, Map.of());
+        emit(ctx, AgentEvent.TASK_FINISH, ApiResult.success());
     }
 
-    // ==================== 内部模式切换事件 ====================
+    // ==================== 内部方法 ====================
 
     /**
-     * 发射内部模式切换事件（不走 SSE，走 EventRegistry）
+     * 从 StepStreamContext 解析当前步骤序号
      */
-    public void switchMode(AgentChatContext ctx, AgentEvent modeEvent) {
-        // 模式切换事件通过 EventRegistry 在虚拟线程间通信
-        // 暂不在此处实现，由 switchModeIfNecessary 处理
+    private Integer resolveStep(AgentChatContext ctx) {
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        if (stepCtx != null && stepCtx.getStep() != null) {
+            return stepCtx.getStep();
+        }
+        return ctx.getCurrentStep();
+    }
+
+    /**
+     * 降级：序列化失败时发送纯字符串备用
+     */
+    private void emitFallbackError(AgentChatContext ctx, Long msgId, String text) {
+        String fallback = "{\"code\":1000,\"message\":\"" + text + "\",\"detail\":null,\"data\":null}";
+        ctx.getSink().next(ServerSentEvent.<String>builder()
+                .event("error")
+                .data(fallback)
+                .build());
     }
 }

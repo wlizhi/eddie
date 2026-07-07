@@ -44,7 +44,27 @@ public enum ApiResultCode implements ResultCode {
     INTERNAL_ERROR(500, "internal server error"),
 
     /** 服务不可用 */
-    SERVICE_UNAVAILABLE(503, "service unavailable");
+    SERVICE_UNAVAILABLE(503, "service unavailable"),
+
+    // ==================== SSE Agent 事件异常码 (1000-1999) ====================
+
+    /** SSE 事件序列化失败（ObjectMapper 写 JSON 异常） */
+    AGENT_EVENT_SERIALIZATION_ERROR(1000, "SSE 事件序列化失败"),
+
+    /** 流处理异常（thinking/answer 处理过程中出错） */
+    AGENT_STREAM_PROCESSING_ERROR(1100, "流处理异常"),
+
+    /** 工具执行失败 */
+    AGENT_TOOL_EXECUTION_ERROR(1200, "工具执行失败"),
+
+    /** 任务计划生成失败 */
+    AGENT_PLAN_GENERATION_ERROR(1300, "任务计划生成失败"),
+
+    /** 任务被中断（用户取消/线程中断） */
+    AGENT_TASK_ABORTED(1400, "任务被中断"),
+
+    /** 智能体内部未知错误 */
+    AGENT_INTERNAL_ERROR(1500, "智能体内部错误");
 
     private final int code;
     private final String message;

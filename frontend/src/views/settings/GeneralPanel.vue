@@ -83,27 +83,6 @@
       </div>
     </div>
 
-    <!-- ===== 日志设置 ===== -->
-    <div class="settings-group">
-      <div class="group-label">
-        <Terminal :size="16" :stroke-width="2" class="group-icon"/>
-        日志设置
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <span class="setting-label">业务日志级别</span>
-          <span class="setting-hint">控制 cc.wlizhi.eddie 包及子包的日志输出，实时生效</span>
-        </div>
-        <n-select
-            :value="logLevel"
-            :options="logLevelOptions"
-            style="width: 120px"
-            @update:value="onLogLevelChange"
-        />
-      </div>
-    </div>
-
     <!-- ===== 工具调用设置 ===== -->
     <div class="settings-group">
       <div class="group-label">
@@ -128,13 +107,45 @@
         />
       </div>
     </div>
+
+    <!-- ===== 开发者选项 ===== -->
+    <div class="settings-group">
+      <div class="group-label">
+        <Bug :size="16" :stroke-width="2" class="group-icon"/>
+        开发者选项
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">业务日志级别</span>
+          <span class="setting-hint">控制 cc.wlizhi.eddie 包及子包的日志输出，实时生效</span>
+        </div>
+        <n-select
+            :value="logLevel"
+            :options="logLevelOptions"
+            style="width: 120px"
+            @update:value="onLogLevelChange"
+        />
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">开发者模式</span>
+          <span class="setting-hint">开启后将显示更多详尽的调试信息，方便开发和问题排查</span>
+        </div>
+        <n-switch
+            :value="developerMode"
+            @update:value="onDeveloperModeChange"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {NInputNumber, NSelect, NSwitch} from 'naive-ui'
-import {Search, Sparkles, Terminal, Wrench} from '@lucide/vue'
+import {Search, Sparkles, Wrench, Bug} from '@lucide/vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {showToast} from '@/composables/useToast'
 
@@ -145,6 +156,7 @@ const webFetchMaxChars = ref<number | null>(null)
 const enableAutoTitle = ref(true)
 const titleGenerationRounds = ref<number | null>(1)
 const logLevel = ref('')
+const developerMode = ref(false)
 const logLevelOptions = [
   {label: '默认 (INFO)', value: ''},
   {label: 'TRACE', value: 'TRACE'},
@@ -178,6 +190,9 @@ onMounted(async () => {
     }
     if (settings.logLevel != null) {
       logLevel.value = settings.logLevel
+    }
+    if (settings.developerMode != null) {
+      developerMode.value = settings.developerMode === true
     }
     if (configs[TOOL_RESULT_MODEL_MAX_LENGTH_KEY] != null) {
       const val = parseInt(configs[TOOL_RESULT_MODEL_MAX_LENGTH_KEY], 10)
@@ -227,12 +242,19 @@ function onLogLevelChange(val: string) {
     enableAutoTitle: enableAutoTitle.value,
     titleGenerationRounds: titleGenerationRounds.value,
     logLevel: val,
+    developerMode: developerMode.value,
   }
   Object.keys(settings).forEach(k => {
     if (settings[k] == null) delete settings[k]
   })
   updateConfigs({[GENERAL_SETTINGS_KEY]: JSON.stringify(settings)})
       .catch(err => showToast('保存失败: ' + (err.message || '未知错误'), 'error'))
+}
+
+/** 开发者模式开关变更立即保存 */
+async function onDeveloperModeChange(val: boolean) {
+  developerMode.value = val
+  await saveField('developerMode', val)
 }
 
 /** 工具结果模型上下文最大长度变更立即保存 */

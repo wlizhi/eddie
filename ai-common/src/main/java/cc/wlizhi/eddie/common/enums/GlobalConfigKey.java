@@ -39,7 +39,9 @@ public enum GlobalConfigKey {
      * - searchResultCount: 搜索返回结果数量<br>
      * - webFetchMaxChars: 网页抓取最大字符数<br>
      * - enableAutoTitle: 是否自动生成会话标题<br>
-     * - titleGenerationRounds: 生成标题取前几轮对话
+     * - titleGenerationRounds: 生成标题取前几轮对话<br>
+     * - logLevel: 业务日志级别（TRACE/DEBUG/INFO/WARN/ERROR/OFF）<br>
+     * - developerMode: 是否开启开发者模式（显示更多调试信息）
      */
     GENERAL_SETTINGS("常规设置", ConfigType.FRONTEND),
 

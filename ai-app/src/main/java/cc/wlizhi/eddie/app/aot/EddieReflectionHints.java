@@ -10,6 +10,8 @@ import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentModelInfo;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTokenStatists;
+import cc.wlizhi.eddie.agent.entity.event.payload.*;
 import cc.wlizhi.eddie.agent.entity.response.AgentSessionVO;
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
@@ -72,5 +74,14 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(AgentTaskPlan.class, members);
         reflection.registerType(ApiResult.class, members);
         reflection.registerType(AgentTaskStep.class, members);
+        // ==================== SSE 事件 Payload ====================
+        reflection.registerType(ThinkingPayload.class, members);
+        reflection.registerType(AnswerPayload.class, members);
+        reflection.registerType(ToolExecutionPayload.class, members);
+        reflection.registerType(MessageCreatedPayload.class, members);
+        reflection.registerType(RoundStartPayload.class, members);
+        reflection.registerType(MetadataPayload.class, members);
+        reflection.registerType(CancelledPayload.class, members);
+        reflection.registerType(AgentTokenStatists.class, members);
     }
 }
