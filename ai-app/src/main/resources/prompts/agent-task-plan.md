@@ -10,7 +10,7 @@
 
 # 环境信息
 
-- ${datetime}（当前时间）
+- ${datetime} 注意，这是你和用户共同的基准时间
 - ${timezone}（时区）
 - ${os}（操作系统）
 - ${language}（语言）
@@ -36,15 +36,16 @@
 
 ## steps[] 中的每个步骤
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | integer | 步骤序号，从1开始递增 |
-| description | string | 步骤描述，写清楚该步骤做什么、需要哪些信息、预期产出，要自包含可执行，不超过500字 |
-| goal | string | 该步骤的完成标志，用于判断执行结果是否符合预期，不超过200字 |
-| status | string | 固定为 "pending" |
-| result | string | 固定为空字符串 "" |
-| depends_on | integer[] | 依赖的步骤ID列表，空数组 [] 表示无依赖，可与其他无依赖步骤并行执行 |
-| estimated_complexity | string | 预估复杂度：simple / medium / complex |
+| 字段                   | 类型        | 说明                                         |
+|----------------------|-----------|--------------------------------------------|
+| id                   | integer   | 步骤序号，从1开始递增                                |
+| title                | string    | 当前步骤标题，简短概括，30字以内                          |
+| description          | string    | 步骤描述，写清楚该步骤做什么、需要哪些信息、预期产出，要自包含可执行，不超过500字 |
+| goal                 | string    | 该步骤的完成标志，用于判断执行结果是否符合预期，不超过200字            |
+| status               | string    | 固定为 "pending"                              |
+| result               | string    | 固定为空字符串 ""                                 |
+| depends_on           | integer[] | 依赖的步骤ID列表，空数组 [] 表示无依赖，可与其他无依赖步骤并行执行       |
+| estimated_complexity | string    | 预估复杂度：simple / medium / complex            |
 
 ## 完整示例
 
@@ -57,6 +58,7 @@
   "steps": [
     {
       "id": 1,
+      "title": "读取销售数据 CSV 文件",
       "description": "从用户指定的路径读取销售数据 CSV 文件，解析为结构化数据",
       "goal": "已成功读取并解析 CSV 文件，数据加载到内存",
       "status": "pending",
@@ -66,6 +68,7 @@
     },
     {
       "id": 2,
+      "title": "按品类和月份对销售数据统计每月的销量总和",
       "description": "按品类和月份对销售数据进行分组聚合，计算每个品类每月的销量总和",
       "goal": "已输出各品类的月销量聚合结果表",
       "status": "pending",

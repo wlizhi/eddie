@@ -18,9 +18,9 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SwitchModeTools implements AgentToolProvider {
+public class SwitchModeTool implements AgentToolProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(SwitchModeTools.class);
+    private static final Logger log = LoggerFactory.getLogger(SwitchModeTool.class);
 
     @Tool(name = "agent_switch_mode",
             description = """

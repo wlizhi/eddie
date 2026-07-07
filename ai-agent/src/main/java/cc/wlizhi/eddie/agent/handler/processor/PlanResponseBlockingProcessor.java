@@ -62,8 +62,7 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
             // chatResponse() 复用同一底层缓存的响应获取 token 统计。
             var callSpec = requestSpec.call();
 
-            // 使用 useProviderStructuredOutput() 通过 provider API 级别
-            // 强制结构化输出，确保模型严格遵循 AgentTaskPlan JSON Schema
+            // 结构化输出
             AgentTaskPlan taskPlan = callSpec.entity(AgentTaskPlan.class, ChatClient.EntityParamSpec::validateSchema);
 
             // 发射规划生成成功事件，前端可据此隐藏"正在生成任务计划..."的加载指示器
@@ -112,5 +111,7 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
 
     @Override
     protected void afterBlock(AgentChatContext ctx) {
+        // 切换到执行模式
+        ctx.getIteratorState().setAgentMode(AgentMode.EXECUTE);
     }
 }
