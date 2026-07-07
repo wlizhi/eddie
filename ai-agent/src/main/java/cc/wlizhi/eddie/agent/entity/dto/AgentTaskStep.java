@@ -34,7 +34,7 @@ public class AgentTaskStep {
     @JsonPropertyDescription("步骤序号，从1开始递增")
     private Integer id;
 
-    @JsonPropertyDescription("当前步骤标题，简短精炼，30字以内")
+    @JsonPropertyDescription("当前步骤标题，简短概括，30字以内")
     private String title;
 
     /**
