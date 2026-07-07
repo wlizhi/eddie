@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.agent.handler;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTokenStatists;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,14 +41,15 @@ public class AgentEventPublisher {
      * 发射消息级别事件（无 stepId，无 step）
      */
     public void emit(AgentChatContext ctx, AgentEvent event, Object data) {
-        emit(ctx, event, null, null, data);
+        AgentStepStreamContext stepStreamContext = ctx.getStepStreamContext();
+        emit(ctx, event, stepStreamContext == null ? null : stepStreamContext.getStepId(), ctx.getCurrentStep(), data);
     }
 
     /**
      * 发射步骤级别事件（含 stepId，step 从 ctx.getCurrentStep() 自动推导）
      */
     public void emit(AgentChatContext ctx, AgentEvent event, Long stepId, Object data) {
-        emit(ctx, event, stepId, null, data);
+        emit(ctx, event, stepId, ctx.getCurrentStep(), data);
     }
 
     /**

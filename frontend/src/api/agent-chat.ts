@@ -37,7 +37,7 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
     const {
         request, onThinking, onAnswer, onMetadata, onToolExecution,
         onMilestone, onRoundStart, onMessageCreated, onPlanStarted, onPlanGenerated,
-        onTaskPlan, onCancelled, onComplete, onError, signal,
+        onTaskPlan, onExecuteComplete, onCancelled, onComplete, onError, signal,
     } = options
 
     try {
@@ -92,25 +92,27 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
             switch (currentEvent) {
                 case 'thinking':
                     try {
-                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: { text } }
-                        const envelope = JSON.parse(data) as {
+                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, step, data: { text } }
+                        const thinkingEnvelope = JSON.parse(data) as {
                             msgId?: number;
                             stepId?: number;
+                            step?: number;
                             data?: { text: string }
                         }
-                        onThinking?.(envelope.data?.text ?? data)
+                        onThinking?.(thinkingEnvelope.data?.text ?? data, thinkingEnvelope.step)
                     } catch {
                         onThinking?.(data)
                     }
                     break
                 case 'answer':
                     try {
-                        const envelope = JSON.parse(data) as {
+                        const answerEnvelope = JSON.parse(data) as {
                             msgId?: number;
                             stepId?: number;
+                            step?: number;
                             data?: { text: string }
                         }
-                        onAnswer?.(envelope.data?.text ?? data)
+                        onAnswer?.(answerEnvelope.data?.text ?? data, answerEnvelope.step)
                     } catch {
                         onAnswer?.(data)
                     }
@@ -130,10 +132,11 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                     break
                 case 'tool_execution':
                     try {
-                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: { status, toolName, ... } }
+                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, step, data: { status, toolName, ... } }
                         const envelope = JSON.parse(data) as {
                             msgId?: number
                             stepId?: number
+                            step?: number
                             data?: {
                                 status: string
                                 toolName: string
@@ -143,7 +146,7 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                             }
                         }
                         if (envelope.data) {
-                            onToolExecution?.(envelope.data)
+                            onToolExecution?.(envelope.data, envelope.step)
                         }
                     } catch {
                         // ignore parse error
@@ -216,6 +219,18 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                         if (envelope.data) {
                             onTaskPlan?.(envelope.data)
                         }
+                    } catch {
+                        // ignore parse error
+                    }
+                    break
+                case 'execute_complete':
+                    try {
+                        // 后端发射 JSON envelope: { msgId, stepId, step, data: {} }
+                        const execEnvelope = JSON.parse(data) as {
+                            msgId?: number;
+                            step?: number;
+                        }
+                        onExecuteComplete?.(execEnvelope.step ?? 0)
                     } catch {
                         // ignore parse error
                     }

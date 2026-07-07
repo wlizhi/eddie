@@ -24,7 +24,7 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'
-import type {AgentTaskPlan, MilestoneEvent} from '@/types/agent-chat'
+import type {AgentTaskPlan, MilestoneEvent, RoundContent} from '@/types/agent-chat'
 import type {SessionVO, ToolExecutionEventItem} from '@/types/session'
 import {useAgentStore} from '@/stores/agent'
 import type {ToolSourceVO} from '@/types/mcpServer'
@@ -79,6 +79,17 @@ function parseToolCalls(toolCallsJson: string | null | undefined): ToolExecution
     }
 }
 
+/** 确保消息的 rounds 数组存在并扩展到指定索引，返回 rounds 引用 */
+function ensureRounds(msg: ChatMessage, count: number): RoundContent[] {
+    if (!msg.rounds) {
+        msg.rounds = []
+    }
+    while (msg.rounds.length <= count) {
+        msg.rounds.push({ thinking: '', toolCalls: [], content: '' })
+    }
+    return msg.rounds
+}
+
 /** 将后端 AgentMessageVO 转换为前端 ChatMessage */
 function toChatMessage(vo: {
     id: number
@@ -98,14 +109,16 @@ function toChatMessage(vo: {
     createdAt: number
 }): ChatMessage {
     const content = vo.content || ''
-    return {
+    const thinking = vo.thinking || undefined
+    const toolCalls = parseToolCalls(vo.toolCalls)
+    const msg: ChatMessage = {
         id: generateId(),
         dbId: vo.id,
         role: vo.role as 'user' | 'assistant',
         content,
         renderedContent: content ? renderMd(content) : '',
-        thinking: vo.thinking || undefined,
-        toolCalls: parseToolCalls(vo.toolCalls),
+        thinking,
+        toolCalls,
         timestamp: vo.createdAt,
         modelName: vo.modelName || undefined,
         metadata: {
@@ -120,6 +133,15 @@ function toChatMessage(vo: {
             ...(vo.currency ? {currency: vo.currency} : {}),
         },
     }
+    // 历史消息回填为单轮次
+    if (vo.role === 'assistant' && (thinking || toolCalls.length > 0 || content)) {
+        msg.rounds = [{
+            thinking: thinking ?? '',
+            toolCalls,
+            content,
+        }]
+    }
+    return msg
 }
 
 export const useAgentChatStore = defineStore('agentChat', () => {
@@ -399,43 +421,67 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     })
                 }
             },
-            onThinking: (chunk) => {
+            onThinking: (chunk, step) => {
                 currentThinking.value += chunk
                 const last = messages.value[messages.value.length - 1]
                 if (last && last.role === 'assistant') {
                     last.thinking = currentThinking.value
+                    // 按 step 路由到对应轮次
+                    const roundIndex = step ?? 0
+                    const rounds = ensureRounds(last, roundIndex)
+                    rounds[roundIndex].thinking += chunk
                 }
             },
-            onAnswer: (chunk) => {
+            onAnswer: (chunk, step) => {
                 currentAnswer.value += chunk
                 const last = messages.value[messages.value.length - 1]
                 if (last && last.role === 'assistant') {
                     last.content = currentAnswer.value
+                    // 按 step 路由到对应轮次
+                    const roundIndex = step ?? 0
+                    const rounds = ensureRounds(last, roundIndex)
+                    rounds[roundIndex].content += chunk
                     debounceRender(last)
                 }
             },
-            onToolExecution: (data) => {
+            onToolExecution: (data, step) => {
+                const roundIndex = step ?? 0
                 if (data.status === 'start') {
-                    currentToolExecutions.value.push({
+                    const toolRec = {
                         toolName: data.toolName,
                         arguments: data.arguments,
                         done: false,
-                    })
+                    }
+                    currentToolExecutions.value.push(toolRec)
+                    // 同时路由到对应轮次（与 currentToolExecutions 共享同一对象引用）
+                    const last = messages.value[messages.value.length - 1]
+                    if (last?.role === 'assistant') {
+                        const rounds = ensureRounds(last, roundIndex)
+                        rounds[roundIndex].toolCalls.push(toolRec)
+                    }
                 } else if (data.status === 'complete') {
                     const existing = currentToolExecutions.value.find(
                         t => t.toolName === data.toolName && !t.done
                     )
                     if (existing) {
+                        // 直接修改共享对象引用，rounds 中的同一对象自动更新
                         existing.result = data.result
                         existing.error = data.error
                         existing.done = true
                     } else {
-                        currentToolExecutions.value.push({
+                        const toolRec = {
                             toolName: data.toolName,
                             result: data.result,
                             error: data.error,
                             done: true,
-                        })
+                        }
+                        currentToolExecutions.value.push(toolRec)
+                        // 也同步写入 rounds（与 currentToolExecutions 共享同一对象引用）
+                        const last = messages.value[messages.value.length - 1]
+                        if (last?.role === 'assistant') {
+                            const rounds = ensureRounds(last, roundIndex)
+                            rounds[roundIndex].toolCalls.push(toolRec)
+                        }
                     }
                 }
             },

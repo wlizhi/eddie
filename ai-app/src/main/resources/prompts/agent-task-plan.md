@@ -7,6 +7,7 @@
 3. 合理识别依赖：通过 depends_on 标注依赖关系（填入依赖的步骤 ID 列表）；无依赖的步骤可并发执行，不要过度串行化。
 4. 复杂度评估：simple=单次工具调用或明确信息查询；medium=2~3 步推理或多工具协同；complex=多轮迭代、大量数据处理或外部系统交互。
 5. 颗粒度适中：步骤 3~8 个，每个 description 100~200 字。
+6. 最后一个步骤的内容必须是对所有步骤完成后的总结。
 
 # 环境信息
 
@@ -74,6 +75,16 @@
       "status": "pending",
       "result": "",
       "depends_on": [1],
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": 3,
+      "title": "任务总结",
+      "description": "对前面所有步骤任务结果进行总结",
+      "goal": "涵盖任务清单中目标需要的所有信息",
+      "status": "pending",
+      "result": "",
+      "depends_on": [1,2],
       "estimated_complexity": "medium"
     }
   ]

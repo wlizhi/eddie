@@ -51,24 +51,6 @@
     padding: var(--space-2) 0;
 }
 
-/* 节点之间的连接线 */
-.plan-bar-track::before {
-    content: '';
-    position: absolute;
-    left: calc(0.625rem + var(--space-1));
-    right: calc(0.625rem + var(--space-1));
-    top: 50%;
-    height: 2px;
-    background: var(--border-base);
-    transform: translateY(-50%);
-    z-index: 0;
-}
-
-/* 已完成段用绿色覆盖 */
-.plan-bar-node.completed ~ .plan-bar-node::before {
-    /* 后续节点连接线恢复灰色 */
-}
-
 /* 使用 flex 子项的间隔模拟分段着色，不依赖伪元素覆盖 */
 .plan-bar-node {
     flex: 1;
@@ -90,11 +72,21 @@
     background: var(--border-base);
     z-index: 0;
 }
-
-/* 当前节点之前的连接线（已完成）使用绿色 */
-.plan-bar-node.completed + .plan-bar-node::before,
-.plan-bar-node.processing + .plan-bar-node::before {
+/* 已完成节点 → 下一节点：使用绿色 + 流动进度动效 */
+.plan-bar-node.completed + .plan-bar-node::before {
     background: var(--success-default);
+}
+
+/* 已完成 → 执行中：流动进度动效 */
+.plan-bar-node.completed + .plan-bar-node.processing::before {
+    background: linear-gradient(
+        90deg,
+        var(--success-default) 0%,
+        var(--accent-default) 50%,
+        var(--success-default) 100%
+    );
+    background-size: 200% 100%;
+    animation: aptl-progress-flow 1.2s linear infinite;
 }
 
 /* 当前节点之后的连接线保持灰色 */
@@ -106,6 +98,7 @@
 .plan-bar-node.failed + .plan-bar-node::before {
     background: var(--danger-default);
 }
+
 
 .node-dot {
     width: 1.25rem;
@@ -188,6 +181,16 @@
     }
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* 进度流动动效：在绿色线段上从左到右滑过高亮色带 */
+@keyframes aptl-progress-flow {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
     }
 }
 

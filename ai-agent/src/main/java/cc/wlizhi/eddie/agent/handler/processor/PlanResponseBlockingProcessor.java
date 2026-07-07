@@ -133,6 +133,9 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
             if (planSteps != null && !planSteps.isEmpty()) {
                 planSteps.get(0).setStatus(StepStatus.PROCESSING.getValue());
             }
+
+            // 推送更新后的 plan 给前端，使前端立即显示"执行中 / processing"状态
+            publisher.updateTaskPlan(ctx, taskPlan);
         }
     }
 }

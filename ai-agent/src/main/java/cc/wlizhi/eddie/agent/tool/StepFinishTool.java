@@ -37,12 +37,8 @@ public class StepFinishTool implements AgentToolProvider {
                     completed — 步骤已成功完成；
                     failed — 步骤执行失败""") String status,
             @ToolParam(description = """
-                    步骤执行结果描述，包含：
-                    1. 当前步骤做了什么
-                    2. 遇到哪些问题（有则写，无则不写）
-                    3. 得到了什么结果
-                    4. 哪些产出对后续步骤有帮助（最后的步骤完成/失败时除外）
-                    使用简洁明了的逻辑描述""") String result,
+                    当前步骤的执行结果
+                    """) String result,
             ToolContext toolContext) {
 
         // 1. 参数校验

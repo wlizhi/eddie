@@ -31,7 +31,8 @@ import java.util.function.Supplier;
  * <p>
  * 使用 {@link PropertyPlaceholderHelper} 进行占位符替换，支持：
  * <ul>
- *   <li>{@code ${ key }}（占位符内允许空格，自动 trim）</li>
+ *   <li>{@code ${key}}（标准占位符）</li>
+ *   <li>{@code ${ key }}（变量名前后允许空格/换行符，自动 trim）</li>
  *   <li>{@code ${key:默认值}}（未注册变量时回退到默认值）</li>
  *   <li>{@code ${unknown}}（未注册且无默认值时，原样保留）</li>
  * </ul>
@@ -203,7 +204,11 @@ public class PromptVariableResolver {
             allValues.putAll(extras);
         }
 
-        return HELPER.replacePlaceholders(prompt, allValues::get);
+        return HELPER.replacePlaceholders(prompt, placeholderName -> {
+            // PlaceholderParser 不会 trim 变量名前后的空格/换行符，这里做 trim 保证容错
+            String trimmed = placeholderName.trim();
+            return allValues.get(trimmed);
+        });
     }
 
     /**

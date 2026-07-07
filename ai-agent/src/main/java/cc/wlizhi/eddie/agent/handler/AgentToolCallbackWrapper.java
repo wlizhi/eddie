@@ -21,6 +21,7 @@ package cc.wlizhi.eddie.agent.handler;
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
+import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
@@ -120,7 +121,12 @@ public class AgentToolCallbackWrapper implements ToolCallback {
             emitSse(sseEvent);
             // 存储使用持久化截断后的结果
             ToolExecutionEvent storeEvent = ToolExecutionEvent.complete(toolName, toolInput, storeResult, false);
-            ctx.getToolCalls().add(storeEvent);
+            // EXECUTE 模式：写入步骤级累加器（每次迭代独立）；CHAT 模式：写入消息级累加器
+            if (ctx.getIteratorState().getAgentMode() == AgentMode.EXECUTE) {
+                ctx.getStepStreamContext().getToolCalls().add(storeEvent);
+            } else {
+                ctx.getToolCalls().add(storeEvent);
+            }
 
             return modelResult;
 
@@ -130,8 +136,13 @@ public class AgentToolCallbackWrapper implements ToolCallback {
             log.warn("[AgentToolCallbackWrapper] 工具执行失败: {}", toolName, e);
             ToolExecutionEvent errorEvent = ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true);
             emitSse(errorEvent);
-            ctx.getToolCalls().add(errorEvent);
-            throw e;
+            if (ctx.getIteratorState().getAgentMode() == AgentMode.EXECUTE) {
+                ctx.getStepStreamContext().getToolCalls().add(errorEvent);
+            } else {
+                ctx.getToolCalls().add(errorEvent);
+            }
+            return "";
+//            throw e;
         }
     }
 

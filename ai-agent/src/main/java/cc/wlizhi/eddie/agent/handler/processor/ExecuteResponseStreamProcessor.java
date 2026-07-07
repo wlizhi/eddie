@@ -14,6 +14,7 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -188,6 +189,22 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
             }
         }
 
+        // 先更新内存中的实体（供后续步骤的 ${completedResult} 变量使用），再持久化到 DB
+        List<List<AgentMsgStepEntity>> stepList = ctx.getTaskStepList();
+        Integer currentStep = ctx.getCurrentStep();
+        if (stepList != null && currentStep != null && currentStep > 0
+                && currentStep - 1 < stepList.size()) {
+            List<AgentMsgStepEntity> entities = stepList.get(currentStep - 1);
+            if (!entities.isEmpty()) {
+                AgentMsgStepEntity lastEntity = entities.get(entities.size() - 1);
+                if (lastEntity.getId() != null && lastEntity.getId().equals(stepCtx.getStepId())) {
+                    lastEntity.setContent(content);
+                    lastEntity.setThinking(thinking);
+                    lastEntity.setToolCalls(toolCallsJson);
+                }
+            }
+        }
+
         try {
             agentMsgStepDao.updateContent(stepCtx.getStepId(), content, thinking, toolCallsJson);
             log.info("步骤记录更新完成, stepId={}, contentLen={}, thinkingLen={}, toolCallsSize={}",
@@ -238,5 +255,19 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         }
         AgentTaskStep step = steps.get(currentStep - 1);
         return step.getTitle() != null ? step.getTitle() : "";
+    }
+
+    @Override
+    protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
+        AgentMode agentMode = ctx.getIteratorState().getAgentMode();
+        Integer currentStep = ctx.getCurrentStep();
+        List<AgentTaskStep> steps = ctx.getTaskPlan().getSteps();
+        String stepStatus = steps.get(currentStep - 1).getStatus();
+        boolean isFinal = Objects.equals(stepStatus, StepStatus.COMPLETED.getValue())
+                || Objects.equals(stepStatus, StepStatus.FAILED.getValue());
+        if (AgentMode.EXECUTE == agentMode && isFinal) {
+            return true;
+        }
+        return super.breakInStreamIfNecessary(ctx);
     }
 }

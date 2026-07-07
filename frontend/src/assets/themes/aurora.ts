@@ -38,6 +38,7 @@ const theme: ThemeDefinition = {
             '--text-disabled': '#7aa694',
 
             /* 边框色 */
+            '--border-base': '#b3d9c8',
             '--border-default': '#b3d9c8',
             '--border-light': '#c5e3d5',
             '--border-lighter': '#d8ede2',
@@ -135,6 +136,7 @@ const theme: ThemeDefinition = {
             '--text-disabled': '#5a8a6c',
 
             /* 边框色 — 干净利落 */
+            '--border-base': '#48705a',
             '--border-default': '#48705a',
             '--border-light': '#3a6048',
             '--border-lighter': '#2e5038',
