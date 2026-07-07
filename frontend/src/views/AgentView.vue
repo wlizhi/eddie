@@ -20,6 +20,7 @@ import {useAgentChatStore} from '@/stores/agent-chat'
 import {fetchAgentDetail} from '@/api/agent'
 import {displaySettings, loadDisplaySettings} from '@/composables/useDisplaySettings'
 import {useMobile} from '@/composables/useMobile'
+import Toolbar from '@/views/chat/Toolbar.vue'
 import AgentMessageList from '@/components/agent/AgentMessageList.vue'
 import AgentInputArea from '@/components/agent/AgentInputArea.vue'
 
@@ -107,9 +108,10 @@ function onSelectSuggestion(text: string) {
 </script>
 
 <template>
-  <div class="agent-view" :class="{ narrow: !displaySettings.wideMode }">
+  <div class="agent-view" :class="{ narrow: !displaySettings.wideMode, 'qa-mode': !displaySettings.chatMode }">
+    <Toolbar/>
     <!-- 消息列表 / 空状态 -->
-    <AgentMessageList v-if="agentChatStore.hasMessages"/>
+    <AgentMessageList v-if="agentChatStore.hasMessages" :qa-mode="!displaySettings.chatMode"/>
     <div v-else class="agent-empty">
       <div class="empty-icon">🤖</div>
       <h2>{{ agentStore.activeAgent?.name || '智能体' }}</h2>
@@ -154,6 +156,13 @@ function onSelectSuggestion(text: string) {
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* 工具栏悬停显示 */
+.agent-view:hover :deep(.view-toolbar) {
+  opacity: 1;
+  background: var(--bg-secondary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* ===== 空状态 ===== */

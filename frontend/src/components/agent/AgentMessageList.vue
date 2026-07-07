@@ -32,6 +32,14 @@ import AgentPlanTodoList from '@/components/agent/AgentPlanTodoList.vue'
 const agentChatStore = useAgentChatStore()
 const agentStore = useAgentStore()
 
+/** QA 模式：用户消息左对齐 */
+defineProps({
+  qaMode: {
+    type: Boolean,
+    default: false,
+  },
+})
+
 /** 工具内部名 → 友好显示名 */
 function displayToolName(toolName: string): string {
   return toolName
@@ -202,7 +210,7 @@ function onScroll() {
 </script>
 
 <template>
-  <div ref="messageListRef" class="agent-message-list" @scroll="onScroll">
+  <div ref="messageListRef" class="agent-message-list" :class="{'qa-mode': qaMode}" @scroll="onScroll">
     <!-- 顶部加载指示器 -->
     <div v-if="agentChatStore.isLoadingMore" class="load-more-indicator">
       <Loader :size="16" class="spinner"/>

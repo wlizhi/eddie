@@ -596,3 +596,13 @@
     background: var(--border-light);
     max-width: 4rem;
 }
+
+/* 问答模式下用户消息也左对齐 */
+.agent-message-list.qa-mode .user-row {
+    align-self: flex-start;
+    flex-direction: row;
+}
+
+.agent-message-list.qa-mode .user-bubble {
+    border-bottom-right-radius: 10px;
+}
