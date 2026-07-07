@@ -313,7 +313,6 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         vo.setId(entity.getId());
         vo.setSessionId(entity.getSessionId());
         vo.setAgentId(entity.getAgentId());
-        vo.setTaskId(entity.getTaskId());
         vo.setRole(entity.getRole());
         vo.setProviderId(entity.getProviderId());
         vo.setModelCode(entity.getModelCode());

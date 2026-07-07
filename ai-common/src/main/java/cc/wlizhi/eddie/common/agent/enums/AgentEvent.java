@@ -14,6 +14,8 @@ public enum AgentEvent {
     THINKING("模型思考内容，JSON"),
     ANSWER("模型回答内容，JSON"),
     TOOL_EXECUTION("工具执行结果 JSON"),
+    PLAN_STARTED("规划开始，模型开始生成任务清单 JSON"),
+    PLAN_GENERATED("规划生成成功，任务清单首次生成完毕 JSON"),
     UPDATE_TASK_PLAN("更新任务清单（全量任务清单内容） JSON"),
     ROUND_START("循环开始 JSON"),
     METADATA("每一轮执行完毕的元数据 JSON"),

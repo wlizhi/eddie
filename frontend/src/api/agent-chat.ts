@@ -36,8 +36,8 @@ const BASE = '/api/agent'
 export async function streamAgentChat(options: AgentStreamChatOptions): Promise<void> {
     const {
         request, onThinking, onAnswer, onMetadata, onToolExecution,
-        onMilestone, onRoundStart, onMessageCreated, onTaskPlan, onCancelled,
-        onComplete, onError, signal,
+        onMilestone, onRoundStart, onMessageCreated, onPlanStarted, onPlanGenerated,
+        onTaskPlan, onCancelled, onComplete, onError, signal,
     } = options
 
     try {
@@ -183,6 +183,24 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                             data?: { userMsgId?: number; assistantMsgId?: number }
                         }
                         onMessageCreated?.(envelope.data ?? {})
+                    } catch {
+                        // ignore parse error
+                    }
+                    break
+                case 'plan_started':
+                    onPlanStarted?.()
+                    break
+                case 'plan_generated':
+                    try {
+                        // 后端使用 AgentEventPublisher 发射 JSON envelope: { msgId, stepId, data: AgentTaskPlan }
+                        const planEnvelope = JSON.parse(data) as {
+                            msgId?: number
+                            stepId?: number
+                            data?: import('@/types/agent-chat').AgentTaskPlan
+                        }
+                        if (planEnvelope.data) {
+                            onPlanGenerated?.(planEnvelope.data)
+                        }
                     } catch {
                         // ignore parse error
                     }

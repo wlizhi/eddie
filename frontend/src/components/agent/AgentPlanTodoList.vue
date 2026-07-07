@@ -20,11 +20,11 @@ const props = defineProps<{
 
 /** 已完成数量 */
 const doneCount = computed(() =>
-    props.plan.todos.filter(t => t.status === 'completed').length
+    props.plan.steps.filter(t => t.status === 'completed').length
 )
 
 /** 总数量 */
-const totalCount = computed(() => props.plan.todos.length)
+const totalCount = computed(() => props.plan.steps.length)
 
 /** 进度百分比 */
 const progressPercent = computed(() =>
@@ -90,7 +90,7 @@ function statusIcon(status: string): string {
     <div class="plan-bar">
       <div class="plan-bar-track">
         <div
-            v-for="(todo, idx) in plan.todos"
+            v-for="(todo, idx) in plan.steps"
             :key="todo.id"
             class="plan-bar-node"
             :class="todo.status"
@@ -111,14 +111,14 @@ function statusIcon(status: string): string {
     <!-- 待办清单 -->
     <div class="plan-todos">
       <div
-          v-for="todo in plan.todos"
+          v-for="todo in plan.steps"
           :key="todo.id"
           class="plan-todo-item"
           :class="todo.status"
       >
         <span class="todo-dot" :class="todo.status"/>
         <span class="todo-step-label">Step {{ todo.id }}</span>
-        <span class="todo-desc">{{ todo.description }}</span>
+        <span class="todo-desc">{{ todo.title || todo.description }}</span>
       </div>
     </div>
   </div>

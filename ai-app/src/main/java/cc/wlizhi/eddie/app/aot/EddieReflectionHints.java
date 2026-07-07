@@ -5,10 +5,11 @@
 
 package cc.wlizhi.eddie.app.aot;
 
-import cc.wlizhi.eddie.agent.context.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentModelInfo;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
 import cc.wlizhi.eddie.agent.entity.response.AgentSessionVO;
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
@@ -66,6 +67,6 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(AgentMode.class, members);
         reflection.registerType(AgentTaskPlan.class, members);
         reflection.registerType(ApiResult.class, members);
-        reflection.registerType(cc.wlizhi.eddie.agent.context.AgentTaskStep.class, members);
+        reflection.registerType(AgentTaskStep.class, members);
     }
 }

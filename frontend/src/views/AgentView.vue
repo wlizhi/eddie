@@ -158,6 +158,11 @@ function onSelectSuggestion(text: string) {
   width: 100%;
 }
 
+/* 全宽模式：消息行按父容器百分比自适应 */
+.agent-view:not(.narrow) :deep(.agent-message-list .message-row) {
+  max-width: min(82%, 1000px);
+}
+
 /* 工具栏悬停显示 */
 .agent-view:hover :deep(.view-toolbar) {
   opacity: 1;

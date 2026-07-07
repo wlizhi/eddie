@@ -5,8 +5,8 @@
 
 package cc.wlizhi.eddie.agent.handler.processor;
 
-import cc.wlizhi.eddie.agent.context.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.exception.AppException;
@@ -44,10 +44,18 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
     }
 
     @Override
+    public void process(AgentChatContext ctx, ChatClient.ChatClientRequestSpec requestSpec) {
+        super.process(ctx, requestSpec);
+    }
+
+    @Override
     protected ChatResponse doBlock(AgentChatContext ctx, ChatClient.ChatClientRequestSpec requestSpec) {
         long streamStart = System.currentTimeMillis();
 
         try {
+            // 发射规划开始事件，前端可据此显示"正在生成任务计划..."的加载指示器
+            publisher.planStarted(ctx);
+
             // 阻塞式调用模型 — CallResponseSpec 为延迟求值（lazy），
             // .call() 仅返回规格对象，不发起 API 调用。
             // entity() 作为首个终端方法注入 schema 并触发调用，
@@ -56,8 +64,10 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
 
             // 使用 useProviderStructuredOutput() 通过 provider API 级别
             // 强制结构化输出，确保模型严格遵循 AgentTaskPlan JSON Schema
-            AgentTaskPlan taskPlan = callSpec.entity(AgentTaskPlan.class,
-                    ChatClient.EntityParamSpec::useProviderStructuredOutput);
+            AgentTaskPlan taskPlan = callSpec.entity(AgentTaskPlan.class, ChatClient.EntityParamSpec::validateSchema);
+
+            // 发射规划生成成功事件，前端可据此隐藏"正在生成任务计划..."的加载指示器
+            publisher.planGenerated(ctx, taskPlan);
 
             // 获取 ChatResponse 供基类 afterStream() 提取 token 统计
             ChatResponse chatResponse = callSpec.chatResponse();
@@ -97,6 +107,11 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
             throw new AppException(ApiResultCode.PROVIDER_CALL_FAILED,
                     "模型规划调用异常: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    protected void extractBlockingContent(AgentChatContext ctx, ChatResponse response) {
+        // 计划清单生成的时候，无需记录内容
     }
 
     @Override

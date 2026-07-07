@@ -21,12 +21,10 @@ public class AgentMsgEntity {
     private Long id;
     private Long sessionId;
     private Long agentId;
-    private Long taskId;
     private String role;
     private Long providerId;
     private String modelCode;
     private String modelName;
-    private String prompt;
     private String thinking;
     private String content;
     private Integer promptTokens;

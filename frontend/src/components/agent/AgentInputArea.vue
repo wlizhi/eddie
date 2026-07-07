@@ -512,6 +512,10 @@ defineExpose({focusInput})
   padding: 0 !important;
 }
 
+.model-select :deep(.n-base-selection .n-base-suffix) {
+  min-height: auto !important;
+}
+
 /* 功能开关区 */
 .feature-toggles {
   display: flex;
@@ -615,5 +619,17 @@ defineExpose({focusInput})
     box-shadow: 0 0 0 4px var(--danger-ring);
     transform: scale(1.08);
   }
+}
+</style>
+
+<!-- 非 scoped 样式：Naive UI 下拉菜单弹出层 -->
+<style>
+.n-base-select-menu {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.n-base-select-menu .n-scrollbar {
+  max-height: 480px !important;
 }
 </style>

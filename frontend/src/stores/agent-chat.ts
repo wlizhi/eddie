@@ -32,6 +32,7 @@ import {fetchAgentMessages, stopAgentChat, streamAgentChat} from '@/api/agent-ch
 import {createAgentSession, generateAgentSessionTitle} from '@/api/agent-session'
 import {fetchAgentBoundMcpTools} from '@/api/agent'
 import {renderMd} from '@/utils/markdown'
+import {showToast} from '@/composables/useToast'
 
 /**
  * 生成唯一 ID（兼容 Safari 15.4 以下不支持 crypto.randomUUID）
@@ -162,6 +163,9 @@ export const useAgentChatStore = defineStore('agentChat', () => {
     /** 当前任务计划清单（规划模式） */
     const currentTaskPlan = ref<AgentTaskPlan | null>(null)
 
+    /** 是否正在生成任务计划（由后端 plan_started / plan_generated 事件控制） */
+    const isPlanGenerating = ref(false)
+
     /** 最新被后端确认已接收的文本（供 ChatView 清空输入框） */
     const confirmedText = ref('')
 
@@ -232,6 +236,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentRound.value = 0
         milestones.value = []
         currentTaskPlan.value = null
+        isPlanGenerating.value = false
     }
 
     /**
@@ -338,6 +343,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentRound.value = 0
         milestones.value = []
         currentTaskPlan.value = null
+        isPlanGenerating.value = false
 
         abortController = new AbortController()
 
@@ -437,6 +443,18 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 milestones.value.push(event)
                 // 里程碑也附加到最后一条 assistant 消息中（可选增强）
             },
+            onPlanStarted: () => {
+                isPlanGenerating.value = true
+            },
+            onPlanGenerated: (plan) => {
+                isPlanGenerating.value = false
+                currentTaskPlan.value = plan
+                // 同时附加到最后一条 assistant 消息
+                const last = messages.value[messages.value.length - 1]
+                if (last?.role === 'assistant') {
+                    last.taskPlan = plan
+                }
+            },
             onTaskPlan: (plan) => {
                 currentTaskPlan.value = plan
                 // 同时附加到最后一条 assistant 消息
@@ -472,6 +490,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 console.error('Agent 流式请求出错:', error)
                 isStreaming.value = false
                 abortController = null
+                showToast(error.message, 'error')
             },
         })
     }
@@ -547,6 +566,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         // 清空流式工具记录
         currentToolExecutions.value = []
         isStreaming.value = false
+        isPlanGenerating.value = false
         abortController = null
         // 通知侧边栏本地更新当前会话的消息数（+2）和更新时间
         sessionMessageSignal.value++
@@ -607,6 +627,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentRound,
         milestones,
         currentTaskPlan,
+        isPlanGenerating,
         confirmedText,
         sessionMessageSignal,
         hasMoreMessages,

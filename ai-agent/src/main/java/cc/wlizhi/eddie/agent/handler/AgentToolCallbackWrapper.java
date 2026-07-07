@@ -90,7 +90,7 @@ public class AgentToolCallbackWrapper implements ToolCallback {
                 throw new UserStopException();
             }
             // 切换至计划模式执行后，退出当前对话
-            checkSwitchToPlan(result);
+//            checkSwitchToPlan(result);
 
             // ═══ 工具结果加工点 ═══
             // 三层截断，互不影响：

@@ -33,11 +33,6 @@ public class AgentMessageVO {
     private Long agentId;
 
     /**
-     * 任务 ID
-     */
-    private Long taskId;
-
-    /**
      * 角色：user / assistant / system
      */
     private String role;

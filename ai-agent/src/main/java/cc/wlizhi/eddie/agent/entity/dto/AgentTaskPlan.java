@@ -3,7 +3,7 @@
  * {@code @date} 2026-07-06
  */
 
-package cc.wlizhi.eddie.agent.context;
+package cc.wlizhi.eddie.agent.entity.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

@@ -5,9 +5,9 @@
 
 package cc.wlizhi.eddie.agent.entity.dto;
 
-import cc.wlizhi.eddie.agent.context.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
+import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentEventPublisher;
@@ -131,8 +131,10 @@ public class AgentChatContext {
      */
     private AgentTaskPlan taskPlan;
 
-    // ==================== 流式累加（用于最终持久化） ====================
+    // ==================== 执行上下文 =====================
+    private List<List<AgentMsgStepEntity>> taskStepList;
 
+    // ==================== 流式累加（用于最终持久化） ====================
     /**
      * 流式处理中累积的回答内容
      */

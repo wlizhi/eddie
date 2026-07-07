@@ -68,12 +68,10 @@ CREATE TABLE IF NOT EXISTS ai_agent_session_msg
     id                         INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id                 INTEGER NOT NULL,                     -- 归属会话 ID
     agent_id                   INTEGER NOT NULL,                     -- 冗余：归属 Agent ID
-    task_id                    INTEGER,                              -- 父任务id 已废弃，待删除
     role                       TEXT    NOT NULL,                     -- user / assistant / system
     provider_id                INTEGER,                              -- 模型服务商实例 ID
     model_code                 TEXT    NOT NULL DEFAULT '',          -- 模型 code
     model_name                 TEXT    NOT NULL DEFAULT '',          -- 模型显示名称
-    prompt                     TEXT    NOT NULL DEFAULT '',          -- 提示词 已废弃，待删除
     thinking                   TEXT    NOT NULL DEFAULT '',          -- 思考内容
     content                    TEXT    NOT NULL DEFAULT '',          -- 模型回复正文（前端对话气泡展示，完整执行过程查 segment 表）
     prompt_tokens              INTEGER NOT NULL DEFAULT 0,

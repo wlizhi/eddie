@@ -49,7 +49,9 @@ export interface AgentChatRequest {
 export interface AgentTodoItem {
     /** 步骤序号（从 1 开始） */
     id: number
-    /** 步骤描述 */
+    /** 步骤标题（简短精炼，对应后端 AgentTaskStep.title） */
+    title: string
+    /** 步骤描述（对应后端 AgentTaskStep.description） */
     description: string
     /** pending / processing / completed / failed */
     status: string
@@ -67,8 +69,8 @@ export interface AgentTaskPlan {
     status: string
     /** 最终汇总文本 */
     result: string
-    /** 待办步骤列表 */
-    todos: AgentTodoItem[]
+    /** 步骤列表（对应后端 AgentTaskPlan.steps） */
+    steps: AgentTodoItem[]
 }
 
 /**
@@ -84,6 +86,8 @@ export type AgentSSEEventType =
     | 'message_created'
     | 'cancelled'
     | 'error'
+    | 'plan_started'
+    | 'plan_generated'
     | 'update_task_plan'
 
 /**
@@ -109,7 +113,6 @@ export interface AgentMessageVO {
     id: number
     sessionId: number
     agentId: number
-    taskId: number | null
     role: string           // user / assistant / system
     providerId: number | null
     modelCode: string
@@ -156,7 +159,11 @@ export interface AgentStreamChatOptions {
     onRoundStart?: (round: number) => void
     /** 收到 message_created 事件时的回调 */
     onMessageCreated?: (data: { userMsgId?: number; assistantMsgId?: number }) => void
-    /** 收到 update_task_plan 事件时的回调 */
+    /** 收到 plan_started 事件时的回调（模型开始生成任务清单） */
+    onPlanStarted?: () => void
+    /** 收到 plan_generated 事件时的回调（任务清单首次生成完毕） */
+    onPlanGenerated?: (plan: AgentTaskPlan) => void
+    /** 收到 update_task_plan 事件时的回调（后续清单内容更新） */
     onTaskPlan?: (plan: AgentTaskPlan) => void
     /** 收到 cancelled 事件时的回调 */
     onCancelled?: (reason: string) => void

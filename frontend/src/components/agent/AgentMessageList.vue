@@ -262,12 +262,6 @@ function onScroll() {
 
           <!-- 消息气泡 -->
           <div class="message-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'">
-            <!-- 计划清单（仅 assistant，规划模式） -->
-            <AgentPlanTodoList
-                v-if="msg.role === 'assistant' && msg.taskPlan"
-                :plan="msg.taskPlan"
-            />
-
             <!-- thinking（仅 assistant） -->
             <div
                 v-if="msg.role === 'assistant' && (msg.thinking || (agentChatStore.isStreaming && msg === agentChatStore.messages[agentChatStore.messages.length - 1] && !msg.content))"
@@ -335,6 +329,24 @@ function onScroll() {
                 class="message-content markdown-body"
                 v-html="msg.renderedContent || renderMd(msg.content)"
             />
+
+            <!-- 计划清单（仅 assistant，在内容区之后自然追加） -->
+            <template v-if="msg.role === 'assistant'">
+              <!-- 计划清单生成中（后端发射 plan_started 事件后显示，plan_generated 后隐藏） -->
+              <div
+                  v-if="agentChatStore.isPlanGenerating && msg === agentChatStore.messages[agentChatStore.messages.length - 1]"
+                  class="plan-generating"
+              >
+                <Loader :size="12" class="spinner"/>
+                <span class="plan-text">任务规划中<span
+                    class="dots-blink"><span>.</span><span>.</span><span>.</span></span></span>
+              </div>
+              <!-- 计划清单内容 -->
+              <AgentPlanTodoList
+                  v-if="msg.taskPlan"
+                  :plan="msg.taskPlan"
+              />
+            </template>
           </div>
 
           <!-- 底部：元数据 + 操作按钮 -->

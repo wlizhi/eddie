@@ -3,7 +3,7 @@
  * {@code @date} 2026-07-06
  */
 
-package cc.wlizhi.eddie.agent.context;
+package cc.wlizhi.eddie.agent.entity.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -33,6 +33,9 @@ public class AgentTaskStep {
     @NotNull
     @JsonPropertyDescription("步骤序号，从1开始递增")
     private Integer id;
+
+    @JsonPropertyDescription("当前步骤标题，简短精炼，30字以内")
+    private String title;
 
     /**
      * 步骤描述 — 自包含的可执行描述，执行模型独立使用

@@ -113,7 +113,21 @@ public class AgentEventPublisher {
     }
 
     /**
-     * 更新任务清单（全量推送）
+     * 规划开始：模型开始生成任务清单
+     */
+    public void planStarted(AgentChatContext ctx) {
+        emit(ctx, AgentEvent.PLAN_STARTED, Map.of());
+    }
+
+    /**
+     * 规划生成成功：任务清单首次生成完毕
+     */
+    public void planGenerated(AgentChatContext ctx, Object taskPlan) {
+        emit(ctx, AgentEvent.PLAN_GENERATED, taskPlan);
+    }
+
+    /**
+     * 更新任务清单（后续更新的全量推送）
      */
     public void updateTaskPlan(AgentChatContext ctx, Object taskPlan) {
         emit(ctx, AgentEvent.UPDATE_TASK_PLAN, taskPlan);
