@@ -72,10 +72,6 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
             // 获取 ChatResponse 供基类 afterStream() 提取 token 统计
             ChatResponse chatResponse = callSpec.chatResponse();
 
-            // 通过 AgentEventPublisher 统一发射 update_task_plan 事件
-            // 自动包装为 {"msgId":..., "stepId":null, "data":{...}} JSON envelope
-            publisher.updateTaskPlan(ctx, taskPlan);
-
             // 将规划清单存入上下文，供后续执行步骤使用
             ctx.setTaskPlan(taskPlan);
 

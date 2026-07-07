@@ -89,7 +89,7 @@ public class AgentToolCallbackWrapper implements ToolCallback {
                 log.info("用户已停止，丢弃工具结果: {}", toolName);
                 throw new UserStopException();
             }
-            // 切换至计划模式执行后，退出当前对话
+            // TODO 已废弃，后续合适时候移除，暂时注释掉。
 //            checkSwitchToPlan(result);
 
             // ═══ 工具结果加工点 ═══
