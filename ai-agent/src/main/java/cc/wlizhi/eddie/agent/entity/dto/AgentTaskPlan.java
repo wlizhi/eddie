@@ -5,6 +5,7 @@
 
 package cc.wlizhi.eddie.agent.entity.dto;
 
+import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -60,7 +61,7 @@ public class AgentTaskPlan {
      * failed — 任务失败（出现不可恢复错误）
      */
     @JsonPropertyDescription("任务状态：planned/executing/completed/failed，初始值固定为 planned")
-    private String status = "planned";
+    private String status = TaskPlanStatus.PLANNED.getValue();
 
     /**
      * 任务完成描述（最终汇总文本，所有步骤完成后由后端填入）

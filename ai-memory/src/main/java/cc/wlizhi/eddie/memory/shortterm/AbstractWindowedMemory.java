@@ -80,6 +80,22 @@ public abstract class AbstractWindowedMemory implements ShortTermMemory {
 
     private final ReentrantLock lock = new ReentrantLock();
 
+    /**
+     * 按前缀批量清除会话记忆
+     * <p>
+     * 移除所有 key 以指定前缀开头的会话条目。用于任务结束后主动释放不再需要的内存。
+     *
+     * @param prefix key 前缀（如 {@code "42:"} 清除消息 ID=42 的所有步骤记忆）
+     */
+    protected void clearByPrefix(String prefix) {
+        lock.lock();
+        try {
+            store.keySet().removeIf(key -> key.startsWith(prefix));
+        } finally {
+            lock.unlock();
+        }
+    }
+
     // ======================== 子类扩展点 ========================
 
     /**

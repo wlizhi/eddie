@@ -5,21 +5,50 @@
 
 package cc.wlizhi.eddie.agent.handler.processor;
 
+import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
+import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
+import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * EXECUTE 模式流式响应处理器
  * <p>
- * 执行模式：在每条 ChatResponse 中检查是否有工具调用（tool_calls），
- * 若有则推送 "tool_call" 事件告知前端。
- * 由基类处理 thinking + answer 推送。
+ * 执行模式：负责处理任务计划中单个步骤的模型交互流。
+ * <p>
+ * 核心职责：
+ * <ol>
+ *     <li>流开始前创建 {@link AgentStepStreamContext} 步骤级累加器，预创建占位记录获取 stepId；
+ *         若该步骤序号首次执行则推送 {@code step_started} 事件</li>
+ *     <li>流处理中覆写 {@code handleThinking/handleAnswer}，使用步骤级累加器独立存储，
+ *         用真实 stepId 发射事件（父类保持 {@code null}，不影响消息级别）</li>
+ *     <li>流结束后将占位记录更新为步骤累加器的实际内容，推送 {@code execute_complete} 事件</li>
+ * </ol>
+ * <p>
+ * 每次模型交互（可能包含多轮 tool_call 自循环）产生一条步骤记录。
+ * Token 统计等元数据由父类 {@link AbstractStreamProcessor#afterStream} 在消息级别统一处理。
  */
 @Component
 public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
+
+    private static final Logger log = LoggerFactory.getLogger(ExecuteResponseStreamProcessor.class);
+
+    @Resource
+    private AgentMsgStepDao agentMsgStepDao;
 
     @Override
     public boolean support(AgentMode agentMode) {
@@ -28,32 +57,186 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
 
     @Override
     protected void beforeStream(AgentChatContext ctx) {
-        ctx.getSink().next(ServerSentEvent.<String>builder()
-                .event("execute_start")
-                .data("开始执行")
-                .build());
-    }
+        Integer currentStep = ctx.getCurrentStep();
+        String stepDesc = resolveStepDesc(ctx, currentStep);
 
-    @Override
-    protected void handleCustomEvent(AgentChatContext ctx, ChatResponse response) {
-        // 检测是否有工具调用，若有则推送 tool_call 事件
-        if (response.getResult() != null) {
-            if (!response.getResult().getOutput().getToolCalls().isEmpty()) {
-                ctx.getSink().next(ServerSentEvent.<String>builder()
-                        .event("tool_call")
-                        .data("工具调用中...")
-                        .build());
-            }
+        // 1. 判断该步骤序号是否首次执行（taskStepList 对应索引为空）
+        List<List<AgentMsgStepEntity>> stepList = ctx.getTaskStepList();
+        boolean isFirstExecution = stepList == null || currentStep == null ||
+                currentStep <= 0 || currentStep - 1 >= stepList.size() ||
+                stepList.get(currentStep - 1).isEmpty();
+        if (isFirstExecution) {
+            ctx.getEventPublisher().emit(ctx, AgentEvent.STEP_STARTED,
+                    null, currentStep, Map.of("stepDesc", stepDesc));
+        }
+
+        // 2. 获取已初始化的步骤级流式累加器（由 AgentExecutePostProcessor 创建并设好 prompt）
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        if (stepCtx == null) {
+            // 容错：如果前置未初始化，兜底创建
+            stepCtx = new AgentStepStreamContext();
+            ctx.setStepStreamContext(stepCtx);
+        }
+        stepCtx.setStep(currentStep);
+        stepCtx.setStepDesc(stepDesc);
+
+        // 3. 预创建占位记录，拿到 stepId
+        AgentMsgStepEntity placeholder = buildPlaceholderEntity(ctx, currentStep, stepDesc);
+        try {
+            Long stepId = agentMsgStepDao.insertPlaceholder(placeholder);
+            stepCtx.setStepId(stepId);
+        } catch (Exception e) {
+            log.warn("预创建步骤占位记录失败, msgId={}, step={}: {}",
+                    ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null,
+                    currentStep, e.getMessage());
+        }
+
+        // 4. 追加到上下文的 taskStepList 对应索引
+        if (stepList != null && currentStep != null && currentStep - 1 < stepList.size()) {
+            stepList.get(currentStep - 1).add(placeholder);
         }
     }
 
     @Override
+    protected void handleThinking(AgentChatContext ctx, ChatResponse response) {
+        try {
+            var metadata = Objects.requireNonNull(response.getResult()).getOutput().getMetadata();
+            Object reasoning = metadata.get("reasoningContent");
+            if (reasoning == null) {
+                reasoning = metadata.get("reasoning_content");
+            }
+            if (reasoning != null && !reasoning.toString().isEmpty()) {
+                String text = reasoning.toString();
+                AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+                if (stepCtx != null) {
+                    // 用真实 stepId 发射（父类发射的 stepId=null，不影响消息级别）
+                    publisher.thinking(ctx, stepCtx.getStepId(), text);
+                    // 累加到步骤级（独立于消息级 fullThinking）
+                    stepCtx.getFullThinking().append(text);
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略解析异常
+        }
+    }
+
+    @Override
+    protected void handleAnswer(AgentChatContext ctx, ChatResponse response) {
+        try {
+            String answer = response.getResults().stream()
+                    .map(org.springframework.ai.chat.model.Generation::getOutput)
+                    .map(org.springframework.ai.chat.messages.AbstractMessage::getText)
+                    .filter(Objects::nonNull)
+                    .filter(f -> !f.isEmpty())
+                    .collect(Collectors.joining());
+            if (!answer.isEmpty()) {
+                AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+                if (stepCtx != null) {
+                    // 用真实 stepId 发射（父类发射的 stepId=null，不影响消息级别）
+                    publisher.answer(ctx, stepCtx.getStepId(), answer);
+                    // 累加到步骤级（独立于消息级 fullAnswer）
+                    stepCtx.getFullAnswer().append(answer);
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略解析异常
+        }
+    }
+
+    @Override
+    protected void handleCustomEvent(AgentChatContext ctx, ChatResponse response) {
+    }
+
+    @Override
     protected void afterStream(AgentChatContext ctx) {
-        // 先执行基类通用逻辑（token 提取 + 持久化 + metadata 推送）
+        // 1. 基类通用逻辑：token 提取 + 增量持久化 + metadata 推送（消息级别）
         super.afterStream(ctx);
-        ctx.getSink().next(ServerSentEvent.<String>builder()
-                .event("execute_complete")
-                .data("执行完成")
-                .build());
+
+        // 2. 更新占位记录的实际内容（步骤级别，使用独立累加器）
+        updateStepRecord(ctx);
+
+        // 3. 推送执行完成事件
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        Integer currentStep = ctx.getCurrentStep();
+        ctx.getEventPublisher().emit(ctx, AgentEvent.EXECUTE_COMPLETE,
+                stepCtx != null ? stepCtx.getStepId() : null,
+                currentStep, Map.of());
+    }
+
+    /**
+     * 流结束后将占位记录更新为实际累积的内容（thinking + content + toolCalls）。
+     * 数据来源为步骤级累加器 {@link AgentStepStreamContext}，独立于消息级别累加器。
+     */
+    private void updateStepRecord(AgentChatContext ctx) {
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        if (stepCtx == null || stepCtx.getStepId() == null) {
+            log.warn("stepStreamContext 或 stepId 为空，跳过步骤记录更新");
+            return;
+        }
+
+        String content = stepCtx.getFullAnswer().toString();
+        String thinking = stepCtx.getFullThinking().toString();
+
+        // 序列化工具调用记录
+        String toolCallsJson = "[]";
+        List<ToolExecutionEvent> toolCalls = stepCtx.getToolCalls();
+        if (toolCalls != null && !toolCalls.isEmpty()) {
+            try {
+                toolCallsJson = ctx.getObjectMapper().writeValueAsString(toolCalls);
+            } catch (Exception e) {
+                log.warn("序列化工具调用记录失败, stepId={}: {}", stepCtx.getStepId(), e.getMessage());
+            }
+        }
+
+        try {
+            agentMsgStepDao.updateContent(stepCtx.getStepId(), content, thinking, toolCallsJson);
+            log.info("步骤记录更新完成, stepId={}, contentLen={}, thinkingLen={}, toolCallsSize={}",
+                    stepCtx.getStepId(), content.length(), thinking.length(),
+                    toolCalls != null ? toolCalls.size() : 0);
+        } catch (Exception e) {
+            log.warn("步骤记录更新失败, stepId={}: {}", stepCtx.getStepId(), e.getMessage());
+        }
+    }
+
+    /**
+     * 构建占位步骤实体（content/thinking/toolCalls 为空，由 {@link #afterStream} 填充）
+     */
+    private static AgentMsgStepEntity buildPlaceholderEntity(AgentChatContext ctx,
+                                                             Integer currentStep, String stepDesc) {
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        // 优先从步骤累加器获取 prompt（由 AgentExecutePostProcessor 初始化时写入）
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        String prompt = stepCtx != null && stepCtx.getPrompt() != null
+                ? stepCtx.getPrompt()
+                : "请根据系统提示词及历史消息（如果有）继续完成当前步骤的任务内容";
+
+        AgentMsgStepEntity entity = new AgentMsgStepEntity();
+        entity.setMsgId(msgId);
+        entity.setMsgType(0);
+        entity.setMsgDataType(0);
+        entity.setStep(currentStep != null ? currentStep : 0);
+        entity.setStepDesc(stepDesc);
+        entity.setPrompt(prompt);
+        entity.setCreatedAt(System.currentTimeMillis());
+        return entity;
+    }
+
+    /**
+     * 从任务计划中解析当前步骤的描述信息（标题）
+     */
+    private static String resolveStepDesc(AgentChatContext ctx, Integer currentStep) {
+        if (currentStep == null || currentStep <= 0) {
+            return "";
+        }
+        AgentTaskPlan taskPlan = ctx.getTaskPlan();
+        if (taskPlan == null || taskPlan.getSteps() == null) {
+            return "";
+        }
+        List<AgentTaskStep> steps = taskPlan.getSteps();
+        if (currentStep > steps.size()) {
+            return "";
+        }
+        AgentTaskStep step = steps.get(currentStep - 1);
+        return step.getTitle() != null ? step.getTitle() : "";
     }
 }

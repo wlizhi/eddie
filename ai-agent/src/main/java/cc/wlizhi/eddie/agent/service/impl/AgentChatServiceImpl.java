@@ -5,8 +5,8 @@
 
 package cc.wlizhi.eddie.agent.service.impl;
 
-import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
-import cc.wlizhi.eddie.agent.entity.dto.AgentIteratorState;
+import cc.wlizhi.eddie.agent.dao.AgentMsgDao;
+import cc.wlizhi.eddie.agent.entity.dto.*;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentChatPreProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessorRouter;
@@ -16,9 +16,12 @@ import cc.wlizhi.eddie.agent.service.AgentChatService;
 import cc.wlizhi.eddie.chat.advisor.ModelThrottleAdvisor;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import cc.wlizhi.eddie.common.agent.enums.StepStatus;
+import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +49,14 @@ public class AgentChatServiceImpl implements AgentChatService {
     private ResponseStreamProcessorRouter responseStreamRouter;
     @Resource
     private AgentEventPublisher publisher;
+    @Resource
+    private AgentStepWindowedMemory agentStepWindowedMemory;
+
+    @Resource
+    private AgentMsgDao agentMsgDao;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public Flux<ServerSentEvent<String>> chat(AgentChatRequest request) {
@@ -93,9 +104,9 @@ public class AgentChatServiceImpl implements AgentChatService {
                 // 智能体内置工具（如 built_in_switch_mode）已在执行过程中
                 // 通过 ToolContext 直接修改了 ctx.getIteratorState().agentMode
                 // 会话结束还处于聊天模式，则退出循环
-                if (shouldBreakIterator(ctx)) {
-                    break;
-                }
+
+                // 检测当前迭代步骤是否已完成（由 agent_step_finish 工具标记）
+                handleStepCompletionIfNeeded(ctx);
             }
         } catch (UserStopException e) {
             // 用户终止回答，仅打印一行 info 日志，不触发错误告警
@@ -112,6 +123,12 @@ public class AgentChatServiceImpl implements AgentChatService {
         } finally {
             // 通知前端本轮对话结束
             publisher.taskFinish(ctx);
+            // 任务完成，主动释放步骤记忆缓存
+            try {
+                agentStepWindowedMemory.clearByMsgId(ctx.getAgentMsg().getId());
+            } catch (Exception ignored) {
+                // 清理非关键操作，忽略异常
+            }
             // 显式关闭 Flux，结束 SSE 连接
             try {
                 ctx.getSink().complete();
@@ -119,6 +136,76 @@ public class AgentChatServiceImpl implements AgentChatService {
                 // sink 可能已被关闭或因中断异常
             }
         }
+    }
+
+    /**
+     * 持久化 taskPlan 到数据库
+     */
+    private void persistTaskPlan(AgentChatContext ctx) {
+        AgentTaskPlan taskPlan = ctx.getTaskPlan();
+        if (taskPlan == null) {
+            return;
+        }
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        if (msgId == null) {
+            return;
+        }
+        try {
+            String taskPlanJson = objectMapper.writeValueAsString(taskPlan);
+            agentMsgDao.updateTaskPlan(msgId, taskPlanJson);
+        } catch (Exception e) {
+            log.warn("持久化 taskPlan 失败, msgId={}: {}", msgId, e.getMessage());
+        }
+    }
+
+    /**
+     * 检测当前 EXECUTE 模式下的步骤是否已完成或失败，若是则推进到下一步或结束任务。
+     * <p>
+     * 此方法仅在流结束后执行（不修改流处理中的 currentStep），
+     * 通过 stepStreamContext.stepStatus 缓冲检测步骤终态。
+     * <p>
+     * 步骤失败（FAILED）时采用"继续执行"策略：任务标记 FAILED 但仍尝试执行剩余步骤。
+     */
+    private void handleStepCompletionIfNeeded(AgentChatContext ctx) {
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        if (stepCtx == null) {
+            return;
+        }
+        StepStatus status = stepCtx.getStepStatus();
+        if (status != StepStatus.COMPLETED && status != StepStatus.FAILED) {
+            return;
+        }
+        if (ctx.getIteratorState().getAgentMode() != AgentMode.EXECUTE) {
+            return;
+        }
+
+        AgentTaskPlan taskPlan = ctx.getTaskPlan();
+        if (taskPlan == null || taskPlan.getSteps() == null || taskPlan.getSteps().isEmpty()) {
+            return;
+        }
+
+        boolean isFailed = status == StepStatus.FAILED;
+        // 使用 stepStreamContext.step（工具实际更新的步骤编号）而非 ctx.getCurrentStep()
+        int currentStep = stepCtx.getStep() != null ? stepCtx.getStep() : ctx.getCurrentStep();
+        int totalSteps = taskPlan.getSteps().size();
+
+        if (currentStep < totalSteps) {
+            // 推进到下一步
+            int nextStep = currentStep + 1;
+            ctx.setCurrentStep(nextStep);
+            AgentTaskStep nextPlanStep = taskPlan.getSteps().get(nextStep - 1);
+            nextPlanStep.setStatus(StepStatus.PROCESSING.getValue());
+            log.info("步骤 {} {}，推进至步骤 {}", currentStep, isFailed ? "失败" : "完成", nextStep);
+        } else {
+            // 最后一步完成或失败
+            taskPlan.setStatus(isFailed ? TaskPlanStatus.FAILED.getValue() : TaskPlanStatus.COMPLETED.getValue());
+            ctx.getIteratorState().setAgentMode(AgentMode.CHAT);
+            log.info("所有步骤执行{}，切换回聊天模式", isFailed ? "（含失败步骤）" : "完成");
+        }
+
+        // 持久化 taskPlan 并推送更新事件
+        persistTaskPlan(ctx);
+        ctx.getEventPublisher().updateTaskPlan(ctx, taskPlan);
     }
 
     private boolean shouldBreakIterator(AgentChatContext ctx) {
@@ -133,10 +220,6 @@ public class AgentChatServiceImpl implements AgentChatService {
         }
         // 聊天模式，已经经过了一轮。
         if (iteratorState.getAgentMode() == AgentMode.CHAT && ctx.getIteratorState().getCurrentIterator().get() > 0) {
-            return true;
-        }
-        // TODO 测试计划模式，回头删掉这个判断
-        if (iteratorState.getAgentMode() == AgentMode.PLAN && ctx.getIteratorState().getCurrentIterator().get() > 1) {
             return true;
         }
         return iteratorState.getCurrentIterator().get() >= iteratorState.getMaxIterations();

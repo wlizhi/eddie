@@ -132,7 +132,21 @@ public class AgentChatContext {
     private AgentTaskPlan taskPlan;
 
     // ==================== 执行上下文 =====================
+    /**
+     * 步骤列表，写时隔离，每个线程读取置顶索引值
+     */
     private List<List<AgentMsgStepEntity>> taskStepList;
+
+    /**
+     * 当前步骤序号，从1开始，用来表示当前正在执行的步骤
+     */
+    private Integer currentStep;
+
+    /**
+     * 步骤级流式累加器（执行模式专用），
+     * 包含 stepId、独立于消息级别的 thinking/answer/toolCalls 累加。
+     */
+    private AgentStepStreamContext stepStreamContext;
 
     // ==================== 流式累加（用于最终持久化） ====================
     /**

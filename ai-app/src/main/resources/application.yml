@@ -40,6 +40,7 @@ eddie:
     session-title-prompts: prompts/title-generation.md
     agent-chat-prompts: prompts/agent-chat.md
     agent-task-plan-prompts: prompts/agent-task-plan.md
+    agent-task-execute-prompts: prompts/agent-task-execute.md
   agent-datasource:
     url: jdbc:sqlite:${eddie.data}/eddie-agent.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000
     driver-class-name: org.sqlite.JDBC

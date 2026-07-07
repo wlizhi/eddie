@@ -37,21 +37,38 @@ public class AgentEventPublisher {
     // ==================== 通用发射 ====================
 
     /**
-     * 发射消息级别事件（无 stepId）
+     * 发射消息级别事件（无 stepId，无 step）
      */
     public void emit(AgentChatContext ctx, AgentEvent event, Object data) {
-        emit(ctx, event, null, data);
+        emit(ctx, event, null, null, data);
     }
 
     /**
-     * 发射步骤级别事件（含 stepId）
+     * 发射步骤级别事件（含 stepId，step 从 ctx.getCurrentStep() 自动推导）
      */
     public void emit(AgentChatContext ctx, AgentEvent event, Long stepId, Object data) {
+        emit(ctx, event, stepId, null, data);
+    }
+
+    /**
+     * 发射步骤级别事件（显式指定 stepId + step）
+     *
+     * @param ctx    上下文
+     * @param event  事件类型
+     * @param stepId 步骤记录 ID，可为 null
+     * @param step   步骤序号（1-based），为 null 时从 ctx.getCurrentStep() 自动推导
+     * @param data   业务数据
+     */
+    public void emit(AgentChatContext ctx, AgentEvent event, Long stepId, Integer step, Object data) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        if (step == null) {
+            step = ctx.getCurrentStep();
+        }
 
         Map<String, Object> envelope = new LinkedHashMap<>();
         envelope.put("msgId", msgId);
         envelope.put("stepId", stepId);
+        envelope.put("step", step);
         envelope.put("data", data != null ? data : Map.of());
 
         try {
@@ -65,7 +82,7 @@ public class AgentEventPublisher {
             // 序列化失败不应影响主流程，降级推送错误提示
             ctx.getSink().next(ServerSentEvent.<String>builder()
                     .event("error")
-                    .data("{\"msgId\":" + msgId + ",\"stepId\":" + stepId + ",\"data\":{\"message\":\"Event serialization error\"}}")
+                    .data("{\"msgId\":" + msgId + ",\"stepId\":" + stepId + ",\"step\":" + step + ",\"data\":{\"message\":\"Event serialization error\"}}")
                     .build());
         }
     }

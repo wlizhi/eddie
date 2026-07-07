@@ -9,7 +9,11 @@ import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+
+import java.sql.PreparedStatement;
 
 import java.util.List;
 
@@ -41,11 +45,67 @@ public class AgentMsgStepDao {
                 now);
     }
 
+    /**
+     * 预创建占位记录，返回自增 ID。
+     * content/thinking/toolCalls 为空，流结束后通过 {@link #updateContent} 填充。
+     */
+    public Long insertPlaceholder(AgentMsgStepEntity entity) {
+        long now = System.currentTimeMillis();
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO ai_agent_session_msg_step " +
+                            "(msg_id, msg_type, msg_data_type, step, step_desc, " +
+                            "prompt, thinking, content, tool_calls, created_at) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, '', '', '[]', ?)",
+                    new String[]{"id"});
+            ps.setLong(1, entity.getMsgId());
+            ps.setInt(2, entity.getMsgType() != null ? entity.getMsgType() : 0);
+            ps.setInt(3, entity.getMsgDataType() != null ? entity.getMsgDataType() : 0);
+            ps.setInt(4, entity.getStep() != null ? entity.getStep() : 0);
+            ps.setString(5, entity.getStepDesc() != null ? entity.getStepDesc() : "");
+            ps.setString(6, entity.getPrompt() != null ? entity.getPrompt() : "");
+            ps.setLong(7, now);
+            return ps;
+        }, keyHolder);
+        Number key = keyHolder.getKey();
+        if (key != null) {
+            entity.setId(key.longValue());
+            return key.longValue();
+        }
+        return null;
+    }
+
+    /**
+     * 流结束后更新占位记录的实际内容
+     */
+    public void updateContent(Long id, String content, String thinking, String toolCalls) {
+        jdbcTemplate.update(
+                "UPDATE ai_agent_session_msg_step SET content=?, thinking=?, tool_calls=? WHERE id=?",
+                content != null ? content : "",
+                thinking != null ? thinking : "",
+                toolCalls != null ? toolCalls : "[]",
+                id);
+    }
+
     public List<AgentMsgStepEntity> findByMsgId(Long msgId) {
         String sql = "SELECT id, msg_id, msg_type, msg_data_type, step, step_desc, " +
                 "prompt, thinking, content, tool_calls, created_at " +
                 "FROM ai_agent_session_msg_step WHERE msg_id = ? ORDER BY step";
         return jdbcTemplate.query(sql, rowMapper, msgId);
+    }
+
+    /**
+     * 根据消息 ID 和步骤编号查询该步骤的所有交互记录
+     * <p>
+     * 一个步骤可能包含多轮模型交互（如 tool call 自循环），
+     * 每轮产生一条记录，按 id 正序返回以还原执行时序。
+     */
+    public List<AgentMsgStepEntity> findByMsgIdAndStep(Long msgId, int step) {
+        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step, step_desc, " +
+                "prompt, thinking, content, tool_calls, created_at " +
+                "FROM ai_agent_session_msg_step WHERE msg_id = ? AND step = ? ORDER BY id";
+        return jdbcTemplate.query(sql, rowMapper, msgId, step);
     }
 
     /**

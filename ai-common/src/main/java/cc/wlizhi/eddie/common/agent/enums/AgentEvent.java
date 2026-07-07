@@ -14,6 +14,8 @@ public enum AgentEvent {
     THINKING("模型思考内容，JSON"),
     ANSWER("模型回答内容，JSON"),
     TOOL_EXECUTION("工具执行结果 JSON"),
+    STEP_STARTED("步骤开始执行，仅在该步骤序号首次迭代时发送"),
+    EXECUTE_COMPLETE("步骤本次迭代执行完成，携带 stepId/step 供前端分块渲染"),
     PLAN_STARTED("规划开始，模型开始生成任务清单 JSON"),
     PLAN_GENERATED("规划生成成功，任务清单首次生成完毕 JSON"),
     UPDATE_TASK_PLAN("更新任务清单（全量任务清单内容） JSON"),

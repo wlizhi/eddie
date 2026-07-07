@@ -7,7 +7,10 @@ package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import cc.wlizhi.eddie.common.agent.enums.StepStatus;
+import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.exception.AppException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
@@ -16,6 +19,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * PLAN 模式响应处理器
@@ -113,5 +119,20 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
     protected void afterBlock(AgentChatContext ctx) {
         // 切换到执行模式
         ctx.getIteratorState().setAgentMode(AgentMode.EXECUTE);
+        // 初始化每个步骤的任务上下文
+        ctx.setCurrentStep(1);
+        List<AgentTaskStep> steps = ctx.getTaskPlan().getSteps();
+        ctx.setTaskStepList(new ArrayList<>(steps.size()));
+        steps.forEach(c -> ctx.getTaskStepList().add(new ArrayList<>()));
+
+        // 更新任务计划及首个步骤的状态
+        AgentTaskPlan taskPlan = ctx.getTaskPlan();
+        if (taskPlan != null) {
+            taskPlan.setStatus(TaskPlanStatus.EXECUTING.getValue());
+            List<AgentTaskStep> planSteps = taskPlan.getSteps();
+            if (planSteps != null && !planSteps.isEmpty()) {
+                planSteps.get(0).setStatus(StepStatus.PROCESSING.getValue());
+            }
+        }
     }
 }

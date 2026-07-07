@@ -1,6 +1,7 @@
 package cc.wlizhi.eddie.agent.handler;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.memory.context.BuiltInPromptsContext;
 import jakarta.annotation.Resource;
@@ -26,12 +27,33 @@ public class AgentPromptsResolver {
 
     public String resolvePlanPrompts(AgentChatContext context) {
         String planPrompts = builtInPromptsContext.getAgentTaskPlanPrompts();
-        // TODO 根本不需要自定义参数，直接在提示词模板中写参数，解析类自动识别
-        return builtInPromptsContext.resolvePrompt(planPrompts, Map.of(
-                "datetime", context.getOriginalRequest().getMessage(),
-                "timezone", "Asia/Shanghai",
-                "os", System.getProperty("os.name", "Unknown"),
-                "language", "zh-CN"
+        return builtInPromptsContext.resolvePrompt(planPrompts, Map.of());
+    }
+
+    private String resolveExecutePrompts(AgentChatContext context) {
+        String executePrompts = builtInPromptsContext.getAgentTaskExecutePrompts();
+        if (executePrompts == null) {
+            log.warn("Agent task execute prompts is null, fallback to chat prompts");
+            return resolveChatPrompts(context);
+        }
+
+        // 当前步骤编号
+        Integer currentStep = context.getCurrentStep();
+
+        // 完整 taskPlan 序列化为 JSON
+        AgentTaskPlan taskPlan = context.getTaskPlan();
+        String taskPlanJson;
+        try {
+            taskPlanJson = context.getObjectMapper().writeValueAsString(taskPlan);
+        } catch (Exception e) {
+            log.warn("Failed to serialize taskPlan to JSON, use empty", e);
+            taskPlanJson = "{}";
+        }
+
+        return builtInPromptsContext.resolvePrompt(executePrompts, Map.of(
+                "stepNumber", String.valueOf(currentStep),
+                "taskPlan", taskPlanJson,
+                "msgId", context.getAgentMsg().getId().toString()
         ));
     }
 
@@ -41,6 +63,9 @@ public class AgentPromptsResolver {
         }
         if (context.getIteratorState().getAgentMode() == AgentMode.PLAN) {
             return resolvePlanPrompts(context);
+        }
+        if (context.getIteratorState().getAgentMode() == AgentMode.EXECUTE) {
+            return resolveExecutePrompts(context);
         }
         return resolveChatPrompts(context);
     }

@@ -5,6 +5,7 @@
 
 package cc.wlizhi.eddie.agent.entity.dto;
 
+import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -61,7 +62,7 @@ public class AgentTaskStep {
      * failed — 执行失败
      */
     @JsonPropertyDescription("步骤状态：pending/processing/completed/failed，初始值固定为 pending")
-    private String status = "pending";
+    private String status = StepStatus.PENDING.getValue();
 
     /**
      * 步骤执行结果摘要（执行完成后由后端填入）

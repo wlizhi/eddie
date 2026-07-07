@@ -5,7 +5,7 @@ import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentPromptsResolver;
 import cc.wlizhi.eddie.agent.handler.AgentToolCallbackWrapper;
 import cc.wlizhi.eddie.agent.service.impl.AgentShortTermMemory;
-import cc.wlizhi.eddie.agent.tool.AgentToolProvider;
+import cc.wlizhi.eddie.agent.tool.SwitchModeTool;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.enums.RoleType;
@@ -33,7 +33,7 @@ public class AgentChatPostProcessor implements AgentClientPostProcessor {
     @Resource
     private AgentPromptsResolver agentPromptsResolver;
     @Resource
-    private List<AgentToolProvider> agentToolProviders;
+    private SwitchModeTool switchModeTool;
     @Resource
     private AgentShortTermMemory agentShortTermMemory;
     @Resource
@@ -52,15 +52,13 @@ public class AgentChatPostProcessor implements AgentClientPostProcessor {
                 , ctx.getOriginalRequest().getToolSelectionMode()
                 , ctx.getOriginalRequest().getToolNames());
 
-        // 2. 收集所有工具（用户可配 + 智能体内置）
+        // 2. 收集所有工具（用户可配 + 智能体内置切换模式工具）
         List<ToolCallback> allTools = new ArrayList<>();
         if (configurableTools != null) {
             allTools.addAll(Arrays.asList(configurableTools));
         }
-        for (AgentToolProvider provider : agentToolProviders) {
-            ToolCallback[] internalTools = ToolCallbacks.from(provider);
-            allTools.addAll(Arrays.asList(internalTools));
-        }
+        ToolCallback[] switchModeTools = ToolCallbacks.from(switchModeTool);
+        allTools.addAll(Arrays.asList(switchModeTools));
 
         // 3. 构建 ChatClient（仅在 chatting 模式注入记忆窗口 advisor）
         ChatClient.Builder builder = ctx.getChatClient().mutate();

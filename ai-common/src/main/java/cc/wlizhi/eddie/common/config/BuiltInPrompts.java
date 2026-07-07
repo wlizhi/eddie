@@ -14,4 +14,5 @@ public class BuiltInPrompts {
     private String sessionTitlePrompts;
     private String agentChatPrompts;
     private String agentTaskPlanPrompts;
+    private String agentTaskExecutePrompts;
 }

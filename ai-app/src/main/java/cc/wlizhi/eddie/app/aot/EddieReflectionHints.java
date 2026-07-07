@@ -16,6 +16,8 @@ import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.service.impl.DeepseekChatClientFactory;
 import cc.wlizhi.eddie.chat.service.impl.OpenAiChatClientFactory;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import cc.wlizhi.eddie.common.agent.enums.StepStatus;
+import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatModel;
 import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import cc.wlizhi.eddie.common.dao.ChatModelProviderDao;
@@ -65,6 +67,8 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(GeneralSettings.class, members);
         reflection.registerType(ModelJsonItem.class, members);
         reflection.registerType(AgentMode.class, members);
+        reflection.registerType(TaskPlanStatus.class, members);
+        reflection.registerType(StepStatus.class, members);
         reflection.registerType(AgentTaskPlan.class, members);
         reflection.registerType(ApiResult.class, members);
         reflection.registerType(AgentTaskStep.class, members);
