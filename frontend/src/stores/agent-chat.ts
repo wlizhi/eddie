@@ -525,7 +525,21 @@ export const useAgentChatStore = defineStore('agentChat', () => {
             },
             onMetadata: (json) => {
                 try {
-                    currentMetadata.value = JSON.parse(json) as ChatMetadata
+                    // MetadataPayload: { msgId, stepId, step, stats: { promptTokens, ... } }
+                    // 提取 stats 展开为扁平结构以匹配 ChatMetadata 接口
+                    const payload = JSON.parse(json) as Record<string, unknown>
+                    const stats = (payload?.stats ?? {}) as Record<string, unknown>
+                    currentMetadata.value = {
+                        promptTokens: stats.promptTokens as number | undefined,
+                        completionTokens: stats.completionTokens as number | undefined,
+                        totalTokens: stats.totalTokens as number | undefined,
+                        cacheReadInputTokens: stats.cacheReadInputTokens as number | undefined,
+                        cacheWriteInputTokens: stats.cacheWriteInputTokens as number | undefined,
+                        // 后端字段 priceEstimate → 前端字段 costEstimate
+                        costEstimate: stats.priceEstimate as number | undefined,
+                        currency: stats.currency as string | undefined,
+                        durationMs: stats.durationMs as number | undefined,
+                    } as ChatMetadata
                     const last = messages.value[messages.value.length - 1]
                     if (last && last.role === 'assistant') {
                         last.metadata = currentMetadata.value

@@ -14,8 +14,9 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 消息分段明细 DAO — 操作 ai_agent_session_msg_step 表（eddie-agent.db）
@@ -106,6 +107,23 @@ public class AgentMsgStepDao {
                 "FROM ai_agent_session_msg_step " +
                 "WHERE msg_id = ? AND msg_type = ? ORDER BY step ASC";
         return jdbcTemplate.query(sql, rowMapper, msgId, msgType);
+    }
+
+    /**
+     * 批量查询多条消息的步骤（msg_type=0），按 msg_id + step ASC 排序
+     * <p>
+     * 用于消息列表查询时避免 N+1 问题，一次性查出所有步骤后在 Java 中按 msgId 分组聚合。
+     */
+    public List<AgentMsgStepEntity> findByMsgIds(List<Long> msgIds) {
+        if (msgIds == null || msgIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String placeholders = msgIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step, step_desc, " +
+                "prompt, thinking, content, tool_calls, created_at " +
+                "FROM ai_agent_session_msg_step " +
+                "WHERE msg_id IN (" + placeholders + ") AND msg_type = 0";
+        return jdbcTemplate.query(sql, rowMapper, msgIds.toArray());
     }
 
     /**

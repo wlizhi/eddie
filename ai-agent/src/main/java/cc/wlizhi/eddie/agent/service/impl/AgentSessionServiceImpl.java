@@ -39,8 +39,10 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 智能体会话管理业务实现
@@ -292,10 +294,22 @@ public class AgentSessionServiceImpl implements AgentSessionService {
     @Override
     public List<AgentMessageVO> findMessagesBySessionId(Long sessionId, Long beforeId, int limit) {
         List<AgentMsgEntity> entities = agentMsgDao.findBySessionId(sessionId, beforeId, limit);
+        if (entities.isEmpty()) {
+            return List.of();
+        }
+
+        // 批量查询所有消息的步骤（msg_type=0），按 msgId 分组聚合，避免 N+1
+        List<Long> msgIds = entities.stream().map(AgentMsgEntity::getId).collect(Collectors.toList());
+        Map<Long, List<AgentMsgStepEntity>> stepsMap = agentMsgStepDao.findByMsgIds(msgIds)
+                .stream()
+                .collect(Collectors.groupingBy(AgentMsgStepEntity::getMsgId));
+        // Java 代码中按 step ASC 排序
+        stepsMap.values().forEach(list -> list.sort(Comparator.comparingInt(AgentMsgStepEntity::getStep)));
+
         // AgentMsgDao 返回倒序（最新在前），反转为正序
         List<AgentMessageVO> vos = new ArrayList<>(entities.size());
         for (int i = entities.size() - 1; i >= 0; i--) {
-            vos.add(toMessageVO(entities.get(i)));
+            vos.add(toMessageVO(entities.get(i), stepsMap));
         }
         return vos;
     }
@@ -314,7 +328,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         return vo;
     }
 
-    private AgentMessageVO toMessageVO(AgentMsgEntity entity) {
+    private AgentMessageVO toMessageVO(AgentMsgEntity entity, Map<Long, List<AgentMsgStepEntity>> stepsMap) {
         AgentMessageVO vo = new AgentMessageVO();
         vo.setId(entity.getId());
         vo.setSessionId(entity.getSessionId());
@@ -347,9 +361,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
             }
         }
 
-        // 查询前端展示的步骤列表（msg_type=0，按 step ASC 排序）
-        List<AgentMsgStepEntity> steps = agentMsgStepDao.findByMsgIdAndType(entity.getId(), 0);
-        vo.setStepList(steps);
+        // 从预加载的 stepsMap 中获取步骤列表（msg_type=0，按 step ASC 排序）
+        vo.setStepList(stepsMap.getOrDefault(entity.getId(), List.of()));
 
         return vo;
     }
