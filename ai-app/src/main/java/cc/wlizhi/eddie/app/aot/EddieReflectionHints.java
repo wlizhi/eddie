@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.app.aot;
 
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
+import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentModelInfo;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
@@ -74,6 +75,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(AgentTaskPlan.class, members);
         reflection.registerType(ApiResult.class, members);
         reflection.registerType(AgentTaskStep.class, members);
+        reflection.registerType(AgentMsgStepEntity.class, members);
         // ==================== SSE 事件 Payload ====================
         reflection.registerType(ThinkingPayload.class, members);
         reflection.registerType(AnswerPayload.class, members);

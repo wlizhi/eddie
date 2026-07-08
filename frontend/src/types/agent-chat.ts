@@ -133,6 +133,27 @@ export interface AgentMessageVO {
     toolCalls: string
     msgStatus: string      // COMPLETED / STOPPED / ERROR
     createdAt: number
+    /** 规划清单（已解析的对象，前端直接使用，仅 PLAN 模式的 assistant 消息有值） */
+    taskPlan: AgentTaskPlan | null
+    /** 前端展示步骤列表（msg_type=0，按 step ASC 排序） */
+    stepList: AgentMsgStepVO[] | null
+}
+
+/**
+ * 消息步骤明细 — 对应后端 AgentMsgStepEntity（前端展示）
+ */
+export interface AgentMsgStepVO {
+    id: number
+    msgId: number
+    msgType: number
+    msgDataType: number
+    step: number
+    stepDesc: string
+    prompt: string
+    thinking: string
+    content: string
+    toolCalls: string
+    createdAt: number
 }
 
 /**

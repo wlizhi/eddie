@@ -7,6 +7,9 @@ package cc.wlizhi.eddie.agent.service.impl;
 
 import cc.wlizhi.eddie.agent.dao.AgentDao;
 import cc.wlizhi.eddie.agent.dao.AgentMsgDao;
+import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
+import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.dao.AgentSessionDao;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
@@ -71,6 +74,9 @@ public class AgentSessionServiceImpl implements AgentSessionService {
 
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private AgentMsgStepDao agentMsgStepDao;
 
     @Override
     public AgentSessionVO create(Long agentId) {
@@ -330,6 +336,21 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         vo.setDurationMs(entity.getDurationMs());
         vo.setMsgStatus(entity.getMsgStatus());
         vo.setCreatedAt(entity.getCreatedAt());
+
+        // 解析 task_plan JSON → AgentTaskPlan 对象（仅 PLAN 模式的 assistant 消息有值）
+        if (entity.getTaskPlan() != null && !entity.getTaskPlan().isEmpty()) {
+            try {
+                AgentTaskPlan taskPlan = objectMapper.readValue(entity.getTaskPlan(), AgentTaskPlan.class);
+                vo.setTaskPlan(taskPlan);
+            } catch (Exception e) {
+                log.warn("解析 task_plan JSON 失败, msgId={}: {}", entity.getId(), e.getMessage());
+            }
+        }
+
+        // 查询前端展示的步骤列表（msg_type=0，按 step ASC 排序）
+        List<AgentMsgStepEntity> steps = agentMsgStepDao.findByMsgIdAndType(entity.getId(), 0);
+        vo.setStepList(steps);
+
         return vo;
     }
 }

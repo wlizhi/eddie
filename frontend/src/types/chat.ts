@@ -130,6 +130,8 @@ export interface ChatMessage {
     modelName?: string
     /** 任务计划清单（仅 agent 规划模式的消息有此字段） */
     taskPlan?: import('./agent-chat').AgentTaskPlan | null
+    /** 前端展示步骤列表（msg_type=0，按 step ASC 排序，仅历史加载有值） */
+    stepList?: import('./agent-chat').AgentMsgStepVO[] | null
     /** 按轮次拆分的独立内容（agent 流式响应时构建，历史加载时回填为单轮次） */
     rounds?: import('./agent-chat').RoundContent[]
 }

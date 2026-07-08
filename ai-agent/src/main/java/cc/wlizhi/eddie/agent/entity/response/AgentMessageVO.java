@@ -5,8 +5,12 @@
 
 package cc.wlizhi.eddie.agent.entity.response;
 
+import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 /**
  * 智能体消息记录响应 VO
@@ -116,4 +120,16 @@ public class AgentMessageVO {
      * 创建时间
      */
     private Long createdAt;
+
+    /**
+     * 规划清单（已解析的对象，前端直接使用）
+     * 仅 PLAN 模式的 assistant 消息有此字段
+     */
+    private AgentTaskPlan taskPlan;
+
+    /**
+     * 前端展示步骤列表（msg_type=0，按 step ASC 排序）
+     * 对应 ai_agent_session_msg_step 表中当前 msgId 且 msg_type=0 的记录
+     */
+    private List<AgentMsgStepEntity> stepList;
 }

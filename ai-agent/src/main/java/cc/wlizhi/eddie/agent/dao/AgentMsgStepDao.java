@@ -96,6 +96,19 @@ public class AgentMsgStepDao {
     }
 
     /**
+     * 根据消息 ID 和消息类型查询步骤列表，按 step ASC 排序
+     * <p>
+     * 用于历史消息加载时返回前端展示的步骤明细（msg_type=0）。
+     */
+    public List<AgentMsgStepEntity> findByMsgIdAndType(Long msgId, int msgType) {
+        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step, step_desc, " +
+                "prompt, thinking, content, tool_calls, created_at " +
+                "FROM ai_agent_session_msg_step " +
+                "WHERE msg_id = ? AND msg_type = ? ORDER BY step ASC";
+        return jdbcTemplate.query(sql, rowMapper, msgId, msgType);
+    }
+
+    /**
      * 根据消息 ID 和步骤编号查询该步骤的所有交互记录
      * <p>
      * 一个步骤可能包含多轮模型交互（如 tool call 自循环），

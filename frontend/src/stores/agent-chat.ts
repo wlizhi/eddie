@@ -107,6 +107,8 @@ function toChatMessage(vo: {
     cacheReadInputTokens: number
     cacheWriteInputTokens: number
     createdAt: number
+    taskPlan: import('@/types/agent-chat').AgentTaskPlan | null
+    stepList: import('@/types/agent-chat').AgentMsgStepVO[] | null
 }): ChatMessage {
     const content = vo.content || ''
     const thinking = vo.thinking || undefined
@@ -121,6 +123,8 @@ function toChatMessage(vo: {
         toolCalls,
         timestamp: vo.createdAt,
         modelName: vo.modelName || undefined,
+        taskPlan: vo.taskPlan ?? undefined,
+        stepList: vo.stepList ?? undefined,
         metadata: {
             timestamp: vo.createdAt,
             ...(vo.durationMs != null ? {durationMs: vo.durationMs} : {}),
