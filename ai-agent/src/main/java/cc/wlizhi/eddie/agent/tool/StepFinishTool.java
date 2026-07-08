@@ -95,6 +95,7 @@ public class StepFinishTool implements AgentToolProvider {
             // 最后一步时，需要更新整个任务清单状态为完成状态
             if (step == taskPlan.getSteps().size()) {
                 taskPlan.setStatus(TaskPlanStatus.COMPLETED.getValue());
+                taskPlan.setResult(result);
             }
         } else {
             return ApiResult.error(ApiResultCode.BAD_REQUEST,

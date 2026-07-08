@@ -405,6 +405,12 @@ function onScroll() {
                   v-if="msg.taskPlan"
                   :plan="msg.taskPlan"
               />
+              <!-- 任务完成结果摘要 -->
+              <div
+                  v-if="msg.taskPlan?.status === 'completed' && msg.taskPlan?.result"
+                  class="message-content markdown-body plan-result-content"
+                  v-html="renderMd(msg.taskPlan.result)"
+              />
             </template>
           </div>
 

@@ -681,3 +681,11 @@
     animation: aml-spin 1.2s linear infinite;
     color: var(--accent-default);
 }
+
+/* ===== 任务完成结果摘要 ===== */
+
+.plan-result-content {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-base);
+}

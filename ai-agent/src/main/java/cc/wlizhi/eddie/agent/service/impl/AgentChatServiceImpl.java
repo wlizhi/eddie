@@ -218,6 +218,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         } else {
             // 最后一步完成或失败
             taskPlan.setStatus(isFailed ? TaskPlanStatus.FAILED.getValue() : TaskPlanStatus.COMPLETED.getValue());
+            taskPlan.setResult(taskPlan.getSteps().getLast().getResult());
             ctx.getIteratorState().setAgentMode(AgentMode.CHAT);
             log.info("所有步骤执行{}，切换回聊天模式", isFailed ? "（含失败步骤）" : "完成");
         }
