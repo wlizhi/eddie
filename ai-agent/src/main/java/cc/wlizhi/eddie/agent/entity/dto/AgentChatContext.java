@@ -7,7 +7,6 @@ package cc.wlizhi.eddie.agent.entity.dto;
 
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
-import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentEventPublisher;
@@ -132,11 +131,6 @@ public class AgentChatContext {
     private AgentTaskPlan taskPlan;
 
     // ==================== 执行上下文 =====================
-    /**
-     * TODO 看下是否删除这个变量，似乎没用了
-     * 步骤列表，写时隔离，每个线程读取置顶索引值
-     */
-    private List<List<AgentMsgStepEntity>> taskStepList;
 
     /**
      * 当前步骤序号，从1开始，用来表示当前正在执行的步骤

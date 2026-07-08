@@ -24,7 +24,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -63,23 +62,14 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         Integer currentStep = ctx.getCurrentStep();
         String stepDesc = resolveStepDesc(ctx, currentStep);
 
-        // 1. 判断该步骤序号是否首次执行（taskStepList 对应索引为空）
-        List<List<AgentMsgStepEntity>> stepList = ctx.getTaskStepList();
-        boolean isFirstExecution = stepList == null || currentStep == null ||
-                currentStep <= 0 || currentStep - 1 >= stepList.size() ||
-                stepList.get(currentStep - 1).isEmpty();
-        if (isFirstExecution) {
-            ctx.getEventPublisher().emit(ctx, AgentEvent.STEP_STARTED,
-                    ApiResult.success(Map.of("stepDesc", stepDesc)));
-        }
-
-        // 2. 获取已初始化的步骤级流式累加器（由 AgentExecutePostProcessor 创建并设好 prompt）
+        // 1. 获取已初始化的步骤级流式累加器（由 AgentExecutePostProcessor 创建并设好 prompt）
         AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
         if (stepCtx == null) {
             // 容错：如果前置未初始化，兜底创建
             stepCtx = new AgentStepStreamContext();
             ctx.setStepStreamContext(stepCtx);
         }
+
         stepCtx.setStep(currentStep);
         stepCtx.setStepDesc(stepDesc);
 
@@ -92,11 +82,6 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
             log.warn("预创建步骤占位记录失败, msgId={}, step={}: {}",
                     ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null,
                     currentStep, e.getMessage());
-        }
-
-        // 4. 追加到上下文的 taskStepList 对应索引
-        if (stepList != null && currentStep != null && currentStep - 1 < stepList.size()) {
-            stepList.get(currentStep - 1).add(placeholder);
         }
     }
 
@@ -187,22 +172,6 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
                 toolCallsJson = ctx.getObjectMapper().writeValueAsString(toolCalls);
             } catch (Exception e) {
                 log.warn("序列化工具调用记录失败, stepId={}: {}", stepCtx.getStepId(), e.getMessage());
-            }
-        }
-
-        // 先更新内存中的实体（供后续步骤的 ${completedResult} 变量使用），再持久化到 DB
-        List<List<AgentMsgStepEntity>> stepList = ctx.getTaskStepList();
-        Integer currentStep = ctx.getCurrentStep();
-        if (stepList != null && currentStep != null && currentStep > 0
-                && currentStep - 1 < stepList.size()) {
-            List<AgentMsgStepEntity> entities = stepList.get(currentStep - 1);
-            if (!entities.isEmpty()) {
-                AgentMsgStepEntity lastEntity = entities.getLast();
-                if (lastEntity.getId() != null && lastEntity.getId().equals(stepCtx.getStepId())) {
-                    lastEntity.setContent(content);
-                    lastEntity.setThinking(thinking);
-                    lastEntity.setToolCalls(toolCallsJson);
-                }
             }
         }
 

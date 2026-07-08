@@ -20,7 +20,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -121,9 +120,6 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
         ctx.getIteratorState().setAgentMode(AgentMode.EXECUTE);
         // 初始化每个步骤的任务上下文
         ctx.setCurrentStep(1);
-        List<AgentTaskStep> steps = ctx.getTaskPlan().getSteps();
-        ctx.setTaskStepList(new ArrayList<>(steps.size()));
-        steps.forEach(c -> ctx.getTaskStepList().add(new ArrayList<>()));
 
         // 更新任务计划及首个步骤的状态
         AgentTaskPlan taskPlan = ctx.getTaskPlan();

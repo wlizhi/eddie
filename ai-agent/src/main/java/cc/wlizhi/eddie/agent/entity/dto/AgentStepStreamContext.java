@@ -35,6 +35,11 @@ public class AgentStepStreamContext {
     private Integer step;
 
     /**
+     * 当前迭代次数，从1开始
+     */
+    private Integer currentIterator = 1;
+
+    /**
      * Prompt 提示词（轮次结束后获取，写入步骤记录的 prompt 字段）
      */
     private String prompt;
