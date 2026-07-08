@@ -71,7 +71,7 @@ public class AgentEventPublisher {
         Long assistantMsgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         MessageCreatedPayload payload = new MessageCreatedPayload(
-                "message_created", msgId, null, null, userMsgId, assistantMsgId);
+                msgId, null, null, userMsgId, assistantMsgId);
         emit(ctx, AgentEvent.MESSAGE_CREATED, ApiResult.success(payload));
     }
 
@@ -81,7 +81,7 @@ public class AgentEventPublisher {
     public void thinking(AgentChatContext ctx, Long stepId, String text) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
-        ThinkingPayload payload = new ThinkingPayload("thinking", msgId, stepId, step, text);
+        ThinkingPayload payload = new ThinkingPayload(msgId, stepId, step, text);
         emit(ctx, AgentEvent.THINKING, ApiResult.success(payload));
     }
 
@@ -91,7 +91,7 @@ public class AgentEventPublisher {
     public void answer(AgentChatContext ctx, Long stepId, String text) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
-        AnswerPayload payload = new AnswerPayload("answer", msgId, stepId, step, text);
+        AnswerPayload payload = new AnswerPayload(msgId, stepId, step, text);
         emit(ctx, AgentEvent.ANSWER, ApiResult.success(payload));
     }
 
@@ -102,7 +102,7 @@ public class AgentEventPublisher {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
         ToolExecutionPayload payload = new ToolExecutionPayload(
-                "tool_execution", msgId, stepId, step, toolName, status, null, result, false);
+                msgId, stepId, step, toolName, status, null, result, false);
         emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
     }
 
@@ -132,7 +132,7 @@ public class AgentEventPublisher {
      */
     public void roundStart(AgentChatContext ctx, int round) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        RoundStartPayload payload = new RoundStartPayload("round_start", msgId, null, null, round);
+        RoundStartPayload payload = new RoundStartPayload(msgId, null, null, round);
         emit(ctx, AgentEvent.ROUND_START, ApiResult.success(payload));
     }
 
@@ -142,7 +142,7 @@ public class AgentEventPublisher {
     public void metadata(AgentChatContext ctx, AgentTokenStatists stats) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
-        MetadataPayload payload = new MetadataPayload("metadata", msgId, null, step, stats);
+        MetadataPayload payload = new MetadataPayload(msgId, null, step, stats);
         emit(ctx, AgentEvent.METADATA, ApiResult.success(payload));
     }
 
@@ -151,7 +151,7 @@ public class AgentEventPublisher {
      */
     public void cancelled(AgentChatContext ctx, String reason) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        CancelledPayload payload = new CancelledPayload("cancelled", msgId, null, null, reason);
+        CancelledPayload payload = new CancelledPayload(msgId, null, null, reason);
         emit(ctx, AgentEvent.CANCELLED, ApiResult.success(payload));
     }
 

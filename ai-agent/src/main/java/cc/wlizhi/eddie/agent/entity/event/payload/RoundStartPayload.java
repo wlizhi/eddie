@@ -19,7 +19,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class RoundStartPayload {
 
-    private String eventType;
     private Long msgId;
     private Long stepId;
     private Integer step;

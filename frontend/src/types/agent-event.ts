@@ -23,7 +23,6 @@ export interface ApiResult<T = unknown> {
 // ==================== 事件 Payload ====================
 
 export interface ThinkingPayload {
-    eventType: string
     msgId?: number
     stepId?: number
     step?: number
@@ -31,7 +30,6 @@ export interface ThinkingPayload {
 }
 
 export interface AnswerPayload {
-    eventType: string
     msgId?: number
     stepId?: number
     step?: number
@@ -39,7 +37,6 @@ export interface AnswerPayload {
 }
 
 export interface ToolExecutionPayload {
-    eventType: string
     msgId?: number
     stepId?: number
     step?: number
@@ -51,7 +48,6 @@ export interface ToolExecutionPayload {
 }
 
 export interface MessageCreatedPayload {
-    eventType: string
     msgId?: number
     stepId?: number
     step?: number
@@ -60,7 +56,6 @@ export interface MessageCreatedPayload {
 }
 
 export interface RoundStartPayload {
-    eventType: string
     msgId?: number
     stepId?: number
     step?: number
@@ -68,7 +63,6 @@ export interface RoundStartPayload {
 }
 
 export interface CancelledPayload {
-    eventType: string
     msgId?: number
     stepId?: number
     step?: number
