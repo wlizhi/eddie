@@ -156,6 +156,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         // 3. 推送执行完成事件
         AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
         Integer currentStep = ctx.getCurrentStep();
+        // 这里不应该使用 Map.of()
         ctx.getEventPublisher().emit(ctx, AgentEvent.EXECUTE_COMPLETE,
                 ApiResult.success(Map.of()));
     }

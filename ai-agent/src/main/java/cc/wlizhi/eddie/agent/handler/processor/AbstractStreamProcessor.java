@@ -116,15 +116,11 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
             long elapsed = System.currentTimeMillis() - streamStart;
             log.warn("[StreamDiagnostic] 流处理异常终止 after {} chunks, {}ms: {}",
                     chunkCount.get(), elapsed, e.getMessage(), e);
-            if (e instanceof AppException) {
-                throw e;
-            } else {
-                throw new ProviderCallException(ApiResultCode.PROVIDER_CALL_FAILED, e.getMessage(), null, e);
-            }
+            throw e;
+        }finally {
+            // 钩子：流结束后的收尾
+            afterStream(ctx);
         }
-
-        // 钩子：流结束后的收尾
-        afterStream(ctx);
     }
 
     private boolean checkUserStopEvent(AgentChatContext ctx) {

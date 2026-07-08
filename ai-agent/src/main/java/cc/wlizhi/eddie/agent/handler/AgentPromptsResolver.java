@@ -9,6 +9,7 @@ import cc.wlizhi.eddie.memory.context.BuiltInPromptsContext;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,15 +24,26 @@ public class AgentPromptsResolver {
     public String resolveChatPrompts(AgentChatContext context) {
         String agentChatPrompts = builtInPromptsContext.getAgentChatPrompts();
         String systemPrompt = context.getAgent().getSystemPrompt();
-        return builtInPromptsContext.resolvePrompt(agentChatPrompts, Map.of(
+        String prompt = builtInPromptsContext.resolvePrompt(agentChatPrompts, Map.of(
                 "msgId", context.getAgentMsg().getId().toString(),
                 "userSystemPrompt", systemPrompt
         ));
+        return appendToolErrorIfNecessary(prompt, context);
+    }
+
+    private String appendToolErrorIfNecessary(String prompt, AgentChatContext context) {
+        StringBuilder toolErrorFeedback = context.getToolErrorFeedback();
+        if (ObjectUtils.isEmpty(toolErrorFeedback)) {
+            return prompt;
+        }
+        context.setToolErrorFeedback(new StringBuilder());
+        return toolErrorFeedback + "\n====\n" + prompt;
     }
 
     public String resolvePlanPrompts(AgentChatContext context) {
         String planPrompts = builtInPromptsContext.getAgentTaskPlanPrompts();
-        return builtInPromptsContext.resolvePrompt(planPrompts, Map.of());
+        String prompt = builtInPromptsContext.resolvePrompt(planPrompts, Map.of());
+        return appendToolErrorIfNecessary(prompt, context);
     }
 
     private String resolveExecutePrompts(AgentChatContext context) {
@@ -54,12 +66,13 @@ public class AgentPromptsResolver {
             taskPlanJson = "{}";
         }
 
-        return builtInPromptsContext.resolvePrompt(executePrompts, Map.of(
+        String prompt = builtInPromptsContext.resolvePrompt(executePrompts, Map.of(
                 "stepNumber", String.valueOf(currentStep),
                 "taskPlan", taskPlanJson,
                 "msgId", context.getAgentMsg().getId().toString()
 //                "completedResult", buildCompletedResult(context)
         ));
+        return appendToolErrorIfNecessary(prompt, context);
     }
 
     /**
