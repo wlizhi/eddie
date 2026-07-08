@@ -349,3 +349,10 @@
 .markdown-body a:hover {
     opacity: 0.85;
 }
+
+/* ===== 图片自适应 ===== */
+.markdown-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
