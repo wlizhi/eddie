@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AbstractMessage;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 
@@ -72,29 +73,15 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
             requestSpec.stream().chatResponse()
                     .takeWhile(res -> {
                         // 聊天模式切换到规划模式时，应当中断
-                        if (breakInStreamIfNecessary(ctx)) {
-                            return false;
-                        }
+//                        if (breakInStreamIfNecessary(ctx)) {
+//                            return false;
+//                        }
                         return !checkUserStopEvent(ctx);
                     }).toStream()
                     .forEach(res -> {
                         int idx = chunkCount.incrementAndGet();
                         // 保存最后一次响应，供后续提取 tool_calls / token 用量
                         ctx.setLastResponse(res);
-
-                        // 检测是否有 tool_calls（用于日志诊断）
-                        boolean hasToolCall = res.getResults().stream()
-                                .anyMatch(g -> g.getOutput() != null
-                                        && g.getOutput().getToolCalls() != null
-                                        && !g.getOutput().getToolCalls().isEmpty());
-                        if (hasToolCall) {
-                            String finishReason = res.getResult() != null
-                                    && res.getResult().getMetadata() != null
-                                    ? res.getResult().getMetadata().getFinishReason()
-                                    : "N/A";
-                            log.debug("[StreamDiagnostic] chunk#{} 包含 tool_calls, finishReason={}",
-                                    idx, finishReason);
-                        }
 
                         // 1. 提取并推送思考内容（JSON 格式 via AgentEventPublisher）
                         handleThinking(ctx, res);
@@ -117,7 +104,7 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
             log.warn("[StreamDiagnostic] 流处理异常终止 after {} chunks, {}ms: {}",
                     chunkCount.get(), elapsed, e.getMessage(), e);
             throw e;
-        }finally {
+        } finally {
             // 钩子：流结束后的收尾
             afterStream(ctx);
         }
@@ -210,6 +197,8 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
      * 子类若覆盖此方法，<b>必须</b>调用 {@code super.afterStream(ctx)} 以确保统计逻辑执行。
      */
     protected void afterStream(AgentChatContext ctx) {
+        Usage usage = ctx.getLastResponse().getMetadata().getUsage();
+        log.debug("afterStream，getTotalTokens:{}，getPromptTokens：{}，getCompletionTokens：{}", usage.getTotalTokens(), usage.getPromptTokens(), usage.getCompletionTokens());
         // 1. 从最后一条 ChatResponse 提取 token 统计，增量合并到 ctx.tokenStatists
         TokenStatsHelper.extractAndMergeTokenStats(ctx);
 

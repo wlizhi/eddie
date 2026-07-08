@@ -83,7 +83,7 @@ public final class TokenStatsHelper {
         // 耗时（从请求开始时间到当前）
         long now = System.currentTimeMillis();
         int elapsedMs = (int) (now - ctx.getStartTime());
-        stats.setDurationMs((stats.getDurationMs() != null ? stats.getDurationMs() : 0) + elapsedMs);
+        stats.setDurationMs(elapsedMs);
     }
 
     /**
@@ -98,7 +98,7 @@ public final class TokenStatsHelper {
         Long agentMsgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         if (agentMsgId == null) return;
 
-        agentMsgDao.updateTokenIncremental(
+        agentMsgDao.updateTokenAbsolute(
                 agentMsgId,
                 stats.getPromptTokens() != null ? stats.getPromptTokens() : 0,
                 stats.getCompletionTokens() != null ? stats.getCompletionTokens() : 0,

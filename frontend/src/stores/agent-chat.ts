@@ -432,31 +432,33 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     })
                 }
             },
-            onThinking: (chunk, step) => {
+            onThinking: (chunk) => {
                 currentThinking.value += chunk
                 const last = messages.value[messages.value.length - 1]
                 if (last && last.role === 'assistant') {
                     last.thinking = currentThinking.value
-                    // 按 step 路由到对应轮次
-                    const roundIndex = step ?? 0
+                    // 按 currentRound 路由到对应轮次（round_start 事件的 round 值，而非 plan step）
+                    const roundIndex = currentRound.value
                     const rounds = ensureRounds(last, roundIndex)
                     rounds[roundIndex].thinking += chunk
                 }
             },
-            onAnswer: (chunk, step) => {
+            onAnswer: (chunk) => {
                 currentAnswer.value += chunk
                 const last = messages.value[messages.value.length - 1]
                 if (last && last.role === 'assistant') {
                     last.content = currentAnswer.value
-                    // 按 step 路由到对应轮次
-                    const roundIndex = step ?? 0
+                    // 按 currentRound 路由到对应轮次（round_start 事件的 round 值，而非 plan step）
+                    const roundIndex = currentRound.value
                     const rounds = ensureRounds(last, roundIndex)
                     rounds[roundIndex].content += chunk
                     debounceRender(last)
                 }
             },
-            onToolExecution: (data, step) => {
-                const roundIndex = step ?? 0
+            onToolExecution: (data) => {
+                // 使用 currentRound（round_start 事件的 round 值）作为轮次索引，
+                // 而非 tool_execution payload 中的 step（该值为计划步骤编号，多个迭代可相同）
+                const roundIndex = currentRound.value
                 if (data.status === 'start') {
                     const toolRec = {
                         toolName: data.toolName,

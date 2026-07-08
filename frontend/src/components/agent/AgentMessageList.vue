@@ -409,7 +409,7 @@ function onScroll() {
           </div>
 
           <!-- 底部：元数据 + 操作按钮 -->
-          <div v-if="msg.content" class="msg-footer">
+          <div class="msg-footer">
             <!-- 元数据（仅 agent）— 桌面端完整版 -->
             <div v-if="msg.role === 'assistant' && msg.metadata"
                  class="metadata-desktop">
@@ -483,7 +483,7 @@ function onScroll() {
               </button>
             </div>
 
-            <div class="message-actions">
+            <div v-if="msg.content" class="message-actions">
               <button
                   class="action-btn"
                   :data-copied="copiedMessageId === msg.id || undefined"

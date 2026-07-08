@@ -70,48 +70,6 @@ public class AgentMsgDao {
         return jdbcTemplate.query(sql.toString(), rowMapper, sessionId, limit);
     }
 
-    public void updateAssistantMsg(Long id, String content, String thinking, String toolCalls,
-                                   int promptTokens, int completionTokens, int totalTokens,
-                                   int cacheReadInputTokens, int cacheWriteInputTokens,
-                                   String currency, double priceEstimate,
-                                   String msgStatus, int durationMs) {
-        jdbcTemplate.update(
-                "UPDATE ai_agent_session_msg SET content = ?, thinking = ?, tool_calls = ?, " +
-                        "prompt_tokens = ?, completion_tokens = ?, total_tokens = ?, " +
-                        "cache_read_input_tokens = ?, cache_written_input_tokens = ?, " +
-                        "currency = ?, price_estimate = ?, " +
-                        "msg_status = ?, duration_ms = ? WHERE id = ?",
-                content, thinking, toolCalls,
-                promptTokens, completionTokens, totalTokens,
-                cacheReadInputTokens, cacheWriteInputTokens,
-                currency, priceEstimate,
-                msgStatus, durationMs, id);
-    }
-
-    /**
-     * 增量更新 token 统计（每轮迭代结束后调用，field = field + delta）
-     */
-    public void updateTokenIncremental(Long id,
-                                       int deltaPromptTokens, int deltaCompletionTokens, int deltaTotalTokens,
-                                       int deltaCacheReadInputTokens, int deltaCacheWriteInputTokens,
-                                       String currency, double priceEstimate,
-                                       int deltaDurationMs) {
-        jdbcTemplate.update(
-                "UPDATE ai_agent_session_msg SET " +
-                        "prompt_tokens = COALESCE(prompt_tokens, 0) + ?, " +
-                        "completion_tokens = COALESCE(completion_tokens, 0) + ?, " +
-                        "total_tokens = COALESCE(total_tokens, 0) + ?, " +
-                        "cache_read_input_tokens = COALESCE(cache_read_input_tokens, 0) + ?, " +
-                        "cache_written_input_tokens = COALESCE(cache_written_input_tokens, 0) + ?, " +
-                        "currency = ?, " +
-                        "price_estimate = COALESCE(price_estimate, 0) + ?, " +
-                        "duration_ms = COALESCE(duration_ms, 0) + ?, " +
-                        "msg_status = 'COMPLETED' WHERE id = ?",
-                deltaPromptTokens, deltaCompletionTokens, deltaTotalTokens,
-                deltaCacheReadInputTokens, deltaCacheWriteInputTokens,
-                currency, priceEstimate, deltaDurationMs, id);
-    }
-
     /**
      * 更新消息的 task_plan 字段（规划模式持久化规划清单 JSON）
      */
@@ -119,6 +77,30 @@ public class AgentMsgDao {
         jdbcTemplate.update(
                 "UPDATE ai_agent_session_msg SET task_plan = ? WHERE id = ?",
                 taskPlan, id);
+    }
+
+    /**
+     * 绝对赋值更新 token 统计与耗时（每轮迭代结束后调用，覆盖旧值）
+     * <p>
+     * 与 {@link #updateTokenIncremental} 不同，此方法直接 SET 而非累加，
+     * 适用于多轮迭代场景，避免累积值被重复增量写入导致数据膨胀。
+     * <p>
+     * 使用此方法的前提：调用方传入的值为自请求开始以来的全量累积值。
+     */
+    public void updateTokenAbsolute(Long id,
+                                    int promptTokens, int completionTokens, int totalTokens,
+                                    int cacheReadInputTokens, int cacheWriteInputTokens,
+                                    String currency, double priceEstimate,
+                                    int durationMs) {
+        jdbcTemplate.update(
+                "UPDATE ai_agent_session_msg SET " +
+                        "prompt_tokens = ?, completion_tokens = ?, total_tokens = ?, " +
+                        "cache_read_input_tokens = ?, cache_written_input_tokens = ?, " +
+                        "currency = ?, price_estimate = ?, duration_ms = ? " +
+                        "WHERE id = ?",
+                promptTokens, completionTokens, totalTokens,
+                cacheReadInputTokens, cacheWriteInputTokens,
+                currency, priceEstimate, durationMs, id);
     }
 
     /**

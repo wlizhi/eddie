@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AbstractMessage;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 
@@ -73,6 +74,9 @@ public abstract class AbstractBlockingProcessor implements ResponseStreamProcess
 
         // 1. 从全量 response 提取 thinking + content，追加到累计上下文
         extractBlockingContent(ctx, response);
+
+        Usage usage = response.getMetadata().getUsage();
+        log.debug("doBlock，getTotalTokens:{}，getPromptTokens：{}，getCompletionTokens：{}", usage.getTotalTokens(), usage.getPromptTokens(), usage.getCompletionTokens());
 
         // 2. 从 ChatResponse 提取 token 统计，增量合并到 ctx.tokenStatists
         TokenStatsHelper.extractAndMergeTokenStats(ctx);

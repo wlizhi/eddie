@@ -19,6 +19,8 @@
 package cc.wlizhi.eddie.agent.handler;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
+import cc.wlizhi.eddie.agent.entity.event.payload.ToolExecutionPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
@@ -90,8 +92,6 @@ public class AgentToolCallbackWrapper implements ToolCallback {
                 log.info("用户已停止，丢弃工具结果: {}", toolName);
                 throw new UserStopException();
             }
-            // TODO 已废弃，后续合适时候移除，暂时注释掉。
-//            checkSwitchToPlan(result);
 
             // ═══ 工具结果加工点 ═══
             // 三层截断，互不影响：
@@ -142,26 +142,44 @@ public class AgentToolCallbackWrapper implements ToolCallback {
                 ctx.getToolCalls().add(errorEvent);
             }
             return "";
-//            throw e;
-        }
-    }
-
-    private void checkSwitchToPlan(String result) {
-        try {
-            ApiResult<String> apiResult = ctx.getObjectMapper().readValue(result, new TypeReference<>() {
-            });
-            if (apiResult != null && Objects.equals(apiResult.getData(), AgentEvent.SWITCH_MODE_PLAN.name())) {
-                throw new SwitchModeToPlanException();
-            }
-        } catch (JsonProcessingException ignored) {
         }
     }
 
     /**
-     * 将 ToolExecutionEvent 序列化为 SSE 事件并推送
+     * 将工具执行事件以 ToolExecutionPayload（含 step / stepId 字段）推送到前端。
+     * <p>
+     * 不能直接使用 ToolExecutionEvent 作为 ApiResult.data，因为 ToolExecutionEvent
+     * 没有 step 字段，前端无法将工具调用路由到正确的轮次。
      */
     private void emitSse(ToolExecutionEvent event) {
-        ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(event));
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        Long stepId = resolveCurrentStepId();
+        Integer step = resolveCurrentStep();
+        ToolExecutionPayload payload = new ToolExecutionPayload(
+                msgId, stepId, step,
+                event.getToolName(), event.getStatus().getValue(),
+                event.getArguments(), event.getResult(), event.isError()
+        );
+        ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
+    }
+
+    /**
+     * 从上下文中解析当前步骤记录 ID，与 AgentEventPublisher 中 thinking/answer 填充 stepId 的逻辑一致。
+     */
+    private Long resolveCurrentStepId() {
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        return stepCtx != null ? stepCtx.getStepId() : null;
+    }
+
+    /**
+     * 从上下文中解析当前步骤序号，与 AgentEventPublisher.resolveStep() 逻辑一致。
+     */
+    private Integer resolveCurrentStep() {
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        if (stepCtx != null && stepCtx.getStep() != null) {
+            return stepCtx.getStep();
+        }
+        return ctx.getCurrentStep();
     }
 
     /**
