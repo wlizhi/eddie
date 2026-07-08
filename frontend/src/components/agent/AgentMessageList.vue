@@ -22,7 +22,7 @@
 import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useAgentChatStore} from '@/stores/agent-chat'
 import {useAgentStore} from '@/stores/agent'
-import {Brain, ChevronDown, Copy, Eye, Loader, Pen} from '@lucide/vue'
+import {Brain, ChevronDown, Copy, Eye, Loader, Pen, RefreshCw} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatShortTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
@@ -515,7 +515,8 @@ function onScroll() {
 
     <!-- ===== 当前轮次指示（流式响应时显示） ===== -->
     <div v-if="agentChatStore.isStreaming && agentChatStore.currentRound > 0" class="round-indicator">
-      第 {{ agentChatStore.currentRound }} 轮迭代
+      <RefreshCw :size="12" class="round-icon" />
+      <span :key="agentChatStore.currentRound" class="round-number">{{ agentChatStore.currentRound }}</span>
     </div>
   </div>
 </template>

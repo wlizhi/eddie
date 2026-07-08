@@ -137,8 +137,15 @@ function toChatMessage(vo: {
             ...(vo.currency ? {currency: vo.currency} : {}),
         },
     }
-    // 历史消息回填为单轮次
-    if (vo.role === 'assistant' && (thinking || toolCalls.length > 0 || content)) {
+    // 历史消息：从 stepList 构建 rounds，每个 step 对应一个轮次
+    if (vo.role === 'assistant' && vo.stepList && vo.stepList.length > 0) {
+        msg.rounds = vo.stepList.map(step => ({
+            thinking: step.thinking || '',
+            toolCalls: parseToolCalls(step.toolCalls),
+            content: step.content || '',
+        }))
+    } else if (vo.role === 'assistant' && (thinking || toolCalls.length > 0 || content)) {
+        // 兼容无 stepList 的历史消息（旧数据），回填为单轮次
         msg.rounds = [{
             thinking: thinking ?? '',
             toolCalls,

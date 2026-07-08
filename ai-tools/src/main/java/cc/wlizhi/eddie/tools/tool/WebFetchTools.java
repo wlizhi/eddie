@@ -23,12 +23,17 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayInputStream;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.Random;
+import java.util.zip.GZIPInputStream;
 
 /**
  * 网页抓取工具集
@@ -49,10 +54,21 @@ public class WebFetchTools implements BuiltInToolProvider {
 
     private static final Logger log = LoggerFactory.getLogger(WebFetchTools.class);
 
-    private static final String USER_AGENT = "Mozilla/5.0 (compatible; EddieBot/1.0)";
+    // 真实 Chrome 浏览器 User-Agent 池，每次随机取一个降低指纹识别风险
+    private static final List<String> USER_AGENTS = List.of(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    );
+    private static final List<String> MOBILE_USER_AGENTS = List.of(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.122 Mobile Safari/537.36"
+    );
     private static final int TIMEOUT_SECONDS = 15;
-    private static final int DEFAULT_MAX_CHARS = 4_000;
+    private static final int DEFAULT_MAX_CHARS = 5000;
     private static final int MAX_CHARS = 15_000;
+    private static final String SPA_STUB_MESSAGE = "该网站内容由 JavaScript 动态渲染，当前抓取方式无法获取正文。建议通过搜索引擎摘要或其他来源获取信息。";
+    private static final Random RANDOM = new Random();
 
     private final HttpClient httpClient;
 
@@ -63,17 +79,20 @@ public class WebFetchTools implements BuiltInToolProvider {
     private GlobalConfigContext globalConfigContext;
 
     public WebFetchTools() {
+        CookieManager cookieManager = new CookieManager();
+        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
         this.httpClient = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
+                .cookieHandler(cookieManager)
                 .build();
     }
 
     @Tool(name = "built_in_fetch_markdown",
-            description = "获取指定 URL 的网页内容，提取正文后返回干净的 Markdown 文本，适合 LLM 阅读")
+            description = "获取指定 URL 列表的网页内容，提取正文后返回干净的 Markdown 文本，适合 LLM 阅读。每个 URL 独立截断")
     public ApiResult<String> fetchMarkdown(
             @ToolParam(description = "要抓取的 URL 列表") List<String> urls,
-            @ToolParam(required = false, description = "最大返回字符数，默认 " + DEFAULT_MAX_CHARS + "，最大 " + MAX_CHARS + "，超出部分会被截断") Integer maxCharacters,
+            @ToolParam(required = false, description = "每个网页最大返回字符数，默认 " + DEFAULT_MAX_CHARS + "，最大 " + MAX_CHARS + "，超出部分会被截断") Integer maxCharacters,
             @ToolParam(required = false, description = "模式：article（提取正文）或 full（全文），默认 article") String mode) {
 
         if (urls == null || urls.isEmpty()) return ApiResult.error(ApiResultCode.BAD_REQUEST, "未提供 URL");
@@ -83,7 +102,6 @@ public class WebFetchTools implements BuiltInToolProvider {
         boolean isFull = "full".equals(actualMode);
 
         StringBuilder result = new StringBuilder();
-        int totalChars = 0;
 
         for (int i = 0; i < urls.size(); i++) {
             String url = urls.get(i);
@@ -93,17 +111,33 @@ public class WebFetchTools implements BuiltInToolProvider {
                 Element article = findArticle(doc, isFull);
                 String markdown = toMarkdown(article, title);
 
+                // SPA 占位符检测：如果检测到疑似 JS 渲染的占位符，用移动端 UA 重试一次
+                if (isSpaStub(markdown)) {
+                    log.warn("[fetch_markdown] SPA stub 检测到，尝试移动端 UA 重试: {}", url);
+                    doc = fetchAndParse(url, pickUserAgent(true));
+                    title = extractTitle(doc);
+                    article = findArticle(doc, isFull);
+                    markdown = toMarkdown(article, title);
+                    // 仍为 SPA stub 则返回提示信息
+                    if (isSpaStub(markdown)) {
+                        log.warn("[fetch_markdown] 移动端 UA 仍为 SPA stub: {}", url);
+                        if (urls.size() > 1) {
+                            result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
+                        }
+                        result.append(SPA_STUB_MESSAGE).append("\n\n");
+                        continue;
+                    }
+                }
+
                 if (urls.size() > 1) {
                     result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
                 }
-                result.append(markdown).append("\n\n");
-                totalChars = result.length();
 
-                if (totalChars > maxChars) {
-                    result.setLength(maxChars);
-                    result.append("\n\n...（内容已截断）");
-                    break;
+                // 每个网页独立截断
+                if (markdown.length() > maxChars) {
+                    markdown = markdown.substring(0, maxChars) + "\n\n...（内容已截断）";
                 }
+                result.append(markdown).append("\n\n");
 
                 log.info("[fetch_markdown] {} → {} chars", url, markdown.length());
 
@@ -129,7 +163,7 @@ public class WebFetchTools implements BuiltInToolProvider {
         try {
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .header("User-Agent", USER_AGENT)
+                    .header("User-Agent", pickUserAgent(false))
                     .header("Accept", "application/json")
                     .timeout(Duration.ofSeconds(TIMEOUT_SECONDS))
                     .GET()
@@ -167,23 +201,114 @@ public class WebFetchTools implements BuiltInToolProvider {
     // ==================== 私有方法 ====================
 
     private Document fetchAndParse(String url) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
+        return fetchAndParse(url, pickUserAgent(false));
+    }
+
+    /**
+     * 发起 HTTP 请求并解析 HTML。支持：
+     * <ul>
+     *   <li>真实浏览器请求头伪装</li>
+     *   <li>遇到 403/503/429 时自动用移动端 UA 重试</li>
+     *   <li>从响应头自动检测 charset</li>
+     * </ul>
+     */
+    private Document fetchAndParse(String url, String userAgent) throws Exception {
+        HttpRequest req = buildBrowserRequest(url, userAgent);
+        HttpResponse<byte[]> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofByteArray());
+        int status = resp.statusCode();
+
+        // 遇到 Cloudflare/反爬/限流状态码，用移动端 UA + 不同请求头组合重试一次
+        if (status == 403 || status == 503 || status == 429) {
+            log.warn("[fetch] HTTP {} 尝试移动端 UA 重试: {}", status, url);
+            HttpRequest retryReq = buildBrowserRequest(url, pickUserAgent(true));
+            resp = httpClient.send(retryReq, HttpResponse.BodyHandlers.ofByteArray());
+            status = resp.statusCode();
+            // 重试后仍为反爬状态码，抛异常让外层处理
+            if (status == 403 || status == 503 || status == 429) {
+                throw new RuntimeException("HTTP " + status + " — 目标网站启用了反爬保护（Cloudflare/js challenge），无法直接抓取");
+            }
+        }
+
+        return parseResponse(url, resp);
+    }
+
+    /**
+     * 从 UA 池中随机选取一个 User-Agent
+     */
+    private String pickUserAgent(boolean mobile) {
+        List<String> pool = mobile ? MOBILE_USER_AGENTS : USER_AGENTS;
+        return pool.get(RANDOM.nextInt(pool.size()));
+    }
+
+    /**
+     * 构建模拟真实浏览器的 HTTP 请求
+     */
+    private HttpRequest buildBrowserRequest(String url, String userAgent) {
+        return HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("User-Agent", USER_AGENT)
-                .header("Accept", "text/html,application/xhtml+xml")
-                .header("Accept-Language", "zh-CN,zh;q=0.9")
+                .header("User-Agent", userAgent)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+                .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+                .header("Accept-Encoding", "gzip")
+                .header("Cache-Control", "no-cache")
+                .header("Pragma", "no-cache")
+                .header("Sec-Fetch-Dest", "document")
+                .header("Sec-Fetch-Mode", "navigate")
+                .header("Sec-Fetch-Site", "none")
+                .header("Sec-Fetch-User", "?1")
+                .header("Upgrade-Insecure-Requests", "1")
+                .header("DNT", "1")
+                .header("Referer", extractReferer(url))
                 .timeout(Duration.ofSeconds(TIMEOUT_SECONDS))
                 .GET()
                 .build();
+    }
 
-        HttpResponse<byte[]> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofByteArray());
-
-        String contentType = resp.headers().firstValue("Content-Type").orElse("");
-        String charset = "UTF-8";
-        if (contentType.toLowerCase().contains("charset=")) {
-            charset = contentType.toLowerCase().split("charset=")[1].split(";")[0].trim();
+    /**
+     * 从 URL 提取基本 Referer（协议 + 主机）
+     */
+    private String extractReferer(String url) {
+        try {
+            URI uri = URI.create(url);
+            String scheme = uri.getScheme() != null ? uri.getScheme() : "https";
+            String host = uri.getHost();
+            return scheme + "://" + (host != null ? host : "");
+        } catch (Exception e) {
+            return url;
         }
-        return Jsoup.parse(new String(resp.body(), charset));
+    }
+
+    /**
+     * 解析 HTTP 响应为 Jsoup Document，自动处理 charset
+     */
+    private Document parseResponse(String url, HttpResponse<byte[]> resp) throws Exception {
+        String contentType = resp.headers().firstValue("Content-Type").orElse("");
+        String charset = detectCharset(contentType);
+        String contentEncoding = resp.headers().firstValue("Content-Encoding").orElse("");
+        log.debug("[fetch] {} → HTTP {}, Content-Type: {}, Content-Encoding: {}", url, resp.statusCode(), contentType, contentEncoding);
+
+        byte[] body = resp.body();
+        // 检测 Content-Encoding，仅处理 gzip（JDK 内置，兼容 AOT）
+        if ("gzip".equalsIgnoreCase(contentEncoding)) {
+            try (var gzip = new GZIPInputStream(new ByteArrayInputStream(body))) {
+                body = gzip.readAllBytes();
+            }
+        }
+        // deflate / br 已在 Accept-Encoding 中移除，服务器不会返回，无需处理
+        return Jsoup.parse(new String(body, charset));
+    }
+
+    /**
+     * 从 Content-Type 中提取 charset，不区分大小写
+     */
+    private String detectCharset(String contentType) {
+        String lower = contentType.toLowerCase();
+        int charsetIdx = lower.indexOf("charset=");
+        if (charsetIdx >= 0) {
+            String charset = lower.substring(charsetIdx + 8).split(";")[0].trim();
+            if (!charset.isEmpty()) return charset;
+        }
+        return "UTF-8";
     }
 
     private String extractTitle(Document doc) {
@@ -195,6 +320,13 @@ public class WebFetchTools implements BuiltInToolProvider {
         return t != null ? t.strip() : "";
     }
 
+    /**
+     * 基于 Readability 评分算法查找正文容器。
+     * <p>
+     * 先尝试用常见选择器精确匹配，若命中且内容足够则直接返回。
+     * 否则退化为启发式评分：遍历所有块级候选元素，按文本密度、段落数、
+     * 类名模式、链接密度等指标打分，选择综合分数最高的。
+     */
     private Element findArticle(Document doc, boolean full) {
         if (full) {
             Element body = doc.body();
@@ -205,6 +337,7 @@ public class WebFetchTools implements BuiltInToolProvider {
             return doc;
         }
 
+        // 第一轮：精确选择器快速命中
         String[] selectors = {
                 "article", "[role=main]", "main",
                 ".post-content", ".article-content", ".entry-content",
@@ -218,6 +351,26 @@ public class WebFetchTools implements BuiltInToolProvider {
             }
         }
 
+        // 第二轮：启发式评分 — 遍历块级候选，选最高分
+        Element best = null;
+        int bestScore = 0;
+        for (Element el : doc.select("body > div, body > section, body > main, body > article, " +
+                "div[class*=\"content\"], div[class*=\"main\"], div[class*=\"wrapper\"], " +
+                "div[class*=\"container\"], div[class*=\"article\"], div[class*=\"post\"], " +
+                "div[class*=\"doc\"], div[id*=\"content\"], div[id*=\"main\"]")) {
+            int score = scoreElement(el);
+            if (score > bestScore) {
+                bestScore = score;
+                best = el;
+            }
+        }
+
+        if (best != null && bestScore > 20) {
+            cleanup(best);
+            return best;
+        }
+
+        // 第三轮：兜底 — body 并清理噪音
         Element body = doc.body();
         if (body != null) {
             cleanup(body);
@@ -226,11 +379,210 @@ public class WebFetchTools implements BuiltInToolProvider {
         return doc;
     }
 
+    /**
+     * 对候选元素进行启发式评分，参考 Mozilla Readability 的核心思路。
+     * <p>
+     * 评分维度：
+     * <ul>
+     *   <li>类名/ID 模式匹配（内容类 +25，噪音类 -25）</li>
+     *   <li>段落密度（每个 &lt;p&gt; +5）</li>
+     *   <li>标题结构（每个 &lt;h1&gt;-&lt;h6&gt; +3）</li>
+     *   <li>图片数量（每个 &lt;img&gt; +3）</li>
+     *   <li>自然语言特征（逗号/句号密度 >1% +10）</li>
+     *   <li>链接密度惩罚（链接文本占比 >5% 时扣分）</li>
+     *   <li>代码文档特征（&lt;br&gt; 密集 +3）</li>
+     *   <li>文本长度奖励（鼓励选择有内容的块）</li>
+     * </ul>
+     */
+    private int scoreElement(Element el) {
+        int score = 0;
+        String cls = el.className().toLowerCase();
+        String id = el.id().toLowerCase();
+
+        // 类名/ID 模式匹配
+        if (cls.contains("content") || cls.contains("article")
+                || cls.contains("post") || cls.contains("entry")
+                || cls.contains("doc") || cls.contains("documentation")
+                || cls.contains("body") || cls.contains("text")
+                || id.contains("content") || id.contains("article")
+                || id.contains("main") || id.contains("doc")) {
+            score += 25;
+        }
+        if (cls.contains("sidebar") || cls.contains("comment")
+                || cls.contains("nav") || cls.contains("footer")
+                || cls.contains("widget") || cls.contains("menu")
+                || cls.contains("aside") || cls.contains("ad-")
+                || id.contains("sidebar") || id.contains("comment")
+                || id.contains("nav") || id.contains("footer")) {
+            score -= 25;
+        }
+
+        // 段落密度 — 正文的标志
+        int pCount = el.select("p").size();
+        score += pCount * 5;
+
+        // 标题结构
+        int hCount = el.select("h1, h2, h3, h4, h5, h6").size();
+        score += hCount * 3;
+
+        // 图片数量
+        score += el.select("img").size() * 3;
+
+        // 自然语言特征：逗号/句号密度
+        String text = el.text();
+        if (text.length() > 50) {
+            long punctuation = text.chars().filter(c -> c == ',' || c == '，' || c == '.' || c == '。' || c == ';' || c == '；').count();
+            if ((double) punctuation / text.length() > 0.01) {
+                score += 10;
+            }
+        }
+
+        // 链接密度惩罚：链接文本占比过高说明是导航/目录/索引
+        int linkTextLen = 0;
+        for (Element a : el.select("a")) {
+            linkTextLen += a.text().length();
+        }
+        if (text.length() > 0) {
+            double linkDensity = (double) linkTextLen / text.length();
+            if (linkDensity > 0.5) {
+                score -= 50; // 链接远多于正文，极可能是导航
+            } else if (linkDensity > 0.2) {
+                score -= 20;
+            } else if (linkDensity > 0.05) {
+                score -= 5;
+            }
+        }
+
+        // 代码文档特征（<br> 代替 <p> 密集换行）
+        int brCount = el.select("br").size();
+        if (brCount > 5) {
+            score += 3;
+        }
+
+        // 文本长度奖励（鼓励有实质内容的块，但不过分）
+        score += Math.min(text.length() / 100, 20);
+
+        return score;
+    }
+
+    /**
+     * 检测提取的文本是否为 SPA 占位符（页面需要 JS 渲染但没有执行）。
+     * <p>
+     * 检测策略：
+     * <ol>
+     *   <li>文本总长度过短（<100 字符）且包含 SPA 特征词 → SPA stub</li>
+     *   <li>占位符关键词（loading/spinner 等）占比过高 → SPA stub</li>
+     *   <li>Only 1-2 行且不含任何标点符号（纯 JS 渲染空白页）→ SPA stub</li>
+     * </ol>
+     */
+    private boolean isSpaStub(String markdown) {
+        if (markdown == null || markdown.isBlank()) return true;
+        String lower = markdown.toLowerCase();
+
+        // 策略 1：文本极短 + SPA 特征词 → 判定为占位符
+        // 覆盖知乎 "发现更大的世界"、掘金 "⛽️" 等场景
+        if (markdown.length() < 150) {
+            String[] spaKeywords = {
+                    "loading", "...", "spinner", "skeleton",
+                    "正在加载", "加载中", "请稍候",
+                    "发现更大的世界", // 知乎
+                    "⛽️", "🚀",       // 掘金等 SPA 站点
+                    "react", "vue", "angular", // SPA 框架标识
+                    "app", "root",     // SPA 根容器
+                    "欢迎", "欢迎来到", "欢迎访问",
+                    "请启用 javascript", "enable javascript",
+                    "redirecting", "跳转中"
+            };
+            for (String kw : spaKeywords) {
+                if (lower.contains(kw)) return true;
+            }
+        }
+
+        // 策略 2：计算各行中包含占位符关键词的比例
+        long totalLines = lower.lines().count();
+        if (totalLines > 3) {
+            long placeholderCount = lower.lines()
+                    .filter(l -> l.contains("loading") || l.contains("...")
+                            || l.contains("spinner") || l.contains("skeleton")
+                            || l.contains("正在加载") || l.contains("加载中"))
+                    .count();
+            if ((double) placeholderCount / totalLines > 0.3) return true;
+        }
+
+        // 策略 3：仅 1-2 行且不含任何中文/英文句号 → 极可能是空白页
+        if (totalLines <= 2 && !lower.contains("。") && !lower.contains(".")
+                && !lower.contains("，") && !lower.contains(",")
+                && !lower.contains("！") && !lower.contains("!")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 智能清洗噪音元素。
+     * <p>
+     * 第一层：用 CSS 选择器精确匹配已知噪音模式（标签名、类名、ID），直接删除。
+     * 第二层：对于可能误伤的选择器（如 banner、notice），删除前检查是否含显著段落（>= 3 个 &lt;p&gt;），
+     * 有则跳过，避免误删正文。
+     */
     private void cleanup(Element el) {
-        el.select("script, style, nav, footer, header, " +
+        // 第一层：精确匹配，直接删除
+        el.select(
+                // 技术标签（决不包含正文）
+                "script, style, iframe, noscript, svg, canvas, " +
+                // 页面结构标签
+                "nav, footer, header, aside, " +
+                // Cookie / GDPR / 隐私弹窗
+                "div[class*=cookie], div[id*=cookie], " +
+                "div[class*=consent], div[id*=consent], " +
+                "div[class*=gdpr], div[id*=gdpr], " +
+                "div[class*=\"privacy\"], div[id*=\"privacy\"], " +
+                // 遮罩层 / 模态框 / 弹窗
+                "div[class*=overlay], div[id*=overlay], " +
+                "div[class*=modal], div[id*=modal], " +
+                "div[class*=popup], div[id*=popup], " +
+                "div[class*=dialog], div[id*=dialog], " +
+                // 广告
                 ".ad, .ads, .advertisement, .adsbygoogle, " +
-                ".sidebar, .comment, .comments, .related-posts, " +
-                ".menu, .widget, .social-share").remove();
+                "div[class*=ad-], div[id*=ad-], " +
+                "div[class*=sponsor], div[id*=sponsor], " +
+                "div[class*=\"promo\"], " +
+                // 侧栏 / 评论 / 推荐
+                ".sidebar, .comment, .comments, .comment-list, " +
+                ".related-posts, .recommend, " +
+                // 小工具 / 社交
+                ".menu, .widget, .social-share, .share-buttons, " +
+                "div[class*=social], " +
+                // 浮动通知 / 订阅
+                "div[class*=toast], div[class*=notification], " +
+                "div[class*=subscribe], div[id*=subscribe], " +
+                "div[class*=newsletter], div[id*=newsletter], " +
+                // 底部版权 / 面包屑 / 分页
+                ".copyright, .breadcrumb, .pagination, " +
+                // 登录/注册提示
+                "div[class*=login], div[class*=signup]"
+        ).remove();
+
+        // 第二层：带保护的删除 — 只删除不含显著段落的元素
+        safeRemove(el, "div[class*=banner], div[id*=banner], " +
+                "div[class*=notice], div[id*=notice], " +
+                "div[class*=alert], " +
+                "div[class*=toolbar], " +
+                "div[class*=sticky]");
+    }
+
+    /**
+     * 安全删除：只删除不包含显著正文内容的候选元素。
+     * 显著正文判定：元素内 &lt;p&gt; 标签数量 >= 3。
+     */
+    private void safeRemove(Element parent, String cssQuery) {
+        var candidates = parent.select(cssQuery);
+        for (var e : candidates) {
+            if (e.select("p").size() < 3) {
+                e.remove();
+            }
+        }
     }
 
     private String toMarkdown(Element article, String title) {

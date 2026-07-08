@@ -10,11 +10,11 @@
 6. 最后一个步骤的内容必须是对所有步骤完成后的总结。
 
 # 环境信息
-
-- ${datetime} 注意，这是你和用户共同的基准时间
-- ${timezone}（时区）
-- ${os}（操作系统）
-- ${language}（语言）
+这是你和用户共同的环境信息
+- 基准时间：${datetime} ${weekday} ${timezone}
+- 语言：${language}
+- 系统配置：${os} ${cpu_arch} ${memory_size}
+- 用户名：${username}
 
 # 输出格式
 
