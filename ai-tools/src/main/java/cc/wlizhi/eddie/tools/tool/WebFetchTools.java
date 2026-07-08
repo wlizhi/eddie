@@ -24,16 +24,22 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.ConnectException;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
+import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
+import javax.net.ssl.SSLException;
 
 /**
  * 网页抓取工具集
@@ -70,6 +76,16 @@ public class WebFetchTools implements BuiltInToolProvider {
     private static final String SPA_STUB_MESSAGE = "该网站内容由 JavaScript 动态渲染，当前抓取方式无法获取正文。建议通过搜索引擎摘要或其他来源获取信息。";
     private static final Random RANDOM = new Random();
 
+    private record FetchResult(Document document, String error, Integer httpStatus) {
+        boolean isSuccess() { return document != null; }
+
+        static FetchResult success(Document doc) { return new FetchResult(doc, null, null); }
+
+        static FetchResult error(int httpStatus, String message) { return new FetchResult(null, message, httpStatus); }
+
+        static FetchResult error(String message) { return new FetchResult(null, message, null); }
+    }
+
     private final HttpClient httpClient;
 
     @Resource
@@ -105,49 +121,54 @@ public class WebFetchTools implements BuiltInToolProvider {
 
         for (int i = 0; i < urls.size(); i++) {
             String url = urls.get(i);
-            try {
-                Document doc = fetchAndParse(url);
-                String title = extractTitle(doc);
-                Element article = findArticle(doc, isFull);
-                String markdown = toMarkdown(article, title);
+            FetchResult fr = fetchAndParse(url);
+            if (!fr.isSuccess()) {
+                log.warn("[fetch_markdown] 失败: {} [HTTP {}] {}", url, fr.httpStatus(), fr.error());
+                if (urls.size() > 1) {
+                    result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
+                }
+                result.append("抓取失败")
+                      .append(fr.httpStatus() != null ? " [HTTP " + fr.httpStatus() + "]" : "")
+                      .append(": ").append(fr.error()).append("\n\n");
+                continue;
+            }
+            Document doc = fr.document();
+            String title = extractTitle(doc);
+            Element article = findArticle(doc, isFull);
+            String markdown = toMarkdown(article, title);
 
-                // SPA 占位符检测：如果检测到疑似 JS 渲染的占位符，用移动端 UA 重试一次
-                if (isSpaStub(markdown)) {
-                    log.warn("[fetch_markdown] SPA stub 检测到，尝试移动端 UA 重试: {}", url);
-                    doc = fetchAndParse(url, pickUserAgent(true));
+            // SPA 占位符检测：如果检测到疑似 JS 渲染的占位符，用移动端 UA 重试一次
+            if (isSpaStub(markdown)) {
+                log.warn("[fetch_markdown] SPA stub 检测到，尝试移动端 UA 重试: {}", url);
+                fr = fetchAndParse(url, pickUserAgent(true));
+                if (fr.isSuccess()) {
+                    doc = fr.document();
                     title = extractTitle(doc);
                     article = findArticle(doc, isFull);
                     markdown = toMarkdown(article, title);
-                    // 仍为 SPA stub 则返回提示信息
-                    if (isSpaStub(markdown)) {
-                        log.warn("[fetch_markdown] 移动端 UA 仍为 SPA stub: {}", url);
-                        if (urls.size() > 1) {
-                            result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
-                        }
-                        result.append(SPA_STUB_MESSAGE).append("\n\n");
-                        continue;
+                }
+                // 重试失败或仍为 SPA stub 则返回提示信息
+                if (!fr.isSuccess() || isSpaStub(markdown)) {
+                    log.warn("[fetch_markdown] 移动端 UA 仍为 SPA stub: {}", url);
+                    if (urls.size() > 1) {
+                        result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
                     }
+                    result.append(SPA_STUB_MESSAGE).append("\n\n");
+                    continue;
                 }
-
-                if (urls.size() > 1) {
-                    result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
-                }
-
-                // 每个网页独立截断
-                if (markdown.length() > maxChars) {
-                    markdown = markdown.substring(0, maxChars) + "\n\n...（内容已截断）";
-                }
-                result.append(markdown).append("\n\n");
-
-                log.info("[fetch_markdown] {} → {} chars", url, markdown.length());
-
-            } catch (Exception e) {
-                log.error("[fetch_markdown] 失败: {}", url, e);
-                if (urls.size() > 1) {
-                    result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
-                }
-                result.append("抓取失败: ").append(e.getMessage()).append("\n\n");
             }
+
+            if (urls.size() > 1) {
+                result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
+            }
+
+            // 每个网页独立截断
+            if (markdown.length() > maxChars) {
+                markdown = markdown.substring(0, maxChars) + "\n\n...（内容已截断）";
+            }
+            result.append(markdown).append("\n\n");
+
+            log.info("[fetch_markdown] {} → {} chars", url, markdown.length());
         }
 
         return ApiResult.success(result.toString().strip());
@@ -200,7 +221,7 @@ public class WebFetchTools implements BuiltInToolProvider {
 
     // ==================== 私有方法 ====================
 
-    private Document fetchAndParse(String url) throws Exception {
+    private FetchResult fetchAndParse(String url) {
         return fetchAndParse(url, pickUserAgent(false));
     }
 
@@ -212,24 +233,48 @@ public class WebFetchTools implements BuiltInToolProvider {
      *   <li>从响应头自动检测 charset</li>
      * </ul>
      */
-    private Document fetchAndParse(String url, String userAgent) throws Exception {
-        HttpRequest req = buildBrowserRequest(url, userAgent);
-        HttpResponse<byte[]> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofByteArray());
-        int status = resp.statusCode();
+    private FetchResult fetchAndParse(String url, String userAgent) {
+        try {
+            HttpRequest req = buildBrowserRequest(url, userAgent);
+            HttpResponse<byte[]> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofByteArray());
+            int status = resp.statusCode();
 
-        // 遇到 Cloudflare/反爬/限流状态码，用移动端 UA + 不同请求头组合重试一次
-        if (status == 403 || status == 503 || status == 429) {
-            log.warn("[fetch] HTTP {} 尝试移动端 UA 重试: {}", status, url);
-            HttpRequest retryReq = buildBrowserRequest(url, pickUserAgent(true));
-            resp = httpClient.send(retryReq, HttpResponse.BodyHandlers.ofByteArray());
-            status = resp.statusCode();
-            // 重试后仍为反爬状态码，抛异常让外层处理
+            // 遇到 Cloudflare/反爬/限流状态码，用移动端 UA + 不同请求头组合重试一次
             if (status == 403 || status == 503 || status == 429) {
-                throw new RuntimeException("HTTP " + status + " — 目标网站启用了反爬保护（Cloudflare/js challenge），无法直接抓取");
+                log.warn("[fetch] HTTP {} 尝试移动端 UA 重试: {}", status, url);
+                HttpRequest retryReq = buildBrowserRequest(url, pickUserAgent(true));
+                resp = httpClient.send(retryReq, HttpResponse.BodyHandlers.ofByteArray());
+                status = resp.statusCode();
+                // 重试后仍为反爬状态码，直接返回错误结果，不抛异常
+                if (status == 403 || status == 503 || status == 429) {
+                    return FetchResult.error(status, "目标网站启用了反爬保护（Cloudflare/js challenge），无法直接抓取");
+                }
             }
-        }
 
-        return parseResponse(url, resp);
+            return parseResponse(url, resp);
+        } catch (UnknownHostException e) {
+            log.warn("[fetch] DNS 解析失败: {}", url, e);
+            return FetchResult.error("DNS 解析失败，域名无法访问: " + e.getMessage());
+        } catch (HttpConnectTimeoutException e) {
+            log.warn("[fetch] 连接超时: {}", url, e);
+            return FetchResult.error("连接超时，目标服务器无响应");
+        } catch (SocketTimeoutException e) {
+            log.warn("[fetch] 读取超时: {}", url, e);
+            return FetchResult.error("读取超时，目标服务器响应过慢");
+        } catch (SSLException e) {
+            log.warn("[fetch] SSL 握手失败: {}", url, e);
+            return FetchResult.error("SSL/TLS 握手失败: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.warn("[fetch] URL 格式错误: {}", url, e);
+            return FetchResult.error("URL 格式错误: " + e.getMessage());
+        } catch (InterruptedException e) {
+            log.warn("[fetch] 请求被中断: {}", url, e);
+            Thread.currentThread().interrupt();
+            return FetchResult.error("请求被中断");
+        } catch (IOException e) {
+            log.warn("[fetch] 网络请求失败: {}", url, e);
+            return FetchResult.error("网络请求失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -281,21 +326,26 @@ public class WebFetchTools implements BuiltInToolProvider {
     /**
      * 解析 HTTP 响应为 Jsoup Document，自动处理 charset
      */
-    private Document parseResponse(String url, HttpResponse<byte[]> resp) throws Exception {
-        String contentType = resp.headers().firstValue("Content-Type").orElse("");
-        String charset = detectCharset(contentType);
-        String contentEncoding = resp.headers().firstValue("Content-Encoding").orElse("");
-        log.debug("[fetch] {} → HTTP {}, Content-Type: {}, Content-Encoding: {}", url, resp.statusCode(), contentType, contentEncoding);
+    private FetchResult parseResponse(String url, HttpResponse<byte[]> resp) {
+        try {
+            String contentType = resp.headers().firstValue("Content-Type").orElse("");
+            String charset = detectCharset(contentType);
+            String contentEncoding = resp.headers().firstValue("Content-Encoding").orElse("");
+            log.debug("[fetch] {} → HTTP {}, Content-Type: {}, Content-Encoding: {}", url, resp.statusCode(), contentType, contentEncoding);
 
-        byte[] body = resp.body();
-        // 检测 Content-Encoding，仅处理 gzip（JDK 内置，兼容 AOT）
-        if ("gzip".equalsIgnoreCase(contentEncoding)) {
-            try (var gzip = new GZIPInputStream(new ByteArrayInputStream(body))) {
-                body = gzip.readAllBytes();
+            byte[] body = resp.body();
+            // 检测 Content-Encoding，仅处理 gzip（JDK 内置，兼容 AOT）
+            if ("gzip".equalsIgnoreCase(contentEncoding)) {
+                try (var gzip = new GZIPInputStream(new ByteArrayInputStream(body))) {
+                    body = gzip.readAllBytes();
+                }
             }
+            // deflate / br 已在 Accept-Encoding 中移除，服务器不会返回，无需处理
+            return FetchResult.success(Jsoup.parse(new String(body, charset)));
+        } catch (Exception e) {
+            log.warn("[fetch] 解析响应失败: {}", url, e);
+            return FetchResult.error("响应解析失败: " + e.getMessage());
         }
-        // deflate / br 已在 Accept-Encoding 中移除，服务器不会返回，无需处理
-        return Jsoup.parse(new String(body, charset));
     }
 
     /**
