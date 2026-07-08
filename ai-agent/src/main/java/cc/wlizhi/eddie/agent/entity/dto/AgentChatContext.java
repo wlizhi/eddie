@@ -143,10 +143,15 @@ public class AgentChatContext {
     private Integer currentStep;
 
     /**
-     * 步骤级流式累加器（执行模式专用），
+     * 步骤级流式累加器（执行模式专用），作用域是每一步的迭代中
      * 包含 stepId、独立于消息级别的 thinking/answer/toolCalls 累加。
      */
     private AgentStepStreamContext stepStreamContext;
+
+    /**
+     * 工具调用错误
+     */
+    private StringBuilder toolErrorFeedback = new StringBuilder();
 
     // ==================== 流式累加（用于最终持久化） ====================
     /**

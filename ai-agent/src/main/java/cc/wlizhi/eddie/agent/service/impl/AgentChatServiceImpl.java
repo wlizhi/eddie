@@ -101,6 +101,8 @@ public class AgentChatServiceImpl implements AgentChatService {
                     responseStreamRouter.process(ctx, requestSpec);
                 } catch (SwitchModeToPlanException ignored) {
                     log.info("聊天模式切换至规划模式，进入下一轮迭代，当前迭代轮次：{}", ctx.getIteratorState().getCurrentIterator());
+                } catch (Exception ex) {
+                    handleExceptionOnStreamProcess(ctx, ex);
                 }
                 // 智能体内置工具（如 built_in_switch_mode）已在执行过程中
                 // 通过 ToolContext 直接修改了 ctx.getIteratorState().agentMode
@@ -140,6 +142,18 @@ public class AgentChatServiceImpl implements AgentChatService {
             } catch (Exception ignored) {
                 // sink 可能已被关闭或因中断异常
             }
+        }
+    }
+
+    private void handleExceptionOnStreamProcess(AgentChatContext ctx, Exception ex) {
+        String toolNameErrPrefix = "No ToolCallback found for tool name:";
+        if (ex instanceof IllegalStateException && ex.getMessage() != null && ex.getMessage().startsWith(toolNameErrPrefix)) {
+            log.warn("模型调用工具时，工具名输入错误：{}", ex.getMessage());
+            String toolName = ex.getMessage().substring(toolNameErrPrefix.length()).trim();
+            String toolErrorFeedback = """
+                    注意：你刚才调用了工具 "%s"，但该工具不存在。请确认工具名称是否正确，仅使用系统提供的可用工具。
+                    """.formatted(toolName);
+            ctx.getToolErrorFeedback().append(toolErrorFeedback);
         }
     }
 
