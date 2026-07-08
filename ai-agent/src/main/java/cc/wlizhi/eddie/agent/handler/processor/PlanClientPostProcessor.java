@@ -26,7 +26,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public class AgentPlanPostProcessor implements AgentClientPostProcessor {
+public class PlanClientPostProcessor implements AgentClientPostProcessor {
 
     @Resource
     private AgentPromptsResolver agentPromptsResolver;

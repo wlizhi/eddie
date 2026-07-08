@@ -100,19 +100,19 @@ public class AgentToolCallbackWrapper implements ToolCallback {
             //   存储级  → 持久化到数据库（上限最低）
             String modelResult = result;
             int modelMaxLen = ctx.getToolResultModelMaxLength();
-            if (modelMaxLen > 0 && modelResult != null && modelResult.length() > modelMaxLen) {
+            if (modelMaxLen > 0 && modelResult.length() > modelMaxLen) {
                 modelResult = modelResult.substring(0, modelMaxLen) + "\n\n...（工具结果已截断，更多内容请参考原始数据）";
             }
 
             int sseMaxLen = ctx.getToolCallMaxLength();
             String sseResult = modelResult;
-            if (sseMaxLen > 0 && sseResult != null && sseResult.length() > sseMaxLen) {
+            if (sseMaxLen > 0 && sseResult.length() > sseMaxLen) {
                 sseResult = sseResult.substring(0, sseMaxLen) + "...（已截断）";
             }
 
             int storeMaxLen = ctx.getToolCallStoreMaxLength();
             String storeResult = modelResult;
-            if (storeMaxLen > 0 && storeResult != null && storeResult.length() > storeMaxLen) {
+            if (storeMaxLen > 0 && storeResult.length() > storeMaxLen) {
                 storeResult = storeResult.substring(0, storeMaxLen) + "...（已截断）";
             }
 

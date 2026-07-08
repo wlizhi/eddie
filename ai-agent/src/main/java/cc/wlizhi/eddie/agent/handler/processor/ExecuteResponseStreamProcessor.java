@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -114,7 +115,12 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
                     // 用真实 stepId 发射（父类发射的 stepId=null，不影响消息级别）
                     publisher.thinking(ctx, stepCtx.getStepId(), text);
                     // 累加到步骤级（独立于消息级 fullThinking）
-                    stepCtx.getFullThinking().append(text);
+                    int thinkLength = stepCtx.getFullThinking().length();
+                    if (thinkLength < 500) {
+                        stepCtx.getFullThinking().append(text);
+                    } else if (stepCtx.getFullThinking().charAt(stepCtx.getFullThinking().length() - 1) != '.') {
+                        stepCtx.getFullThinking().append("...");
+                    }
                 }
             }
         } catch (Exception ignored) {
@@ -153,12 +159,10 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         // 2. 更新占位记录的实际内容（步骤级别，使用独立累加器）
         updateStepRecord(ctx);
 
+        // TODO BUG: 不是一个正常的payload，应当包含消息id，步骤编号，步骤id，当前迭代次数
         // 3. 推送执行完成事件
-        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
-        Integer currentStep = ctx.getCurrentStep();
-        // 这里不应该使用 Map.of()
         ctx.getEventPublisher().emit(ctx, AgentEvent.EXECUTE_COMPLETE,
-                ApiResult.success(Map.of()));
+                ApiResult.success(new HashMap<>()));
     }
 
     /**

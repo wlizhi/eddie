@@ -133,6 +133,7 @@ public class AgentChatContext {
 
     // ==================== 执行上下文 =====================
     /**
+     * TODO 看下是否删除这个变量，似乎没用了
      * 步骤列表，写时隔离，每个线程读取置顶索引值
      */
     private List<List<AgentMsgStepEntity>> taskStepList;

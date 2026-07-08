@@ -1,12 +1,21 @@
+/**
+ * @author Eddie
+ * {@code @date} 2026-07-06
+ */
+
 package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
+import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentPromptsResolver;
 import cc.wlizhi.eddie.agent.handler.AgentToolCallbackWrapper;
-import cc.wlizhi.eddie.agent.service.impl.AgentShortTermMemory;
-import cc.wlizhi.eddie.agent.tool.SwitchModeTool;
+import cc.wlizhi.eddie.agent.service.impl.AgentStepWindowedMemory;
+import cc.wlizhi.eddie.agent.tool.StepFinishTool;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
@@ -27,45 +36,65 @@ import java.util.Map;
 
 @Slf4j
 @Component
-public class AgentChatPostProcessor implements AgentClientPostProcessor {
-    @Resource
-    private ToolCallbackResolver toolCallbackResolver;
+public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
+
     @Resource
     private AgentPromptsResolver agentPromptsResolver;
     @Resource
-    private SwitchModeTool switchModeTool;
+    private AgentStepWindowedMemory agentStepWindowedMemory;
     @Resource
-    private AgentShortTermMemory agentShortTermMemory;
+    private ToolCallbackResolver toolCallbackResolver;
+    @Resource
+    private StepFinishTool stepFinishTool;
     @Resource
     private GlobalConfigContext globalConfigContext;
 
     @Override
     public boolean support(AgentMode agentMode) {
-        return AgentMode.CHAT == agentMode;
+        return AgentMode.EXECUTE == agentMode;
     }
 
     @Override
     public ChatClient.ChatClientRequestSpec buildChatClientRequestSpec(AgentChatContext ctx) {
-        // 1. 解析用户可配置的工具
+        String resolvePrompts = agentPromptsResolver.resolvePrompts(ctx);
+        log.debug("{} 模式系统提示词：\n{}", AgentMode.EXECUTE.name(), resolvePrompts);
+
+        String stepConversationId = ctx.getAgentMsg().getId() + ":" + ctx.getCurrentStep();
+
+        String userPrompt = "请根据系统提示词及历史消息（如果有）继续完成当前步骤的任务内容";
+
+        // 初始化步骤级流式累加器，设置 prompt（供 ExecuteResponseStreamProcessor 使用）
+        AgentStepStreamContext stepCtx = new AgentStepStreamContext();
+        stepCtx.setStep(ctx.getCurrentStep());
+        stepCtx.setPrompt(userPrompt);
+        // 从 taskPlan 同步当前步骤的状态到迭代缓冲
+        AgentTaskPlan taskPlan = ctx.getTaskPlan();
+        if (taskPlan != null && taskPlan.getSteps() != null
+                && ctx.getCurrentStep() != null && ctx.getCurrentStep() > 0
+                && ctx.getCurrentStep() <= taskPlan.getSteps().size()) {
+            AgentTaskStep planStep = taskPlan.getSteps().get(ctx.getCurrentStep() - 1);
+            stepCtx.setStepStatus(StepStatus.fromValue(planStep.getStatus()));
+        }
+        ctx.setStepStreamContext(stepCtx);
+
+        // 1. 解析用户可配置的工具（WebSearch/WebFetch/Shell/MCP 等）
         ToolCallback[] configurableTools = toolCallbackResolver.resolve(
                 RoleType.AGENT.name(), ctx.getAgent().getId()
                 , ctx.getOriginalRequest().getToolSelectionMode()
                 , ctx.getOriginalRequest().getToolNames());
 
-        // 2. 收集所有工具（用户可配 + 智能体内置切换模式工具）
+        // 2. 收集所有工具（用户可配 + StepFinishTool 内置工具）
         List<ToolCallback> allTools = new ArrayList<>();
         if (configurableTools != null) {
             allTools.addAll(Arrays.asList(configurableTools));
         }
-        ToolCallback[] switchModeTools = ToolCallbacks.from(switchModeTool);
-        allTools.addAll(Arrays.asList(switchModeTools));
+        ToolCallback[] internalTools = ToolCallbacks.from(stepFinishTool);
+        allTools.addAll(Arrays.asList(internalTools));
 
-        // 3. 构建 ChatClient（仅在 chatting 模式注入记忆窗口 advisor）
+        // 3. 构建 ChatClient（注入记忆窗口 advisor + 工具）
         ChatClient.Builder builder = ctx.getChatClient().mutate();
-        if (ctx.getIteratorState().getAgentMode() == AgentMode.CHAT) {
-            var memoryAdvisor = MessageChatMemoryAdvisor.builder(agentShortTermMemory).build();
-            builder.defaultAdvisors(memoryAdvisor);
-        }
+        var memoryAdvisor = MessageChatMemoryAdvisor.builder(agentStepWindowedMemory).build();
+        builder.defaultAdvisors(memoryAdvisor);
         if (!allTools.isEmpty()) {
             Object[] wrappers = allTools.stream()
                     .map(t -> new AgentToolCallbackWrapper(t, ctx)).toArray();
@@ -73,25 +102,20 @@ public class AgentChatPostProcessor implements AgentClientPostProcessor {
         }
 
         // 4. 解析并注入各层级截断长度
-        // 4a. 模型上下文截断（提交给 LLM 的数据）
         String modelMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_RESULT_MODEL_MAX_LENGTH);
         int modelMaxLen = ConfigUtil.resolveIntConfig(100000, modelMaxLenStr, 0, 100000);
         ctx.setToolResultModelMaxLength(modelMaxLen);
-        // 4b. SSE 渲染截断（推送前端展示）
         String sseMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
         int sseMaxLen = ConfigUtil.resolveIntConfig(5000, sseMaxLenStr, 100, 8000);
         ctx.setToolCallMaxLength(sseMaxLen);
-        // 4c. 存储截断（持久化到数据库，固定为 SSE 截断的一半）
-        ctx.setToolCallStoreMaxLength(sseMaxLen >> 1);
+        ctx.setToolCallStoreMaxLength(sseMaxLen >> 4);
 
-        String resolvePrompts = agentPromptsResolver.resolvePrompts(ctx);
-        log.debug("当前模式：{}，系统提示词：\n{}", ctx.getIteratorState().getAgentMode().name(), resolvePrompts);
         return builder.build().prompt()
                 .system(resolvePrompts)
-                .user(ctx.getOriginalRequest().getMessage())
+                .user(userPrompt)
                 .toolContext(Map.of("agentChatContext", ctx))
                 .advisors(advisor -> advisor
-                        .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId())
+                        .param("chat_memory_conversation_id", stepConversationId)
                         .param("providerId", ctx.getModelProvider().getId())
                         .param("modelCode", ctx.getUseModelInfo().getId()));
     }

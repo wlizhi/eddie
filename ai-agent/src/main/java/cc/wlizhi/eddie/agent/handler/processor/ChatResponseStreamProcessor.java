@@ -11,9 +11,14 @@ import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.messages.AbstractMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * CHAT 模式流式响应处理器
@@ -34,6 +39,15 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
     @Override
     protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
         return ctx.getIteratorState().getAgentMode() == AgentMode.PLAN;
+    }
+
+    @Override
+    protected void handleAnswer(AgentChatContext ctx, ChatResponse response) {
+        if (breakInStreamIfNecessary(ctx)) {
+            // 任务规划中，不推送事件了，也不保存。
+        } else {
+            super.handleAnswer(ctx, response);
+        }
     }
 
     @Override

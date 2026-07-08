@@ -10,8 +10,10 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
+import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
+import cc.wlizhi.eddie.common.enums.ResultCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
@@ -37,7 +39,7 @@ public class StepFinishTool implements AgentToolProvider {
                     completed — 步骤已成功完成；
                     failed — 步骤执行失败""") String status,
             @ToolParam(description = """
-                    当前步骤的执行结果
+                    当前步骤的执行结果（必须包含当前步骤执行结果的全部详细内容）
                     """) String result,
             ToolContext toolContext) {
 
@@ -80,8 +82,20 @@ public class StepFinishTool implements AgentToolProvider {
         if (taskPlan != null && taskPlan.getSteps() != null
                 && step > 0 && step <= taskPlan.getSteps().size()) {
             AgentTaskStep stepObj = taskPlan.getSteps().get(step - 1);
+            // 模型重复调用的时候，报错提示
+            if (StepStatus.COMPLETED.getValue().equals(stepObj.getStatus())
+                    || StepStatus.FAILED.getValue().equals(stepObj.getStatus())) {
+                log.info("[StepFinishTool] 步骤 {} 已处于终态({})，忽略重复调用", step, stepObj.getStatus());
+                return ApiResult.error(ApiResultCode.BAD_REQUEST, "步骤 " + step + " 已处于 "
+                        + stepObj.getStatus() + " 状态，请勿重复调用。当前状态已是终结状态，请立即停止输出，结束对话。");
+            }
+
             stepObj.setStatus(stepStatus.getValue());
             stepObj.setResult(result != null ? result : "");
+            // 最后一步时，需要更新整个任务清单状态为完成状态
+            if (step == taskPlan.getSteps().size()) {
+                taskPlan.setStatus(TaskPlanStatus.COMPLETED.getValue());
+            }
         } else {
             return ApiResult.error(ApiResultCode.BAD_REQUEST,
                     "步骤编号 " + step + " 超出任务计划范围");
