@@ -128,6 +128,9 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
     }
 
     private boolean checkUserStopEvent(AgentChatContext ctx) {
+        if (ctx.getAgentThread().isInterrupted()) {
+            return true;
+        }
         // 用户中断指令发出，应当中断。
         String stopKey = EventRegistry.key(AgentEvent.STOP_MSG.name().toLowerCase(), ctx.getAgentMsg().getId().toString());
         if (Objects.equals(eventRegistry.get(stopKey), AgentEvent.STOP_MSG.name().toLowerCase())) {

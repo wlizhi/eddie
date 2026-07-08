@@ -146,10 +146,6 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
     }
 
     @Override
-    protected void handleCustomEvent(AgentChatContext ctx, ChatResponse response) {
-    }
-
-    @Override
     protected void afterStream(AgentChatContext ctx) {
         // 1. 基类通用逻辑：token 提取 + 增量持久化 + metadata 推送（消息级别）
         super.afterStream(ctx);
@@ -196,7 +192,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
                 && currentStep - 1 < stepList.size()) {
             List<AgentMsgStepEntity> entities = stepList.get(currentStep - 1);
             if (!entities.isEmpty()) {
-                AgentMsgStepEntity lastEntity = entities.get(entities.size() - 1);
+                AgentMsgStepEntity lastEntity = entities.getLast();
                 if (lastEntity.getId() != null && lastEntity.getId().equals(stepCtx.getStepId())) {
                     lastEntity.setContent(content);
                     lastEntity.setThinking(thinking);
