@@ -26,11 +26,6 @@ const doneCount = computed(() =>
 /** 总数量 */
 const totalCount = computed(() => props.plan.steps.length)
 
-/** 进度百分比 */
-const progressPercent = computed(() =>
-    totalCount.value > 0 ? Math.round((doneCount.value / totalCount.value) * 100) : 0
-)
-
 /** 状态文本 */
 const statusText = computed(() => {
   switch (props.plan.status) {

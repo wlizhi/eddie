@@ -179,14 +179,6 @@ function currencySymbol(currency?: string | null): string {
   return CURRENCY_SYMBOLS[currency] ?? currency + ' '
 }
 
-/** 里程碑事件颜色映射 */
-const milestoneColors: Record<string, string> = {
-  info: 'var(--accent-default)',
-  success: 'var(--success-default)',
-  warning: 'var(--warning-default)',
-  error: 'var(--danger-default)',
-}
-
 /** 滚动事件——接近顶部时触发加载更早消息 */
 function onScroll() {
   const el = messageListRef.value
@@ -513,20 +505,6 @@ function onScroll() {
         </div>
       </div>
     </template>
-
-    <!-- ===== 里程碑事件展示 ===== -->
-    <div v-for="(ms, mi) in agentChatStore.milestones" :key="'ms-' + mi" class="milestone-row">
-      <div class="milestone-card"
-           :style="{ borderLeftColor: milestoneColors[ms.type || 'info'] || 'var(--accent-default)' }">
-        <span class="milestone-icon">{{
-            ms.type === 'error' ? '✕' : ms.type === 'success' ? '✓' : ms.type === 'warning' ? '⚠' : 'ℹ'
-          }}</span>
-        <div class="milestone-body">
-          <span class="milestone-title">{{ ms.title }}</span>
-          <span v-if="ms.description" class="milestone-desc">{{ ms.description }}</span>
-        </div>
-      </div>
-    </div>
 
     <!-- ===== 当前轮次指示（流式响应时显示） ===== -->
     <div v-if="agentChatStore.isStreaming && agentChatStore.currentRound > 0" class="round-indicator">
