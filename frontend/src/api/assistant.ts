@@ -24,7 +24,7 @@ import type {
     AssistantVO,
     PromptVariableInfo
 } from '@/types/assistant'
-import type {ToolSourceVO} from '@/types/mcpServer'
+import type {McpToolItem, ToolSourceVO} from '@/types/mcpServer'
 
 const BASE = '/api/assistant'
 
@@ -169,7 +169,20 @@ const MCP_BASE = '/api/mcp-servers'
 export interface McpServerItem {
     id: number
     name: string
+    /** 该 MCP 服务下的工具列表 */
+    tools?: McpToolItem[]
+    /** 来源类型 */
+    sourceType?: 'BUILT_IN' | 'USER' | 'PROVIDER'
 }
+
+/**
+ * 工具状态选项（三态）
+ */
+export const TOOL_STATUS_OPTIONS = [
+  {label: '自动', value: 1 as const},
+  {label: '审批', value: 2 as const},
+  {label: '禁用', value: 0 as const},
+]
 
 /**
  * 获取所有已启用的 MCP 服务列表

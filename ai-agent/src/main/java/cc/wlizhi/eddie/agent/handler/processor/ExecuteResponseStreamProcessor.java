@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * <p>
  * 核心职责：
  * <ol>
- *     <li>流开始前创建 {@link AgentStepStreamContext} 步骤级累加器，预创建占位记录获取 stepId；
+ *     <li>流开始前获取 {@link AgentStepStreamContext} 步骤级累加器（由 {@link ExecuteClientPostProcessor} 创建并预置 stepId）；
  *         若该步骤序号首次执行则推送 {@code step_started} 事件</li>
  *     <li>流处理中覆写 {@code handleThinking/handleAnswer}，使用步骤级累加器独立存储，
  *         用真实 stepId 发射事件（父类保持 {@code null}，不影响消息级别）</li>
@@ -54,33 +54,6 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         return AgentMode.EXECUTE == agentMode;
     }
 
-    @Override
-    protected void beforeStream(AgentChatContext ctx) {
-        Integer currentStep = ctx.getCurrentStep();
-        String stepDesc = resolveStepDesc(ctx, currentStep);
-
-        // 1. 获取已初始化的步骤级流式累加器（由 AgentExecutePostProcessor 创建并设好 prompt）
-        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
-        if (stepCtx == null) {
-            // 容错：如果前置未初始化，兜底创建
-            stepCtx = new AgentStepStreamContext();
-            ctx.setStepStreamContext(stepCtx);
-        }
-
-        stepCtx.setStep(currentStep);
-        stepCtx.setStepDesc(stepDesc);
-
-        // 3. 预创建占位记录，拿到 stepId
-        AgentMsgStepEntity placeholder = buildPlaceholderEntity(ctx, currentStep, stepDesc);
-        try {
-            Long stepId = agentMsgStepDao.insertPlaceholder(placeholder);
-            stepCtx.setStepId(stepId);
-        } catch (Exception e) {
-            log.warn("预创建步骤占位记录失败, msgId={}, step={}: {}",
-                    ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null,
-                    currentStep, e.getMessage());
-        }
-    }
 
     @Override
     protected void handleThinking(AgentChatContext ctx, ChatResponse response) {
@@ -180,7 +153,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
     /**
      * 构建占位步骤实体（content/thinking/toolCalls 为空，由 {@link #afterStream} 填充）
      */
-    private static AgentMsgStepEntity buildPlaceholderEntity(AgentChatContext ctx,
+    static AgentMsgStepEntity buildPlaceholderEntity(AgentChatContext ctx,
                                                              Integer currentStep, String stepDesc) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         // 优先从步骤累加器获取 prompt（由 AgentExecutePostProcessor 初始化时写入）
@@ -203,7 +176,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
     /**
      * 从任务计划中解析当前步骤的描述信息（标题）
      */
-    private static String resolveStepDesc(AgentChatContext ctx, Integer currentStep) {
+    static String resolveStepDesc(AgentChatContext ctx, Integer currentStep) {
         if (currentStep == null || currentStep <= 0) {
             return "";
         }

@@ -30,15 +30,16 @@ import java.util.concurrent.locks.ReentrantLock;
  *   <li>绑定关系（owner → 工具引用列表）</li>
  * </ul>
  * <p>
- * 所有索引（mcpServerToolsIndex、bindingMap）直接存储实体对象引用而非 ID，
- * 避免查询时的二次 Map 查找。实体对象在 heap 中仅存一份，所有索引共享引用。
+ * <b>关键语义：</b><br>
+ * bindingMap 中存储的 ToolDefinitionEntity 是<b>克隆副本</b>，其 {@code enabled} 字段
+ * 反映的是 <b>owner 级别绑定状态</b>（ai_owner_tool_binding.enabled），而非全局工具定义
+ * 状态（ai_tool_definition.enabled）。调用方通过 {@link #getBoundTools} 获取工具列表后，
+ * {@code t.getEnabled()} 即可得到该 owner 的真实启用/待审批状态。
  * <pre>
  *   mcpServerMap          mcpServerId → McpServerEntity
- *   toolDefMap            toolId → ToolDefinitionEntity（全量，主存储）
- *   toolNameIndex         name → ToolDefinitionEntity（按名称快速查找）
  *   mcpServerToolsIndex   mcpServerId → 有序 List<ToolDefinitionEntity>
  *   sortedMcpServerIds    有序 MCP Server ID 列表
- *   bindingMap            ownerType → ownerId → 有序 List<ToolDefinitionEntity>
+ *   bindingMap            ownerType → ownerId → 有序 List<ToolDefinitionEntity>（克隆副本）
  * </pre>
  * <p>
  * 查询 100% 走内存，刷新时全量重建后原子替换（copy-on-write），无需加锁。
@@ -67,7 +68,7 @@ public class OwnerToolBindingContext implements GlobalCache {
     private volatile List<Long> sortedMcpServerIds = List.of();
 
     /**
-     * ownerType → ownerId → 有序的工具列表（直接引用 heap 对象）
+     * ownerType → ownerId → 有序的工具列表（克隆副本，enabled 反映 owner 级别绑定状态）
      */
     private volatile Map<String, Map<Long, List<ToolDefinitionEntity>>> bindingMap = Map.of();
 
@@ -90,7 +91,13 @@ public class OwnerToolBindingContext implements GlobalCache {
     /**
      * 获取指定 Owner 已绑定的启用的工具定义列表（联动 MCP 服务启用状态）
      * <p>
-     * 自动过滤：工具全局禁用 → 排除；关联 MCP 服务禁用 → 排除
+     * 返回的 ToolDefinitionEntity 中 {@code enabled} 反映的是 <b>owner 级别绑定状态</b>
+     * （非全局工具定义状态）：
+     * <ul>
+     *   <li>1 → 已启用</li>
+     *   <li>2 → 待审批</li>
+     * </ul>
+     * 自动过滤：owner 级别绑定禁用 → 排除；关联 MCP 服务禁用 → 排除
      *
      * @param ownerType 归属方类型（ASSISTANT / AGENT）
      * @param ownerId   归属方 ID
@@ -106,16 +113,27 @@ public class OwnerToolBindingContext implements GlobalCache {
         Map<Long, McpServerEntity> mcpMap = this.mcpServerMap;
 
         return tools.stream()
-                .filter(t -> t.getEnabled() == 1)                   // 工具全局启用
+                .filter(t -> isBindingActive(t))                    // owner 级别绑定启用或待审批
                 .filter(t -> isMcpServerEnabled(t, mcpMap))         // 关联 MCP 服务启用
                 .toList();
+    }
+
+    /**
+     * 判断 owner 级别绑定是否激活（启用 或 待审批）
+     * <p>
+     * 注意：此处的 enabled 已由 {@link #doRefresh()} 覆写为 binding 级别值，
+     * 非全局 ToolDefinition 的 enabled。
+     */
+    private boolean isBindingActive(ToolDefinitionEntity tool) {
+        Integer enabled = tool.getEnabled();
+        return enabled != null && (enabled == 1 || enabled == 2);
     }
 
     /**
      * 判断工具关联的 MCP 服务是否已启用
      */
     private boolean isMcpServerEnabled(ToolDefinitionEntity tool, Map<Long, McpServerEntity> mcpMap) {
-        if (tool.getMcpServerId() == null) return true; // BUILT_IN 无关联 MCP
+        if (tool.getMcpServerId() == null) return true;
         McpServerEntity mcp = mcpMap.get(tool.getMcpServerId());
         return mcp != null && mcp.getEnabled() == 1;
     }
@@ -123,21 +141,10 @@ public class OwnerToolBindingContext implements GlobalCache {
 
     // ==================== 查询方法：MCP 服务 ====================
 
-    /**
-     * 根据 mcpServerId 获取 MCP 服务
-     */
     public McpServerEntity getMcpServer(Long mcpServerId) {
         return mcpServerMap.get(mcpServerId);
     }
 
-    /**
-     * 根据服务名称和来源类型从缓存中查找 MCP 服务。<p>
-     * 遍历内存中的 {@link #mcpServerMap}，按 name + sourceType 精确匹配。
-     *
-     * @param name       服务名称（如 "BuiltInShell"）
-     * @param sourceType 来源类型（如 "BUILT_IN"），传 null 则忽略此过滤条件
-     * @return 匹配的 MCP 服务，不存在返回 null
-     */
     public McpServerEntity getBuiltInMcpServerByName(String name) {
         if (name == null) return null;
         String sourceType = McpSourceType.BUILT_IN.name();
@@ -149,9 +156,6 @@ public class OwnerToolBindingContext implements GlobalCache {
         return null;
     }
 
-    /**
-     * 获取指定 MCP 服务下的工具列表（全量，含禁用）
-     */
     public List<ToolDefinitionEntity> getToolsByMcpServerId(Long mcpServerId) {
         List<ToolDefinitionEntity> tools = mcpServerToolsIndex.get(mcpServerId);
         return tools != null ? tools : List.of();
@@ -159,30 +163,14 @@ public class OwnerToolBindingContext implements GlobalCache {
 
     // ==================== 二层结构查询（前端展示用） ====================
 
-    /**
-     * 获取全量 MCP 服务列表及下辖工具（含禁用），按 sort_order 排序
-     * <p>
-     * 对应场景：管理页面查询所有 MCP + 工具
-     */
     public List<McpServerWithTools> getAllMcpServersWithTools() {
         return buildMcpServerWithTools(false, false);
     }
 
-    /**
-     * 获取全局已启用的 MCP 服务列表及下辖已启用的工具
-     * <p>
-     * 对应场景：管理页面查询已启用的 MCP + 工具（全局设置）
-     */
     public List<McpServerWithTools> getEnabledMcpServersWithTools() {
         return buildMcpServerWithTools(true, true);
     }
 
-    /**
-     * 构建 MCP + 工具二层结构
-     *
-     * @param filterMcpEnabled  是否只包含已启用的 MCP 服务
-     * @param filterToolEnabled 是否只包含已启用的工具
-     */
     private List<McpServerWithTools> buildMcpServerWithTools(boolean filterMcpEnabled, boolean filterToolEnabled) {
         Map<Long, McpServerEntity> mcpMap = this.mcpServerMap;
         Map<Long, List<ToolDefinitionEntity>> mcpToolsIdx = this.mcpServerToolsIndex;
@@ -196,12 +184,11 @@ public class OwnerToolBindingContext implements GlobalCache {
 
             List<ToolDefinitionEntity> tools = mcpToolsIdx.get(mcpServerId);
             if (tools == null || tools.isEmpty()) {
-                // 过滤启用工具时，无工具则跳过；全量展示时，无工具也显示
                 if (filterToolEnabled) continue;
                 tools = List.of();
             } else if (filterToolEnabled) {
                 tools = tools.stream()
-                        .filter(t -> t.getEnabled() == 1)
+                        .filter(t -> t.getEnabled() != null && t.getEnabled() == 1)
                         .toList();
                 if (tools.isEmpty()) continue;
             }
@@ -217,11 +204,6 @@ public class OwnerToolBindingContext implements GlobalCache {
     public void refresh() {
         lock.lock();
         try {
-            // 1. 全量加载 MCP 服务
-            // 2. 全量加载工具定义
-            // 3. 全量加载绑定关系
-            // 4. 构建索引
-            // 5. 更新缓存
             log.info("开始刷新内置工具缓存");
             doRefresh();
             log.info("刷新内置工具缓存完成");
@@ -245,30 +227,30 @@ public class OwnerToolBindingContext implements GlobalCache {
             sortedIds.add(m.getId());
         }
 
-        // 2. 全量加载工具定义（所有索引共享同一份 heap 对象引用）
+        // 2. 全量加载工具定义（mcpServerToolsIndex 共享全局 heap 对象引用）
         List<ToolDefinitionEntity> allTools = toolDefinitionDao.findAll();
         Map<Long, ToolDefinitionEntity> defMap = new LinkedHashMap<>(allTools.size());
-        Map<String, ToolDefinitionEntity> nameIdx = new LinkedHashMap<>(allTools.size());
         for (ToolDefinitionEntity t : allTools) {
             defMap.put(t.getId(), t);
-            // 使用 qualifiedName 作为索引键，不同 MCP 服务的同名工具不冲突
-            nameIdx.put(t.getQualifiedName(), t);
-            // 建立 MCP → 工具索引（直接引用 heap 对象）
             if (t.getMcpServerId() != null) {
                 List<ToolDefinitionEntity> list = mcpToolsIdx.get(t.getMcpServerId());
                 if (list != null) list.add(t);
             }
         }
 
-        // 3. 全量加载绑定关系（直接引用 defMap 中的对象）
+        // 3. 全量加载绑定关系
+        //    克隆 ToolDefinitionEntity 并将 enabled 覆写为 binding 级别值，
+        //    使得调用方通过 t.getEnabled() 即可获取 owner 级别启用/待审批状态
         List<OwnerToolBindingDao.OwnerToolBindingRow> bindings = ownerToolBindingDao.findAllBindings();
         Map<String, Map<Long, List<ToolDefinitionEntity>>> bMap = new LinkedHashMap<>();
         for (OwnerToolBindingDao.OwnerToolBindingRow row : bindings) {
-            ToolDefinitionEntity toolDef = defMap.get(row.getToolId());
-            if (toolDef == null) continue;
+            ToolDefinitionEntity proto = defMap.get(row.getToolId());
+            if (proto == null) continue;
+
+            ToolDefinitionEntity cloned = cloneWithBindingEnabled(proto, row.getEnabled());
             bMap.computeIfAbsent(row.getOwnerType(), k -> new LinkedHashMap<>())
                     .computeIfAbsent(row.getOwnerId(), k -> new ArrayList<>())
-                    .add(toolDef);
+                    .add(cloned);
         }
 
         // 4. 原子替换（不可变 Map，volatile 保证读线程立即可见）
@@ -278,11 +260,30 @@ public class OwnerToolBindingContext implements GlobalCache {
         this.bindingMap = Collections.unmodifiableMap(bMap);
     }
 
+    /**
+     * 克隆 ToolDefinitionEntity 并将 enabled 覆写为 binding 级别状态值
+     * <p>
+     * bindingMap 中不共享全局 defMap 的对象引用，而是持有克隆副本，
+     * 使得 {@code enabled} 反映 owner 级别绑定状态（而非全局工具定义状态）。
+     */
+    private static ToolDefinitionEntity cloneWithBindingEnabled(ToolDefinitionEntity proto, Integer bindingEnabled) {
+        ToolDefinitionEntity cloned = new ToolDefinitionEntity();
+        cloned.setId(proto.getId());
+        cloned.setToolType(proto.getToolType());
+        cloned.setName(proto.getName());
+        cloned.setDisplayName(proto.getDisplayName());
+        cloned.setDescription(proto.getDescription());
+        cloned.setEnabled(bindingEnabled);          // 覆写为 binding 级别值
+        cloned.setBuiltIn(proto.getBuiltIn());
+        cloned.setMcpServerId(proto.getMcpServerId());
+        cloned.setSortOrder(proto.getSortOrder());
+        cloned.setCreatedAt(proto.getCreatedAt());
+        cloned.setUpdatedAt(proto.getUpdatedAt());
+        return cloned;
+    }
+
     // ==================== 内部 VO ====================
 
-    /**
-     * MCP 服务 + 下辖工具列表的二层结构
-     */
     @lombok.Getter
     public static class McpServerWithTools {
         private final McpServerEntity mcpServer;

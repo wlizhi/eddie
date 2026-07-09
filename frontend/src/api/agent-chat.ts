@@ -179,6 +179,10 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                 case 'execute_complete':
                     onExecuteComplete?.((envelope.data as { step?: number })?.step ?? 0)
                     break
+                case 'round_end':
+                case 'task_finish':
+                    // 后端定义的事件，前端暂不处理，静默接受
+                    break
                 default:
                     console.warn('未知 SSE 事件类型:', currentEvent)
             }
@@ -236,6 +240,30 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
 /**
  * 解析 SSE 单行文本
  */
+/**
+ * 工具审批接口
+ * <p>
+ * 用户在前端点击"批准/拒绝"按钮时调用，
+ * 通知后端 {@code ApprovalInterceptor} 继续执行或中断。
+ */
+export async function approveTool(msgId: number, toolName: string, approved: boolean, stepId?: number | null, seq?: number): Promise<void> {
+    const res = await fetch('/api/agent/tools/approve', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            ownerType: 'agent',
+            msgId,
+            stepId: stepId ?? null,
+            toolName,
+            approved,
+            seq: seq ?? 0,
+        }),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<void> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '审批请求失败')
+}
+
 function parseSSELine(line: string): { event: string; data: string } | null {
     if (line.startsWith('event:')) {
         return {event: line.slice(6).trim(), data: ''}

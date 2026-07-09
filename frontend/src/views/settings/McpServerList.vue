@@ -397,4 +397,5 @@ function tagType(type: string): 'success' | 'info' | 'warning' | 'default' {
 .mcp-card-actions :deep(.n-button--disabled .n-icon) {
   color: var(--text-quaternary);
 }
+
 </style>

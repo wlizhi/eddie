@@ -45,6 +45,11 @@ public class ToolExecutionEvent {
      */
     private boolean error;
 
+    /**
+     * 工具调用序号（用于审批 key 唯一标识，由外层包装器设置）
+     */
+    private int seq;
+
     public static ToolExecutionEvent start(String toolName, String arguments) {
         ToolExecutionEvent event = new ToolExecutionEvent();
         event.setStatus(ToolExecutionStatus.START);
@@ -63,6 +68,19 @@ public class ToolExecutionEvent {
         event.setArguments(arguments);
         event.setResult(result);
         event.setError(error);
+        return event;
+    }
+
+    /**
+     * 创建 rejected 事件，标记工具调用被用户拒绝
+     */
+    public static ToolExecutionEvent rejected(String toolName, String arguments) {
+        ToolExecutionEvent event = new ToolExecutionEvent();
+        event.setStatus(ToolExecutionStatus.REJECTED);
+        event.setToolName(toolName);
+        event.setArguments(arguments);
+        event.setResult("用户拒绝了此工具调用");
+        event.setError(true);
         return event;
     }
 }

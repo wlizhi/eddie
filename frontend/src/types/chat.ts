@@ -68,7 +68,7 @@ export interface ChatRequest {
  * 工具执行事件数据（对应后端 ToolExecutionEvent）
  */
 export interface ToolExecutionData {
-    /** start | complete */
+    /** start | complete | pending_approval */
     status: string
     /** 工具名称，如 built_in_search */
     toolName: string
@@ -78,6 +78,12 @@ export interface ToolExecutionData {
     result?: string
     /** 是否执行出错 */
     error?: boolean
+    /** 消息 ID（用于审批场景） */
+    msgId?: number
+    /** 步骤 ID（智能体场景） */
+    stepId?: number
+    /** 工具调用序号（审批 key 唯一标识） */
+    seq?: number
 }
 
 /**
@@ -107,6 +113,16 @@ export interface ToolExecutionRecord {
     result?: string
     error?: boolean
     done: boolean
+    /** 此工具是否正在等待人工审批 */
+    pendingApproval?: boolean
+    /** 此工具调用是否被用户拒绝（非错误，用户主动行为） */
+    rejected?: boolean
+    /** 消息 ID（用于审批场景） */
+    msgId?: number
+    /** 步骤 ID（智能体多轮迭代定位） */
+    stepId?: number | null
+    /** 工具调用序号（用于审批 key 唯一标识） */
+    seq?: number
 }
 
 /**

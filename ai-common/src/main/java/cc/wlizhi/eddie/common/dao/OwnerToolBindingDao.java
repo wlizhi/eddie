@@ -72,7 +72,7 @@ public class OwnerToolBindingDao {
         String sql = """
                 SELECT id, owner_type, owner_id, tool_id, enabled, created_at
                 FROM ai_owner_tool_binding
-                WHERE enabled = 1
+                WHERE enabled in (1,2)
                 ORDER BY owner_type, owner_id, id
                 """;
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -129,6 +129,51 @@ public class OwnerToolBindingDao {
             params[i + 2] = toolIds.get(i);
         }
         jdbcTemplate.update(sql, params);
+    }
+
+    /**
+     * 批量插入绑定关系（每行带 enabled 状态）
+     * <p>
+     * 与 batchInsert 不同，此方法允许指定每个绑定的 enabled 值（0/1/2）。
+     *
+     * @param ownerType 归属方类型
+     * @param ownerId   归属方 ID
+     * @param bindings  绑定行列表（含 toolId + enabled）
+     */
+    public void batchInsertWithStatus(RoleType ownerType, Long ownerId, List<OwnerToolBindingRow> bindings) {
+        if (bindings == null || bindings.isEmpty()) return;
+        long now = System.currentTimeMillis();
+        String sql = """
+                INSERT INTO ai_owner_tool_binding (owner_type, owner_id, tool_id, enabled, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """;
+        List<Object[]> batchArgs = bindings.stream()
+                .map(b -> new Object[]{ownerType.name(), ownerId, b.getToolId(), b.getEnabled(), now})
+                .toList();
+        jdbcTemplate.batchUpdate(sql, batchArgs);
+    }
+
+    /**
+     * 查询指定 Owner 的全部绑定（含 enabled=0）
+     * <p>
+     * 与 findAllBindings 不同，此方法不过滤 enabled，返回所有记录。
+     */
+    public List<OwnerToolBindingRow> findAllBindingsByOwner(String ownerType, Long ownerId) {
+        String sql = """
+                SELECT id, owner_type, owner_id, tool_id, enabled, created_at
+                FROM ai_owner_tool_binding
+                WHERE owner_type = ? AND owner_id = ?
+                ORDER BY id
+                """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            OwnerToolBindingRow row = new OwnerToolBindingRow();
+            row.setId(rs.getLong("id"));
+            row.setOwnerType(rs.getString("owner_type"));
+            row.setOwnerId(rs.getLong("owner_id"));
+            row.setToolId(rs.getLong("tool_id"));
+            row.setEnabled(rs.getInt("enabled"));
+            return row;
+        }, ownerType, ownerId);
     }
 
     /**

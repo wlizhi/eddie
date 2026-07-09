@@ -27,7 +27,9 @@ import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
+import cc.wlizhi.eddie.common.exception.ToolApprovalException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
+import cc.wlizhi.eddie.common.handler.AbstractApprovalInterceptor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +75,19 @@ public class AgentToolCallbackWrapper implements ToolCallback {
         // AgentChatContext 已通过 ChatClientRequestSpec.toolContext() 注入到 ToolContext，
         // @Tool 方法可通过 toolContext.getContext().get("agentChatContext") 获取
 
+        // 在调用前设置唯一工具调用序号（用于审批 key 去重）
+        if (delegate instanceof AbstractApprovalInterceptor ai) {
+            int seq;
+            if (ctx.getStepStreamContext() != null) {
+                // EXECUTE 模式：使用步骤级计数器
+                seq = ctx.getStepStreamContext().getToolCallSequence().incrementAndGet();
+            } else {
+                // CHAT 模式：使用消息级计数器
+                seq = ctx.getToolCallSequence().incrementAndGet();
+            }
+            ai.setToolCallSequence(seq);
+        }
+
         ToolExecutionEvent startEvent = ToolExecutionEvent.start(toolName, toolInput);
         // 推送"开始"事件
         emitSse(startEvent);
@@ -116,11 +131,20 @@ public class AgentToolCallbackWrapper implements ToolCallback {
                 storeResult = storeResult.substring(0, storeMaxLen) + "...（已截断）";
             }
 
-            // SSE 事件使用前端渲染截断后的结果
-            ToolExecutionEvent sseEvent = ToolExecutionEvent.complete(toolName, toolInput, sseResult, false);
+            // 提取当前工具调用序号（用于 SSE 和持久化）
+            int currentSeq = delegate instanceof AbstractApprovalInterceptor ai ? ai.getToolCallSequence() : 0;
+
+            // 检查是否被用户拒绝 → 使用 REJECTED 状态
+            boolean rejected = delegate instanceof AbstractApprovalInterceptor ai && ai.isRejected();
+            ToolExecutionEvent sseEvent = rejected
+                    ? ToolExecutionEvent.rejected(toolName, toolInput)
+                    : ToolExecutionEvent.complete(toolName, toolInput, sseResult, false);
+            sseEvent.setSeq(currentSeq);
             emitSse(sseEvent);
-            // 存储使用持久化截断后的结果
-            ToolExecutionEvent storeEvent = ToolExecutionEvent.complete(toolName, toolInput, storeResult, false);
+            ToolExecutionEvent storeEvent = rejected
+                    ? ToolExecutionEvent.rejected(toolName, toolInput)
+                    : ToolExecutionEvent.complete(toolName, toolInput, storeResult, false);
+            storeEvent.setSeq(currentSeq);
             // EXECUTE 模式：写入步骤级累加器（每次迭代独立）；CHAT 模式：写入消息级累加器
             if (ctx.getIteratorState().getAgentMode() == AgentMode.EXECUTE) {
                 ctx.getStepStreamContext().getToolCalls().add(storeEvent);
@@ -130,11 +154,13 @@ public class AgentToolCallbackWrapper implements ToolCallback {
 
             return modelResult;
 
-        } catch (UserStopException | SwitchModeToPlanException e) {
+        } catch (UserStopException | SwitchModeToPlanException | ToolApprovalException e) {
             throw e;
         } catch (Exception e) {
             log.warn("[AgentToolCallbackWrapper] 工具执行失败: {}", toolName, e);
+            int errorSeq = delegate instanceof AbstractApprovalInterceptor ai ? ai.getToolCallSequence() : 0;
             ToolExecutionEvent errorEvent = ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true);
+            errorEvent.setSeq(errorSeq);
             emitSse(errorEvent);
             if (ctx.getIteratorState().getAgentMode() == AgentMode.EXECUTE) {
                 ctx.getStepStreamContext().getToolCalls().add(errorEvent);
@@ -155,10 +181,12 @@ public class AgentToolCallbackWrapper implements ToolCallback {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Long stepId = resolveCurrentStepId();
         Integer step = resolveCurrentStep();
+        int seq = delegate instanceof AbstractApprovalInterceptor ai ? ai.getToolCallSequence() : 0;
         ToolExecutionPayload payload = new ToolExecutionPayload(
                 msgId, stepId, step,
                 event.getToolName(), event.getStatus().getValue(),
-                event.getArguments(), event.getResult(), event.isError()
+                event.getArguments(), event.getResult(), event.isError(),
+                seq
         );
         ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
     }

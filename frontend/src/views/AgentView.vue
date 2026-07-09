@@ -69,6 +69,10 @@ function shuffleSuggestions() {
 /**
  * 从当前智能体详情中同步 preferences（联网、MCP 模式）配置
  * 有配置则使用智能体的默认值，无配置则回退默认
+ *
+ * 联网按钮的默认选中状态受 canWebSearch 影响：
+ * - 如果 BuiltInSearch 无已启用的联网工具 → 强制置灰关闭
+ * - 否则使用智能体偏好的默认值
  */
 async function syncPreferredSettingsFromAgent() {
   const id = agentStore.activeId
@@ -80,10 +84,11 @@ async function syncPreferredSettingsFromAgent() {
   try {
     const detail = await fetchAgentDetail(id)
     const prefs = detail.preferences ?? {}
-    agentChatStore.webSearchEnabled = prefs.webSearchEnabled ?? false
-    agentChatStore.mcpToolMode = (prefs.mcpToolMode ?? 'auto') as 'disabled' | 'auto' | 'manual'
-    // 加载智能体已绑定的 MCP 工具列表（供手动模式选择弹窗使用）
+    // 先加载绑定工具列表，使 canWebSearch 可用
     await agentChatStore.loadBoundMcpTools(id)
+    // Rule 1 & 2: 仅当 BuiltInSearch 有已启用的联网工具时才跟随偏好，否则强制关闭
+    agentChatStore.webSearchEnabled = agentChatStore.canWebSearch ? (prefs.webSearchEnabled ?? false) : false
+    agentChatStore.mcpToolMode = (prefs.mcpToolMode ?? 'auto') as 'disabled' | 'auto' | 'manual'
   } catch (err) {
     console.error('获取智能体详情失败:', err)
     agentChatStore.webSearchEnabled = false

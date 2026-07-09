@@ -64,6 +64,10 @@ function syncModelFromAssistant() {
 /**
  * 从当前助手详情中同步 thinkingMode + preferences 配置
  * 有配置则使用助手的默认值，无配置则回退默认
+ *
+ * 联网按钮的默认选中状态受 canWebSearch 影响：
+ * - 如果 BuiltInSearch 无已启用的联网工具 → 强制置灰关闭
+ * - 否则使用助手偏好的默认值
  */
 async function syncPreferredSettingsFromAssistant() {
   const id = assistantStore.activeId
@@ -80,7 +84,8 @@ async function syncPreferredSettingsFromAssistant() {
     chatStore.syncThinkingMode(tm ?? 'auto')
     // 助手偏好（联网、MCP 默认模式）
     const prefs = detail.preferences ?? {}
-    chatStore.webSearchEnabled = prefs.webSearchEnabled ?? false
+    // Rule 1 & 2: 仅当 BuiltInSearch 有已启用的联网工具时才跟随偏好，否则强制关闭
+    chatStore.webSearchEnabled = chatStore.canWebSearch ? (prefs.webSearchEnabled ?? false) : false
     chatStore.mcpToolMode = (prefs.mcpToolMode ?? 'auto') as 'disabled' | 'auto' | 'manual'
   } catch (err) {
     console.error('获取助手详情失败:', err)

@@ -11,7 +11,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 /**
  * 通用事件注册表
@@ -33,6 +37,14 @@ public class EventRegistry {
     private final ConcurrentHashMap<String, EventEntry<?>> registry = new ConcurrentHashMap<>();
 
     /**
+     * 待完成的 Future 映射——用于 {@link #waitFor(String)} 阻塞等待机制
+     * <p>
+     * 与 registry 独立存储，互不干扰。当 register() 写入 key 时，
+     * 同时 complete 对应的 Future，唤醒等待者。
+     */
+    private final ConcurrentHashMap<String, CompletableFuture<Object>> pendingFutures = new ConcurrentHashMap<>();
+
+    /**
      * 默认 TTL：1 分钟（惰性过期）
      */
     private static final long DEFAULT_TTL_MS = 60_000;
@@ -46,10 +58,21 @@ public class EventRegistry {
      */
     public <T> void register(String key, T data) {
         registry.put(key, new EventEntry<>(data, System.currentTimeMillis()));
+        // 通知正在 waitFor 的等待者（无等待者时无操作）
+        CompletableFuture<Object> future = pendingFutures.get(key);
+        if (future != null) {
+            future.complete(data);
+        }
     }
 
     public <T> void register(String type, String bizId, T data) {
-        registry.put(key(type, bizId), new EventEntry<>(data, System.currentTimeMillis()));
+        String k = key(type, bizId);
+        registry.put(k, new EventEntry<>(data, System.currentTimeMillis()));
+        // 通知正在 waitFor 的等待者（无等待者时无操作）
+        CompletableFuture<Object> future = pendingFutures.get(k);
+        if (future != null) {
+            future.complete(data);
+        }
     }
 
     /**
@@ -97,6 +120,72 @@ public class EventRegistry {
      */
     public void remove(String key) {
         registry.remove(key);
+        CompletableFuture<Object> future = pendingFutures.get(key);
+        if (future != null) {
+            future.complete(null);
+        }
+        pendingFutures.remove(key);
+    }
+
+    /**
+     * 阻塞等待事件到达，支持同时监听多个取消事件（如停止信号）
+     * <p>
+     * 用于工具审批场景——阻塞等待用户批准/拒绝，同时监听停止事件。
+     * 当 {@code mainKey} 或任一 {@code cancelKeys} 被 {@link #register(String, Object)} 触发时解除阻塞。
+     * <ul>
+     *   <li>主事件到达 → 立即返回数据</li>
+     *   <li>取消事件到达 → 返回 {@code null}</li>
+     *   <li>虚拟线程被 {@link Thread#interrupt()}（断连）→ 返回 {@code null}</li>
+     * </ul>
+     *
+     * @param mainKey    主事件键，返回值关联此 key
+     * @param cancelKeys 可选的取消事件 keys，任一到达视为取消，返回 null
+     * @param <T>        数据类型
+     * @return 主事件数据；取消/中断返回 null
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T waitFor(String mainKey, String... cancelKeys) {
+        // 先检查主事件是否已存在
+        T existing = get(mainKey);
+        if (existing != null) {
+            registry.remove(mainKey);
+            return existing;
+        }
+
+        CompletableFuture<Object> mainFuture = new CompletableFuture<>();
+        pendingFutures.put(mainKey, mainFuture);
+
+        List<CompletableFuture<Object>> allFutures = new ArrayList<>();
+        allFutures.add(mainFuture);
+        for (String cancelKey : cancelKeys) {
+            CompletableFuture<Object> cf = new CompletableFuture<>();
+            pendingFutures.put(cancelKey, cf);
+            allFutures.add(cf);
+        }
+
+        try {
+            if (allFutures.size() == 1) {
+                // 无取消 key，等同于原 waitFor 行为
+                return (T) mainFuture.get();
+            }
+            // 等待主事件或任一取消事件
+            CompletableFuture.anyOf(allFutures.toArray(new CompletableFuture[0])).get();
+            if (!mainFuture.isDone()) {
+                return null; // 取消事件触发
+            }
+            return (T) mainFuture.getNow(null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (ExecutionException e) {
+            return null;
+        } finally {
+            pendingFutures.remove(mainKey);
+            for (String cancelKey : cancelKeys) {
+                pendingFutures.remove(cancelKey);
+            }
+            registry.remove(mainKey);
+        }
     }
 
     /**

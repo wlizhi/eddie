@@ -15,7 +15,7 @@ import {useAssistantStore} from '@/stores/assistant'
 import {useChatStore} from '@/stores/chat'
 import type {McpServerItem} from '@/api/assistant'
 import {fetchAssistantDetail, fetchEnabledMcpServers, updateAssistantAvatar} from '@/api/assistant'
-import type {AssistantDetailVO, AssistantPreferences} from '@/types/assistant'
+import type {AssistantDetailVO, AssistantPreferences, McpServerBinding} from '@/types/assistant'
 import {fetchConfigs} from '@/api/settings'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 import {showToast} from '@/composables/useToast'
@@ -58,7 +58,6 @@ export function useAssistantForm(
     const formEnabled = ref<number>(1)
 
     // ========== MCP 工具选择 ==========
-    const formEnabledMcpServerIds = ref<number[]>([])
     const mcpServerList = ref<McpServerItem[]>([])
 
     const formModelParams = reactive<Record<string, any>>(
@@ -125,7 +124,6 @@ export function useAssistantForm(
         formModelId.value = ''
         formMemoryRounds.value = 10
         formEnabled.value = 1
-        formEnabledMcpServerIds.value = []
         formPreferences.webSearchEnabled = false
         formPreferences.mcpToolMode = 'auto'
         for (const def of MODEL_PARAM_DEFS) {
@@ -160,7 +158,6 @@ export function useAssistantForm(
             formModelId.value = d.modelId
             formMemoryRounds.value = d.memoryRounds ?? 20
             formEnabled.value = d.enabled === true || d.enabled === 1 ? 1 : 0
-            formEnabledMcpServerIds.value = d.boundMcpServerIds ?? []
             const mp = d.modelParams || {}
             for (const def of MODEL_PARAM_DEFS) {
                 formModelParams[def.key] = (mp as any)[def.key] ?? null
@@ -170,6 +167,33 @@ export function useAssistantForm(
             formPreferences.webSearchEnabled = prefs.webSearchEnabled ?? false
             formPreferences.mcpToolMode = prefs.mcpToolMode ?? 'auto'
             pendingAvatarFile.value = null
+
+            // 合并 MCP 工具级绑定状态到 mcpServerList
+            // 未在绑定中的工具默认 status=0（禁用），确保禁用状态也能正确回显
+            if (d.mcpServerBindings?.length) {
+                for (const binding of d.mcpServerBindings) {
+                    const mcp = mcpServerList.value.find(m => m.id === binding.mcpServerId)
+                    if (!mcp || !mcp.tools) continue
+                    for (const tb of binding.tools) {
+                        const tool = mcp.tools.find(t => t.id === tb.toolId)
+                        if (tool) {
+                            tool.enabledStatus = tb.status as 0 | 1 | 2
+                            tool.enabled = tb.status !== 0
+                        }
+                    }
+                }
+            }
+            // 未被任何绑定覆盖的工具默认设为禁用（0）
+            for (const mcp of mcpServerList.value) {
+                if (!mcp.tools) continue
+                const binding = (d.mcpServerBindings ?? []).find(b => b.mcpServerId === mcp.id)
+                for (const tool of mcp.tools) {
+                    if (!binding?.tools.some(tb => tb.toolId === tool.id)) {
+                        tool.enabledStatus = 0
+                        tool.enabled = false
+                    }
+                }
+            }
         } catch (err) {
             showToast('加载助手详情失败', 'error')
             console.error(err)
@@ -321,7 +345,7 @@ export function useAssistantForm(
                     memoryRounds: formMemoryRounds.value,
                     modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
                     preferences: Object.keys(preferences).length > 0 ? preferences : undefined,
-                    enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
+                    mcpServerBindings: buildMcpServerBindings(),
                 })
 
                 if (created) {
@@ -379,13 +403,13 @@ export function useAssistantForm(
                 enabled: formEnabled.value,
                 modelParams: Object.keys(modelParams).length > 0 ? modelParams : undefined,
                 preferences: Object.keys(preferences).length > 0 ? preferences : undefined,
-                enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
+                mcpServerBindings: buildMcpServerBindings(),
             })
             // 同步 chatStore 中的 MCP 绑定和偏好，确保聊天工具栏实时更新
             await chatStore.loadBoundMcpTools(detail.value.id)
             // 联动逻辑：如果 BuiltInSearch 不在绑定列表中，强制关闭联网搜索
             const hasBuiltInSearch = chatStore.boundMcpTools.some(
-                t => t.transportType === 'BUILT_IN'
+                t => t.mcpServerName === 'BuiltInSearch'
             )
             if (!hasBuiltInSearch) {
                 chatStore.webSearchEnabled = false
@@ -418,6 +442,25 @@ export function useAssistantForm(
             webSearchEnabled: formPreferences.webSearchEnabled ?? false,
             mcpToolMode: formPreferences.mcpToolMode ?? 'auto',
         }
+    }
+
+    /**
+     * 从 mcpServerList 的当前工具状态构建 MCP 绑定列表
+     * 包含所有工具（含禁用），确保禁用状态也能保存到后端
+     */
+    function buildMcpServerBindings(): McpServerBinding[] | undefined {
+        const list = mcpServerList.value
+        if (!list.length) return undefined
+
+        const bindings: McpServerBinding[] = []
+        for (const mcp of list) {
+            const tools = (mcp.tools ?? []).map(t => ({
+                toolId: t.id,
+                status: t.enabledStatus ?? 0,
+            }))
+            bindings.push({ mcpServerId: mcp.id, tools })
+        }
+        return bindings.length > 0 ? bindings : undefined
     }
 
     async function handleDelete() {
@@ -469,7 +512,6 @@ export function useAssistantForm(
         formPreferences,
 
         // MCP 工具选择
-        formEnabledMcpServerIds,
         mcpServerList,
 
         // 方法
@@ -481,6 +523,7 @@ export function useAssistantForm(
         handleSave,
         handleDelete,
         close,
+        buildMcpServerBindings,
 
         // 计算属性
         groupedModelOptions,

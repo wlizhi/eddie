@@ -282,11 +282,13 @@ defineExpose({focusInput})
           </NPopselect>
 
           <!-- 🌐 联网搜索 toggle -->
+          <!-- Rule 1: 无已启用的联网工具时置灰不可点击 -->
           <button
               class="toggle-chip"
-              :class="{active: chatStore.webSearchEnabled}"
+              :class="{active: chatStore.webSearchEnabled, disabled: !chatStore.canWebSearch}"
+              :disabled="!chatStore.canWebSearch"
               title="联网搜索"
-              @click="chatStore.webSearchEnabled = !chatStore.webSearchEnabled"
+              @click="chatStore.canWebSearch && (chatStore.webSearchEnabled = !chatStore.webSearchEnabled)"
           >
             <Globe :size="iconSizeSm" :stroke-width="2"/>
             联网
@@ -549,6 +551,13 @@ defineExpose({focusInput})
 
 .toggle-chip.active:hover {
   background: var(--accent-light-bg);
+}
+
+.toggle-chip:disabled,
+.toggle-chip.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* ===== 发送 / 中断按钮（工具栏最右） ===== */

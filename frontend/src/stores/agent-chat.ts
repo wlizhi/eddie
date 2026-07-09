@@ -122,6 +122,36 @@ export const useAgentChatStore = defineStore('agentChat', () => {
     /** 当前智能体已绑定的 MCP + 工具列表缓存 */
     const boundMcpTools = ref<ToolSourceVO[]>([])
 
+    /** 联网按钮固定绑定的 3 个内置工具名（与 chat store 保持一致） */
+    const WEB_SEARCH_TOOL_NAMES = ['built_in_search', 'built_in_fetch_markdown', 'built_in_fetch_json']
+
+    /**
+     * 当前智能体绑定的 BuiltInSearch 下是否存在已启用的联网工具
+     * 用于控制联网按钮的置灰状态
+     */
+    const canWebSearch = computed(() => {
+        const builtInSearch = boundMcpTools.value.find(
+            t => t.mcpServerName === 'BuiltInSearch'
+        )
+        if (!builtInSearch?.tools) return false
+        return builtInSearch.tools.some(
+            t => WEB_SEARCH_TOOL_NAMES.includes(t.name) && t.enabled
+        )
+    })
+
+    /**
+     * 获取 BuiltInSearch 下已启用的联网工具名
+     */
+    function getEnabledWebToolNames(): string[] {
+        const builtInSearch = boundMcpTools.value.find(
+            t => t.mcpServerName === 'BuiltInSearch'
+        )
+        if (!builtInSearch?.tools) return []
+        return builtInSearch.tools
+            .filter(t => WEB_SEARCH_TOOL_NAMES.includes(t.name) && t.enabled)
+            .map(t => t.name)
+    }
+
     // ==================== 用户临时覆盖参数 ====================
 
     /** 临时覆盖的主模型服务商 ID（null=使用 Agent 配置，刷新清空） */
@@ -335,45 +365,47 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 }
             },
             onToolExecution: (data) => {
-                // 使用 currentRound（round_start 事件的 round 值）作为轮次索引，
-                // 而非 tool_execution payload 中的 step（该值为计划步骤编号，多个迭代可相同）
+                const msgId = data.msgId
+                const stepId = data.stepId
                 const roundIndex = currentRound.value
+
+                /** 按 msgId + stepId + toolName + !done 定位匹配的 tool record */
+                const findTool = (arr: ToolExecutionRecord[]) => arr.find(t =>
+                    t.toolName === data.toolName &&
+                    t.msgId === msgId &&
+                    t.stepId === stepId &&
+                    !t.done
+                )
+
                 if (data.status === 'start') {
-                    const toolRec = {
-                        toolName: data.toolName,
+                    const toolRec: ToolExecutionRecord = {
+                        toolName: data.toolName!,
                         arguments: data.arguments,
                         done: false,
+                        msgId,
+                        stepId,
+                        seq: data.seq,
                     }
-                    currentToolExecutions.value.push(toolRec)
-                    // 同时路由到对应轮次（与 currentToolExecutions 共享同一对象引用）
+                    currentToolExecutions.value = [...currentToolExecutions.value, toolRec]
                     const last = messages.value[messages.value.length - 1]
                     if (last?.role === 'assistant') {
                         const rounds = ensureRounds(last, roundIndex)
                         rounds[roundIndex].toolCalls.push(toolRec)
                     }
-                } else if (data.status === 'complete') {
-                    const existing = currentToolExecutions.value.find(
-                        t => t.toolName === data.toolName && !t.done
-                    )
-                    if (existing) {
-                        // 直接修改共享对象引用，rounds 中的同一对象自动更新
-                        existing.result = data.result
-                        existing.error = data.error
-                        existing.done = true
-                    } else {
-                        const toolRec = {
-                            toolName: data.toolName,
-                            result: data.result,
-                            error: data.error,
-                            done: true,
-                        }
-                        currentToolExecutions.value.push(toolRec)
-                        // 也同步写入 rounds（与 currentToolExecutions 共享同一对象引用）
-                        const last = messages.value[messages.value.length - 1]
-                        if (last?.role === 'assistant') {
-                            const rounds = ensureRounds(last, roundIndex)
-                            rounds[roundIndex].toolCalls.push(toolRec)
-                        }
+                } else if (data.status === 'pending_approval') {
+                    const found = findTool(currentToolExecutions.value)
+                    if (found) {
+                        found.pendingApproval = true
+                        found.arguments = data.arguments
+                    }
+                } else if (data.status === 'complete' || data.status === 'rejected') {
+                    const found = findTool(currentToolExecutions.value)
+                    if (found) {
+                        found.result = data.result
+                        found.error = data.status === 'rejected' ? false : !!data.error
+                        found.done = true
+                        found.pendingApproval = false
+                        found.rejected = data.status === 'rejected'
                     }
                 }
             },
@@ -543,29 +575,57 @@ export const useAgentChatStore = defineStore('agentChat', () => {
 
     /**
      * 根据当前工具模式 + 联网开关，构建发送给后端的工具参数
+     *
+     * 规则：
+     * - MCP禁用 + 联网关 → toolSelectionMode=none
+     * - MCP禁用 + 联网开 → toolSelectionMode=manual, tools=BuiltInSearch 下已启用的联网工具
+     * - MCP手动          → toolSelectionMode=manual, tools=选中 MCP 中已启用的工具 + 联网工具（去重）
+     * - MCP自动          → toolSelectionMode=manual, tools=所有绑定的非禁用工具 + 联网工具（去重）
+     * - 工具列表为空时    → toolSelectionMode=none
      */
     function buildToolParams(): { toolSelectionMode?: string; toolNames?: string[] } {
         const mode = mcpToolMode.value
+        const searchOn = webSearchEnabled.value
+
+        // 收集工具列表（去重后）
+        const toolNames: string[] = []
 
         if (mode === 'disabled') {
-            return {toolSelectionMode: 'none', toolNames: []}
-        }
-
-        if (mode === 'manual') {
-            const toolNames: string[] = []
+            // Rule 5: MCP 禁用状态不发送工具列表，但联网按钮独立工作
+            if (searchOn) {
+                toolNames.push(...getEnabledWebToolNames())
+            }
+        } else if (mode === 'manual') {
+            // 收集选中 MCP 中已启用的工具
             for (const mcp of boundMcpTools.value) {
                 if (selectedMcpServerIds.value.includes(mcp.mcpServerId)) {
-                    toolNames.push(...mcp.tools.map(t => t.name))
+                    toolNames.push(...mcp.tools.filter(t => t.enabled).map(t => t.name))
                 }
             }
-            return {
-                toolSelectionMode: 'manual',
-                toolNames: [...new Set(toolNames)],
+            // 联网开 → 合并 BuiltInSearch 下已启用的联网工具
+            if (searchOn) {
+                toolNames.push(...getEnabledWebToolNames())
+            }
+        } else {
+            // mode === 'auto'
+            // Rule 6: MCP 自动 → 发送绑定的全部非禁用工具列表 + 联网工具（去重）
+            for (const mcp of boundMcpTools.value) {
+                toolNames.push(...mcp.tools.filter(t => t.enabled).map(t => t.name))
+            }
+            if (searchOn) {
+                toolNames.push(...getEnabledWebToolNames())
             }
         }
 
-        // mode === 'auto'
-        return {toolSelectionMode: 'auto'}
+        // 去重
+        const uniqueNames = [...new Set(toolNames)]
+        if (uniqueNames.length === 0) {
+            return {toolSelectionMode: 'none', toolNames: []}
+        }
+        return {
+            toolSelectionMode: 'manual',
+            toolNames: uniqueNames,
+        }
     }
 
     return {
@@ -590,6 +650,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         modelSelectors,
         thinkingMode,
         webSearchEnabled,
+        canWebSearch,
         mcpToolMode,
         selectedMcpServerIds,
         boundMcpTools,

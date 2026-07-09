@@ -137,8 +137,11 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
                 onMetadata?.(data)
             } else if (currentEvent === 'tool_execution') {
                 try {
-                    const parsed = JSON.parse(data) as ToolExecutionData
-                    onToolExecution?.(parsed)
+                    // 新格式：ApiResult 信封包裹 ToolExecutionData
+                    const envelope = JSON.parse(data) as ApiResult<ToolExecutionData>
+                    if (envelope.data) {
+                        onToolExecution?.(envelope.data)
+                    }
                 } catch {
                     // ignore parse error
                 }
@@ -229,4 +232,38 @@ export async function fetchModelList(): Promise<ChatModelSelector[]> {
         throw new Error(json.message || '获取模型列表失败')
     }
     return json.data
+}
+
+/**
+ * 工具审批接口
+ * <p>
+ * 前端用户在助手聊天页面点击"批准/拒绝"按钮时调用，
+ * 通知后端 {@code ApprovalInterceptor} 继续执行或中断。
+ * <p>
+ * 助手聊天页面的 ownerType 固定为 "assistant"。
+ * <p>
+ * 对应后端：ToolApprovalController.approveTool
+ * POST /api/agent/tools/approve
+ */
+export async function approveTool(
+    msgId: number,
+    toolName: string,
+    approved: boolean,
+    seq?: number,
+): Promise<void> {
+    const res = await fetch(`${BASE_URL}/agent/tools/approve`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            ownerType: 'assistant',
+            msgId,
+            stepId: null,
+            toolName,
+            approved,
+            seq: seq ?? 0,
+        }),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<void> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '审批请求失败')
 }

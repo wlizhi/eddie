@@ -104,7 +104,7 @@ public class AgentEventPublisher {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
         ToolExecutionPayload payload = new ToolExecutionPayload(
-                msgId, stepId, step, toolName, status, null, result, false);
+                msgId, stepId, step, toolName, status, null, result, false, 0);
         emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
     }
 

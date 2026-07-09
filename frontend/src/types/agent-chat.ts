@@ -83,6 +83,7 @@ export type AgentSSEEventType =
     | 'answer'
     | 'tool_execution'
     | 'round_start'
+    | 'round_end'
     | 'metadata'
     | 'message_created'
     | 'cancelled'
@@ -90,6 +91,8 @@ export type AgentSSEEventType =
     | 'plan_started'
     | 'plan_generated'
     | 'update_task_plan'
+    | 'execute_complete'
+    | 'task_finish'
 
 /**
  * 消息记录（从后端加载的历史消息）
@@ -168,6 +171,9 @@ export interface AgentStreamChatOptions {
         arguments?: string
         result?: string
         error?: boolean
+        msgId?: number
+        stepId?: number
+        seq?: number
     }, step?: number | null) => void
     /** 收到新一轮迭代开始事件时的回调 */
     onRoundStart?: (round: number) => void

@@ -8,6 +8,8 @@ package cc.wlizhi.eddie.app.aot;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
+import cc.wlizhi.eddie.agent.entity.request.AgentMcpServerBinding;
+import cc.wlizhi.eddie.agent.entity.request.AgentToolBinding;
 import cc.wlizhi.eddie.agent.entity.dto.AgentModelInfo;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
@@ -21,6 +23,7 @@ import cc.wlizhi.eddie.chat.service.impl.OpenAiChatClientFactory;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
+import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatModel;
 import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import cc.wlizhi.eddie.common.dao.ChatModelProviderDao;
@@ -55,6 +58,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(ToolDefinitionEntity.class, members);
         reflection.registerType(MetadataInfo.class, members);
         reflection.registerType(ToolExecutionEvent.class, members);
+        reflection.registerType(ToolExecutionStatus.class, members);
         reflection.registerType(DeepseekChatClientFactory.class, members);
         reflection.registerType(OpenAiChatClientFactory.class, members);
         reflection.registerType(McpClientHolder.class, members);
@@ -76,6 +80,15 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(ApiResult.class, members);
         reflection.registerType(AgentTaskStep.class, members);
         reflection.registerType(AgentMsgStepEntity.class, members);
+        // ==================== OpenAI SDK 内部类（Jackson 反序列化需要） ====================
+        reflection.registerType(
+                com.openai.models.completions.CompletionUsage.CompletionTokensDetails.class,
+                MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                MemberCategory.INVOKE_DECLARED_METHODS);
+        reflection.registerType(
+                com.openai.models.completions.CompletionUsage.PromptTokensDetails.class,
+                MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                MemberCategory.INVOKE_DECLARED_METHODS);
         // ==================== SSE 事件 Payload ====================
         reflection.registerType(ThinkingPayload.class, members);
         reflection.registerType(AnswerPayload.class, members);

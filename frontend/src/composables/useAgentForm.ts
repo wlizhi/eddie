@@ -19,7 +19,7 @@ import {useAgentStore} from '@/stores/agent'
 import {useChatStore} from '@/stores/chat'
 import {fetchAgentDetail, fetchEnabledMcpServers} from '@/api/agent'
 import {fetchConfigs} from '@/api/settings'
-import type {AgentDetailVO} from '@/types/agent'
+import type {AgentDetailVO, AgentMcpServerBinding} from '@/types/agent'
 import type {AssistantPreferences} from '@/types/assistant'
 import type {McpServerItem} from '@/api/assistant'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
@@ -90,7 +90,7 @@ export function useAgentForm(
     })
 
     // ========== MCP 工具选择 ==========
-    const formEnabledMcpServerIds = ref<number[]>([])
+    const formMcpServerBindings = ref<AgentMcpServerBinding[]>([])
     const mcpServerList = ref<McpServerItem[]>([])
 
     const show = ref(false)
@@ -111,10 +111,9 @@ export function useAgentForm(
         if (chatStore.modelSelectors.length === 0) {
             await chatStore.loadModels()
         }
-        await Promise.all([
-            loadDetail(id),
-            loadMcpServerList(),
-        ])
+        // 先加载 MCP 服务列表（loadDetail 依赖其数据补全 binding）
+        await loadMcpServerList()
+        await loadDetail(id)
         show.value = true
     })
 
@@ -156,7 +155,7 @@ export function useAgentForm(
 
         formMemoryRounds.value = 20
 
-        formEnabledMcpServerIds.value = []
+        formMcpServerBindings.value = []
 
         formPreferences.webSearchEnabled = false
         formPreferences.mcpToolMode = 'auto'
@@ -211,8 +210,17 @@ export function useAgentForm(
 
             formMemoryRounds.value = d.memoryRounds ?? 20
 
-            // MCP 工具绑定
-            formEnabledMcpServerIds.value = d.boundMcpServerIds ?? []
+            // MCP 工具绑定 — 补全所有工具（未出现在绑定中的默认为 0=禁用）
+            const rawBindings = d.mcpServerBindings ?? []
+            formMcpServerBindings.value = mcpServerList.value.map(mcp => ({
+                mcpServerId: mcp.id,
+                tools: (mcp.tools ?? []).map(tool => {
+                    const existing = rawBindings
+                        .find(b => b.mcpServerId === mcp.id)
+                        ?.tools.find(t => t.toolId === tool.id)
+                    return { toolId: tool.id, status: existing?.status ?? 0 }
+                }),
+            }))
 
             // 偏好设置
             const prefs = d.preferences ?? {}
@@ -420,7 +428,7 @@ export function useAgentForm(
 
                     toolSelectionMode: formToolSelectionMode.value,
 
-                    enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
+                    mcpServerBindings: formMcpServerBindings.value.length > 0 ? formMcpServerBindings.value : undefined,
 
                     preferences: Object.keys(preferences).length > 0 ? preferences : undefined,
                 })
@@ -476,7 +484,7 @@ export function useAgentForm(
 
                 toolSelectionMode: formToolSelectionMode.value,
 
-                enabledMcpServerIds: formEnabledMcpServerIds.value.length > 0 ? formEnabledMcpServerIds.value : undefined,
+                mcpServerBindings: formMcpServerBindings.value.length > 0 ? formMcpServerBindings.value : undefined,
 
                 preferences: Object.keys(preferences).length > 0 ? preferences : undefined,
 
@@ -566,7 +574,7 @@ export function useAgentForm(
         formPreferences,
 
         // MCP 工具选择
-        formEnabledMcpServerIds,
+        formMcpServerBindings,
         mcpServerList,
 
         // 方法

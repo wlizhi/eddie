@@ -11,6 +11,8 @@ import lombok.Setter;
 import java.util.List;
 import java.util.Map;
 
+import cc.wlizhi.eddie.agent.entity.request.AgentMcpServerBinding;
+
 /**
  * 智能体详情 VO（配置回显）
  */
@@ -104,9 +106,9 @@ public class AgentDetailVO {
     private String toolSelectionMode;
 
     /**
-     * 已绑定的 MCP Server ID 列表
+     * MCP 服务绑定配置列表（含工具级别状态）
      */
-    private List<Long> boundMcpServerIds;
+    private List<AgentMcpServerBinding> mcpServerBindings;
 
     // ==================== 偏好设置 ====================
 

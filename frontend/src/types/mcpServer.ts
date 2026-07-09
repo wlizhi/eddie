@@ -76,6 +76,8 @@ export interface McpToolItem {
     description: string
     toolType: 'BUILT_IN' | 'MCP'
     enabled: boolean
+    /** 启用状态码：0=禁用, 1=启用, 2=待审批 */
+    enabledStatus: 0 | 1 | 2
     builtIn: boolean
     sortOrder: number
 }

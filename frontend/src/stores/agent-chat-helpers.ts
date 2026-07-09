@@ -62,8 +62,9 @@ export function parseToolCalls(toolCallsJson: string | null | undefined): ToolEx
             toolName: item.toolName,
             arguments: item.arguments,
             result: item.result,
-            error: item.error,
-            done: item.status === 'complete',
+            error: item.status === 'rejected' ? false : !!item.error,
+            done: item.status === 'complete' || item.status === 'rejected',
+            rejected: item.status === 'rejected',
         }))
     } catch {
         return []

@@ -160,60 +160,91 @@ export const useChatStore = defineStore('chat', () => {
         }
     }
 
+    /** 联网按钮固定绑定的 3 个内置工具名 */
+    const WEB_SEARCH_TOOL_NAMES = ['built_in_search', 'built_in_fetch_markdown', 'built_in_fetch_json']
+
+    /**
+     * 当前助手绑定的 BuiltInSearch 下是否存在已启用的联网工具
+     * 用于控制联网按钮的置灰状态
+     */
+    const canWebSearch = computed(() => {
+        const builtInSearch = boundMcpTools.value.find(
+            t => t.mcpServerName === 'BuiltInSearch'
+        )
+        if (!builtInSearch?.tools) return false
+        return builtInSearch.tools.some(
+            t => WEB_SEARCH_TOOL_NAMES.includes(t.name) && t.enabled
+        )
+    })
+
+    /**
+     * 获取 BuiltInSearch 下已启用的联网工具名（仅限固定 3 个）
+     * 从助手纬度绑定的工具列表中取 BuiltInSearch 服务器的 enabled 状态
+     */
+    function getEnabledWebToolNames(): string[] {
+        const builtInSearch = boundMcpTools.value.find(
+            t => t.mcpServerName === 'BuiltInSearch'
+        )
+        if (!builtInSearch?.tools) return []
+        return builtInSearch.tools
+            .filter(t => WEB_SEARCH_TOOL_NAMES.includes(t.name) && t.enabled)
+            .map(t => t.name)
+    }
+
     /**
      * 根据当前工具模式 + 联网开关，构建发送给后端的工具参数
      *
      * 规则：
-     * - MCP禁用 + 联网关 → mode=none
-     * - MCP禁用 + 联网开 → mode=manual, tools=BuiltInSearch 下所有工具
-     * - MCP手动          → mode=manual, tools=选中 MCP 工具 + 联网工具（去重）
-     * - MCP自动          → mode=auto, 不传工具列表
+     * - MCP禁用 + 联网关 → toolSelectionMode=none
+     * - MCP禁用 + 联网开 → toolSelectionMode=manual, tools=BuiltInSearch 下已启用的联网工具
+     * - MCP手动          → toolSelectionMode=manual, tools=选中 MCP 中已启用的工具 + 联网工具（去重）
+     * - MCP自动          → toolSelectionMode=manual, tools=所有绑定的非禁用工具 + 联网工具（去重）
+     * - 工具列表为空时    → toolSelectionMode=none
      */
     function buildToolParams(): { toolSelectionMode?: string; toolNames?: string[] } {
         const mode = mcpToolMode.value
         const searchOn = webSearchEnabled.value
         const selectedIds = selectedMcpServerIds.value
 
-        // 查找 BuiltInSearch MCP Server ID（内置搜索）
-        const builtInSearch = boundMcpTools.value.find(
-            t => t.mcpServerName === 'BuiltInSearch' || t.transportType === 'BUILT_IN'
-        )
-        const builtInSearchId = builtInSearch?.mcpServerId
-
-        /** 获取指定 MCP Server ID 下的所有工具名称 */
-        function getToolNamesByServerId(serverId: number): string[] {
-            const server = boundMcpTools.value.find(s => s.mcpServerId === serverId)
-            if (!server) return []
-            return server.tools.map(t => t.name)
-        }
+        // 收集工具列表（去重后）
+        const toolNames: string[] = []
 
         if (mode === 'disabled') {
-            if (searchOn && builtInSearchId != null) {
-                // MCP禁用 + 联网开 → 升级为 manual，只传 BuiltInSearch 工具
-                return {
-                    toolSelectionMode: 'manual',
-                    toolNames: getToolNamesByServerId(builtInSearchId),
+            // Rule 5: MCP 禁用状态不发送工具列表，但联网按钮独立工作
+            if (searchOn) {
+                toolNames.push(...getEnabledWebToolNames())
+            }
+        } else if (mode === 'manual') {
+            // 收集选中 MCP 中已启用的工具
+            for (const mcp of boundMcpTools.value) {
+                if (selectedIds.includes(mcp.mcpServerId)) {
+                    toolNames.push(...mcp.tools.filter(t => t.enabled).map(t => t.name))
                 }
             }
+            // 联网开 → 合并 BuiltInSearch 下已启用的联网工具
+            if (searchOn) {
+                toolNames.push(...getEnabledWebToolNames())
+            }
+        } else {
+            // mode === 'auto'
+            // Rule 6: MCP 自动 → 发送绑定的全部非禁用工具列表 + 联网工具（去重）
+            for (const mcp of boundMcpTools.value) {
+                toolNames.push(...mcp.tools.filter(t => t.enabled).map(t => t.name))
+            }
+            if (searchOn) {
+                toolNames.push(...getEnabledWebToolNames())
+            }
+        }
+
+        // 去重
+        const uniqueNames = [...new Set(toolNames)]
+        if (uniqueNames.length === 0) {
             return {toolSelectionMode: 'none', toolNames: []}
         }
-
-        if (mode === 'manual') {
-            // 合并选中 MCP 的工具 + 联网工具（如果联网开）
-            const idsToUse = [...selectedIds]
-            if (searchOn && builtInSearchId != null && !idsToUse.includes(builtInSearchId)) {
-                idsToUse.push(builtInSearchId)
-            }
-            const toolNames = idsToUse.flatMap(id => getToolNamesByServerId(id))
-            // 去重
-            return {
-                toolSelectionMode: 'manual',
-                toolNames: [...new Set(toolNames)],
-            }
+        return {
+            toolSelectionMode: 'manual',
+            toolNames: uniqueNames,
         }
-
-        // mode === 'auto' → 不传工具列表，AI 自主决定
-        return {toolSelectionMode: 'auto'}
     }
 
     async function loadModels(): Promise<void> {
@@ -330,26 +361,50 @@ export const useChatStore = defineStore('chat', () => {
                 }
             },
             onToolExecution: (data) => {
-                if (data.status === 'start') {
-                    currentToolExecutions.value.push({
-                        toolName: data.toolName,
-                        arguments: data.arguments,
-                        done: false,
-                    })
-                } else if (data.status === 'complete') {
+                if (data.status === 'pending_approval') {
+                    // 查找已有的 start 条目，更新为待审批状态
                     const existing = currentToolExecutions.value.find(
                         t => t.toolName === data.toolName && !t.done
                     )
                     if (existing) {
+                        existing.pendingApproval = true
+                        existing.arguments = data.arguments
+                        existing.msgId = data.msgId
+                    } else {
+                        currentToolExecutions.value.push({
+                            toolName: data.toolName,
+                            arguments: data.arguments,
+                            done: false,
+                            pendingApproval: true,
+                            msgId: data.msgId,
+                            seq: data.seq,
+                        })
+                    }
+                } else if (data.status === 'start') {
+                    currentToolExecutions.value.push({
+                        toolName: data.toolName,
+                        arguments: data.arguments,
+                        done: false,
+                        seq: data.seq,
+                    })
+                } else if (data.status === 'complete' || data.status === 'rejected') {
+                    const existing = currentToolExecutions.value.find(
+                        t => t.toolName === data.toolName && !t.done
+                    )
+                    const rejected = data.status === 'rejected'
+                    if (existing) {
                         existing.result = data.result
-                        existing.error = data.error
+                        existing.error = rejected ? false : !!data.error
                         existing.done = true
+                        existing.pendingApproval = false
+                        existing.rejected = rejected
                     } else {
                         currentToolExecutions.value.push({
                             toolName: data.toolName,
                             result: data.result,
-                            error: data.error,
+                            error: rejected ? false : !!data.error,
                             done: true,
+                            rejected,
                         })
                     }
                 }
@@ -586,8 +641,9 @@ export const useChatStore = defineStore('chat', () => {
                 toolName: tc.toolName,
                 arguments: tc.arguments,
                 result: tc.result,
-                error: tc.error,
-                done: tc.status === 'complete',
+                error: tc.status === 'rejected' ? false : !!tc.error,
+                done: tc.status === 'complete' || tc.status === 'rejected',
+                rejected: tc.status === 'rejected',
             }))
         }
         return {
@@ -628,6 +684,7 @@ export const useChatStore = defineStore('chat', () => {
         currentToolExecutions,
         thinkingMode,
         webSearchEnabled,
+        canWebSearch,
         mcpToolMode,
         selectedMcpServerIds,
         boundMcpTools,

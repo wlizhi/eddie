@@ -27,6 +27,8 @@ import {renderMd} from '@/utils/markdown'
 import {formatShortTime} from '@/utils/format'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
 import {displaySettings, getEffectiveFontSize} from '@/composables/useDisplaySettings'
+import {approveTool} from '@/api/chat'
+import {showToast} from '@/composables/useToast'
 
 defineProps<{
   qaMode: boolean
@@ -90,6 +92,21 @@ const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 2.2))
 
 /** 用户是否已手动上滑（打断自动滚动） */
 const userScrolledAway = ref(false)
+
+/** 审批工具调用 */
+async function handleApprove(tool: { toolName: string; msgId?: number; seq?: number }, approved: boolean): Promise<void> {
+    const msgId = tool.msgId
+    if (msgId == null) {
+        showToast('缺少消息 ID，无法审批', 'error')
+        return
+    }
+    try {
+        await approveTool(msgId, tool.toolName, approved, tool.seq)
+        showToast(approved ? '已批准' : '已拒绝', 'success')
+    } catch (err) {
+        showToast(`审批失败: ${(err as Error).message}`, 'error')
+    }
+}
 
 /** 判断滚动容器是否在底部附近（100px 阈值） */
 function isNearBottom(): boolean {
@@ -306,12 +323,12 @@ function onScroll() {
                 v-for="(tc, ti) in msg.toolCalls"
                 :key="'h-' + ti"
                 class="tool-execution-card"
-                :class="{ 'tool-error': tc.error }"
+                :class="{ 'tool-error': tc.error, 'tool-rejected': tc.rejected }"
             >
               <div class="tool-execution-header" @click="toggleToolResult('h-' + ti)">
                 <ChevronDown :size="12" :stroke-width="2" class="tool-chevron"
                              :class="{ rotated: toolResultExpanded['h-' + ti] }"/>
-                <span class="tool-execution-icon">{{ tc.error ? '✕' : '✓' }}</span>
+                <span class="tool-execution-icon">{{ tc.error ? '✕' : (tc.rejected ? '⚠' : '✓') }}</span>
                 <span class="tool-execution-name">{{ displayToolName(tc.toolName) }}</span>
               </div>
               <div v-if="tc.arguments || tc.result" class="tool-execution-result markdown-body"
@@ -324,18 +341,27 @@ function onScroll() {
                 v-for="(tool, ti) in msg === chatStore.messages[chatStore.messages.length - 1] ? chatStore.currentToolExecutions : []"
                 :key="'s-' + ti"
                 class="tool-execution-card"
-                :class="{ 'tool-error': tool.error }"
+                :class="{ 'tool-error': tool.error, 'tool-rejected': tool.rejected }"
             >
               <div class="tool-execution-header" @click="toggleToolResult('s-' + ti)">
                 <ChevronDown :size="12" :stroke-width="2" class="tool-chevron"
                              :class="{ rotated: toolResultExpanded['s-' + ti] }"/>
-                <span class="tool-execution-icon">{{ tool.done ? (tool.error ? '✕' : '✓') : '⟳' }}</span>
+                <span class="tool-execution-icon">{{ tool.done ? (tool.error ? '✕' : (tool.rejected ? '⚠' : '✓')) : (tool.pendingApproval ? '⏳' : '⟳') }}</span>
                 <span class="tool-execution-name">{{ displayToolName(tool.toolName) }}</span>
-                <span v-if="!tool.done" class="tool-execution-status">运行中...</span>
+                <span v-if="!tool.done" class="tool-execution-status"
+                      :class="{ 'tool-status-pending': tool.pendingApproval }">
+                  {{ tool.pendingApproval ? '等待审批...' : '运行中...' }}
+                </span>
               </div>
-              <div v-if="tool.done && (tool.arguments || tool.result)" class="tool-execution-result markdown-body"
+              <div v-if="tool.arguments || tool.result"
+                   class="tool-execution-result markdown-body"
                    :class="{ collapsed: !toolResultExpanded['s-' + ti] }"
                    v-html="renderMd(buildToolContent(tool.arguments, tool.result))">
+              </div>
+              <!-- 审批按钮 -->
+              <div v-if="tool.pendingApproval" class="tool-approval-actions">
+                <button class="tool-approve-btn" @click.stop="handleApprove(tool, true)">✓ 批准</button>
+                <button class="tool-reject-btn" @click.stop="handleApprove(tool, false)">✕ 拒绝</button>
               </div>
             </div>
           </div>

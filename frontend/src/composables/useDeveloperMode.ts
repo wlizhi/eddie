@@ -4,7 +4,7 @@
  */
 
 import {ref, watch} from 'vue'
-import {fetchConfigs} from '@/api/settings'
+import {loadSharedConfigs} from '@/composables/sharedConfig'
 
 const GENERAL_SETTINGS_KEY = 'GENERAL_SETTINGS'
 
@@ -23,7 +23,7 @@ export async function loadDeveloperMode(): Promise<void> {
   if (loaded) return
   loaded = true
   try {
-    const configs = await fetchConfigs()
+    const configs = await loadSharedConfigs()
     const raw = configs[GENERAL_SETTINGS_KEY]
     const settings = raw ? JSON.parse(raw) : {}
     if (settings.developerMode != null) {

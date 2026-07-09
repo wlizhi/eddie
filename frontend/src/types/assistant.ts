@@ -8,11 +8,28 @@
  *
  * 对应后端：
  *   AssistantVO       → 列表展示
- *   AssistantDetailVO → 详情回显（含 modelParams）
+ *   AssistantDetailVO → 详情回显（含 modelParams、mcpServerBindings）
  *   AssistantCreateRequest  → 新建请求
  *   AssistantUpdateRequest  → 更新请求（部分更新）
  *   ModelParams       → 模型参数
  */
+
+/**
+ * 工具绑定状态（对应后端 ToolBinding）
+ */
+export interface ToolBinding {
+    toolId: number
+    /** 绑定状态：0=禁用, 1=自动批准, 2=人工审批 */
+    status: number
+}
+
+/**
+ * MCP 服务绑定配置（对应后端 McpServerBinding）
+ */
+export interface McpServerBinding {
+    mcpServerId: number
+    tools: ToolBinding[]
+}
 
 /**
  * 系统提示词模板变量信息（对应后端 VariableInfo）
@@ -87,8 +104,8 @@ export interface AssistantDetailVO extends Omit<AssistantVO, 'enabled'> {
     preferences: AssistantPreferences | null
     /** 注意：后端详情接口返回 boolean（true/false），列表接口返回 number（1/0） */
     enabled: number | boolean
-    /** 已绑定的 MCP Server ID 列表（回显用） */
-    boundMcpServerIds: number[]
+    /** MCP 服务绑定配置（含工具级状态，回显用） */
+    mcpServerBindings?: McpServerBinding[]
 }
 
 /**
@@ -104,8 +121,8 @@ export interface AssistantCreateRequest {
     modelParams?: ModelParams
     preferences?: AssistantPreferences
     memoryRounds?: number
-    /** 启用的 MCP Server ID 列表 */
-    enabledMcpServerIds?: number[]
+    /** MCP 服务绑定配置，每个条目含工具级状态 */
+    mcpServerBindings?: McpServerBinding[]
 }
 
 /**
@@ -123,6 +140,6 @@ export interface AssistantUpdateRequest {
     memoryRounds?: number
     enabled?: number
     sortOrder?: number
-    /** 启用的 MCP Server ID 列表（传入后全量替换） */
-    enabledMcpServerIds?: number[]
+    /** MCP 服务绑定配置，每个条目含工具级状态 */
+    mcpServerBindings?: McpServerBinding[]
 }

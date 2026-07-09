@@ -18,7 +18,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum ToolExecutionStatus {
 
     START("start"),
-    COMPLETE("complete");
+    COMPLETE("complete"),
+    PENDING_APPROVAL("pending_approval"),
+    REJECTED("rejected");
 
     private final String value;
 

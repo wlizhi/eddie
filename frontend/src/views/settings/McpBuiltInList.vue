@@ -198,6 +198,10 @@ function enabledToolCount(server: McpServer): number {
   return server.tools.filter(t => t.enabled).length
 }
 
+function handleToolToggle(server: McpServer, tool: McpToolItem) {
+  emit('toggleTool', server, tool)
+}
+
 function showPartialLabel(server: McpServer): boolean {
   if (!server.enabled || !server.tools?.length) return false
   const count = enabledToolCount(server)
@@ -210,10 +214,6 @@ function toggleExpand(id: number) {
 
 function handleToggle(server: McpServer) {
   emit('toggle', server)
-}
-
-function handleToolToggle(server: McpServer, tool: McpToolItem) {
-  emit('toggleTool', server, tool)
 }
 
 // ===== 配置管理 =====

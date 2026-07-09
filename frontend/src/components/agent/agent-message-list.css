@@ -176,6 +176,8 @@
     line-height: 1.5;
     word-break: break-word;
     padding: var(--space-2) var(--space-3);
+    max-height: 18.75rem;
+    overflow-y: auto;
 }
 
 /* ===== 消息底部 ===== */
@@ -490,6 +492,11 @@
     color: var(--danger-default);
 }
 
+.tool-execution-card.tool-rejected {
+    border-color: var(--warning-default);
+    color: var(--warning-default);
+}
+
 .tool-execution-header {
     display: flex;
     align-items: center;
@@ -542,13 +549,73 @@
     }
 }
 
+/* ===== 等待审批状态 ===== */
+.tool-status-pending {
+    color: var(--accent-default, #e6a817);
+    animation: aml-pending-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes aml-pending-pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* ===== 审批按钮 ===== */
+.tool-approval-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-base);
+}
+
+.tool-approve-btn,
+.tool-reject-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    border-radius: 4px;
+    border: 1px solid var(--border-base);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    user-select: none;
+    line-height: 1.4;
+}
+
+.tool-approve-btn:hover {
+    background: color-mix(in srgb, var(--success-default, #22c55e) 10%, transparent);
+    border-color: var(--success-default, #22c55e);
+    color: var(--success-default, #22c55e);
+}
+
+.tool-reject-btn:hover {
+    background: color-mix(in srgb, var(--danger-default, #ef4444) 10%, transparent);
+    border-color: var(--danger-default, #ef4444);
+    color: var(--danger-default, #ef4444);
+}
+
+.tool-approve-btn:active,
+.tool-reject-btn:active {
+    transform: scale(0.96);
+}
+
 .tool-execution-result {
     margin-top: var(--space-2);
     padding: var(--space-2);
     background: var(--bg-secondary);
     border-radius: 4px;
     font-size: var(--font-size-xs);
-    overflow: hidden;
+    overflow-y: auto;
+    max-height: 18.75rem;
     transition: max-height 0.2s ease, opacity 0.2s ease;
 }
 

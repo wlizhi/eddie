@@ -12,6 +12,7 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 步骤级流式累加器 — 执行模式（EXECUTE）下，单次步骤迭代过程中
@@ -69,4 +70,10 @@ public class AgentStepStreamContext {
      * 工具调用记录列表
      */
     private final List<ToolExecutionEvent> toolCalls = new ArrayList<>();
+
+    /**
+     * 工具调用序号计数器（从 1 开始自动递增），
+     * 用于构建唯一审批 key，区分同一步骤中同一工具的多次调用。
+     */
+    private final AtomicInteger toolCallSequence = new AtomicInteger(0);
 }

@@ -6,8 +6,8 @@
 package cc.wlizhi.eddie.tools.tool;
 
 import cc.wlizhi.eddie.common.dto.ApiResult;
-import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
@@ -23,23 +23,18 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
+import javax.net.ssl.SSLException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.ConnectException;
-import java.net.CookieManager;
-import java.net.CookiePolicy;
-import java.net.URI;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
-import javax.net.ssl.SSLException;
 
 /**
  * 网页抓取工具集

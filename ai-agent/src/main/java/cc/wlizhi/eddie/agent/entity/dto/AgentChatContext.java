@@ -24,6 +24,7 @@ import reactor.core.publisher.FluxSink;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
 @Setter
@@ -178,4 +179,12 @@ public class AgentChatContext {
      * 工具结果持久化到数据库的最大字符数（0=不截断）
      */
     private int toolCallStoreMaxLength = 4000;
+
+    /**
+     * 工具调用序号计数器（从 1 开始自动递增），
+     * 用于构建唯一审批 key，区分同一轮对话中同一工具的多次调用。
+     * <p>
+     * CHAT 模式使用此计数器（EXECUTE 模式使用 stepStreamContext 中的计数器）。
+     */
+    private final AtomicInteger toolCallSequence = new AtomicInteger(0);
 }

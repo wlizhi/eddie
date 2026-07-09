@@ -17,6 +17,23 @@
 import type {AssistantPreferences} from './assistant'
 
 /**
+ * 智能体工具绑定状态
+ * status: 0=禁用, 1=自动批准, 2=人工审批
+ */
+export interface AgentToolBinding {
+    toolId: number
+    status: number
+}
+
+/**
+ * 智能体 MCP 服务绑定配置
+ */
+export interface AgentMcpServerBinding {
+    mcpServerId: number
+    tools: AgentToolBinding[]
+}
+
+/**
  * 智能体列表项 VO（对应后端 AgentVO）
  */
 export interface AgentVO {
@@ -104,8 +121,8 @@ export interface AgentDetailVO {
     /** 工具选择模式 */
     toolSelectionMode: string
 
-    /** 已绑定的 MCP Server ID 列表 */
-    boundMcpServerIds?: number[]
+    /** MCP 服务绑定配置列表（含工具级别状态） */
+    mcpServerBindings?: AgentMcpServerBinding[]
 
     // ==================== 偏好设置 ====================
 
@@ -158,6 +175,11 @@ export interface AgentCreateRequest {
     /** 已启用的 MCP Server ID 列表 */
     enabledMcpServerIds?: number[]
 
+    // ==================== MCP 服务绑定 ====================
+
+    /** MCP 服务绑定配置，每个条目含工具级状态 */
+    mcpServerBindings?: AgentMcpServerBinding[]
+
     // ==================== 偏好设置 ====================
     preferences?: AssistantPreferences
 }
@@ -194,8 +216,8 @@ export interface AgentUpdateRequest {
     // ==================== 工具选择 ====================
     toolSelectionMode?: string
 
-    /** 已启用的 MCP Server ID 列表 */
-    enabledMcpServerIds?: number[]
+    /** MCP 服务绑定配置 */
+    mcpServerBindings?: AgentMcpServerBinding[]
 
     // ==================== 偏好设置 ====================
     preferences?: AssistantPreferences

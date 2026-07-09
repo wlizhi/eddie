@@ -1,16 +1,21 @@
 package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
+import cc.wlizhi.eddie.agent.handler.AgentApprovalInterceptor;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessor;
+import cc.wlizhi.eddie.agent.handler.AgentEventPublisher;
 import cc.wlizhi.eddie.agent.handler.AgentPromptsResolver;
 import cc.wlizhi.eddie.agent.handler.AgentToolCallbackWrapper;
 import cc.wlizhi.eddie.agent.service.impl.AgentShortTermMemory;
 import cc.wlizhi.eddie.agent.tool.SwitchModeTool;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import cc.wlizhi.eddie.common.cache.EventRegistry;
+import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
+import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -20,10 +25,8 @@ import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -38,6 +41,12 @@ public class ChatClientPostProcessor implements AgentClientPostProcessor {
     private AgentShortTermMemory agentShortTermMemory;
     @Resource
     private GlobalConfigContext globalConfigContext;
+    @Resource
+    private OwnerToolBindingContext ownerToolBindingContext;
+    @Resource
+    private AgentEventPublisher agentEventPublisher;
+    @Resource
+    private EventRegistry eventRegistry;
 
     @Override
     public boolean support(AgentMode agentMode) {
@@ -52,7 +61,25 @@ public class ChatClientPostProcessor implements AgentClientPostProcessor {
                 , ctx.getOriginalRequest().getToolSelectionMode()
                 , ctx.getOriginalRequest().getToolNames());
 
-        // 2. 收集所有工具（用户可配 + 智能体内置切换模式工具）
+        // 2. 对 PENDING_APPROVAL 的工具包装 ApprovalInterceptor
+        //    getBoundTools() 返回的 ToolDefinitionEntity.enabled 已反映 owner 级别绑定状态
+        List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools(
+                RoleType.AGENT.name(), ctx.getAgent().getId());
+        Map<String, ToolDefinitionEntity> toolDefMap = boundTools.stream()
+                .filter(t -> t.getEnabled() != null && t.getEnabled() == 2)
+                .collect(Collectors.toMap(
+                        ToolDefinitionEntity::getName, t -> t, (a, b) -> a));
+        if (configurableTools != null) {
+            for (int i = 0; i < configurableTools.length; i++) {
+                String name = configurableTools[i].getToolDefinition().name();
+                ToolDefinitionEntity def = toolDefMap.get(name);
+                if (def != null) {
+                    configurableTools[i] = new AgentApprovalInterceptor(configurableTools[i],ctx);
+                }
+            }
+        }
+
+        // 3. 收集所有工具（用户可配 + 智能体内置切换模式工具）
         List<ToolCallback> allTools = new ArrayList<>();
         if (configurableTools != null) {
             allTools.addAll(Arrays.asList(configurableTools));
@@ -60,7 +87,7 @@ public class ChatClientPostProcessor implements AgentClientPostProcessor {
         ToolCallback[] switchModeTools = ToolCallbacks.from(switchModeTool);
         allTools.addAll(Arrays.asList(switchModeTools));
 
-        // 3. 构建 ChatClient（仅在 chatting 模式注入记忆窗口 advisor）
+        // 4. 构建 ChatClient（仅在 chatting 模式注入记忆窗口 advisor）
         ChatClient.Builder builder = ctx.getChatClient().mutate();
         if (ctx.getIteratorState().getAgentMode() == AgentMode.CHAT) {
             var memoryAdvisor = MessageChatMemoryAdvisor.builder(agentShortTermMemory).build();

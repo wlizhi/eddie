@@ -4,7 +4,8 @@
  */
 
 import {reactive, watch} from 'vue'
-import {fetchConfigs, updateConfigs} from '@/api/settings'
+import {updateConfigs} from '@/api/settings'
+import {loadSharedConfigs} from '@/composables/sharedConfig'
 import {findTheme, getThemes, type ThemeDefinition} from '@/assets/themes/index'
 import {getIconSizeCSSVariables} from '@/composables/useIconSize'
 
@@ -401,7 +402,7 @@ watch([() => displaySettings.fontSize, () => displaySettings.customFontSize, () 
 export async function loadDisplaySettings(): Promise<void> {
     if (loaded) return
     try {
-        const configs = await fetchConfigs()
+        const configs = await loadSharedConfigs()
         const raw = configs[DISPLAY_CONFIG_KEY]
         if (raw) {
             const parsed = JSON.parse(raw) as Partial<DisplaySettings> & { themeMode?: string }

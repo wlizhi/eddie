@@ -13,13 +13,16 @@
   - 保存到后端
 -->
 <script setup lang="ts">
-import {NButton, NCheckbox, NCheckboxGroup, NInputNumber, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
-import {Globe, Network, Trash2} from '@lucide/vue'
+import {NButton, NCheckbox, NInputNumber, NModal, NSelect, NSwitch, NTooltip} from 'naive-ui'
+import {ChevronDown, Globe, Network, Trash2} from '@lucide/vue'
 import {useAssistantForm} from '@/composables/useAssistantForm'
 import {useIconSize} from '@/composables/useIconSize'
 import {TIP_THEME_OVERRIDES} from '@/constants/theme'
 import {showToast} from '@/composables/useToast'
 import {ref} from 'vue'
+import {TOOL_STATUS_OPTIONS} from '@/api/assistant'
+import type {McpServerItem} from '@/api/assistant'
+import type {McpToolItem} from '@/types/mcpServer'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AvatarPicker from '../common/AvatarPicker.vue'
 import ModelParamsInput from '../common/ModelParamsInput.vue'
@@ -42,7 +45,7 @@ const {
   formName, formAvatar, formDescription, formSystemPrompt,
   formMemoryRounds, formEnabled,
   formModelParams, formPreferences, showPicker, originalAvatar,
-  formEnabledMcpServerIds, mcpServerList,
+  mcpServerList,
   clearFieldError, onModelSelect, onAvatarPicked,
   insertVariable, systemPromptRef,
   handleSave, handleDelete, close,
@@ -52,6 +55,46 @@ const {
 
 const tipTheme = TIP_THEME_OVERRIDES
 const paramHasError = ref(false)
+
+/** 当前展开的 MCP Server ID */
+const expandedMcpId = ref<number | null>(null)
+
+function toggleMcpExpand(id: number) {
+  expandedMcpId.value = expandedMcpId.value === id ? null : id
+}
+
+/**
+ * 判断 MCP Server 是否应显示为勾选状态。
+ * 规则：只要任意一个工具不是禁用（status !== 0），就视为启用。
+ */
+function isMcpChecked(mcp: McpServerItem): boolean {
+  return (mcp.tools ?? []).some(t => t.enabledStatus !== 0)
+}
+
+/** MCP Server 勾选切换 — 级联修改子工具状态 */
+function onMcpServerCheck(mcp: McpServerItem, checked: boolean) {
+  const tools = mcp.tools ?? []
+  if (checked) {
+    // 从未勾选 → 勾选：所有子工具设为「自动」(1)
+    for (const tool of tools) {
+      tool.enabledStatus = 1
+      tool.enabled = true
+    }
+  } else {
+    // 从勾选 → 未勾选：所有子工具设为「禁用」(0)
+    for (const tool of tools) {
+      tool.enabledStatus = 0
+      tool.enabled = false
+    }
+  }
+}
+
+/** 工具状态切换（仅修改本地状态，不调 API，保存时统一提交） */
+function handleToolStatusChange(tool: McpToolItem, status: 0 | 1 | 2) {
+  if (tool.enabledStatus === status) return
+  tool.enabled = status === 1
+  tool.enabledStatus = status
+}
 
 /** 保存前先校验参数范围 */
 function handleSaveWithValidation() {
@@ -189,19 +232,53 @@ function handleSaveWithValidation() {
         </div>
       </div>
 
-      <!-- MCP 服务选择 -->
+      <!-- MCP 服务选择（展开显示工具及审批状态） -->
       <div v-if="mcpServerList.length > 0" class="field">
         <label class="label">MCP 服务</label>
-        <div class="mcp-checkbox-list">
-          <NCheckboxGroup v-model:value="formEnabledMcpServerIds">
-            <NCheckbox
-                v-for="mcp in mcpServerList"
-                :key="mcp.id"
-                :value="mcp.id"
-                :label="mcp.name"
-                class="mcp-checkbox-item"
-            />
-          </NCheckboxGroup>
+        <div class="mcp-server-list">
+          <div
+              v-for="mcp in mcpServerList"
+              :key="mcp.id"
+              class="mcp-server-item"
+          >
+            <div class="mcp-server-header" @click="toggleMcpExpand(mcp.id)">
+              <span class="mcp-checkbox-wrap">
+                <NCheckbox
+                    :checked="isMcpChecked(mcp)"
+                    class="mcp-checkbox-item"
+                    @update:checked="(v: boolean) => onMcpServerCheck(mcp, v)"
+                    @click.stop
+                />
+                <span class="mcp-server-name">{{ mcp.name }}</span>
+              </span>
+              <ChevronDown
+                  :size="14"
+                  class="mcp-chevron"
+                  :class="{ rotated: expandedMcpId === mcp.id }"
+              />
+            </div>
+            <div v-if="expandedMcpId === mcp.id && mcp.tools?.length" class="mcp-tool-list">
+              <div v-for="tool in mcp.tools" :key="tool.id" class="mcp-tool-row">
+                <span class="mcp-tool-name">{{ tool.displayName || tool.name }}</span>
+                <div class="tool-status-group">
+                  <button
+                      v-for="opt in TOOL_STATUS_OPTIONS"
+                      :key="opt.value"
+                      class="tool-status-btn"
+                      :class="{
+                        selected: tool.enabledStatus === opt.value,
+                        disabled: opt.value === 0,
+                        enabled: opt.value === 1,
+                        pending: opt.value === 2,
+                      }"
+                      @click.stop="handleToolStatusChange(tool, opt.value)"
+                  >
+                    {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

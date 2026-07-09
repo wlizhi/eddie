@@ -5,10 +5,13 @@
 
 package cc.wlizhi.eddie.agent.handler.processor;
 
+import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
+import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
+import cc.wlizhi.eddie.agent.handler.AgentApprovalInterceptor;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentPromptsResolver;
 import cc.wlizhi.eddie.agent.handler.AgentToolCallbackWrapper;
@@ -16,10 +19,12 @@ import cc.wlizhi.eddie.agent.service.impl.AgentStepWindowedMemory;
 import cc.wlizhi.eddie.agent.tool.StepFinishTool;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
+import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
+import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -48,6 +54,10 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
     private StepFinishTool stepFinishTool;
     @Resource
     private GlobalConfigContext globalConfigContext;
+    @Resource
+    private OwnerToolBindingContext ownerToolBindingContext;
+    @Resource
+    private AgentMsgStepDao agentMsgStepDao;
 
     @Override
     public boolean support(AgentMode agentMode) {
@@ -77,13 +87,44 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
         }
         ctx.setStepStreamContext(stepCtx);
 
+        // 预创建步骤占位记录，获取 stepId（审批拦截器 AgentApprovalInterceptor 需要 stepId 定位步骤）
+        String stepDesc = ExecuteResponseStreamProcessor.resolveStepDesc(ctx, ctx.getCurrentStep());
+        AgentMsgStepEntity placeholder = ExecuteResponseStreamProcessor.buildPlaceholderEntity(ctx, ctx.getCurrentStep(), stepDesc);
+        try {
+            Long stepId = agentMsgStepDao.insertPlaceholder(placeholder);
+            stepCtx.setStepId(stepId);
+            log.info("预创建步骤占位记录成功, stepId={}, step={}", stepId, ctx.getCurrentStep());
+        } catch (Exception e) {
+            log.warn("预创建步骤占位记录失败, msgId={}, step={}: {}",
+                    ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null,
+                    ctx.getCurrentStep(), e.getMessage());
+        }
+
         // 1. 解析用户可配置的工具（WebSearch/WebFetch/Shell/MCP 等）
         ToolCallback[] configurableTools = toolCallbackResolver.resolve(
                 RoleType.AGENT.name(), ctx.getAgent().getId()
                 , ctx.getOriginalRequest().getToolSelectionMode()
                 , ctx.getOriginalRequest().getToolNames());
 
-        // 2. 收集所有工具（用户可配 + StepFinishTool 内置工具）
+        // 2. 对 PENDING_APPROVAL 的工具包装 ApprovalInterceptor
+        //    getBoundTools() 返回的 ToolDefinitionEntity.enabled 已反映 owner 级别绑定状态
+        List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools(
+                RoleType.AGENT.name(), ctx.getAgent().getId());
+        Map<String, ToolDefinitionEntity> toolDefMap = boundTools.stream()
+                .filter(t -> t.getEnabled() != null && t.getEnabled() == 2)
+                .collect(Collectors.toMap(
+                        ToolDefinitionEntity::getName, t -> t, (a, b) -> a));
+        if (configurableTools != null) {
+            for (int i = 0; i < configurableTools.length; i++) {
+                String name = configurableTools[i].getToolDefinition().name();
+                ToolDefinitionEntity def = toolDefMap.get(name);
+                if (def != null) {
+                    configurableTools[i] = new AgentApprovalInterceptor(configurableTools[i], ctx);
+                }
+            }
+        }
+
+        // 3. 收集所有工具（用户可配 + StepFinishTool 内置工具）
         List<ToolCallback> allTools = new ArrayList<>();
         if (configurableTools != null) {
             allTools.addAll(Arrays.asList(configurableTools));

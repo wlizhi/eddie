@@ -118,7 +118,9 @@ public class ToolDefinitionDao {
     }
 
     /**
-     * 切换启用/禁用状态
+     * 切换启用/禁用/待审批状态
+     * <p>
+     * enabled: 0=禁用, 1=启用, 2=待审批
      */
     public void updateEnabled(Long id, int enabled) {
         long now = System.currentTimeMillis();

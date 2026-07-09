@@ -14,6 +14,8 @@ import lombok.Setter;
 import java.util.List;
 import java.util.Map;
 
+import cc.wlizhi.eddie.agent.entity.request.AgentMcpServerBinding;
+
 /**
  * 更新智能体请求参数（全量更新，所有必填字段必须传入）
  */
@@ -120,9 +122,11 @@ public class AgentUpdateRequest {
     private String toolSelectionMode;
 
     /**
-     * 已启用的 MCP Server ID 列表
+     * MCP 服务绑定配置
+     * <p>
+     * 每个条目指定一个 MCP 服务及其下辖工具的绑定状态（自动批准/人工审批/禁用）。
      */
-    private List<Long> enabledMcpServerIds;
+    private List<AgentMcpServerBinding> mcpServerBindings;
 
     // ==================== 偏好设置 ====================
 

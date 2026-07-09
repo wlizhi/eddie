@@ -20,6 +20,7 @@
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecPayload;
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
@@ -136,14 +137,32 @@ public class ChatSseTransformer {
     }
 
     /**
-     * 构建工具执行 SSE 事件，直接序列化 ToolExecutionEvent 实体
-     * 同时累积到上下文用于持久化
+     * 构建工具执行 SSE 事件，包装为 ApiResult&lt;ChatToolExecPayload&gt; 信封。
+     * PENDING_APPROVAL 事件直接透传（不累积到上下文），
+     * COMPLETE 事件同时累积到上下文用于持久化。
      */
     private ServerSentEvent<String> buildToolExecutionEvent(ToolExecutionEvent event, ChatContext ctx) {
-        // 累积到上下文（仅 COMPLETE 事件才记录到持久化列表）
-        if (ToolExecutionStatus.COMPLETE.equals(event.getStatus())) {
+        // 构建公共 Payload（统一携带 msgId，用于审批场景）
+        ChatToolExecPayload payload = new ChatToolExecPayload(
+                ctx.getPlaceholderMsgId(),
+                event.getToolName(),
+                event.getStatus().getValue(),
+                event.getArguments(),
+                event.getResult(),
+                event.isError(),
+                event.getSeq()
+        );
+
+        // PENDING_APPROVAL 事件直接透传，不累积到上下文
+        if (ToolExecutionStatus.PENDING_APPROVAL.equals(event.getStatus())) {
+            return buildSseEvent(payload);
+        }
+
+        // 累积到上下文（仅 COMPLETE / REJECTED 事件记录到持久化列表，START 事件不持久化）
+        if (event.getStatus() == ToolExecutionStatus.COMPLETE
+                || event.getStatus() == ToolExecutionStatus.REJECTED) {
             String toolName = event.getToolName();
-            if (toolName != null && toolName.startsWith("built_in_")) {
+            if (toolName != null && toolName.startsWith("built_in_") && event.getStatus() == ToolExecutionStatus.COMPLETE) {
                 String result = event.getResult();
                 try {
                     ApiResult<String> apiResult = objectMapper.readValue(result, new TypeReference<ApiResult<String>>() {
@@ -161,12 +180,8 @@ public class ChatSseTransformer {
             if (event.getResult() != null && event.getResult().length() > sseMaxLength) {
                 event.setResult(event.getResult().substring(0, sseMaxLength) + "...（已截断）");
             }
-
-            // 先构建 SSE 事件（此时 event.result 是第一阶段截断后的值，供前端实时渲染）
-            ServerSentEvent<String> sseEvent = ServerSentEvent.<String>builder()
-                    .event("tool_execution")
-                    .data(toJson(event))
-                    .build();
+            // 更新 payload 中的 result 为截断后的值
+            payload.setResult(event.getResult());
 
             // 第二阶段截断：保存到上下文/入库时使用更小的边界（MAX_TOOL_CALL_RES_LENGTH >> 1）
             int storeMaxLength = MAX_TOOL_CALL_RES_LENGTH >> 1;
@@ -174,12 +189,18 @@ public class ChatSseTransformer {
                 event.setResult(event.getResult().substring(0, storeMaxLength) + "...（已截断）");
             }
             ctx.getToolCalls().add(event);
-
-            return sseEvent;
         }
+
+        return buildSseEvent(payload);
+    }
+
+    /**
+     * 将 ChatToolExecPayload 构建为 tool_execution SSE 事件（ApiResult 信封格式）
+     */
+    private ServerSentEvent<String> buildSseEvent(ChatToolExecPayload payload) {
         return ServerSentEvent.<String>builder()
                 .event("tool_execution")
-                .data(toJson(event))
+                .data(toJson(ApiResult.success(payload)))
                 .build();
     }
 

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
 @Setter
@@ -144,4 +145,10 @@ public class ChatContext {
      * 扩展属性 Map，供任意阶段写入临时数据
      */
     private Map<String, Object> attributes = new HashMap<>();
+
+    /**
+     * 工具调用序号计数器（从 1 开始自动递增），
+     * 用于构建唯一审批 key，区分同一轮对话中同一工具的多次调用。
+     */
+    private final AtomicInteger toolCallSequence = new AtomicInteger(0);
 }

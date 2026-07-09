@@ -12,6 +12,8 @@ import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
 import cc.wlizhi.eddie.agent.dao.AgentSessionDao;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentCreateRequest;
+import cc.wlizhi.eddie.agent.entity.request.AgentMcpServerBinding;
+import cc.wlizhi.eddie.agent.entity.request.AgentToolBinding;
 import cc.wlizhi.eddie.agent.entity.request.AgentUpdateRequest;
 import cc.wlizhi.eddie.agent.entity.response.AgentDetailVO;
 import cc.wlizhi.eddie.agent.entity.response.AgentVO;
@@ -150,7 +152,7 @@ public class AgentServiceImpl implements AgentService {
         agentDao.insert(entity);
         Long agentId = agentDao.findLastInsertId();
 
-        bindMcpServerTools(agentId, request.getEnabledMcpServerIds());
+        bindMcpServerTools(agentId, request.getMcpServerBindings());
 
         AgentEntity saved = agentDao.findById(agentId);
         log.info("创建智能体: id={}, name={}", agentId, saved.getName());
@@ -197,7 +199,7 @@ public class AgentServiceImpl implements AgentService {
 
         agentDao.update(entity);
 
-        bindMcpServerTools(id, request.getEnabledMcpServerIds());
+        bindMcpServerTools(id, request.getMcpServerBindings());
 
         AgentEntity updated = agentDao.findById(id);
         log.info("更新智能体: id={}, name={}", id, updated.getName());
@@ -276,13 +278,42 @@ public class AgentServiceImpl implements AgentService {
 
         vo.setMemoryRounds(entity.getMemoryRounds());
 
-        List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools("AGENT", entity.getId());
-        List<Long> boundIds = boundTools.stream()
+        // 构建 MCP 服务绑定配置（含工具级别状态），用于回显
+        List<OwnerToolBindingDao.OwnerToolBindingRow> allBindings =
+                ownerToolBindingDao.findAllBindingsByOwner(RoleType.AGENT.name(), entity.getId());
+        // toolId → enabled 映射
+        Map<Long, Integer> bindingStatusMap = allBindings.stream()
+                .collect(Collectors.toMap(OwnerToolBindingDao.OwnerToolBindingRow::getToolId,
+                        OwnerToolBindingDao.OwnerToolBindingRow::getEnabled, (a, b) -> a));
+
+        List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools(RoleType.AGENT.name(), entity.getId());
+        // 按 MCP 服务分组
+        Map<Long, List<ToolDefinitionEntity>> mcpGroup = boundTools.stream()
                 .filter(t -> t.getMcpServerId() != null)
-                .map(ToolDefinitionEntity::getMcpServerId)
-                .distinct()
-                .collect(Collectors.toList());
-        vo.setBoundMcpServerIds(boundIds);
+                .collect(Collectors.groupingBy(ToolDefinitionEntity::getMcpServerId));
+
+        List<AgentMcpServerBinding> mcpBindings = new ArrayList<>();
+        for (Map.Entry<Long, List<ToolDefinitionEntity>> entry : mcpGroup.entrySet()) {
+            Long mcpServerId = entry.getKey();
+            List<ToolDefinitionEntity> tools = entry.getValue();
+            McpServerEntity mcpServer = ownerToolBindingContext.getMcpServer(mcpServerId);
+            if (mcpServer == null) continue;
+
+            List<AgentToolBinding> toolBindings = tools.stream()
+                    .map(t -> {
+                        AgentToolBinding tb = new AgentToolBinding();
+                        tb.setToolId(t.getId());
+                        tb.setStatus(bindingStatusMap.getOrDefault(t.getId(), 1));
+                        return tb;
+                    })
+                    .collect(Collectors.toList());
+
+            AgentMcpServerBinding binding = new AgentMcpServerBinding();
+            binding.setMcpServerId(mcpServerId);
+            binding.setTools(toolBindings);
+            mcpBindings.add(binding);
+        }
+        vo.setMcpServerBindings(mcpBindings);
 
         vo.setPreferences(deserializePreferences(entity.getPreferences()));
 
@@ -351,20 +382,42 @@ public class AgentServiceImpl implements AgentService {
         return result;
     }
 
-    private void bindMcpServerTools(Long ownerId, List<Long> mcpServerIds) {
+    private void bindMcpServerTools(Long ownerId, List<AgentMcpServerBinding> bindings) {
         ownerToolBindingDao.deleteByOwner(RoleType.AGENT, ownerId);
-        if (mcpServerIds != null && !mcpServerIds.isEmpty()) {
-            List<Long> toolIds = new ArrayList<>();
-            for (Long mcpServerId : mcpServerIds) {
-                List<ToolDefinitionEntity> tools = ownerToolBindingContext.getToolsByMcpServerId(mcpServerId);
+        if (bindings == null || bindings.isEmpty()) return;
+
+        List<OwnerToolBindingDao.OwnerToolBindingRow> rows = new ArrayList<>();
+        for (AgentMcpServerBinding binding : bindings) {
+            if (binding.getMcpServerId() == null) continue;
+
+            if (binding.getTools() == null || binding.getTools().isEmpty()) {
+                // 向后兼容：仅传 mcpServerId 时，该服务下所有工具默认自动批准
+                List<ToolDefinitionEntity> tools = ownerToolBindingContext
+                        .getToolsByMcpServerId(binding.getMcpServerId());
                 if (tools != null) {
-                    toolIds.addAll(tools.stream().map(ToolDefinitionEntity::getId).toList());
+                    for (ToolDefinitionEntity t : tools) {
+                        OwnerToolBindingDao.OwnerToolBindingRow row = new OwnerToolBindingDao.OwnerToolBindingRow();
+                        row.setToolId(t.getId());
+                        row.setEnabled(1);
+                        rows.add(row);
+                    }
+                }
+            } else {
+                for (AgentToolBinding tool : binding.getTools()) {
+                    if (tool.getToolId() == null) continue;
+                    if (tool.getStatus() == null || tool.getStatus() == 0) continue; // 禁用的不插入
+                    OwnerToolBindingDao.OwnerToolBindingRow row = new OwnerToolBindingDao.OwnerToolBindingRow();
+                    row.setToolId(tool.getToolId());
+                    row.setEnabled(tool.getStatus());
+                    rows.add(row);
                 }
             }
-            if (!toolIds.isEmpty()) {
-                ownerToolBindingDao.batchInsert(RoleType.AGENT, ownerId, toolIds);
-            }
         }
+
+        if (!rows.isEmpty()) {
+            ownerToolBindingDao.batchInsertWithStatus(RoleType.AGENT, ownerId, rows);
+        }
+        log.info("绑定 MCP 工具: ownerId={}, bindings={}", ownerId, rows.size());
         ownerToolBindingContext.refresh();
     }
 

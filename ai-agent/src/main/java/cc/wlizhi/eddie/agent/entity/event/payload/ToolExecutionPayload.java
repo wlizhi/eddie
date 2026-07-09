@@ -27,4 +27,6 @@ public class ToolExecutionPayload {
     private String arguments;
     private Object result;
     private boolean error;
+    /** 工具调用序号（用于审批 key 唯一标识） */
+    private int seq;
 }

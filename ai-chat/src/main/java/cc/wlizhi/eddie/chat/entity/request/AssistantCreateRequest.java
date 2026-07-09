@@ -11,6 +11,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 /**
  * 新建助手请求参数
  */
@@ -67,9 +69,10 @@ public class AssistantCreateRequest {
     private Integer memoryRounds;
 
     /**
-     * 启用的 MCP Server ID 列表（可选）
+     * MCP 服务绑定配置（可选）
      * <p>
-     * 传入后自动为该助手绑定这些 MCP Server 下的所有工具。
+     * 每个条目指定一个 MCP 服务及其下辖工具的绑定状态（自动批准/人工审批/禁用）。
+     * 不传或传空列表表示不绑定任何 MCP 工具。
      */
-    private java.util.List<Long> enabledMcpServerIds;
+    private List<McpServerBinding> mcpServerBindings;
 }

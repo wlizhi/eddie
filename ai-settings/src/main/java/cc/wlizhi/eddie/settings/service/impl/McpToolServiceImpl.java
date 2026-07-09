@@ -708,6 +708,7 @@ public class McpToolServiceImpl implements McpToolService {
         vo.setDescription(entity.getDescription());
         vo.setToolType(entity.getToolType() != null ? entity.getToolType().name() : ToolType.MCP.name());
         vo.setEnabled(entity.getEnabled() == 1);
+        vo.setEnabledStatus(entity.getEnabled());
         vo.setBuiltIn(entity.getBuiltIn() == 1);
         vo.setSortOrder(entity.getSortOrder());
         return vo;

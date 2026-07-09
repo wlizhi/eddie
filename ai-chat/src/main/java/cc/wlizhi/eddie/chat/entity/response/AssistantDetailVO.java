@@ -5,9 +5,12 @@
 
 package cc.wlizhi.eddie.chat.entity.response;
 
+import cc.wlizhi.eddie.chat.entity.request.McpServerBinding;
 import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 /**
  * 助手详情 VO（配置回显）
@@ -43,7 +46,9 @@ public class AssistantDetailVO {
     private Long updatedAt;
 
     /**
-     * 已绑定的 MCP Server ID 列表（回显用）
+     * MCP 服务绑定配置（含工具级状态，回显用）
+     * <p>
+     * 每个条目包含 MCP 服务 ID 及其下辖工具的绑定状态（0=禁用, 1=自动批准, 2=人工审批）。
      */
-    private java.util.List<Long> boundMcpServerIds;
+    private List<McpServerBinding> mcpServerBindings;
 }

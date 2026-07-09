@@ -15,6 +15,7 @@
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.common.handler.AbstractApprovalInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
@@ -24,17 +25,23 @@ import org.springframework.ai.tool.metadata.ToolMetadata;
 import org.springframework.lang.Nullable;
 import reactor.core.publisher.Sinks;
 
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class ToolCallbackWrapper implements ToolCallback {
 
     private static final Logger log = LoggerFactory.getLogger(ToolCallbackWrapper.class);
 
     private final ToolCallback delegate;
     private final Sinks.Many<ToolExecutionEvent> sink;
+    private final AtomicInteger toolCallCounter;
     private final int MAX_RESULT_LENGTH = 3000;
 
-    public ToolCallbackWrapper(ToolCallback delegate, Sinks.Many<ToolExecutionEvent> sink) {
+    public ToolCallbackWrapper(ToolCallback delegate, Sinks.Many<ToolExecutionEvent> sink,
+                               AtomicInteger toolCallCounter) {
         this.delegate = delegate;
         this.sink = sink;
+        this.toolCallCounter = toolCallCounter;
     }
 
     @Override
@@ -51,20 +58,33 @@ public class ToolCallbackWrapper implements ToolCallback {
     public String call(String toolInput) {
         String toolName = delegate.getToolDefinition().name();
 
+        // 在调用前设置唯一工具调用序号（用于审批 key 去重）
+        setSequenceOnInterceptor();
+        int currentSeq = resolveSequence();
+
         // 发射"开始"事件（旁路，不影响主流程）
-        emitSafe(ToolExecutionEvent.start(toolName, toolInput));
+        ToolExecutionEvent startEvent = ToolExecutionEvent.start(toolName, toolInput);
+        startEvent.setSeq(currentSeq);
+        emitSafe(startEvent);
 
         try {
             // 执行实际工具——仅此一次
             String result = delegate.call(toolInput);
 
-            // 发射"完成"事件（携带 arguments，用于持久化）
-            emitSafe(ToolExecutionEvent.complete(toolName, toolInput, truncateResult(result), false));
+            // 检查是否被用户拒绝
+            boolean rejected = delegate instanceof AbstractApprovalInterceptor ai && ai.isRejected();
+            ToolExecutionEvent event = rejected
+                    ? ToolExecutionEvent.rejected(toolName, toolInput)
+                    : ToolExecutionEvent.complete(toolName, toolInput, truncateResult(result), false);
+            event.setSeq(resolveSequence());
+            emitSafe(event);
 
             return result;
         } catch (Exception e) {
             log.error("[ToolCallbackWrapper] 工具执行失败: {}", toolName, e);
-            emitSafe(ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true));
+            ToolExecutionEvent event = ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true);
+            event.setSeq(resolveSequence());
+            emitSafe(event);
             throw e;
         }
     }
@@ -73,17 +93,51 @@ public class ToolCallbackWrapper implements ToolCallback {
     public String call(String toolInput, @Nullable ToolContext toolContext) {
         String toolName = delegate.getToolDefinition().name();
 
-        emitSafe(ToolExecutionEvent.start(toolName, toolInput));
+        // 在调用前设置唯一工具调用序号（用于审批 key 去重）
+        setSequenceOnInterceptor();
+        int currentSeq = resolveSequence();
+
+        ToolExecutionEvent startEvent = ToolExecutionEvent.start(toolName, toolInput);
+        startEvent.setSeq(currentSeq);
+        emitSafe(startEvent);
 
         try {
             String result = delegate.call(toolInput, toolContext);
-            emitSafe(ToolExecutionEvent.complete(toolName, toolInput, truncateResult(result), false));
+            boolean rejected = delegate instanceof AbstractApprovalInterceptor ai && ai.isRejected();
+            ToolExecutionEvent event = rejected
+                    ? ToolExecutionEvent.rejected(toolName, toolInput)
+                    : ToolExecutionEvent.complete(toolName, toolInput, truncateResult(result), false);
+            event.setSeq(resolveSequence());
+            emitSafe(event);
             return result;
         } catch (Exception e) {
             log.error("[ToolCallbackWrapper] 工具执行失败: {}", toolName, e);
-            emitSafe(ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true));
+            ToolExecutionEvent event = ToolExecutionEvent.complete(toolName, toolInput, "错误: " + e.getMessage(), true);
+            event.setSeq(resolveSequence());
+            emitSafe(event);
             throw e;
         }
+    }
+
+    /**
+     * 在调用 delegate.call() 前，将当前序号设置到拦截器上。
+     * 拦截器的 call() 方法会使用此序号构建唯一审批 key。
+     */
+    private void setSequenceOnInterceptor() {
+        if (delegate instanceof AbstractApprovalInterceptor ai) {
+            int seq = toolCallCounter.incrementAndGet();
+            ai.setToolCallSequence(seq);
+        }
+    }
+
+    /**
+     * 解析当前工具调用序号（用于 SSE 负载）
+     */
+    private int resolveSequence() {
+        if (delegate instanceof AbstractApprovalInterceptor ai) {
+            return ai.getToolCallSequence();
+        }
+        return 0;
     }
 
     /**

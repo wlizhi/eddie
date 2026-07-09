@@ -23,6 +23,7 @@ import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.exception.AppException;
 import cc.wlizhi.eddie.common.exception.ModelRateLimitException;
 import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
+import cc.wlizhi.eddie.common.exception.ToolApprovalException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.errors.RateLimitException;
@@ -107,6 +108,8 @@ public class AgentChatServiceImpl implements AgentChatService {
                     responseStreamRouter.process(ctx, requestSpec);
                 } catch (SwitchModeToPlanException ignored) {
                     log.info("聊天模式切换至规划模式，进入下一轮迭代，当前迭代轮次：{}", ctx.getIteratorState().getCurrentIterator());
+                } catch (ToolApprovalException e) {
+                    log.info("工具审批被中断/拒绝: {}", e.getMessage());
                 } catch (Exception ex) {
                     handleExceptionOnStreamProcess(ctx, ex);
                 }
