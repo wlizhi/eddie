@@ -215,10 +215,14 @@ export const useChatStore = defineStore('chat', () => {
                 toolNames.push(...getEnabledWebToolNames())
             }
         } else if (mode === 'manual') {
-            // 收集选中 MCP 中已启用的工具
+            // 收集选中 MCP 中已启用的工具（含待审批）
             for (const mcp of boundMcpTools.value) {
                 if (selectedIds.includes(mcp.mcpServerId)) {
-                    toolNames.push(...mcp.tools.filter(t => t.enabled).map(t => t.name))
+                    toolNames.push(...mcp.tools.filter(t => {
+                        // 优先使用 enabledStatus：0=禁用, 1=启用, 2=待审批（均视为可用）
+                        if (t.enabledStatus != null) return t.enabledStatus !== 0
+                        return t.enabled
+                    }).map(t => t.name))
                 }
             }
             // 联网开 → 合并 BuiltInSearch 下已启用的联网工具
@@ -229,7 +233,11 @@ export const useChatStore = defineStore('chat', () => {
             // mode === 'auto'
             // Rule 6: MCP 自动 → 发送绑定的全部非禁用工具列表 + 联网工具（去重）
             for (const mcp of boundMcpTools.value) {
-                toolNames.push(...mcp.tools.filter(t => t.enabled).map(t => t.name))
+                toolNames.push(...mcp.tools.filter(t => {
+                    // 优先使用 enabledStatus：0=禁用, 1=启用, 2=待审批（均视为可用）
+                    if (t.enabledStatus != null) return t.enabledStatus !== 0
+                    return t.enabled
+                }).map(t => t.name))
             }
             if (searchOn) {
                 toolNames.push(...getEnabledWebToolNames())

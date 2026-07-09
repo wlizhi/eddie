@@ -14,18 +14,6 @@
     <template #header>
       <div class="mcp-modal-header">
         <span>{{ editing ? '编辑 MCP 服务器' : '新增 MCP 服务器' }}</span>
-        <div class="mcp-modal-header-right">
-          <span class="mcp-toggle-label">启用</span>
-          <label class="sidebar-toggle" @click.stop="handleToggle">
-            <input
-                type="checkbox"
-                :checked="enabled"
-                @click.stop
-                @change.stop
-            />
-            <span class="toggle-track"></span>
-          </label>
-        </div>
       </div>
     </template>
 
@@ -136,6 +124,20 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 启用开关 -->
+    <div class="mcp-enable-section">
+      <span class="mcp-enable-label">启用</span>
+      <label class="sidebar-toggle" @click.stop="handleToggle">
+        <input
+            type="checkbox"
+            :checked="enabled"
+            @click.stop
+            @change.stop
+        />
+        <span class="toggle-track"></span>
+      </label>
     </div>
 
     <template #footer>
@@ -387,20 +389,24 @@ async function handleSubmit() {
 <style scoped>
 .mcp-modal-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   width: 100%;
 }
 
-.mcp-modal-header-right {
+/* ===== 启用开关 ===== */
+.mcp-enable-section {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-default);
 }
 
-.mcp-toggle-label {
-  font-size: 13px;
-  color: var(--text-secondary);
+.mcp-enable-label {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 /* ===== 工具列表可视化 ===== */
@@ -468,14 +474,13 @@ async function handleSubmit() {
   word-break: break-all;
 }
 
-/* ===== 自定义 Toggle 开关（同内置工具统一大小，em 单位随全局字号缩放） ===== */
+/* ===== 自定义 Toggle 开关（同内置工具统一大小，rem 单位跟随全局字号缩放） ===== */
 .sidebar-toggle {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 2em;
-  height: 1.125em;
-  font-size: var(--font-size-base);
+  width: 2rem;
+  height: 1.125rem;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -503,10 +508,10 @@ async function handleSubmit() {
 .sidebar-toggle .toggle-track::before {
   content: '';
   position: absolute;
-  top: 0.125em;
-  left: 0.125em;
-  width: 0.875em;
-  height: 0.875em;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 0.875rem;
+  height: 0.875rem;
   background: #fff;
   border-radius: 50%;
   transition: transform 0.2s;
@@ -518,6 +523,6 @@ async function handleSubmit() {
 }
 
 .sidebar-toggle input:checked + .toggle-track::before {
-  transform: translateX(0.875em);
+  transform: translateX(0.875rem);
 }
 </style>

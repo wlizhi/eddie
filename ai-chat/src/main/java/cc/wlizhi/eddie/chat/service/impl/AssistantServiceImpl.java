@@ -298,7 +298,9 @@ public class AssistantServiceImpl implements AssistantService {
                 vo.setDisplayName(t.getDisplayName());
                 vo.setDescription(t.getDescription());
                 vo.setToolType(t.getToolType() != null ? t.getToolType().name() : "");
-                vo.setEnabled(t.getEnabled() == 1);
+                Integer status = t.getEnabled();
+                vo.setEnabled(status != null && status != 0);
+                vo.setEnabledStatus(status);
                 return vo;
             }).collect(Collectors.toList());
 
@@ -306,7 +308,7 @@ public class AssistantServiceImpl implements AssistantService {
             source.setMcpServerId(server.getId());
             source.setMcpServerName(server.getName());
             source.setTransportType(server.getTransportType());
-            source.setEnabled(server.getEnabled() == 1);
+            source.setEnabled(server.getEnabled() != null && server.getEnabled() != 0);
             source.setTools(toolItems);
             source.setBound(true); // 此接口返回的必定已绑定
             result.add(source);

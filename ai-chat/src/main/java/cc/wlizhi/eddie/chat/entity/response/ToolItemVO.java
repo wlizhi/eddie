@@ -41,7 +41,12 @@ public class ToolItemVO {
     private String toolType;
 
     /**
-     * 当前全局启用状态
+     * 当前全局启用状态（兼容旧版，由 enabledStatus 推导）
      */
     private Boolean enabled;
+
+    /**
+     * 工具启用状态码：0=禁用, 1=启用, 2=待审批
+     */
+    private Integer enabledStatus;
 }
