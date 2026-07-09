@@ -26,7 +26,6 @@ public enum AgentEvent {
     TASK_FINISH("任务结束，这表示前端层面本轮对话结束，后端不会再进行消息推送 JSON"),
 
     // ==================== 内部事件（EventRegistry 跨请求通信），由前端发起 ====================
-    NEW_MSG_IN_TASK("任务中途用户发出新的指示"),
     STOP_MSG("停止本次对话回复或当前任务"),
     ;
 

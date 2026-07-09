@@ -477,6 +477,19 @@ export const useAgentChatStore = defineStore('agentChat', () => {
     }
 
     /**
+     * 重新生成：取指定助手消息上一条用户消息的内容重新发送
+     * @param msgIndex 当前消息在 messages 中的索引
+     */
+    function regenerate(msgIndex: number): void {
+        if (isStreaming.value) return
+        const prevMsg = messages.value[msgIndex - 1]
+        if (!prevMsg || prevMsg.role !== 'user') return
+        const agentId = agentStore.activeAgent?.id
+        if (agentId == null) return
+        sendMessage(prevMsg.content, agentId)
+    }
+
+    /**
      * 停止智能体执行
      */
     function abortStream(): void {
@@ -594,6 +607,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         loadConversation,
         createAndSelectSession,
         sendMessage,
+        regenerate,
         loadMoreMessages,
         abortStream,
         loadModels,

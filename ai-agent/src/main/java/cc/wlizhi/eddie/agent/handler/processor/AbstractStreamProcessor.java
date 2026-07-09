@@ -12,7 +12,6 @@ import cc.wlizhi.eddie.agent.handler.ResponseStreamProcessor;
 import cc.wlizhi.eddie.agent.util.TokenStatsHelper;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
-import cc.wlizhi.eddie.common.exception.UserStopException;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,39 +65,28 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
         AtomicInteger chunkCount = new AtomicInteger(0);
         long streamStart = System.currentTimeMillis();
 
-        try {
-            requestSpec.stream().chatResponse()
-                    .takeWhile(_ -> !checkUserStopEvent(ctx)).toStream()
-                    .forEach(res -> {
-                        int idx = chunkCount.incrementAndGet();
-                        // 保存最后一次响应，供后续提取 tool_calls / token 用量
-                        ctx.setLastResponse(res);
+        requestSpec.stream().chatResponse()
+                .takeWhile(_ -> !checkUserStopEvent(ctx)).toStream()
+                .forEach(res -> {
+                    int idx = chunkCount.incrementAndGet();
+                    // 保存最后一次响应，供后续提取 tool_calls / token 用量
+                    ctx.setLastResponse(res);
 
-                        // 1. 提取并推送思考内容（JSON 格式 via AgentEventPublisher）
-                        handleThinking(ctx, res);
+                    // 1. 提取并推送思考内容（JSON 格式 via AgentEventPublisher）
+                    handleThinking(ctx, res);
 
-                        // 2. 提取并推送回答内容（JSON 格式 via AgentEventPublisher）
-                        handleAnswer(ctx, res);
+                    // 2. 提取并推送回答内容（JSON 格式 via AgentEventPublisher）
+                    handleAnswer(ctx, res);
 
-                        // 3. 模式特有事件（子类可覆盖）
-                        handleCustomEvent(ctx, res);
-                    });
+                    // 3. 模式特有事件（子类可覆盖）
+                    handleCustomEvent(ctx, res);
+                });
 
-            long elapsed = System.currentTimeMillis() - streamStart;
-            log.debug("[StreamDiagnostic] 流处理完成, 共 {} chunks, 耗时 {}ms", chunkCount.get(), elapsed);
+        long elapsed = System.currentTimeMillis() - streamStart;
+        log.debug("[StreamDiagnostic] 流处理完成, 共 {} chunks, 耗时 {}ms", chunkCount.get(), elapsed);
 
-        } catch (UserStopException e) {
-            // 用户终止回答，直接透传，不打印 warn 日志
-            throw e;
-        } catch (Exception e) {
-            long elapsed = System.currentTimeMillis() - streamStart;
-            log.warn("[StreamDiagnostic] 流处理异常终止 after {} chunks, {}ms: {}",
-                    chunkCount.get(), elapsed, e.getMessage(), e);
-            throw e;
-        } finally {
-            // 钩子：流结束后的收尾
-            afterStream(ctx);
-        }
+        // 钩子：流结束后的收尾
+        afterStream(ctx);
     }
 
     private boolean checkUserStopEvent(AgentChatContext ctx) {

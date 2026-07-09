@@ -20,9 +20,12 @@ import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
+import cc.wlizhi.eddie.common.exception.AppException;
+import cc.wlizhi.eddie.common.exception.ModelRateLimitException;
 import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.errors.RateLimitException;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +35,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 @Service
 public class AgentChatServiceImpl implements AgentChatService {
@@ -67,11 +71,13 @@ public class AgentChatServiceImpl implements AgentChatService {
         ctx.setEventPublisher(publisher);
         ctx.setEventRegistry(eventRegistry);
 
-        // 按 @Order 顺序执行所有预处理器，填充 AgentChatContext 字段
-        preProcessors(ctx);
 
         return Flux.create(sink -> {
             ctx.setSink(sink);
+
+            // 按 @Order 顺序执行所有预处理器，填充 AgentChatContext 字段
+            preProcessors(ctx);
+
             // 消息已持久化（preProcessors 中已完成），通知前端消息 ID
             publisher.messageCreated(ctx);
             Thread agentThread = Thread.ofVirtual().name("demo-agent").start(() -> {
@@ -116,18 +122,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             // 用户终止回答，仅打印一行 info 日志，不触发错误告警
             log.info("用户已停止回答: messageId={}", ctx.getAgentMsg().getId());
         } catch (Exception e) {
-            Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-            // 检查是否被中断（sink.onDispose 触发）
-            if (Thread.currentThread().isInterrupted()) {
-                log.warn("Agent 虚拟线程被中断: messageId={}", msgId);
-                publisher.cancelled(ctx, "线程中断");
-            } else {
-                log.warn("Agent doChat 异常: messageId={}, exceptionType={}, message={}",
-                        msgId, e.getClass().getName(), e.getMessage(), e);
-                String detail = e.getClass().getName() + ": " + e.getMessage();
-                publisher.error(ctx, ApiResultCode.AGENT_INTERNAL_ERROR,
-                        "智能体处理异常，请稍后重试", detail);
-            }
+            handleExceptionOnDoChat(ctx, e);
         } finally {
             // 通知前端本轮对话结束
             publisher.taskFinish(ctx);
@@ -146,7 +141,27 @@ public class AgentChatServiceImpl implements AgentChatService {
         }
     }
 
-    private void handleExceptionOnStreamProcess(AgentChatContext ctx, Exception ex) {
+    private void handleExceptionOnDoChat(AgentChatContext ctx, Exception e) {
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        if (Thread.currentThread().isInterrupted()) {
+            log.warn("Agent 虚拟线程被中断: messageId={}", msgId);
+            publisher.cancelled(ctx, "线程中断");
+        }
+        if (e.getCause() instanceof CompletionException) {
+            if (e.getCause().getCause() instanceof RateLimitException) {
+                log.warn("{}: {}", ApiResultCode.AGENT_RATE_LIMIT.getMessage(), e.getCause().getCause().getMessage());
+                publisher.error(ctx, ApiResultCode.AGENT_RATE_LIMIT, e.getCause().getCause().getMessage(), null);
+                return;
+            }
+        }
+        log.warn("Agent doChat 异常: messageId={}, exceptionType={}, message={}",
+                msgId, e.getClass().getName(), e.getMessage(), e);
+        String detail = e.getClass().getName() + ": " + e.getMessage();
+        publisher.error(ctx, ApiResultCode.AGENT_INTERNAL_ERROR,
+                "智能体处理异常，请稍后重试", detail);
+    }
+
+    private void handleExceptionOnStreamProcess(AgentChatContext ctx, Exception ex) throws Exception {
         String toolNameErrPrefix = "No ToolCallback found for tool name:";
         if (ex instanceof IllegalStateException && ex.getMessage() != null && ex.getMessage().startsWith(toolNameErrPrefix)) {
             log.warn("模型调用工具时，工具名输入错误：{}", ex.getMessage());
@@ -155,7 +170,9 @@ public class AgentChatServiceImpl implements AgentChatService {
                     注意：你刚才调用了工具 "%s"，但该工具不存在。请确认工具名称是否正确，仅使用系统提供的可用工具。
                     """.formatted(toolName);
             ctx.getToolErrorFeedback().append(toolErrorFeedback);
+            return;
         }
+        throw ex;
     }
 
     /**

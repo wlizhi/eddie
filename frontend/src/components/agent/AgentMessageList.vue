@@ -499,6 +499,15 @@ function onScroll() {
                 <Copy v-if="copiedMessageId !== msg.id" :size="13" :stroke-width="2"/>
                 <span v-else class="copied-text">已复制</span>
               </button>
+              <button
+                  v-if="msg.role === 'assistant'"
+                  class="action-btn regenerate-btn"
+                  :disabled="agentChatStore.isStreaming"
+                  :title="agentChatStore.isStreaming ? '请在消息生成结束后操作' : '重新生成'"
+                  @click="agentChatStore.regenerate(agentChatStore.messages.indexOf(msg))"
+              >
+                <RefreshCw :size="13" :stroke-width="2"/>
+              </button>
             </div>
           </div>
         </div>
