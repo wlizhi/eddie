@@ -88,10 +88,10 @@ public class AgentChatServiceImpl implements AgentChatService {
             while (!shouldBreakIterator(ctx)) {
                 log.debug("开始迭代：{}", ctx.getIteratorState().getCurrentIterator());
                 // 迭代次数 + 1
-                int currentRounds = ctx.getIteratorState().getCurrentIterator().addAndGet(1);
+                ctx.getIteratorState().getCurrentIterator().addAndGet(1);
 
                 // 通知前端本轮迭代开始
-                publisher.roundStart(ctx, currentRounds);
+                publisher.round(ctx, AgentEvent.ROUND_START);
 
                 // 构建当前轮次合适的客户端，并获取阻塞式流
                 ChatClient.ChatClientRequestSpec requestSpec = agentClientRouter.buildChatClientRequestSpec(ctx);
@@ -110,6 +110,7 @@ public class AgentChatServiceImpl implements AgentChatService {
 
                 // 检测当前迭代步骤是否已完成（由 agent_step_finish 工具标记）
                 handleStepCompletionIfNeeded(ctx);
+                publisher.round(ctx, AgentEvent.ROUND_END);
             }
         } catch (UserStopException e) {
             // 用户终止回答，仅打印一行 info 日志，不触发错误告警

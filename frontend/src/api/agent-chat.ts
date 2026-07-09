@@ -14,10 +14,13 @@
  *   event: thinking       — 模型思考内容
  *   event: answer         — 模型回答内容
  *   event: tool_execution — 工具执行状态
- *   event: milestone      — 关键里程碑
+ *   event: plan_started   — 规划开始（任务清单生成中）
+ *   event: plan_generated — 规划生成成功（任务清单首次生成完毕）
+ *   event: update_task_plan— 更新任务清单（全量任务清单内容）
  *   event: round_start    — 新一轮迭代开始
  *   event: metadata       — 执行完毕元数据
  *   event: message_created— 消息已持久化
+ *   event: execute_complete— 步骤执行完成
  *   event: cancelled      — 用户停止回答
  *   event: error          — 服务端错误
  */
@@ -45,7 +48,7 @@ const BASE = '/api/agent'
 export async function streamAgentChat(options: AgentStreamChatOptions): Promise<void> {
     const {
         request, onThinking, onAnswer, onMetadata, onToolExecution,
-        onMilestone, onRoundStart, onMessageCreated, onPlanStarted, onPlanGenerated,
+        onRoundStart, onMessageCreated, onPlanStarted, onPlanGenerated,
         onTaskPlan, onExecuteComplete, onCancelled, onComplete, onError, signal,
     } = options
 
@@ -162,23 +165,6 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                     const err = new Error(errMsg)
                     ;(err as unknown as Record<string, unknown>).detail = envelope.detail
                     onError?.(err)
-                    break
-                }
-                case 'milestone': {
-                    const parsed = envelope.data as {
-                        title: string
-                        description?: string
-                        type?: string
-                        details?: Record<string, unknown>
-                    }
-                    if (parsed?.title) {
-                        onMilestone?.({
-                            title: parsed.title,
-                            description: parsed.description,
-                            type: parsed.type as 'info' | 'success' | 'warning' | 'error' | undefined,
-                            details: parsed.details,
-                        })
-                    }
                     break
                 }
                 case 'plan_started':

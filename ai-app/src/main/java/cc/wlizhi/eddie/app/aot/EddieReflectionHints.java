@@ -81,7 +81,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(AnswerPayload.class, members);
         reflection.registerType(ToolExecutionPayload.class, members);
         reflection.registerType(MessageCreatedPayload.class, members);
-        reflection.registerType(RoundStartPayload.class, members);
+        reflection.registerType(RoundPayload.class, members);
         reflection.registerType(MetadataPayload.class, members);
         reflection.registerType(CancelledPayload.class, members);
         reflection.registerType(AgentTokenStatists.class, members);

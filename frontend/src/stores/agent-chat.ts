@@ -14,7 +14,9 @@
  *   thinking       — 模型思考内容
  *   answer         — 模型回答内容
  *   tool_execution — 工具执行状态
- *   milestone      — 关键里程碑
+ *   plan_started   — 规划开始（任务清单生成中）
+ *   plan_generated — 规划生成成功（任务清单首次生成完毕）
+ *   update_task_plan— 更新任务清单（全量任务清单内容）
  *   round_start    — 新一轮迭代开始
  *   metadata       — 执行完毕元数据
  *   message_created— 消息已持久化
@@ -24,136 +26,21 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import type {ChatMessage, ChatMetadata, ChatModelSelector, ToolExecutionRecord} from '@/types/chat'
-import type {AgentTaskPlan, MilestoneEvent, RoundContent} from '@/types/agent-chat'
-import type {SessionVO, ToolExecutionEventItem} from '@/types/session'
+import type {AgentTaskPlan} from '@/types/agent-chat'
+import type {SessionVO} from '@/types/session'
 import {useAgentStore} from '@/stores/agent'
 import type {ToolSourceVO} from '@/types/mcpServer'
 import {fetchAgentMessages, stopAgentChat, streamAgentChat} from '@/api/agent-chat'
 import {createAgentSession, generateAgentSessionTitle} from '@/api/agent-session'
 import {fetchAgentBoundMcpTools} from '@/api/agent'
-import {renderMd} from '@/utils/markdown'
 import {showToast} from '@/composables/useToast'
-
-/**
- * 生成唯一 ID（兼容 Safari 15.4 以下不支持 crypto.randomUUID）
- */
-function generateId(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID()
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = Math.random() * 16 | 0
-        const v = c === 'x' ? r : (r & 0x3 | 0x8)
-        return v.toString(16)
-    })
-}
-
-/** 渲染防抖 ID（requestAnimationFrame），避免每字触发全量 Markdown 解析 */
-let renderRafId = 0
-
-/**
- * 防抖渲染 Markdown：将流式内容防抖到下一帧渲染，
- * 避免每个 chunk 都触发 renderMd 全量解析 + v-html DOM 替换。
- */
-function debounceRender(msg: ChatMessage): void {
-    cancelAnimationFrame(renderRafId)
-    renderRafId = requestAnimationFrame(() => {
-        msg.renderedContent = renderMd(msg.content || '')
-    })
-}
-
-/** 将 AgentMessageVO.toolCalls（JSON 字符串）解析为 ToolExecutionRecord[] */
-function parseToolCalls(toolCallsJson: string | null | undefined): ToolExecutionRecord[] {
-    if (!toolCallsJson) return []
-    try {
-        const parsed = JSON.parse(toolCallsJson) as ToolExecutionEventItem[]
-        return parsed.map(item => ({
-            toolName: item.toolName,
-            arguments: item.arguments,
-            result: item.result,
-            error: item.error,
-            done: item.status === 'complete',
-        }))
-    } catch {
-        return []
-    }
-}
-
-/** 确保消息的 rounds 数组存在并扩展到指定索引，返回 rounds 引用 */
-function ensureRounds(msg: ChatMessage, count: number): RoundContent[] {
-    if (!msg.rounds) {
-        msg.rounds = []
-    }
-    while (msg.rounds.length <= count) {
-        msg.rounds.push({ thinking: '', toolCalls: [], content: '' })
-    }
-    return msg.rounds
-}
-
-/** 将后端 AgentMessageVO 转换为前端 ChatMessage */
-function toChatMessage(vo: {
-    id: number
-    role: string
-    thinking: string
-    content: string
-    toolCalls: string
-    modelName: string
-    durationMs: number
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-    priceEstimate: number
-    currency: string
-    cacheReadInputTokens: number
-    cacheWriteInputTokens: number
-    createdAt: number
-    taskPlan: import('@/types/agent-chat').AgentTaskPlan | null
-    stepList: import('@/types/agent-chat').AgentMsgStepVO[] | null
-}): ChatMessage {
-    const content = vo.content || ''
-    const thinking = vo.thinking || undefined
-    const toolCalls = parseToolCalls(vo.toolCalls)
-    const msg: ChatMessage = {
-        id: generateId(),
-        dbId: vo.id,
-        role: vo.role as 'user' | 'assistant',
-        content,
-        renderedContent: content ? renderMd(content) : '',
-        thinking,
-        toolCalls,
-        timestamp: vo.createdAt,
-        modelName: vo.modelName || undefined,
-        taskPlan: vo.taskPlan ?? undefined,
-        stepList: vo.stepList ?? undefined,
-        metadata: {
-            timestamp: vo.createdAt,
-            ...(vo.durationMs != null ? {durationMs: vo.durationMs} : {}),
-            ...(vo.promptTokens != null ? {promptTokens: vo.promptTokens} : {}),
-            ...(vo.completionTokens != null ? {completionTokens: vo.completionTokens} : {}),
-            ...(vo.totalTokens != null ? {totalTokens: vo.totalTokens} : {}),
-            ...(vo.cacheReadInputTokens != null ? {cacheReadInputTokens: vo.cacheReadInputTokens} : {}),
-            ...(vo.cacheWriteInputTokens != null ? {cacheWriteInputTokens: vo.cacheWriteInputTokens} : {}),
-            ...(vo.priceEstimate != null ? {costEstimate: vo.priceEstimate} : {}),
-            ...(vo.currency ? {currency: vo.currency} : {}),
-        },
-    }
-    // 历史消息：从 stepList 构建 rounds，每个 step 对应一个轮次
-    if (vo.role === 'assistant' && vo.stepList && vo.stepList.length > 0) {
-        msg.rounds = vo.stepList.map(step => ({
-            thinking: step.thinking || '',
-            toolCalls: parseToolCalls(step.toolCalls),
-            content: step.content || '',
-        }))
-    } else if (vo.role === 'assistant' && (thinking || toolCalls.length > 0 || content)) {
-        // 兼容无 stepList 的历史消息（旧数据），回填为单轮次
-        msg.rounds = [{
-            thinking: thinking ?? '',
-            toolCalls,
-            content,
-        }]
-    }
-    return msg
-}
+import {
+    generateId,
+    debounceRender,
+    ensureRounds,
+    toChatMessage,
+    renderFinalContent,
+} from './agent-chat-helpers'
 
 export const useAgentChatStore = defineStore('agentChat', () => {
     const agentStore = useAgentStore()
@@ -168,9 +55,6 @@ export const useAgentChatStore = defineStore('agentChat', () => {
 
     /** 最近创建的会话（驱动侧边栏本地追加到列表顶部） */
     const lastCreatedSession = ref<SessionVO | null>(null)
-
-    /** 是否正在加载消息 */
-    const loadingMessages = ref(false)
 
     /** 是否正在流式响应中 */
     const isStreaming = ref(false)
@@ -189,9 +73,6 @@ export const useAgentChatStore = defineStore('agentChat', () => {
 
     /** 当前迭代轮次 */
     const currentRound = ref(0)
-
-    /** 里程碑事件列表 */
-    const milestones = ref<MilestoneEvent[]>([])
 
     /** 当前任务计划清单（规划模式） */
     const currentTaskPlan = ref<AgentTaskPlan | null>(null)
@@ -267,7 +148,6 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentMetadata.value = null
         currentToolExecutions.value = []
         currentRound.value = 0
-        milestones.value = []
         currentTaskPlan.value = null
         isPlanGenerating.value = false
     }
@@ -374,7 +254,6 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         currentMetadata.value = null
         currentToolExecutions.value = []
         currentRound.value = 0
-        milestones.value = []
         currentTaskPlan.value = null
         isPlanGenerating.value = false
 
@@ -498,10 +377,6 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     }
                 }
             },
-            onMilestone: (event) => {
-                milestones.value.push(event)
-                // 里程碑也附加到最后一条 assistant 消息中（可选增强）
-            },
             onPlanStarted: () => {
                 isPlanGenerating.value = true
             },
@@ -546,8 +421,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     if (last && last.role === 'assistant') {
                         last.metadata = currentMetadata.value
                         // metadata 到达时强制最终渲染
-                        cancelAnimationFrame(renderRafId)
-                        last.renderedContent = renderMd(last.content || '')
+                        renderFinalContent(last)
                     }
                 } catch {
                     // ignore
@@ -629,8 +503,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 last.toolCalls = [...currentToolExecutions.value]
             }
             // 流结束时强制立即渲染最终内容
-            cancelAnimationFrame(renderRafId)
-            last.renderedContent = renderMd(last.content || '')
+            renderFinalContent(last)
         }
         // 断开 SSE 连接
         if (abortController) {
@@ -660,12 +533,8 @@ export const useAgentChatStore = defineStore('agentChat', () => {
      */
     function buildToolParams(): { toolSelectionMode?: string; toolNames?: string[] } {
         const mode = mcpToolMode.value
-        const searchOn = webSearchEnabled.value
 
         if (mode === 'disabled') {
-            if (searchOn) {
-                return {toolSelectionMode: 'none', toolNames: []}
-            }
             return {toolSelectionMode: 'none', toolNames: []}
         }
 
@@ -691,14 +560,12 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         messages,
         currentConversationId,
         lastCreatedSession,
-        loadingMessages,
         isStreaming,
         currentThinking,
         currentAnswer,
         currentMetadata,
         currentToolExecutions,
         currentRound,
-        milestones,
         currentTaskPlan,
         isPlanGenerating,
         confirmedText,

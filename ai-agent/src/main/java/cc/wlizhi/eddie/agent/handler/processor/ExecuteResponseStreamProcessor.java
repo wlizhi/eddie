@@ -12,17 +12,14 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
-import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
-import cc.wlizhi.eddie.common.dto.ApiResult;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -143,11 +140,6 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
 
         // 2. 更新占位记录的实际内容（步骤级别，使用独立累加器）
         updateStepRecord(ctx);
-
-        // TODO BUG: 不是一个正常的payload，应当包含消息id，步骤编号，步骤id，当前迭代次数
-        // 3. 推送执行完成事件
-        ctx.getEventPublisher().emit(ctx, AgentEvent.EXECUTE_COMPLETE,
-                ApiResult.success(new HashMap<>()));
     }
 
     /**

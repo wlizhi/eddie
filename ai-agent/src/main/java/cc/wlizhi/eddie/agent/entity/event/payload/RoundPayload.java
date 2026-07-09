@@ -11,13 +11,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * round_start 事件 Payload — 新一轮迭代开始
+ * 每一轮循环的开始与结束事件
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RoundStartPayload {
+public class RoundPayload {
 
     private Long msgId;
     private Long stepId;

@@ -12,9 +12,6 @@ import cc.wlizhi.eddie.agent.handler.ResponseStreamProcessor;
 import cc.wlizhi.eddie.agent.util.TokenStatsHelper;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
-import cc.wlizhi.eddie.common.enums.ApiResultCode;
-import cc.wlizhi.eddie.common.exception.AppException;
-import cc.wlizhi.eddie.common.exception.ProviderCallException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -71,13 +68,7 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
 
         try {
             requestSpec.stream().chatResponse()
-                    .takeWhile(res -> {
-                        // 聊天模式切换到规划模式时，应当中断
-//                        if (breakInStreamIfNecessary(ctx)) {
-//                            return false;
-//                        }
-                        return !checkUserStopEvent(ctx);
-                    }).toStream()
+                    .takeWhile(_ -> !checkUserStopEvent(ctx)).toStream()
                     .forEach(res -> {
                         int idx = chunkCount.incrementAndGet();
                         // 保存最后一次响应，供后续提取 tool_calls / token 用量

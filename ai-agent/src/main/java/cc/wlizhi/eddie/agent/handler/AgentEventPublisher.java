@@ -21,6 +21,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Agent 事件发布器 — 统一管理所有 SSE 事件的构建与发射。
  * <p>
@@ -42,9 +44,9 @@ public class AgentEventPublisher {
     /**
      * 发射 SSE 事件。从 ctx 自动提取 msgId/stepId/step。
      *
-     * @param ctx     上下文
-     * @param event   事件类型
-     * @param result  已构建的 ApiResult（包含 code/message/detail/data）
+     * @param ctx    上下文
+     * @param event  事件类型
+     * @param result 已构建的 ApiResult（包含 code/message/detail/data）
      */
     public <T> void emit(AgentChatContext ctx, AgentEvent event, ApiResult<T> result) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
@@ -127,13 +129,12 @@ public class AgentEventPublisher {
         emit(ctx, AgentEvent.UPDATE_TASK_PLAN, ApiResult.success(taskPlan));
     }
 
-    /**
-     * 循环开始
-     */
-    public void roundStart(AgentChatContext ctx, int round) {
+    public void round(AgentChatContext ctx, AgentEvent event) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        RoundStartPayload payload = new RoundStartPayload(msgId, null, null, round);
-        emit(ctx, AgentEvent.ROUND_START, ApiResult.success(payload));
+        Long stepId = ctx.getStepStreamContext() == null ? null : ctx.getStepStreamContext().getStepId();
+        AtomicInteger currentIterator = ctx.getIteratorState().getCurrentIterator();
+        RoundPayload payload = new RoundPayload(msgId, stepId, ctx.getCurrentStep(), currentIterator.get());
+        emit(ctx, event, ApiResult.success(payload));
     }
 
     /**

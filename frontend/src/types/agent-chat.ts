@@ -82,7 +82,6 @@ export type AgentSSEEventType =
     | 'thinking'
     | 'answer'
     | 'tool_execution'
-    | 'milestone'
     | 'round_start'
     | 'metadata'
     | 'message_created'
@@ -91,21 +90,6 @@ export type AgentSSEEventType =
     | 'plan_started'
     | 'plan_generated'
     | 'update_task_plan'
-
-/**
- * 里程碑事件数据
- * 对应后端 milestone SSE 事件的 data JSON
- */
-export interface MilestoneEvent {
-    /** 里程碑标题 */
-    title: string
-    /** 里程碑描述 */
-    description?: string
-    /** 里程碑类型，如 info / success / warning / error */
-    type?: 'info' | 'success' | 'warning' | 'error'
-    /** 关联的工具调用相关信息 */
-    details?: Record<string, unknown>
-}
 
 /**
  * 消息记录（从后端加载的历史消息）
@@ -185,8 +169,6 @@ export interface AgentStreamChatOptions {
         result?: string
         error?: boolean
     }, step?: number | null) => void
-    /** 收到里程碑事件时的回调 */
-    onMilestone?: (event: MilestoneEvent) => void
     /** 收到新一轮迭代开始事件时的回调 */
     onRoundStart?: (round: number) => void
     /** 收到 message_created 事件时的回调 */
