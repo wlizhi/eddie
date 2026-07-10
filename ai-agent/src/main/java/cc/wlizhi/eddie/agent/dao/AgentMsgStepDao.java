@@ -147,6 +147,16 @@ public class AgentMsgStepDao {
     }
 
     /**
+     * 根据会话 ID 删除所有分段（通过子查询关联消息表）
+     */
+    public void deleteBySessionId(Long sessionId) {
+        jdbcTemplate.update(
+                "DELETE FROM ai_agent_session_msg_step WHERE msg_id IN " +
+                        "(SELECT id FROM ai_agent_session_msg WHERE session_id = ?)",
+                sessionId);
+    }
+
+    /**
      * 根据智能体 ID 删除所有分段（通过子查询关联消息表）
      */
     public void deleteByAgentId(Long agentId) {

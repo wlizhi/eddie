@@ -10,6 +10,7 @@ import cc.wlizhi.eddie.agent.entity.request.AgentUpdateRequest;
 import cc.wlizhi.eddie.agent.entity.response.AgentDetailVO;
 import cc.wlizhi.eddie.agent.entity.response.AgentVO;
 import cc.wlizhi.eddie.chat.entity.response.ToolSourceVO;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -39,6 +40,15 @@ public interface AgentService {
      * 更新智能体设置
      */
     AgentVO update(Long id, AgentUpdateRequest request);
+
+    /**
+     * 更新智能体头像（支持文字、emoji、图片上传）
+     *
+     * @param id         智能体 ID
+     * @param avatarText 文字或 emoji（可选）
+     * @param file       图片文件（可选）
+     */
+    AgentVO updateAvatar(Long id, String avatarText, MultipartFile file);
 
     /**
      * 删除智能体（级联删除关联会话和消息）

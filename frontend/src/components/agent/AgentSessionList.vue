@@ -4,7 +4,7 @@
  -->
 
 <script setup lang="ts">
-import {computed, nextTick, ref} from 'vue'
+import {computed, nextTick, ref, watch} from 'vue'
 import {MessageSquare, Pencil, Pin, Plus, Search, Sparkles, Trash2} from '@lucide/vue'
 import {useAgentChatStore} from '@/stores/agent-chat'
 import {useAgentStore} from '@/stores/agent'
@@ -39,12 +39,18 @@ const {
   offsetY,
   totalHeight,
   onScroll,
+  resetScroll,
 } = useVirtualList(listContainer, {
   items: sessions,
   itemHeight: ITEM_HEIGHT,
   buffer: 5,
   loadMoreThreshold: 200,
   onLoadMore: loadMore,
+})
+
+// 切换智能体时重置虚拟滚动位置
+watch(() => agentStore.activeId, () => {
+  resetScroll()
 })
 
 /** 进入行内编辑模式 */

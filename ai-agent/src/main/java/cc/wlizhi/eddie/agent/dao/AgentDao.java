@@ -108,6 +108,16 @@ public class AgentDao {
     }
 
     /**
+     * 仅更新头像
+     */
+    public void updateAvatar(Long id, String avatar) {
+        long now = System.currentTimeMillis();
+        jdbcTemplate.update(
+                "UPDATE ai_agent SET avatar = ?, updated_at = ? WHERE id = ?",
+                avatar, now, id);
+    }
+
+    /**
      * 更新排序序号
      */
     public void updateSortOrder(Long id, int sortOrder) {

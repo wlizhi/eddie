@@ -43,7 +43,7 @@ public class ChatStreamExecutor {
      * @return ChatResponse 流
      */
     public Flux<ChatResponse> execute(ChatContext ctx) {
-        String registryKey = EventRegistry.key("STOP", String.valueOf(ctx.getUserMessageId()));
+        String registryKey = EventRegistry.key("STOP", String.valueOf(ctx.getPlaceholderMsgId()));
         return ctx.getChatClient().prompt()
                 .system(promptVariableResolver.resolve(ctx.getAssistant().getSystemPrompt()))
                 .user(ctx.getUserMessage())

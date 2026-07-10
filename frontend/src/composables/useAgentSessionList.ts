@@ -40,11 +40,15 @@ export function useAgentSessionList(
     /** 防抖搜索定时器 */
     let searchTimer: ReturnType<typeof setTimeout> | null = null
 
+    /** 递增请求 ID，用于丢弃过期的异步响应（防止切换智能体时的竞态） */
+    let currentRequestId = 0
+
     /**
      * 加载会话列表
      * @param reset true=重新第1页替换列表，false=追加下一页
      */
     async function loadSessions(reset = true) {
+        const requestId = ++currentRequestId
         const agentId = agentStore.activeId
         if (!agentId) {
             sessions.value = []
@@ -62,6 +66,8 @@ export function useAgentSessionList(
         try {
             const title = searchQuery.value.trim() || undefined
             const result = await fetchAgentSessionList(agentId, pageNum.value, 50, title)
+            // ★ 丢弃过期响应：如果在此期间有新的请求发起，则忽略本次结果
+            if (requestId !== currentRequestId) return
             if (reset) {
                 sessions.value = result.records
             } else {
@@ -99,6 +105,9 @@ export function useAgentSessionList(
     // 切换智能体时重新加载
     watch([activeId, () => agentStore.loaded], () => {
         if (agentStore.activeId && agentStore.loaded) {
+            // ★ 同步清除旧数据，防止异步加载期间残留上一智能体的会话
+            sessions.value = []
+            total.value = 0
             loadSessions(true)
         }
     }, {immediate: true})

@@ -111,6 +111,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         if (!agentSessionDao.existsById(id)) {
             throw new NotFoundException("智能体会话不存在: " + id);
         }
+        agentMsgStepDao.deleteBySessionId(id);
         agentMsgDao.deleteBySessionId(id);
         agentSessionDao.deleteById(id);
     }

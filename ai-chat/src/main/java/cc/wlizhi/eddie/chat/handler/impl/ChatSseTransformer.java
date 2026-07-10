@@ -315,6 +315,7 @@ public class ChatSseTransformer {
         try {
             return objectMapper.writeValueAsString(obj);
         } catch (Exception e) {
+            log.warn("序列化 SSE 事件失败: {}", e.getMessage());
             return "{}";
         }
     }

@@ -26,6 +26,7 @@ import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.common.exception.NotFoundException;
+import cc.wlizhi.eddie.common.util.FileStorageUtil;
 import cc.wlizhi.eddie.memory.context.ModelProviderContext;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -35,6 +36,9 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -208,10 +212,65 @@ public class AgentServiceImpl implements AgentService {
     }
 
     @Override
+    public AgentVO updateAvatar(Long id, String avatarText, MultipartFile file) {
+        // 1. 校验智能体存在
+        AgentEntity old = agentDao.findById(id);
+        if (old == null) {
+            throw new NotFoundException("智能体不存在: " + id);
+        }
+
+        // 2. 计算新头像值
+        String newAvatar = "";
+        if (file != null && !file.isEmpty()) {
+            // 上传图片 → 保存到磁盘
+            try {
+                byte[] data = file.getBytes();
+                // 提取扩展名，默认 webp
+                String ext = "webp";
+                String originalName = file.getOriginalFilename();
+                if (originalName != null && originalName.contains(".")) {
+                    String origExt = originalName.substring(originalName.lastIndexOf('.') + 1).toLowerCase();
+                    if (origExt.equals("png") || origExt.equals("jpg") || origExt.equals("jpeg")
+                            || origExt.equals("gif") || origExt.equals("webp")) {
+                        ext = origExt;
+                    }
+                }
+                newAvatar = FileStorageUtil.save(data, ext);
+            } catch (IOException e) {
+                throw new RuntimeException("读取上传文件失败", e);
+            }
+        } else if (avatarText != null && !avatarText.isEmpty()) {
+            // 文字/emoji → 直接存
+            newAvatar = avatarText;
+        }
+
+        // 3. 旧头像如果是图片路径 → 删除旧文件
+        String oldAvatar = old.getAvatar();
+        if (FileStorageUtil.isFileUrl(oldAvatar)) {
+            FileStorageUtil.delete(oldAvatar);
+        }
+
+        // 4. 更新 DB
+        agentDao.updateAvatar(id, newAvatar);
+        // 5. 刷新缓存
+        agentContext.refresh();
+
+        // 6. 返回更新后的智能体
+        AgentEntity updated = agentDao.findById(id);
+        log.info("更新智能体头像: id={}", id);
+        return toVO(updated);
+    }
+
+    @Override
     @Transactional
     public void delete(Long id) {
-        if (!agentDao.existsById(id)) {
+        AgentEntity entity = agentDao.findById(id);
+        if (entity == null) {
             throw new NotFoundException("智能体不存在: " + id);
+        }
+        // 清理头像图片文件
+        if (FileStorageUtil.isFileUrl(entity.getAvatar())) {
+            FileStorageUtil.delete(entity.getAvatar());
         }
         agentMsgStepDao.deleteByAgentId(id);
         agentMsgDao.deleteByAgentId(id);

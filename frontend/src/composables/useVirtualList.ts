@@ -53,6 +53,14 @@ export function useVirtualList<T>(
     /** 可见区域偏移量 */
     const offsetY = computed(() => startIndex.value * itemHeight)
 
+    /** 重置滚动位置到顶部（切换数据源时调用） */
+    function resetScroll() {
+        scrollTop.value = 0
+        if (containerRef.value) {
+            containerRef.value.scrollTop = 0
+        }
+    }
+
     /** 节流：防止高频 onLoadMore 回调 */
     let loadMoreTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -96,5 +104,6 @@ export function useVirtualList<T>(
         totalHeight,
         onScroll,
         updateHeight,
+        resetScroll,
     }
 }

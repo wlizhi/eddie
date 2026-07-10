@@ -17,6 +17,7 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentTokenStatists;
 import cc.wlizhi.eddie.agent.entity.event.payload.*;
 import cc.wlizhi.eddie.agent.entity.response.AgentSessionVO;
 import cc.wlizhi.eddie.chat.controller.ChatToolApprovalController;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecPayload;
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.service.impl.DeepseekChatClientFactory;
@@ -63,6 +64,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(ToolDefinitionEntity.class, members);
         reflection.registerType(MetadataInfo.class, members);
         reflection.registerType(ToolExecutionEvent.class, members);
+        reflection.registerType(ChatToolExecPayload.class, members);
         reflection.registerType(ChatToolApprovalController.ChatToolApprovalRequest.class, members);
         reflection.registerType(ToolExecutionStatus.class, members);
         reflection.registerType(DeepseekChatClientFactory.class, members);

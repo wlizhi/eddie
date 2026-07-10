@@ -15,6 +15,7 @@ import cc.wlizhi.eddie.common.dto.ApiResult;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -94,6 +95,21 @@ public class AgentController {
     @GetMapping("/{id}/mcp-tools")
     public ApiResult<List<ToolSourceVO>> getBoundMcpTools(@PathVariable(name = "id") Long id) {
         return ApiResult.success(agentService.getBoundMcpTools(id));
+    }
+
+    /**
+     * 更新智能体头像（支持文字、emoji、图片上传）
+     *
+     * @param id         智能体 ID
+     * @param avatarText 文字或 emoji（可选）
+     * @param file       图片文件（可选）
+     */
+    @PostMapping("/{id}/avatar")
+    public ApiResult<AgentVO> updateAvatar(
+            @PathVariable(name = "id") Long id,
+            @RequestParam(name = "avatar", required = false) String avatarText,
+            @RequestParam(name = "file", required = false) MultipartFile file) {
+        return ApiResult.success(agentService.updateAvatar(id, avatarText, file));
     }
 
     /**

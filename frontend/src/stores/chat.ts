@@ -74,8 +74,8 @@ export const useChatStore = defineStore('chat', () => {
     /** AbortController，用于中断请求 */
     let abortController: AbortController | null = null
 
-    /** 当前流中用户消息 ID（来自 message_created 事件，用于停止回答） */
-    let currentUserMsgId: number | null = null
+    /** 当前流中助手（模型回复）消息 ID，来自 message_created 事件，用于停止回答 key 匹配 */
+    let currentAssistantMsgId: number | null = null
 
     /** 停止回答点击次数（第 1 次 graceful，第 2 次 forced） */
     let stopClickCount = 0
@@ -317,7 +317,7 @@ export const useChatStore = defineStore('chat', () => {
 
         abortController = new AbortController()
         stopClickCount = 0
-        currentUserMsgId = null
+        currentAssistantMsgId = null
 
         // 构建工具参数
         const toolParams = buildToolParams()
@@ -334,7 +334,7 @@ export const useChatStore = defineStore('chat', () => {
             },
             signal: abortController.signal,
             onMessageCreated: (data) => {
-                currentUserMsgId = data.userMsgId
+                currentAssistantMsgId = data.assistantMsgId
                 // 后端已确认接收并持久化，此时才将消息添加到界面并通知清空输入框
                 confirmedText.value = rawText
                 const userMsg: ChatMessage = {
@@ -517,7 +517,7 @@ export const useChatStore = defineStore('chat', () => {
         currentToolExecutions.value = []
         isStreaming.value = false
         abortController = null
-        currentUserMsgId = null
+        currentAssistantMsgId = null
         stopClickCount = 0
         // 当消息数量达到配置轮数 × 2 时自动生成标题
         const targetMsgCount = titleGenerationRounds.value * 2
@@ -543,10 +543,10 @@ export const useChatStore = defineStore('chat', () => {
         stopClickCount++
         const mode = stopClickCount >= 2 ? 'forced' : 'graceful'
 
-        if (currentUserMsgId) {
+        if (currentAssistantMsgId) {
             // 通知后端停止，不主动断开连接
             // 后端停止后会通过 SSE 发送 event: cancelled
-            stopChat(currentUserMsgId, mode).catch(() => {
+            stopChat(currentAssistantMsgId, mode).catch(() => {
                 // stop 请求失败时，降级为前端主动断开
                 abortController?.abort()
                 abortController = null

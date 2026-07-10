@@ -77,6 +77,20 @@ export async function updateAgent(id: number, data: AgentUpdateRequest): Promise
 }
 
 /**
+ * 更新智能体头像（支持文字、emoji、图片上传）
+ */
+export async function updateAgentAvatar(id: number, formData: FormData): Promise<AgentVO> {
+    const res = await fetch(`${BASE}/${id}/avatar`, {
+        method: 'POST',
+        body: formData,
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    const json: ApiResult<AgentVO> = await res.json()
+    if (json.code !== 200) throw new Error(json.message || '更新头像失败')
+    return json.data
+}
+
+/**
  * 批量排序：按 ID 数组顺序重新赋 sort_order
  */
 export async function batchSortAgent(ids: number[]): Promise<void> {

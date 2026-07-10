@@ -218,8 +218,13 @@ public class AssistantServiceImpl implements AssistantService {
 
     @Override
     public void delete(Long id) {
-        if (!assistantDao.existsById(id)) {
+        AssistantEntity entity = assistantDao.findById(id);
+        if (entity == null) {
             throw new NotFoundException("助手不存在: " + id);
+        }
+        // 清理头像图片文件
+        if (FileStorageUtil.isFileUrl(entity.getAvatar())) {
+            FileStorageUtil.delete(entity.getAvatar());
         }
         // 级联删除：消息 → 会话 → 助手
         messageDao.deleteByAssistantId(id);

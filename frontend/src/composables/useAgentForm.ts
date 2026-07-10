@@ -24,6 +24,7 @@ import type {AssistantPreferences} from '@/types/assistant'
 import type {McpServerItem} from '@/api/assistant'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
 import {showToast} from '@/composables/useToast'
+import {updateAgentAvatar} from '@/api/agent'
 
 export function useAgentForm(
     props: {
@@ -96,6 +97,7 @@ export function useAgentForm(
     const show = ref(false)
     const showPicker = ref(false)
     const originalAvatar = ref('')
+    const pendingAvatarFile = ref<File | null>(null)
 
     /** System Prompt textarea 的 DOM 引用 */
     const systemPromptRef = ref<HTMLTextAreaElement | null>(null)
@@ -138,6 +140,7 @@ export function useAgentForm(
         formName.value = ''
         formAvatar.value = ''
         originalAvatar.value = ''
+        pendingAvatarFile.value = null
         formDescription.value = ''
         formSystemPrompt.value = ''
         formEnabled.value = 1
@@ -187,6 +190,7 @@ export function useAgentForm(
             formName.value = d.name
             formAvatar.value = d.avatar ?? ''
             originalAvatar.value = d.avatar ?? ''
+            pendingAvatarFile.value = null
             formDescription.value = d.description ?? ''
             formSystemPrompt.value = d.systemPrompt ?? ''
             formEnabled.value = d.enabled === true || d.enabled === 1 ? 1 : 0
@@ -350,11 +354,17 @@ export function useAgentForm(
     }
 
     // ========== 头像 ==========
-    function onAvatarPicked(value: string | null) {
-        if (value) {
+    function onAvatarPicked(value: string | null, file: File | null) {
+        if (file) {
+            pendingAvatarFile.value = file
+            formAvatar.value = URL.createObjectURL(file)
+        } else if (value) {
             formAvatar.value = value
+            pendingAvatarFile.value = null
         } else {
+            // 空白输入 → 清空头像，走默认首字显示
             formAvatar.value = ''
+            pendingAvatarFile.value = null
         }
         showPicker.value = false
     }
@@ -434,6 +444,11 @@ export function useAgentForm(
                 })
 
                 if (created) {
+                    if (pendingAvatarFile.value) {
+                        const fd = new FormData()
+                        fd.append('file', pendingAvatarFile.value)
+                        await updateAgentAvatar(created.id, fd)
+                    }
                     showToast('创建成功')
                     close()
                 } else {
@@ -457,6 +472,19 @@ export function useAgentForm(
 
         saving.value = true
         try {
+            // 先处理头像上传
+            if (pendingAvatarFile.value) {
+                const fd = new FormData()
+                fd.append('file', pendingAvatarFile.value)
+                const updated = await updateAgentAvatar(detail.value.id, fd)
+                formAvatar.value = updated.avatar ?? ''
+                pendingAvatarFile.value = null
+            } else if (formAvatar.value !== originalAvatar.value) {
+                const fd = new FormData()
+                fd.append('avatar', formAvatar.value)
+                await updateAgentAvatar(detail.value.id, fd)
+            }
+
             const mainModelParams = buildModelParamsJson(formMainModelParams)
             const subModelParams = buildModelParamsJson(formSubModelParams)
             const preferences = buildPreferences()

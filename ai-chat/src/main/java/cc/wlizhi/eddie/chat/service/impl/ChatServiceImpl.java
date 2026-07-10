@@ -228,7 +228,7 @@ public class ChatServiceImpl implements ChatService {
         // 9. doFinally：无论 complete / error / cancel 都执行后置处理（更新占位消息）
         //     注意：锁在 post-processing 之前释放，避免其他请求等待 DB 写入
         //     同时清理注册表中的停止事件
-        String registryKey = EventRegistry.key("STOP", String.valueOf(ctx.getUserMessageId()));
+        String registryKey = EventRegistry.key("STOP", String.valueOf(ctx.getPlaceholderMsgId()));
         return messageCreatedEvent.concatWith(
                 chatSseTransformer.transform(responseFlux, ctx, toolEventFlux, toolEventSink)
         ).doFinally(signalType -> {
