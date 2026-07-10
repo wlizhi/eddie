@@ -5,6 +5,7 @@
 
 package cc.wlizhi.eddie.common.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -28,6 +29,7 @@ public class ShellToolConfig {
     private String mode = "SMART";
 
     /** 黑名单命令前缀（CUSTOM 模式生效，命中直接拒绝） */
+    @JsonDeserialize(using = NewlineStringToListDeserializer.class)
     private List<String> blacklist = List.of(
             "rm", "dd", "mkfs", "fdisk", "sudo", "chmod", "chown", ">"
     );
@@ -36,6 +38,7 @@ public class ShellToolConfig {
     private Integer maxOutputChars = 10_000;
 
     /** 白名单命令前缀（CUSTOM 模式生效，仅允许这些命令） */
+    @JsonDeserialize(using = NewlineStringToListDeserializer.class)
     private List<String> whitelist = List.of(
             "ls", "cat", "echo", "pwd", "cp", "mv", "head", "tail",
             "grep", "find", "ps", "df", "du", "uname", "whoami",

@@ -292,12 +292,33 @@ async function saveConfig(server: McpServer, toolName: string) {
   const toolConfig = configCache[server.id]?.[toolName]
   if (!toolConfig) return
 
-  // 读取当前完整 sourceConfig
+  // textarea 类型的字段（如 blacklist/whitelist）将换行文本转为 JSON 数组
+  const tool = server.tools.find(t => t.name === toolName)
+  if (tool?.configSchema?.fields) {
+    for (const field of tool.configSchema.fields) {
+      if (field.type === 'textarea' && typeof toolConfig[field.name] === 'string') {
+        toolConfig[field.name] = toolConfig[field.name]
+          .split('\n')
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0)
+      }
+    }
+  }
+
+  // 读取当前完整 sourceConfig，只保留命名空间级别的配置段（值为对象的键）
+  // 丢弃旧扁平字段（如 mode/blacklist/whitelist 等顶层原始值）
   let full: Record<string, any> = {}
   if (server.sourceConfig && server.sourceConfig !== '{}') {
-    try { full = JSON.parse(server.sourceConfig) } catch { /* ignore */ }
+    try {
+      const parsed = JSON.parse(server.sourceConfig)
+      for (const [key, val] of Object.entries(parsed)) {
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          full[key] = val
+        }
+      }
+    } catch { /* ignore */ }
   }
-  // 仅更新该工具的配置段
+  // 更新该工具的配置段
   full[toolName] = toolConfig
 
   try {

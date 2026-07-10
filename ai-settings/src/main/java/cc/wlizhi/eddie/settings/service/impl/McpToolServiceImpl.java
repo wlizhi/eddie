@@ -391,25 +391,29 @@ public class McpToolServiceImpl implements McpToolService {
         existing.setReconnectIntervalSec(request.getReconnectIntervalSec());
         existing.setMaxReconnectAttempts(request.getMaxReconnectAttempts());
 
-        boolean targetEnabled = request.getEnabled() != null && request.getEnabled();
-        existing.setEnabled(targetEnabled ? 1 : 0);
-
         // 3. 持久化（无事务：避免远程 MCP 调用占用连接）
         mcpServerDao.update(existing);
 
         // 4. 根据启禁状态决定操作
         List<ToolDefinitionEntity> tools = List.of();
-        if (targetEnabled) {
-            McpConnectInfo connectInfo = mcpClientRegistry.registerSync(existing);
-            if (connectInfo.isConnected()) {
-                tools = syncRemoteToolsToDb(id, connectInfo.getTools());
-                log.info("MCP 编辑保存并同步工具: id={}, toolCount={}", id, tools.size());
+        Boolean enabledParam = request.getEnabled();
+        if (enabledParam != null) {
+            // 仅当显式传入 enabled 时才修改启用状态
+            existing.setEnabled(enabledParam ? 1 : 0);
+            mcpServerDao.updateEnabled(id, enabledParam ? 1 : 0);
+
+            if (enabledParam) {
+                McpConnectInfo connectInfo = mcpClientRegistry.registerSync(existing);
+                if (connectInfo.isConnected()) {
+                    tools = syncRemoteToolsToDb(id, connectInfo.getTools());
+                    log.info("MCP 编辑保存并同步工具: id={}, toolCount={}", id, tools.size());
+                } else {
+                    log.warn("MCP 编辑保存时连接失败，降级自动重连: id={}", id);
+                    mcpClientRegistry.register(existing);
+                }
             } else {
-                log.warn("MCP 编辑保存时连接失败，降级自动重连: id={}", id);
-                mcpClientRegistry.register(existing);
+                mcpClientRegistry.unregister(id);
             }
-        } else {
-            mcpClientRegistry.unregister(id);
         }
 
         // 5. 刷新缓存
