@@ -32,6 +32,9 @@ public class ShellToolConfig {
             "rm", "dd", "mkfs", "fdisk", "sudo", "chmod", "chown", ">"
     );
 
+    /** 输出最大字符数（默认 10000，用户可在 100~10000 之间配置） */
+    private Integer maxOutputChars = 10_000;
+
     /** 白名单命令前缀（CUSTOM 模式生效，仅允许这些命令） */
     private List<String> whitelist = List.of(
             "ls", "cat", "echo", "pwd", "cp", "mv", "head", "tail",

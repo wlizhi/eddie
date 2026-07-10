@@ -80,6 +80,12 @@ public class ShellTools implements BuiltInToolProvider {
                                 ),
                                 null, null
                         ),
+                        new ConfigFieldDescriptor(
+                                "maxOutputChars", "number", "最大输出字符数",
+                                "限制命令输出的最大字符数（100 ~ 10000），超长输出将被截断",
+                                10000, null, false, 100, 10000,
+                                null, null, null
+                        ),
                         blacklistField,
                         whitelistField
                 ));
@@ -88,9 +94,14 @@ public class ShellTools implements BuiltInToolProvider {
     private static final Logger log = LoggerFactory.getLogger(ShellTools.class);
 
     /**
-     * 输出最大字符数
+     * 输出最大字符数上限
      */
-    private static final int MAX_OUTPUT_CHARS = 10_000;
+    private static final int MAX_OUTPUT_CHARS_LIMIT = 10_000;
+
+    /**
+     * 输出最大字符数下限
+     */
+    private static final int MIN_OUTPUT_CHARS_LIMIT = 100;
 
     /**
      * 默认超时时间（秒），后续可改为通过配置读取
@@ -114,7 +125,7 @@ public class ShellTools implements BuiltInToolProvider {
                     
                     **注意事项：**
                     - 命令会在用户电脑上直接执行，请确认命令安全
-                    - 输出长度上限：10,000 字符
+                    - 输出长度上限：10,000 字符（可在设置中调整）
                     - 建议优先使用只读命令（ls、cat、echo、pwd 等），避免执行危险操作
                     """)
     public ApiResult<String> exec(
@@ -127,7 +138,10 @@ public class ShellTools implements BuiltInToolProvider {
         // 1. 读取权限配置
         ShellToolConfig config = loadConfig();
 
-        // 2. 权限校验
+        // 2. 计算有效最大输出字符数
+        int maxOutputChars = resolveMaxOutputChars(config);
+
+        // 3. 权限校验
         ApiResult<String> permissionResult = checkPermission(command, config);
         if (permissionResult != null) {
             return permissionResult;
@@ -162,8 +176,8 @@ public class ShellTools implements BuiltInToolProvider {
                     new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (output.length() + line.length() + 1 > MAX_OUTPUT_CHARS) {
-                        output.append("\n...（输出已截断，超出 ").append(MAX_OUTPUT_CHARS).append(" 字符）");
+                    if (output.length() + line.length() + 1 > maxOutputChars) {
+                        output.append("\n...（输出已截断，超出 ").append(maxOutputChars).append(" 字符）");
                         // 跳过剩余输入流
                         process.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
                         break;
@@ -212,6 +226,21 @@ public class ShellTools implements BuiltInToolProvider {
             log.warn("[ShellTools] 解析 sourceConfig 失败，使用默认配置: {}", e.getMessage());
             return new ShellToolConfig();
         }
+    }
+
+    /**
+     * 解析有效最大输出字符数。<p>
+     * 用户可配置 100~10000，未配置则返回默认值 10000。
+     *
+     * @param config Shell 工具配置
+     * @return 有效的最大输出字符数
+     */
+    private static int resolveMaxOutputChars(ShellToolConfig config) {
+        Integer configured = config.getMaxOutputChars();
+        if (configured == null) {
+            return MAX_OUTPUT_CHARS_LIMIT;
+        }
+        return Math.max(MIN_OUTPUT_CHARS_LIMIT, Math.min(MAX_OUTPUT_CHARS_LIMIT, configured));
     }
 
     /**
