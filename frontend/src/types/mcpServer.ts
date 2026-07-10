@@ -32,6 +32,8 @@ export interface ConfigFieldDescriptor {
  * 内置工具配置描述 Schema（对应后端 ConfigSchema）
  */
 export interface ConfigSchema {
+    /** 关联的工具名（@Tool name），MCP 内唯一 */
+    toolName: string
     title: string
     description: string
     fields: ConfigFieldDescriptor[]
@@ -62,8 +64,6 @@ export interface McpServer {
     tools: McpToolItem[]
     /** 来源配置 JSON（仅 BUILT_IN 类型有值） */
     sourceConfig?: string
-    /** 配置描述 Schema（仅 BUILT_IN 类型有值） */
-    configSchema?: ConfigSchema
 }
 
 /**
@@ -80,6 +80,8 @@ export interface McpToolItem {
     enabledStatus: 0 | 1 | 2
     builtIn: boolean
     sortOrder: number
+    /** 配置描述 Schema（仅 BUILT_IN 类型有值） */
+    configSchema?: ConfigSchema
 }
 
 /**

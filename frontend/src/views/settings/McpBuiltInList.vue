@@ -57,7 +57,7 @@
           </div>
         </div>
 
-        <!-- 展开详情：工具列表 + 配置面板 -->
+        <!-- 展开详情：工具列表 + 各工具配置面板 -->
         <div v-if="expandedId === server.id" class="mcp-builtin-detail">
           <div v-if="server.url" class="detail-row">
             <span class="detail-label">端点</span>
@@ -86,70 +86,70 @@
                   <span class="toggle-track"></span>
                 </label>
               </div>
-            </div>
-          </div>
 
-          <!-- 配置面板（仅支持配置的内置工具） -->
-          <div v-if="server.configSchema?.fields?.length" class="config-section">
-            <div class="config-title">{{ server.configSchema.title }}</div>
-            <div class="config-desc">{{ server.configSchema.description }}</div>
+              <!-- 该工具的配置面板（仅支持配置的内置工具） -->
+              <div v-if="tool.configSchema?.fields?.length" class="config-section">
+                <div class="config-title">{{ tool.configSchema.title }}</div>
+                <div class="config-desc">{{ tool.configSchema.description }}</div>
 
-            <div
-                v-for="field in server.configSchema.fields"
-                :key="field.name"
-                class="config-field"
-                v-show="!field.dependsOn || getConfigValueByName(server, field.dependsOn) === field.dependsOnValue"
-            >
-              <label class="config-field-label">{{ field.label }}</label>
-              <span class="config-field-hint">{{ field.description }}</span>
+                <div
+                    v-for="field in tool.configSchema.fields"
+                    :key="field.name"
+                    class="config-field"
+                    v-show="!field.dependsOn || getFieldValue(server, tool.name, field.dependsOn) === field.dependsOnValue"
+                >
+                  <label class="config-field-label">{{ field.label }}</label>
+                  <span class="config-field-hint">{{ field.description }}</span>
 
-              <!-- select 类型 -->
-              <n-select
-                  v-if="field.type === 'select'"
-                  :value="getConfigValue(server, field)"
-                  :options="field.options"
-                  class="config-input"
-                  @update:value="(val: string) => { setConfigValue(server, field, val); saveConfig(server) }"
-              />
+                  <!-- select 类型 -->
+                  <n-select
+                      v-if="field.type === 'select'"
+                      :value="getFieldValue(server, tool.name, field.name)"
+                      :options="field.options"
+                      class="config-input"
+                      @update:value="(val: string) => { setFieldValue(server, tool.name, field.name, val); saveConfig(server, tool.name) }"
+                  />
 
-              <!-- textarea 类型（黑/白名单用逗号或换行分隔） -->
-              <n-input
-                  v-else-if="field.type === 'textarea'"
-                  :value="getConfigValue(server, field)"
-                  type="textarea"
-                  :rows="5"
-                  class="config-input"
-                  @update:value="(val: string) => setConfigValue(server, field, val)"
-                  @blur="saveConfig(server)"
-              />
+                  <!-- textarea 类型 -->
+                  <n-input
+                      v-else-if="field.type === 'textarea'"
+                      :value="getFieldValue(server, tool.name, field.name)"
+                      type="textarea"
+                      :rows="5"
+                      class="config-input"
+                      @update:value="(val: string) => setFieldValue(server, tool.name, field.name, val)"
+                      @blur="saveConfig(server, tool.name)"
+                  />
 
-              <!-- string 类型 -->
-              <n-input
-                  v-else-if="field.type === 'string'"
-                  :value="getConfigValue(server, field)"
-                  :placeholder="field.placeholder"
-                  class="config-input"
-                  @update:value="(val: string) => setConfigValue(server, field, val)"
-                  @blur="saveConfig(server)"
-              />
+                  <!-- string 类型 -->
+                  <n-input
+                      v-else-if="field.type === 'string'"
+                      :value="getFieldValue(server, tool.name, field.name)"
+                      :placeholder="field.placeholder"
+                      class="config-input"
+                      @update:value="(val: string) => setFieldValue(server, tool.name, field.name, val)"
+                      @blur="saveConfig(server, tool.name)"
+                  />
 
-              <!-- number 类型 -->
-              <n-input-number
-                  v-else-if="field.type === 'number'"
-                  :value="Number(getConfigValue(server, field))"
-                  :min="field.min"
-                  :max="field.max"
-                  class="config-input-number"
-                  @update:value="(val: number | null) => setConfigValue(server, field, val)"
-                  @blur="saveConfig(server)"
-              />
+                  <!-- number 类型 -->
+                  <n-input-number
+                      v-else-if="field.type === 'number'"
+                      :value="Number(getFieldValue(server, tool.name, field.name))"
+                      :min="field.min"
+                      :max="field.max"
+                      class="config-input-number"
+                      @update:value="(val: number | null) => setFieldValue(server, tool.name, field.name, val)"
+                      @blur="saveConfig(server, tool.name)"
+                  />
 
-              <!-- boolean 类型 -->
-              <n-switch
-                  v-else-if="field.type === 'boolean'"
-                  :value="getConfigValue(server, field) === true || getConfigValue(server, field) === 'true'"
-                  @update:value="(val: boolean) => { setConfigValue(server, field, val); saveConfig(server) }"
-              />
+                  <!-- boolean 类型 -->
+                  <n-switch
+                      v-else-if="field.type === 'boolean'"
+                      :value="getFieldValue(server, tool.name, field.name) === true || getFieldValue(server, tool.name, field.name) === 'true'"
+                      @update:value="(val: boolean) => { setFieldValue(server, tool.name, field.name, val); saveConfig(server, tool.name) }"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -167,7 +167,7 @@
 import {computed, reactive, ref} from 'vue'
 import {NInput, NInputNumber, NSelect, NSwitch} from 'naive-ui'
 import {ChevronDown, HardDrive} from '@lucide/vue'
-import type {ConfigFieldDescriptor, McpServer, McpToolItem} from '@/types/mcpServer'
+import type {McpServer, McpToolItem} from '@/types/mcpServer'
 import {updateMcpServer} from '@/api/mcpServer'
 import {renderMd} from '@/utils/markdown'
 import {showToast} from '@/composables/useToast'
@@ -185,10 +185,10 @@ const emit = defineEmits<{
 const expandedId = ref<number | null>(null)
 
 /**
- * 本地配置缓存：serverId → { fieldName: value }
+ * 本地配置缓存：serverId → toolName → { fieldName: value }
  * 用于在不触发父组件重渲染的情况下缓存编辑中的配置值
  */
-const configCache = reactive<Record<number, Record<string, any>>>({})
+const configCache = reactive<Record<number, Record<string, Record<string, any>>>>({})
 
 const builtInServers = computed(() =>
     props.servers.filter(s => s.sourceType === 'BUILT_IN')
@@ -216,81 +216,95 @@ function handleToggle(server: McpServer) {
   emit('toggle', server)
 }
 
-// ===== 配置管理 =====
+// ===== 配置管理（按 tool name 隔离） =====
 
 /**
- * 解析当前 sourceConfig 与默认值合并，返回完整配置对象。
- * 用于确保未保存的字段使用默认值。
+ * 获取指定工具在 source_config 中的配置段（合并默认值）。
  */
-function getConfigObj(server: McpServer): Record<string, any> {
+function getToolConfigObj(server: McpServer, toolName: string): Record<string, any> {
   // 先从本地缓存读取
-  if (configCache[server.id]) {
-    return configCache[server.id]
+  if (configCache[server.id]?.[toolName]) {
+    return configCache[server.id][toolName]
   }
+
   // 从服务器返回的 sourceConfig 解析
   const config: Record<string, any> = {}
   if (server.sourceConfig && server.sourceConfig !== '{}') {
     try {
       const parsed = JSON.parse(server.sourceConfig)
-      Object.assign(config, parsed)
+      // 取该工具的配置段（新格式），若没有则当旧格式扁平处理
+      const toolConfig = parsed[toolName]
+      if (toolConfig && typeof toolConfig === 'object') {
+        Object.assign(config, toolConfig)
+      } else {
+        // 旧格式兼容：整个 sourceConfig 就是该工具的配置
+        Object.assign(config, parsed)
+      }
     } catch { /* ignore */ }
   }
+
   // 合并默认值
-  if (server.configSchema?.fields) {
-    for (const field of server.configSchema.fields) {
+  const tool = server.tools.find(t => t.name === toolName)
+  if (tool?.configSchema?.fields) {
+    for (const field of tool.configSchema.fields) {
       if (!(field.name in config) && field.defaultValue !== undefined) {
         config[field.name] = field.defaultValue
       }
     }
   }
-  configCache[server.id] = config
+
+  if (!configCache[server.id]) {
+    configCache[server.id] = {}
+  }
+  configCache[server.id][toolName] = config
   return config
 }
 
 /**
  * 根据字段名获取当前值（用于条件可见性判断）
  */
-function getConfigValueByName(server: McpServer, fieldName: string): any {
-  const config = getConfigObj(server)
+function getFieldValue(server: McpServer, toolName: string, fieldName: string): any {
+  const config = getToolConfigObj(server, toolName)
   const val = config[fieldName]
   if (val !== undefined) return val
   // 找不到则从 schema 默认值查找
-  const field = server.configSchema?.fields?.find(f => f.name === fieldName)
+  const tool = server.tools.find(t => t.name === toolName)
+  const field = tool?.configSchema?.fields?.find(f => f.name === fieldName)
   return field?.defaultValue
-}
-
-/**
- * 获取单个字段的当前值
- */
-function getConfigValue(server: McpServer, field: ConfigFieldDescriptor): any {
-  const config = getConfigObj(server)
-  const val = config[field.name]
-  if (val !== undefined) return val
-  return field.defaultValue
 }
 
 /**
  * 设置单个字段的值
  */
-function setConfigValue(server: McpServer, field: ConfigFieldDescriptor, value: any) {
-  const config = getConfigObj(server)
-  config[field.name] = value
-  configCache[server.id] = config
+function setFieldValue(server: McpServer, toolName: string, fieldName: string, value: any) {
+  const config = getToolConfigObj(server, toolName)
+  config[fieldName] = value
+  if (!configCache[server.id]) {
+    configCache[server.id] = {}
+  }
+  configCache[server.id][toolName] = config
 }
 
 /**
- * 保存当前配置到后端
+ * 保存指定工具的配置到后端（按 tool name namespace 合并写入）
  */
-async function saveConfig(server: McpServer) {
-  const config = configCache[server.id]
-  if (!config) return
+async function saveConfig(server: McpServer, toolName: string) {
+  const toolConfig = configCache[server.id]?.[toolName]
+  if (!toolConfig) return
+
+  // 读取当前完整 sourceConfig
+  let full: Record<string, any> = {}
+  if (server.sourceConfig && server.sourceConfig !== '{}') {
+    try { full = JSON.parse(server.sourceConfig) } catch { /* ignore */ }
+  }
+  // 仅更新该工具的配置段
+  full[toolName] = toolConfig
 
   try {
-    const sourceConfig = JSON.stringify(config)
     await updateMcpServer(server.id, {
       name: server.name,
       sourceType: 'BUILT_IN',
-      sourceConfig,
+      sourceConfig: JSON.stringify(full),
       transportType: 'BUILT_IN',
     })
     showToast('配置已保存', 'success')

@@ -28,6 +28,8 @@ import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatModel;
 import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import cc.wlizhi.eddie.common.dao.ChatModelProviderDao;
 import cc.wlizhi.eddie.common.dto.ApiResult;
+import cc.wlizhi.eddie.common.dto.ConfigFieldDescriptor;
+import cc.wlizhi.eddie.common.dto.ConfigSchema;
 import cc.wlizhi.eddie.common.dto.ShellToolConfig;
 import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
@@ -80,6 +82,9 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(AgentTaskPlan.class, members);
         reflection.registerType(ApiResult.class, members);
         reflection.registerType(ShellToolConfig.class, members);
+        reflection.registerType(ConfigSchema.class, members);
+        reflection.registerType(ConfigFieldDescriptor.class, members);
+        reflection.registerType(cc.wlizhi.eddie.settings.entity.response.McpToolItemVO.class, members);
         reflection.registerType(AgentTaskStep.class, members);
         reflection.registerType(AgentMsgStepEntity.class, members);
         // ==================== OpenAI SDK 内部类（Jackson 反序列化需要） ====================

@@ -5,6 +5,7 @@
 
 package cc.wlizhi.eddie.settings.entity.response;
 
+import cc.wlizhi.eddie.common.dto.ConfigSchema;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -59,4 +60,11 @@ public class McpToolItemVO {
      * 排序序号
      */
     private Integer sortOrder;
+
+    /**
+     * 配置描述 Schema（仅 BUILT_IN 类型有值）。
+     * 描述该工具支持哪些配置字段、类型、默认值。
+     * 前端根据此 Schema 动态渲染配置表单，用户保存的值写入 MCP Server 的 {@code source_config}。
+     */
+    private ConfigSchema configSchema;
 }

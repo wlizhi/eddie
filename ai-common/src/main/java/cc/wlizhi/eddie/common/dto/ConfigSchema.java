@@ -27,6 +27,9 @@ import java.util.List;
 @AllArgsConstructor
 public class ConfigSchema {
 
+    /** 关联的工具名（@Tool name），MCP 内唯一 */
+    private String toolName;
+
     /** 配置面板标题 */
     private String title;
 
@@ -38,7 +41,7 @@ public class ConfigSchema {
 
     /** 返回一个空的 schema（表示该工具不支持配置） */
     public static ConfigSchema empty() {
-        return new ConfigSchema("", "", Collections.emptyList());
+        return new ConfigSchema("", "", "", Collections.emptyList());
     }
 
     /** 该工具是否支持配置 */

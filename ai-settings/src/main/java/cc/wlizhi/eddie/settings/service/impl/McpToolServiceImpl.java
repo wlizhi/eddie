@@ -325,7 +325,7 @@ public class McpToolServiceImpl implements McpToolService {
             throw new NotFoundException("MCP 服务不存在: " + mcpServerId);
         }
         List<ToolDefinitionEntity> tools = ownerToolBindingContext.getToolsByMcpServerId(mcpServerId);
-        return tools.stream().map(this::toMcpToolItemVO).collect(Collectors.toList());
+        return tools.stream().map(t -> toMcpToolItemVO(t, mcp.getName())).collect(Collectors.toList());
     }
 
     @Override
@@ -359,8 +359,9 @@ public class McpToolServiceImpl implements McpToolService {
         ownerToolBindingContext.refresh();
 
         // 6. 组装返回
+        String serverName = server.getName();
         List<McpToolItemVO> toolVOs = syncedTools.stream()
-                .map(this::toMcpToolItemVO)
+                .map(t -> toMcpToolItemVO(t, serverName))
                 .collect(Collectors.toList());
         return McpConnectResult.success(
                 "同步成功，共 " + toolVOs.size() + " 个工具", toolVOs);
@@ -535,8 +536,9 @@ public class McpToolServiceImpl implements McpToolService {
         ownerToolBindingContext.refresh();
 
         // 4. 组装返回
+        String serverName = server.getName();
         List<McpToolItemVO> toolVOs = syncedTools.stream()
-                .map(this::toMcpToolItemVO)
+                .map(t -> toMcpToolItemVO(t, serverName))
                 .collect(Collectors.toList());
         return McpConnectResult.success(
                 "连接成功，已同步 " + toolVOs.size() + " 个工具", toolVOs);
@@ -678,10 +680,8 @@ public class McpToolServiceImpl implements McpToolService {
         if (Objects.equals(sourceType, McpSourceType.BUILT_IN.name())) {
             vo.setConnectionStatus(McpClientHolder.ConnectionState.CONNECTED.name());
 
-            // BUILT_IN 类型：填充 sourceConfig 和 configSchema
+            // BUILT_IN 类型：填充 sourceConfig
             vo.setSourceConfig(entity.getSourceConfig());
-            ConfigSchema schema = findConfigSchema(entity.getName());
-            vo.setConfigSchema(schema);
         } else if (entity.getEnabled() == 1) {
             vo.setConnectionStatus(mcpClientRegistry.getConnectionState(entity.getId()).name());
         } else {
@@ -689,7 +689,10 @@ public class McpToolServiceImpl implements McpToolService {
         }
 
         if (tools != null) {
-            vo.setTools(tools.stream().map(this::toMcpToolItemVO).collect(Collectors.toList()));
+            List<McpToolItemVO> toolVOs = tools.stream()
+                    .map(t -> toMcpToolItemVO(t, entity.getName()))
+                    .collect(Collectors.toList());
+            vo.setTools(toolVOs);
         } else {
             vo.setTools(List.of());
         }
@@ -698,8 +701,11 @@ public class McpToolServiceImpl implements McpToolService {
 
     /**
      * ToolDefinitionEntity → McpToolItemVO
+     *
+     * @param entity         工具定义实体
+     * @param mcpServerName  所属 MCP Server 名称（用于查找 configSchema）
      */
-    private McpToolItemVO toMcpToolItemVO(ToolDefinitionEntity entity) {
+    private McpToolItemVO toMcpToolItemVO(ToolDefinitionEntity entity, String mcpServerName) {
         if (entity == null) return null;
         McpToolItemVO vo = new McpToolItemVO();
         vo.setId(entity.getId());
@@ -711,20 +717,27 @@ public class McpToolServiceImpl implements McpToolService {
         vo.setEnabledStatus(entity.getEnabled());
         vo.setBuiltIn(entity.getBuiltIn() == 1);
         vo.setSortOrder(entity.getSortOrder());
+        // 内置工具：查找并填充 configSchema
+        if (entity.getBuiltIn() == 1) {
+            vo.setConfigSchema(findToolSchema(mcpServerName, entity.getName()));
+        }
         return vo;
     }
 
     /**
-     * 根据 MCP Server 名称查找对应内置工具的 Config Schema。
-     * 遍历所有 {@link BuiltInToolProvider}，匹配 serverName 返回其配置描述。
+     * 根据 MCP Server 名称和工具名称查找对应内置工具的 Config Schema。
+     * 遍历所有 {@link BuiltInToolProvider}，匹配 serverName 和 schema.toolName。
      */
-    private ConfigSchema findConfigSchema(String serverName) {
-        if (serverName == null || toolProviders == null) {
+    private ConfigSchema findToolSchema(String serverName, String toolName) {
+        if (serverName == null || toolName == null || toolProviders == null) {
             return ConfigSchema.empty();
         }
         for (BuiltInToolProvider provider : toolProviders) {
             if (serverName.equals(provider.getMcpServerName())) {
-                return provider.getConfigSchema();
+                ConfigSchema schema = provider.getConfigSchema();
+                if (schema != null && toolName.equals(schema.getToolName()) && schema.isConfigurable()) {
+                    return schema;
+                }
             }
         }
         return ConfigSchema.empty();

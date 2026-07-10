@@ -8,12 +8,13 @@ package cc.wlizhi.eddie.tools.tool;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.dto.ConfigFieldDescriptor;
 import cc.wlizhi.eddie.common.dto.ConfigSchema;
-import cc.wlizhi.eddie.common.enums.McpSourceType;
-import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.common.dto.ShellToolConfig;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
+import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -67,7 +68,7 @@ public class ShellTools implements BuiltInToolProvider {
         whitelistField.setDependsOn("mode");
         whitelistField.setDependsOnValue("CUSTOM");
 
-        return new ConfigSchema("Shell 权限设置", "控制 AI 在本地执行 shell 命令的权限范围",
+        return new ConfigSchema("built_in_shell_exec", "Shell 权限设置", "控制 AI 在本地执行 shell 命令的权限范围",
                 List.of(
                         new ConfigFieldDescriptor(
                                 "mode", "select", "权限模式",
@@ -90,6 +91,9 @@ public class ShellTools implements BuiltInToolProvider {
                         whitelistField
                 ));
     }
+
+    /** 此工具的 @Tool name，用于在 source_config 中按 namespace 读取配置 */
+    private static final String MY_TOOL_NAME = "built_in_shell_exec";
 
     private static final Logger log = LoggerFactory.getLogger(ShellTools.class);
 
@@ -208,8 +212,11 @@ public class ShellTools implements BuiltInToolProvider {
     }
 
     /**
-     * 从 MCP Server 的 source_config 中加载 Shell 权限配置。
-     * 如果未配置或配置无效，返回默认配置（SMART 模式）。
+     * 从 MCP Server 的 source_config 中加载 Shell 权限配置。<p>
+     * 新格式：{ "built_in_shell_exec": { "mode": "SMART", ... } }<br>
+     * 旧格式兼容：{ "mode": "SMART", ... }（扁平结构）
+     *
+     * @return 解析后的配置，解析失败返回默认配置（SMART 模式）
      */
     private ShellToolConfig loadConfig() {
         McpServerEntity server = ownerToolBindingContext.getBuiltInMcpServerByName(getMcpServerName());
@@ -221,7 +228,14 @@ public class ShellTools implements BuiltInToolProvider {
             return new ShellToolConfig();
         }
         try {
-            return objectMapper.readValue(sourceConfig, ShellToolConfig.class);
+            JsonNode root = objectMapper.readTree(sourceConfig);
+            JsonNode myConfig = root.get(MY_TOOL_NAME);
+            if (myConfig != null && !myConfig.isNull() && !myConfig.isEmpty()) {
+                // 新格式：按 tool name 命名空间读取
+                return objectMapper.treeToValue(myConfig, ShellToolConfig.class);
+            }
+            // 兼容旧格式：整个 sourceConfig 就是该工具的配置
+            return objectMapper.treeToValue(root, ShellToolConfig.class);
         } catch (Exception e) {
             log.warn("[ShellTools] 解析 sourceConfig 失败，使用默认配置: {}", e.getMessage());
             return new ShellToolConfig();
@@ -240,7 +254,7 @@ public class ShellTools implements BuiltInToolProvider {
         if (configured == null) {
             return MAX_OUTPUT_CHARS_LIMIT;
         }
-        return Math.max(MIN_OUTPUT_CHARS_LIMIT, Math.min(MAX_OUTPUT_CHARS_LIMIT, configured));
+        return Math.clamp(configured, MIN_OUTPUT_CHARS_LIMIT, MAX_OUTPUT_CHARS_LIMIT);
     }
 
     /**

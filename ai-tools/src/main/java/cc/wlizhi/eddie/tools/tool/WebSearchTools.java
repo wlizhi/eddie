@@ -53,7 +53,7 @@ public class WebSearchTools implements BuiltInToolProvider {
     private static final String BING_URL = "https://cn.bing.com/search";
 
     private static final int PROBE_TIMEOUT_MS = 3_000;
-    private static final int DDG_TIMEOUT_MS = 5_000;
+    private static final int DDG_TIMEOUT_MS = 8_000;
     private static final int BING_TIMEOUT_MS = 8_000;
     private static final int DEFAULT_MAX_RESULTS = 8;
     private static final int PROBE_INTERVAL_MINUTES = 1;
@@ -99,11 +99,18 @@ public class WebSearchTools implements BuiltInToolProvider {
             description = "搜索互联网并返回网页标题、URL 和摘要。适合查找最新信息、技术文档、新闻等。如需阅读全文可再用 fetch_markdown 工具")
     public ApiResult<String> search(
             @ToolParam(description = "搜索关键词") String query,
-            @ToolParam(required = false, description = "可选参数，返回结果数量（1-20），默认值 1") Integer maxResults) {
+            @ToolParam(required = false, description = "可选参数，返回结果数量（1-20），默认值 1") Integer maxResults,
+            @ToolParam(required = false, description = "可选参数，搜索引擎（DUCKDUCKGO / BING），默认 DUCKDUCKGO") String engine) {
 
         int limit = resolveMaxResults(maxResults);
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
 
+        // 用户指定了搜索引擎
+        if (engine != null && !engine.isBlank()) {
+            return searchWithEngine(encodedQuery, query, limit, engine);
+        }
+
+        // 不传 engine → 走现有自动逻辑
         try {
             if (currentBackend == SearchBackend.DUCKDUCKGO) {
                 return searchDdg(encodedQuery, query, limit);
@@ -134,6 +141,58 @@ public class WebSearchTools implements BuiltInToolProvider {
                         "搜索失败，请检查网络连接。\n提示：你可以在设置中添加 SearXNG 等 MCP 搜索服务器。");
             }
         }
+    }
+
+    // ==================== 指定引擎搜索 ====================
+
+    /**
+     * 使用用户指定的搜索引擎搜索，失败时自动降级到另一个引擎。
+     */
+    private ApiResult<String> searchWithEngine(String encodedQuery, String rawQuery, int limit, String engine) {
+        SearchBackend preferred = parseEngine(engine);
+        if (preferred == null) {
+            return ApiResult.error(ApiResultCode.BAD_REQUEST,
+                    "不支持的搜索引擎：" + engine + "，可选值：DUCKDUCKGO / BING");
+        }
+
+        // 尝试首选引擎
+        try {
+            if (preferred == SearchBackend.DUCKDUCKGO) {
+                return searchDdg(encodedQuery, rawQuery, limit);
+            }
+            return searchBing(encodedQuery, rawQuery, limit);
+        } catch (Exception e) {
+            log.warn("[搜索] 指定引擎 {} 搜索失败: {}", preferred, e.getMessage());
+        }
+
+        // 降级到另一个引擎
+        SearchBackend fallback = (preferred == SearchBackend.DUCKDUCKGO)
+                ? SearchBackend.BING : SearchBackend.DUCKDUCKGO;
+
+        try {
+            ApiResult<String> fallbackResult;
+            if (fallback == SearchBackend.DUCKDUCKGO) {
+                fallbackResult = searchDdg(encodedQuery, rawQuery, limit);
+            } else {
+                fallbackResult = searchBing(encodedQuery, rawQuery, limit);
+            }
+
+            String tip = "⚠️ 你指定的 " + preferred + " 暂时不可用，已自动降级到 " + fallback + " 搜索。\n\n";
+            return ApiResult.success(tip + fallbackResult.getData());
+        } catch (Exception ex) {
+            log.error("[搜索] 指定引擎 {} 降级 {} 后仍然失败", preferred, fallback, ex);
+            return ApiResult.error(ApiResultCode.INTERNAL_ERROR,
+                    "你指定的 " + preferred + " 暂时不可用，降级到 " + fallback + " 后也搜索失败，请稍后再试。");
+        }
+    }
+
+    private static SearchBackend parseEngine(String engine) {
+        if (engine == null || engine.isBlank()) return null;
+        return switch (engine.strip().toUpperCase()) {
+            case "DUCKDUCKGO", "DDG" -> SearchBackend.DUCKDUCKGO;
+            case "BING" -> SearchBackend.BING;
+            default -> null;
+        };
     }
 
     // ==================== DuckDuckGo Lite 搜索 ====================
