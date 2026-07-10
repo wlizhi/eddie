@@ -7,10 +7,7 @@ package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
 import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
-import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
-import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
-import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
-import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
+import cc.wlizhi.eddie.agent.entity.dto.*;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
@@ -113,6 +110,18 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
 
         // 2. 更新占位记录的实际内容（步骤级别，使用独立累加器）
         updateStepRecord(ctx);
+
+        // 3. 更新迭代状态到消息表
+        AgentIteratorState iteratorState = ctx.getIteratorState();
+        if (iteratorState != null && ctx.getAgentMsg() != null && ctx.getAgentMsg().getId() != null) {
+            try {
+                String iteratorStateJson = ctx.getObjectMapper().writeValueAsString(iteratorState);
+                agentMsgDao.updateIteratorState(ctx.getAgentMsg().getId(), iteratorStateJson);
+                log.info("迭代状态更新完成, msgId={}, iteratorState={}", ctx.getAgentMsg().getId(), iteratorStateJson);
+            } catch (Exception e) {
+                log.warn("迭代状态序列化或持久化失败, msgId={}: {}", ctx.getAgentMsg().getId(), e.getMessage());
+            }
+        }
     }
 
     /**

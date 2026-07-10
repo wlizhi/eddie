@@ -63,7 +63,7 @@ public class AgentMsgPreProcessor implements AgentChatPreProcessor {
         AgentMsgEntity agentMsg = new AgentMsgEntity();
 
         agentTransactionTemplate.executeWithoutResult(status -> {
-            // ① 用户消息
+            // ① 用户消息（round_seq=0，插入后回填为自己的 ID）
             userMsg.setSessionId(session.getId());
             userMsg.setAgentId(agent.getId());
             userMsg.setRole("user");
@@ -71,13 +71,14 @@ public class AgentMsgPreProcessor implements AgentChatPreProcessor {
             userMsg.setMsgStatus("COMPLETED");
             userMsg.setModelCode(ctx.getUseModelInfo().getId());
             userMsg.setModelName(ctx.getUseModelInfo().getName());
+            userMsg.setRoundSeq(0L);
 
             log.info("保存用户消息, sessionId={}, agentId={}, content={}",
                     session.getId(), agent.getId(), truncate(request.getMessage()));
             agentMsgDao.insert(userMsg);
             userMsg.setId(agentMsgDao.findLastInsertId());
 
-            // ② AI 占位消息
+            // ② AI 占位消息（round_seq=0，流结束后统一回填 user+assistant）
             agentMsg.setSessionId(session.getId());
             agentMsg.setAgentId(agent.getId());
             agentMsg.setRole("assistant");
@@ -90,6 +91,7 @@ public class AgentMsgPreProcessor implements AgentChatPreProcessor {
                 agentMsg.setModelName(ctx.getUseModelInfo().getName());
             }
             agentMsg.setMsgStatus("PROCESSING");
+            agentMsg.setRoundSeq(0L);
 
             log.info("创建 AI 回复占位消息, sessionId={}, agentId={}, msgStatus=PROCESSING",
                     session.getId(), agent.getId());

@@ -257,7 +257,7 @@ public class ChatServiceImpl implements ChatService {
             Long assistantId = ctx.getSession().getAssistantId();
             ChatRequest request = ctx.getOriginalRequest();
 
-            // user 消息
+            // user 消息（round_seq=0，插入后回填为自己的 ID）
             MessageEntity userMsg = new MessageEntity();
             userMsg.setSessionId(sessionId);
             userMsg.setAssistantId(assistantId);
@@ -273,13 +273,14 @@ public class ChatServiceImpl implements ChatService {
             userMsg.setPriceEstimate(0.0);
             userMsg.setToolCalls("[]");
             userMsg.setMsgStatus("COMPLETED");
+            userMsg.setRoundSeq(0L);
             messageDao.insert(userMsg);
 
-            // 获取用户消息 ID（用于停止事件关联）
+            // 获取用户消息 ID（用于停止事件关联 + 流结束后回填 round_seq）
             Long userMsgId = messageDao.findLastInsertId();
             ctx.setUserMessageId(userMsgId);
 
-            // 占位 assistant 消息（status=STREAMING，流结束后更新）
+            // 占位 assistant 消息（round_seq=0，status=STREAMING，流结束后更新）
             MessageEntity assistantMsg = new MessageEntity();
             assistantMsg.setSessionId(sessionId);
             assistantMsg.setAssistantId(assistantId);
@@ -296,6 +297,7 @@ public class ChatServiceImpl implements ChatService {
             assistantMsg.setToolCalls("[]");
             assistantMsg.setMsgStatus("STREAMING");
             assistantMsg.setDurationMs(0);
+            assistantMsg.setRoundSeq(0L);
             messageDao.insert(assistantMsg);
 
             // 获取占位消息 ID（用于后续 UPDATE）

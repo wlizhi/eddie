@@ -6,10 +6,12 @@
 package cc.wlizhi.eddie.app.aot;
 
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
+import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentMcpServerBinding;
 import cc.wlizhi.eddie.agent.entity.request.AgentToolBinding;
+import cc.wlizhi.eddie.agent.entity.dto.AgentIteratorState;
 import cc.wlizhi.eddie.agent.entity.dto.AgentModelInfo;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
@@ -93,6 +95,8 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(cc.wlizhi.eddie.settings.entity.response.McpToolItemVO.class, members);
         reflection.registerType(AgentTaskStep.class, members);
         reflection.registerType(AgentMsgStepEntity.class, members);
+        reflection.registerType(AgentMsgEntity.class, members);
+        reflection.registerType(AgentIteratorState.class, members);
         // ==================== OpenAI SDK 内部类（Jackson 反序列化需要） ====================
         reflection.registerType(
                 com.openai.models.completions.CompletionUsage.CompletionTokensDetails.class,

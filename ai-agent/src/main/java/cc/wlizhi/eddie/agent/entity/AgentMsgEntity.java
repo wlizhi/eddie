@@ -38,5 +38,7 @@ public class AgentMsgEntity {
     private String currency;
     private Integer durationMs;
     private String msgStatus;
+    private Long roundSeq;
+    private String iteratorState;
     private Long createdAt;
 }

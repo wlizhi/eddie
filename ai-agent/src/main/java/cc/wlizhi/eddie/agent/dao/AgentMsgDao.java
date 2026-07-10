@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,8 +30,8 @@ public class AgentMsgDao {
                         "(session_id, agent_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
-                        "currency, duration_ms, msg_status, created_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "currency, duration_ms, msg_status, round_seq, created_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 entity.getSessionId(), entity.getAgentId(), entity.getRole(),
                 entity.getProviderId(), entity.getModelCode(), entity.getModelName(),
                 entity.getThinking() != null ? entity.getThinking() : "", entity.getContent(),
@@ -44,6 +45,7 @@ public class AgentMsgDao {
                 entity.getCurrency() != null ? entity.getCurrency() : "",
                 entity.getDurationMs() != null ? entity.getDurationMs() : 0,
                 entity.getMsgStatus() != null ? entity.getMsgStatus() : "COMPLETED",
+                entity.getRoundSeq() != null ? entity.getRoundSeq() : 0,
                 now);
     }
 
@@ -109,10 +111,52 @@ public class AgentMsgDao {
      * 流式处理结束后调用，写入累积的 thinking/content/toolCalls，
      * 并将 msgStatus 从 PROCESSING 改为 COMPLETED。
      */
-    public void updateContentAndStatus(Long id, String content, String thinking, String toolCalls, String msgStatus) {
+    public void updateContentAndStatus(Long id, String content, String thinking, String toolCalls, String msgStatus, Long roundSeq) {
         jdbcTemplate.update(
-                "UPDATE ai_agent_session_msg SET content = ?, thinking = ?, tool_calls = ?, msg_status = ? WHERE id = ?",
-                content, thinking, toolCalls, msgStatus, id);
+                "UPDATE ai_agent_session_msg SET content = ?, thinking = ?, tool_calls = ?, msg_status = ?, round_seq = ? WHERE id = ?",
+                content, thinking, toolCalls, msgStatus, roundSeq, id);
+    }
+
+    /**
+     * 更新消息的 iterator_state（迭代状态快照 JSON）
+     */
+    public void updateIteratorState(Long id, String iteratorState) {
+        jdbcTemplate.update(
+                "UPDATE ai_agent_session_msg SET iterator_state = ? WHERE id = ?",
+                iteratorState, id);
+    }
+
+    /**
+     * 更新消息的 round_seq（回填对话轮次标识）
+     */
+    public void updateRoundSeq(Long id, Long roundSeq) {
+        jdbcTemplate.update(
+                "UPDATE ai_agent_session_msg SET round_seq = ? WHERE id = ?",
+                roundSeq, id);
+    }
+
+    /**
+     * 游标分页查询已完成的会话消息（round_seq > 0，跳过占位消息），倒序
+     */
+    public List<AgentMsgEntity> findBySessionIdCompleted(Long sessionId, Long beforeId, int limit) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT id, session_id, agent_id, role, provider_id, model_code, model_name, " +
+                        "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
+                        "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
+                        "currency, duration_ms, msg_status, round_seq, created_at FROM ai_agent_session_msg " +
+                        "WHERE session_id = ? AND round_seq > 0");
+        List<Object> params = new ArrayList<>();
+        params.add(sessionId);
+
+        if (beforeId != null) {
+            sql.append(" AND id < ?");
+            params.add(beforeId);
+        }
+
+        sql.append(" ORDER BY id DESC LIMIT ?");
+        params.add(limit);
+
+        return jdbcTemplate.query(sql.toString(), rowMapper, params.toArray());
     }
 
     /**
@@ -164,6 +208,7 @@ public class AgentMsgDao {
         e.setCurrency(rs.getString("currency"));
         e.setDurationMs(rs.getInt("duration_ms"));
         e.setMsgStatus(rs.getString("msg_status"));
+        e.setRoundSeq(rs.getLong("round_seq"));
         e.setCreatedAt(rs.getLong("created_at"));
         return e;
     };

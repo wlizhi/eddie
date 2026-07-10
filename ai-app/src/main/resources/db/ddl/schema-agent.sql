@@ -84,11 +84,13 @@ CREATE TABLE IF NOT EXISTS ai_agent_session_msg
     currency                   TEXT    NOT NULL DEFAULT '',
     duration_ms                INTEGER NOT NULL DEFAULT 0,
     msg_status     TEXT    NOT NULL DEFAULT 'COMPLETED',             -- COMPLETED（完成）/ PROCESSING（AI 处理中）/ INTERRUPTED（用户中断）/ FAILED（异常终止）
+    round_seq      INTEGER NOT NULL DEFAULT 0,                       -- 对话轮次标识（同一轮 user+assistant 共用 user.id，占位阶段为 0）
     iterator_state TEXT,                                             -- 迭代状态快照 JSON（闲聊时 null，任务规划时包含 agentMode/currentIterator/maxIterations）
     task_plan      TEXT,                                             -- 任务规划 JSON（闲聊时 null，任务规划时包含 title/summary/steps[...]）
     created_at     INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_agent_msg_session ON ai_agent_session_msg (session_id, id);
+CREATE INDEX IF NOT EXISTS idx_agent_msg_session_round ON ai_agent_session_msg (session_id, round_seq);
 
 -- 消息分段明细表：记录 Agent 单次执行中每一步的完整内容
 CREATE TABLE IF NOT EXISTS ai_agent_session_msg_step

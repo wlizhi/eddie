@@ -111,6 +111,11 @@ public class MessageEntity {
     private String msgStatus;
 
     /**
+     * 对话轮次标识：同一轮 user+assistant 共用 user 的 id，占位阶段为 0
+     */
+    private Long roundSeq;
+
+    /**
      * 消息时间（毫秒时间戳）
      */
     private Long createdAt;

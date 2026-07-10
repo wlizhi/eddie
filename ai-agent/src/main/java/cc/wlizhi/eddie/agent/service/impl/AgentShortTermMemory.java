@@ -60,13 +60,13 @@ public class AgentShortTermMemory extends AbstractWindowedMemory {
     @NonNull
     protected List<Message> loadHistory(String conversationId, int maxRounds) {
         Long sessionId = Long.parseLong(conversationId);
-        // 取最近 maxRounds 轮（每轮 = user + assistant 两条消息）
+        // 只查 round_seq > 0 的消息（跳过 round_seq=0 的占位消息），取最新 maxRounds*2 条
         int limit = maxRounds * 2;
-        List<AgentMsgEntity> messages = agentMsgDao.findBySessionId(sessionId, null, limit);
+        List<AgentMsgEntity> messages = agentMsgDao.findBySessionIdCompleted(sessionId, null, limit);
         if (messages.isEmpty()) {
             return List.of();
         }
-        // findBySessionId 返回倒序（最新在前），翻转成正序
+        // findBySessionIdCompleted 返回倒序（最新在前），翻转成正序
         Collections.reverse(messages);
         List<Message> result = new ArrayList<>(messages.size());
         for (AgentMsgEntity msg : messages) {

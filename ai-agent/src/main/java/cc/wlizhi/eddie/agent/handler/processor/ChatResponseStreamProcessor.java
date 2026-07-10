@@ -9,12 +9,14 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AbstractMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Objects;
@@ -30,6 +32,9 @@ import java.util.stream.Collectors;
 public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(ChatResponseStreamProcessor.class);
+
+    @Resource(name = "agentTransactionTemplate")
+    private TransactionTemplate agentTransactionTemplate;
 
     @Override
     public boolean support(AgentMode agentMode) {
@@ -73,25 +78,40 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
         String thinking = ctx.getFullThinking().toString();
 
         // 序列化工具调用记录（与 ai-chat 模块的 ToolExecutionEvent 格式一致）
-        String toolCallsJson = "[]";
+        String toolCallsJson = serializeToolCalls(ctx);
         List<ToolExecutionEvent> toolCalls = ctx.getToolCalls();
-        if (toolCalls != null && !toolCalls.isEmpty()) {
-            try {
-                toolCallsJson = ctx.getObjectMapper().writeValueAsString(toolCalls);
-            } catch (JsonProcessingException e) {
-                log.warn("序列化工具调用记录失败", e);
-            }
-        }
 
         if (content.isEmpty() && thinking.isEmpty() && "[]".equals(toolCallsJson)) {
             log.debug("累积内容为空，仅更新状态为 COMPLETED, agentMsgId={}", agentMsgId);
         }
 
-        agentMsgDao.updateContentAndStatus(
-                agentMsgId, content, thinking,
-                toolCallsJson, "COMPLETED");
+        // 回填 round_seq：user 和 assistant 共用 user.id 作为轮次标识（事务保证原子性）
+        Long userMsgId = ctx.getUserMsg().getId();
+        agentTransactionTemplate.executeWithoutResult(status -> {
+            agentMsgDao.updateContentAndStatus(
+                    agentMsgId, content, thinking,
+                    toolCallsJson, "COMPLETED", userMsgId);
+            // user 消息同样回填 round_seq
+            agentMsgDao.updateRoundSeq(userMsgId, userMsgId);
+        });
 
-        log.info("AI 回复内容持久化完成, agentMsgId={}, contentLen={}, thinkingLen={}, toolCallsSize={}",
-                agentMsgId, content.length(), thinking.length(), toolCalls.size());
+        log.info("AI 回复内容持久化完成, agentMsgId={}, contentLen={}, thinkingLen={}, toolCallsSize={}, roundSeq={}",
+                agentMsgId, content.length(), thinking.length(), toolCalls == null ? 0 : toolCalls.size(), userMsgId);
+    }
+
+    /**
+     * 序列化工具调用记录为 JSON 字符串
+     */
+    private String serializeToolCalls(AgentChatContext ctx) {
+        List<ToolExecutionEvent> toolCalls = ctx.getToolCalls();
+        if (toolCalls == null || toolCalls.isEmpty()) {
+            return "[]";
+        }
+        try {
+            return ctx.getObjectMapper().writeValueAsString(toolCalls);
+        } catch (JsonProcessingException e) {
+            log.warn("序列化工具调用记录失败", e);
+            return "[]";
+        }
     }
 }

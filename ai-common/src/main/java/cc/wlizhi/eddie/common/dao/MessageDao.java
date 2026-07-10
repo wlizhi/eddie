@@ -33,8 +33,8 @@ public class MessageDao {
                         "model_code, model_name, thinking, content, prompt_tokens, completion_tokens, " +
                         "total_tokens, price_estimate, tool_calls, " +
                         "cache_read_input_tokens, cache_written_input_tokens, currency, duration_ms, " +
-                        "msg_status, created_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "msg_status, round_seq, created_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 entity.getSessionId(),
                 entity.getAssistantId(),
                 entity.getRole(),
@@ -53,6 +53,7 @@ public class MessageDao {
                 entity.getCurrency() != null ? entity.getCurrency() : "",
                 entity.getDurationMs() != null ? entity.getDurationMs() : 0,
                 entity.getMsgStatus() != null ? entity.getMsgStatus() : "COMPLETED",
+                entity.getRoundSeq() != null ? entity.getRoundSeq() : 0,
                 now);
     }
 
@@ -68,7 +69,7 @@ public class MessageDao {
                 "SELECT id, session_id, assistant_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
-                        "currency, duration_ms, msg_status, created_at FROM ai_session_msg WHERE session_id = ?");
+                        "currency, duration_ms, msg_status, round_seq, created_at FROM ai_session_msg WHERE session_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(sessionId);
 
@@ -95,7 +96,7 @@ public class MessageDao {
                 "SELECT id, session_id, assistant_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
-                        "currency, duration_ms, msg_status, created_at FROM ai_session_msg WHERE session_id = ? " +
+                        "currency, duration_ms, msg_status, round_seq, created_at FROM ai_session_msg WHERE session_id = ? " +
                         "ORDER BY id ASC LIMIT ?",
                 messageRowMapper, sessionId, limit);
     }
@@ -151,18 +152,51 @@ public class MessageDao {
                                    int promptTokens, int completionTokens, int totalTokens,
                                    int cacheReadInputTokens, int cacheWriteInputTokens,
                                    String currency, double priceEstimate, int durationMs,
-                                   String msgStatus) {
+                                   String msgStatus, Long roundSeq) {
         jdbcTemplate.update(
                 "UPDATE ai_session_msg SET content = ?, thinking = ?, tool_calls = ?, " +
                         "prompt_tokens = ?, completion_tokens = ?, total_tokens = ?, " +
                         "cache_read_input_tokens = ?, cache_written_input_tokens = ?, " +
                         "currency = ?, price_estimate = ?, duration_ms = ?, " +
-                        "msg_status = ? WHERE id = ?",
+                        "msg_status = ?, round_seq = ? WHERE id = ?",
                 content, thinking, toolCalls,
                 promptTokens, completionTokens, totalTokens,
                 cacheReadInputTokens, cacheWriteInputTokens,
                 currency, priceEstimate, durationMs,
-                msgStatus, id);
+                msgStatus, roundSeq, id);
+    }
+
+    /**
+     * 更新消息的 round_seq（回填对话轮次标识）
+     */
+    public void updateRoundSeq(Long id, Long roundSeq) {
+        jdbcTemplate.update(
+                "UPDATE ai_session_msg SET round_seq = ? WHERE id = ?",
+                roundSeq, id);
+    }
+
+    /**
+     * 游标分页查询已完成的会话消息（round_seq > 0，跳过占位消息），倒序
+     */
+    public List<MessageEntity> findBySessionIdCompleted(Long sessionId, Long beforeId, int limit) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT id, session_id, assistant_id, role, provider_id, model_code, model_name, " +
+                        "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
+                        "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
+                        "currency, duration_ms, msg_status, round_seq, created_at FROM ai_session_msg " +
+                        "WHERE session_id = ? AND round_seq > 0");
+        List<Object> params = new ArrayList<>();
+        params.add(sessionId);
+
+        if (beforeId != null) {
+            sql.append(" AND id < ?");
+            params.add(beforeId);
+        }
+
+        sql.append(" ORDER BY id DESC LIMIT ?");
+        params.add(limit);
+
+        return jdbcTemplate.query(sql.toString(), messageRowMapper, params.toArray());
     }
 
     /**
@@ -201,6 +235,7 @@ public class MessageDao {
         entity.setCurrency(rs.getString("currency"));
         entity.setDurationMs(rs.getInt("duration_ms"));
         entity.setMsgStatus(rs.getString("msg_status"));
+        entity.setRoundSeq(rs.getLong("round_seq"));
         entity.setCreatedAt(rs.getLong("created_at"));
         return entity;
     };
