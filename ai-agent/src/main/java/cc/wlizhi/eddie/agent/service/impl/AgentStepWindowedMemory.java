@@ -129,8 +129,17 @@ public class AgentStepWindowedMemory extends AbstractWindowedMemory {
 
             StringBuilder sb = new StringBuilder("工具调用结果：\n\n");
             for (ToolExecutionEvent event : events) {
+                String toolName = event.getToolName();
+                String arguments = event.getArguments();
                 String result = event.getResult();
+
+                sb.append("工具名称：").append(toolName != null ? toolName : "未知").append("\n");
+                if (arguments != null && !arguments.isEmpty()) {
+                    sb.append("调用参数：\n").append(arguments).append("\n");
+                }
+
                 if (result == null || result.isEmpty()) {
+                    sb.append("结果：无返回\n\n");
                     continue;
                 }
 
@@ -140,15 +149,15 @@ public class AgentStepWindowedMemory extends AbstractWindowedMemory {
                     JsonNode resultNode = objectMapper.readTree(result);
                     JsonNode dataNode = resultNode.get("data");
                     if (dataNode != null && dataNode.isTextual()) {
-                        sb.append(dataNode.asText()).append("\n\n");
+                        sb.append("结果：\n").append(dataNode.asText()).append("\n\n");
                     } else if (dataNode != null) {
-                        sb.append(dataNode.toPrettyString()).append("\n\n");
+                        sb.append("结果：\n").append(dataNode.toPrettyString()).append("\n\n");
                     } else {
-                        sb.append(resultNode.asText()).append("\n\n");
+                        sb.append("结果：\n").append(resultNode.asText()).append("\n\n");
                     }
                 } catch (Exception e) {
                     // result 不是 JSON，直接作为纯文本
-                    sb.append(result).append("\n\n");
+                    sb.append("结果：").append(result).append("\n\n");
                 }
             }
             return sb.toString().trim();
