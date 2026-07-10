@@ -79,6 +79,8 @@ export function useAssistantForm(
     const systemPromptRef = ref<HTMLTextAreaElement | null>(null)
 
     // ========== Watchers ==========
+    const pendingBindings = ref<McpServerBinding[] | null>(null)
+
     watch(() => props.assistantId, async (id) => {
         if (id === null) {
             if (!props.createVisible) {
@@ -89,10 +91,16 @@ export function useAssistantForm(
         if (chatStore.modelSelectors.length === 0) {
             await chatStore.loadModels()
         }
+        // 先并行获取助手详情和 MCP 服务列表
         await Promise.all([
             loadDetail(id),
             loadMcpServerList(),
         ])
+        // 两个请求都完成后，MCP 服务列表已就绪，再合并绑定状态
+        if (pendingBindings.value) {
+            applyMcpBindings(pendingBindings.value)
+            pendingBindings.value = null
+        }
         show.value = true
     })
 
@@ -168,36 +176,49 @@ export function useAssistantForm(
             formPreferences.mcpToolMode = prefs.mcpToolMode ?? 'auto'
             pendingAvatarFile.value = null
 
-            // 合并 MCP 工具级绑定状态到 mcpServerList
-            // 未在绑定中的工具默认 status=0（禁用），确保禁用状态也能正确回显
-            if (d.mcpServerBindings?.length) {
-                for (const binding of d.mcpServerBindings) {
-                    const mcp = mcpServerList.value.find(m => m.id === binding.mcpServerId)
-                    if (!mcp || !mcp.tools) continue
-                    for (const tb of binding.tools) {
-                        const tool = mcp.tools.find(t => t.id === tb.toolId)
-                        if (tool) {
-                            tool.enabledStatus = tb.status as 0 | 1 | 2
-                            tool.enabled = tb.status !== 0
-                        }
-                    }
-                }
-            }
-            // 未被任何绑定覆盖的工具默认设为禁用（0）
-            for (const mcp of mcpServerList.value) {
-                if (!mcp.tools) continue
-                const binding = (d.mcpServerBindings ?? []).find(b => b.mcpServerId === mcp.id)
-                for (const tool of mcp.tools) {
-                    if (!binding?.tools.some(tb => tb.toolId === tool.id)) {
-                        tool.enabledStatus = 0
-                        tool.enabled = false
-                    }
-                }
-            }
+            // 保存 MCP 绑定待处理（等 MCP 服务列表加载完成后合并）
+            pendingBindings.value = d.mcpServerBindings ?? null
         } catch (err) {
             showToast('加载助手详情失败', 'error')
             console.error(err)
             setTimeout(() => close(), 1500)
+        }
+    }
+
+    /** 将助手的 MCP 绑定状态合并到已加载的 mcpServerList 中 */
+    function applyMcpBindings(bindings: McpServerBinding[]) {
+        if (!bindings.length) {
+            // 无任何绑定时，所有工具默认禁用
+            for (const mcp of mcpServerList.value) {
+                if (!mcp.tools) continue
+                for (const tool of mcp.tools) {
+                    tool.enabledStatus = 0
+                    tool.enabled = false
+                }
+            }
+            return
+        }
+        for (const binding of bindings) {
+            const mcp = mcpServerList.value.find(m => m.id === binding.mcpServerId)
+            if (!mcp || !mcp.tools) continue
+            for (const tb of binding.tools) {
+                const tool = mcp.tools.find(t => t.id === tb.toolId)
+                if (tool) {
+                    tool.enabledStatus = tb.status as 0 | 1 | 2
+                    tool.enabled = tb.status !== 0
+                }
+            }
+        }
+        // 未被任何绑定覆盖的工具默认设为禁用（0）
+        for (const mcp of mcpServerList.value) {
+            if (!mcp.tools) continue
+            const binding = bindings.find(b => b.mcpServerId === mcp.id)
+            for (const tool of mcp.tools) {
+                if (!binding?.tools.some(tb => tb.toolId === tool.id)) {
+                    tool.enabledStatus = 0
+                    tool.enabled = false
+                }
+            }
         }
     }
 

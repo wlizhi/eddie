@@ -169,13 +169,28 @@ export const naiveThemeOverrides = computed(() => {
 
         // ===== Button 按钮 =====
         Button: {
-            color: accentDefault,
-            colorHover: accentHover,
-            colorPressed: accentHover,
-            textColor: textInverse,
-            textColorHover: textInverse,
-            border: `1px solid ${accentDefault}`,
-            borderHover: `1px solid ${accentHover}`,
+            // ===== primary 类型（保存按钮等）=====
+            colorPrimary: accentDefault,
+            colorHoverPrimary: accentHover,
+            colorPressedPrimary: accentHover,
+            textColorPrimary: textInverse,
+            textColorHoverPrimary: textInverse,
+            textColorPressedPrimary: textInverse,
+            borderPrimary: `1px solid ${accentDefault}`,
+            borderHoverPrimary: `1px solid ${accentHover}`,
+            borderPressedPrimary: `1px solid ${accentHover}`,
+
+            // ===== default 类型（取消按钮等）=====
+            color: bgPrimary,
+            colorHover: bgHover,
+            colorPressed: bgHover,
+            textColor: textPrimary,
+            textColorHover: accentDefault,
+            textColorPressed: textPrimary,
+            border: `1px solid ${borderDefault}`,
+            borderHover: `1px solid ${borderDefault}`,
+            borderPressed: `1px solid ${borderDefault}`,
+
             borderRadius: '8px',
             fontSizeTiny: fontSizeSmall,
             fontSizeSmall: fontSizeBase,

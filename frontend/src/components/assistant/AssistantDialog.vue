@@ -314,7 +314,7 @@ function handleSaveWithValidation() {
           删除
         </NButton>
         <div class="footer-right">
-          <NButton quaternary @click="close">取消</NButton>
+          <NButton @click="close">取消</NButton>
           <NButton type="primary" :loading="saving" @click="handleSaveWithValidation">
             {{ saving ? '保存中...' : '保存' }}
           </NButton>
