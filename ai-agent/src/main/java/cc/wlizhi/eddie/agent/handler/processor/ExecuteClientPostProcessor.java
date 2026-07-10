@@ -11,16 +11,17 @@ import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
-import cc.wlizhi.eddie.agent.handler.AgentApprovalInterceptor;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentPromptsResolver;
-import cc.wlizhi.eddie.agent.handler.AgentToolCallbackWrapper;
+import cc.wlizhi.eddie.agent.handler.UnifiedAgentToolInterceptor;
 import cc.wlizhi.eddie.agent.service.impl.AgentStepWindowedMemory;
 import cc.wlizhi.eddie.agent.tool.StepFinishTool;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
+import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
+import cc.wlizhi.eddie.common.tool.ToolBehavior;
 import cc.wlizhi.eddie.common.enums.RoleType;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
@@ -106,23 +107,12 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
                 , ctx.getOriginalRequest().getToolSelectionMode()
                 , ctx.getOriginalRequest().getToolNames());
 
-        // 2. 对 PENDING_APPROVAL 的工具包装 ApprovalInterceptor
-        //    getBoundTools() 返回的 ToolDefinitionEntity.enabled 已反映 owner 级别绑定状态
+        // 2. 一步包装：用 UnifiedAgentToolInterceptor 包装所有工具回调
         List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools(
                 RoleType.AGENT.name(), ctx.getAgent().getId());
         Map<String, ToolDefinitionEntity> toolDefMap = boundTools.stream()
-                .filter(t -> t.getEnabled() != null && t.getEnabled() == 2)
-                .collect(Collectors.toMap(
-                        ToolDefinitionEntity::getName, t -> t, (a, b) -> a));
-        if (configurableTools != null) {
-            for (int i = 0; i < configurableTools.length; i++) {
-                String name = configurableTools[i].getToolDefinition().name();
-                ToolDefinitionEntity def = toolDefMap.get(name);
-                if (def != null) {
-                    configurableTools[i] = new AgentApprovalInterceptor(configurableTools[i], ctx);
-                }
-            }
-        }
+                .collect(Collectors.toMap(ToolDefinitionEntity::getName, t -> t, (a, b) -> a));
+        Map<String, List<ToolBehavior>> behaviorMap = toolCallbackResolver.getBehaviorMap();
 
         // 3. 收集所有工具（用户可配 + StepFinishTool 内置工具）
         List<ToolCallback> allTools = new ArrayList<>();
@@ -138,7 +128,16 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
         builder.defaultAdvisors(memoryAdvisor);
         if (!allTools.isEmpty()) {
             Object[] wrappers = allTools.stream()
-                    .map(t -> new AgentToolCallbackWrapper(t, ctx)).toArray();
+                    .map(t -> {
+                        String name = t.getToolDefinition().name();
+                        ToolDefinitionEntity def = toolDefMap.get(name);
+                        List<ToolBehavior> behaviors = behaviorMap.getOrDefault(name, List.of());
+                        McpServerEntity mcpServer = def != null && def.getMcpServerId() != null
+                                ? ownerToolBindingContext.getMcpServer(def.getMcpServerId())
+                                : null;
+                        return new UnifiedAgentToolInterceptor(t, def, behaviors, mcpServer, ctx);
+                    })
+                    .toArray();
             builder.defaultTools(wrappers);
         }
 

@@ -8,6 +8,7 @@ package cc.wlizhi.eddie.tools.service;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.enums.ToolType;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
+import cc.wlizhi.eddie.common.tool.ToolBehavior;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -164,6 +165,26 @@ public class ToolCallbackResolver {
      * 延迟初始化，首次调用时遍历所有 {@link BuiltInToolProvider} Bean，
      * 通过 Spring AI 的 {@code ToolCallbacks.from()} 提取 {@link ToolCallback}。
      */
+    /**
+     * 获取工具名称 → 行为列表的映射。<p>
+     * 用于 {@link cc.wlizhi.eddie.chat.handler.impl.UnifiedChatToolInterceptor} 在运行时
+     * 根据工具名称查询其声明的行为。
+     *
+     * @return 不可修改的工具名 → 行为列表映射
+     */
+    public Map<String, List<ToolBehavior>> getBehaviorMap() {
+        Map<String, List<ToolBehavior>> map = new HashMap<>();
+        for (BuiltInToolProvider provider : toolProviders) {
+            org.springframework.ai.tool.ToolCallback[] callbacks =
+                    org.springframework.ai.support.ToolCallbacks.from(provider);
+            List<ToolBehavior> behaviors = provider.getBehaviors();
+            for (ToolCallback callback : callbacks) {
+                map.put(callback.getToolDefinition().name(), behaviors);
+            }
+        }
+        return Collections.unmodifiableMap(map);
+    }
+
     private Map<String, ToolCallback> getBuiltInCallbackMap() {
         Map<String, ToolCallback> map = this.builtInCallbackMap;
         if (map != null) return map;

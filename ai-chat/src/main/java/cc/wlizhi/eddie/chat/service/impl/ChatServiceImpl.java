@@ -11,10 +11,11 @@ import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.chat.handler.ChatPostProcessor;
 import cc.wlizhi.eddie.chat.handler.ChatPreProcessor;
-import cc.wlizhi.eddie.chat.handler.impl.ChatApprovalInterceptor;
 import cc.wlizhi.eddie.chat.handler.impl.ChatSseTransformer;
 import cc.wlizhi.eddie.chat.handler.impl.ChatStreamExecutor;
-import cc.wlizhi.eddie.chat.handler.impl.ToolCallbackWrapper;
+import cc.wlizhi.eddie.chat.handler.impl.UnifiedChatToolInterceptor;
+import cc.wlizhi.eddie.common.entity.McpServerEntity;
+import cc.wlizhi.eddie.common.tool.ToolBehavior;
 import cc.wlizhi.eddie.chat.service.ChatClientFactory;
 import cc.wlizhi.eddie.chat.service.ChatClientFactoryRouter;
 import cc.wlizhi.eddie.chat.service.ChatService;
@@ -190,33 +191,32 @@ public class ChatServiceImpl implements ChatService {
         // 6.2 创建工具执行事件 Sinks（旁路通道，零 token 消耗）
         Sinks.Many<ToolExecutionEvent> toolEventSink = Sinks.many().unicast().onBackpressureBuffer();
 
-        // 6.2.5 对 PENDING_APPROVAL 的工具包装 ChatApprovalInterceptor
-        //       从缓存中获取工具定义，通过 name 匹配 ToolCallback
+        // 6.2.5 一步完成：用 UnifiedChatToolInterceptor 包装所有工具回调
+        //       内置三层审批决策（助手级 enabled → 行为匹配 → 用户配置），无 instanceof 判断
         List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools(
                 RoleType.ASSISTANT.name(), ctx.getAssistant().getId());
-        Map<String, ToolDefinitionEntity> pendingApprovalTools = boundTools.stream()
-                .filter(t -> t.getEnabled() != null && t.getEnabled() == 2)
-                .collect(Collectors.toMap(
-                        ToolDefinitionEntity::getName, t -> t, (a, b) -> a));
-        if (toolCallbacks.length > 0 && !pendingApprovalTools.isEmpty()) {
-            for (int i = 0; i < toolCallbacks.length; i++) {
-                String name = toolCallbacks[i].getToolDefinition().name();
-                if (pendingApprovalTools.containsKey(name)) {
-                    toolCallbacks[i] = new ChatApprovalInterceptor(
-                            toolCallbacks[i], chatEventRegistry,
-                            ctx.getPlaceholderMsgId(), ctx.getUserMessageId(),
-                            toolEventSink);
-                }
-            }
-        }
-        Flux<ToolExecutionEvent> toolEventFlux = toolEventSink.asFlux();
+        Map<String, ToolDefinitionEntity> toolDefMap = boundTools.stream()
+                .collect(Collectors.toMap(ToolDefinitionEntity::getName, t -> t, (a, b) -> a));
+        Map<String, List<ToolBehavior>> behaviorMap = toolCallbackResolver.getBehaviorMap();
 
         if (toolCallbacks.length > 0) {
             ToolCallback[] wrappedCallbacks = Arrays.stream(toolCallbacks)
-                    .map(tc -> new ToolCallbackWrapper(tc, toolEventSink, ctx.getToolCallSequence()))
+                    .map(tc -> {
+                        String name = tc.getToolDefinition().name();
+                        ToolDefinitionEntity def = toolDefMap.get(name);
+                        List<ToolBehavior> behaviors = behaviorMap.getOrDefault(name, List.of());
+                        McpServerEntity mcpServer = def != null && def.getMcpServerId() != null
+                                ? ownerToolBindingContext.getMcpServer(def.getMcpServerId())
+                                : null;
+                        return new UnifiedChatToolInterceptor(
+                                tc, def, behaviors, mcpServer,
+                                chatEventRegistry, ctx.getPlaceholderMsgId(),
+                                toolEventSink, ctx.getToolCallSequence());
+                    })
                     .toArray(ToolCallback[]::new);
             builder.defaultTools((Object[]) wrappedCallbacks);
         }
+        Flux<ToolExecutionEvent> toolEventFlux = toolEventSink.asFlux();
 
         chatClient = builder.build();
         ctx.setChatClient(chatClient);

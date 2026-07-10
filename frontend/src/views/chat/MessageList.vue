@@ -94,14 +94,14 @@ const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 2.2))
 const userScrolledAway = ref(false)
 
 /** 审批工具调用 */
-async function handleApprove(tool: { toolName: string; msgId?: number; seq?: number }, approved: boolean): Promise<void> {
+async function handleApprove(tool: { msgId?: number; seq?: number }, approved: boolean): Promise<void> {
     const msgId = tool.msgId
     if (msgId == null) {
         showToast('缺少消息 ID，无法审批', 'error')
         return
     }
     try {
-        await approveTool(msgId, tool.toolName, approved, tool.seq)
+        await approveTool(msgId, approved, tool.seq)
         showToast(approved ? '已批准' : '已拒绝', 'success')
     } catch (err) {
         showToast(`审批失败: ${(err as Error).message}`, 'error')
@@ -172,8 +172,8 @@ function toggleThinking(msgId: string) {
 }
 
 /** 切换工具执行结果折叠状态 */
-function toggleToolResult(toolIndex: number) {
-  const key = String(toolIndex)
+function toggleToolResult(toolIndex: string) {
+  const key = toolIndex
   toolResultExpanded.value[key] = !toolResultExpanded.value[key]
 }
 

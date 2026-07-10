@@ -1,12 +1,13 @@
 package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
-import cc.wlizhi.eddie.agent.handler.AgentApprovalInterceptor;
 import cc.wlizhi.eddie.agent.handler.AgentClientPostProcessor;
 import cc.wlizhi.eddie.agent.handler.AgentEventPublisher;
 import cc.wlizhi.eddie.agent.handler.AgentPromptsResolver;
-import cc.wlizhi.eddie.agent.handler.AgentToolCallbackWrapper;
+import cc.wlizhi.eddie.agent.handler.UnifiedAgentToolInterceptor;
 import cc.wlizhi.eddie.agent.service.impl.AgentShortTermMemory;
+import cc.wlizhi.eddie.common.entity.McpServerEntity;
+import cc.wlizhi.eddie.common.tool.ToolBehavior;
 import cc.wlizhi.eddie.agent.tool.SwitchModeTool;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
@@ -61,23 +62,13 @@ public class ChatClientPostProcessor implements AgentClientPostProcessor {
                 , ctx.getOriginalRequest().getToolSelectionMode()
                 , ctx.getOriginalRequest().getToolNames());
 
-        // 2. 对 PENDING_APPROVAL 的工具包装 ApprovalInterceptor
-        //    getBoundTools() 返回的 ToolDefinitionEntity.enabled 已反映 owner 级别绑定状态
+        // 2. 一步包装：用 UnifiedAgentToolInterceptor 包装所有工具回调
+        //    内置三层审批决策（助手级 enabled → 行为匹配 → 用户配置），无 instanceof 判断
         List<ToolDefinitionEntity> boundTools = ownerToolBindingContext.getBoundTools(
                 RoleType.AGENT.name(), ctx.getAgent().getId());
         Map<String, ToolDefinitionEntity> toolDefMap = boundTools.stream()
-                .filter(t -> t.getEnabled() != null && t.getEnabled() == 2)
-                .collect(Collectors.toMap(
-                        ToolDefinitionEntity::getName, t -> t, (a, b) -> a));
-        if (configurableTools != null) {
-            for (int i = 0; i < configurableTools.length; i++) {
-                String name = configurableTools[i].getToolDefinition().name();
-                ToolDefinitionEntity def = toolDefMap.get(name);
-                if (def != null) {
-                    configurableTools[i] = new AgentApprovalInterceptor(configurableTools[i],ctx);
-                }
-            }
-        }
+                .collect(Collectors.toMap(ToolDefinitionEntity::getName, t -> t, (a, b) -> a));
+        Map<String, List<ToolBehavior>> behaviorMap = toolCallbackResolver.getBehaviorMap();
 
         // 3. 收集所有工具（用户可配 + 智能体内置切换模式工具）
         List<ToolCallback> allTools = new ArrayList<>();
@@ -95,7 +86,16 @@ public class ChatClientPostProcessor implements AgentClientPostProcessor {
         }
         if (!allTools.isEmpty()) {
             Object[] wrappers = allTools.stream()
-                    .map(t -> new AgentToolCallbackWrapper(t, ctx)).toArray();
+                    .map(t -> {
+                        String name = t.getToolDefinition().name();
+                        ToolDefinitionEntity def = toolDefMap.get(name);
+                        List<ToolBehavior> behaviors = behaviorMap.getOrDefault(name, List.of());
+                        McpServerEntity mcpServer = def != null && def.getMcpServerId() != null
+                                ? ownerToolBindingContext.getMcpServer(def.getMcpServerId())
+                                : null;
+                        return new UnifiedAgentToolInterceptor(t, def, behaviors, mcpServer, ctx);
+                    })
+                    .toArray();
             builder.defaultTools(wrappers);
         }
 
