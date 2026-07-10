@@ -349,21 +349,6 @@ async function onModelsChanged() {
   }
 }
 
-/** 模型添加完成后刷新数据（关闭弹窗） */
-async function onModelsAdded() {
-  showFetchModal.value = false
-  // 刷新当前服务商数据
-  try {
-    providers.value = await listProviders()
-    if (activeProvider.value) {
-      const updated = providers.value.find(p => p.id === activeProvider.value!.id)
-      if (updated) selectProvider(updated)
-    }
-  } catch (e) {
-    console.error('刷新服务商列表失败', e)
-  }
-}
-
 /** 初始化加载 */
 onMounted(async () => {
   loading.value = true

@@ -92,7 +92,7 @@ export interface McpServerCreateRequest {
     description?: string
     sourceType?: McpSourceType
     sourceConfig?: string
-    transportType: 'STDIO' | 'SSE' | 'STREAMABLE_HTTP'
+    transportType: 'STDIO' | 'SSE' | 'STREAMABLE_HTTP' | 'BUILT_IN'
     command?: string
     args?: string
     env?: string

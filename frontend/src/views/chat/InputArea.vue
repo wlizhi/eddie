@@ -18,7 +18,7 @@ import InputAreaMobile from './InputAreaMobile.vue'
 
 const {isMobile} = useMobile()
 
-const props = defineProps<{
+defineProps<{
   modelValue: string
 }>()
 

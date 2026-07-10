@@ -13,7 +13,7 @@ import {NButton, NCheckbox, NCheckboxGroup, NModal, NSpace} from 'naive-ui'
 
 const chatStore = useChatStore()
 
-const props = defineProps<{ show: boolean }>()
+defineProps<{ show: boolean }>()
 const emit = defineEmits<{ 'update:show': [value: boolean] }>()
 
 const toolModeOptions = [

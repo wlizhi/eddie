@@ -46,7 +46,7 @@ onMounted(async () => {
       v-if="variables.length > 0"
       :expanded-names="expanded ? ['variables'] : []"
       :on-update:expanded-names="(v: Array<string>) => expanded = v.length > 0"
-      :theme-overrides="{ headerPadding: '6px 10px', contentPadding: '4px 10px 10px' }"
+      :theme-overrides="{ titlePadding: '6px 10px' }"
       class="pv-panel"
   >
     <NCollapseItem name="variables">

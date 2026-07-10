@@ -153,6 +153,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   added: []
+  changed: []
 }>()
 
 const loading = ref(false)

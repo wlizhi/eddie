@@ -12,7 +12,7 @@ import {NModal} from 'naive-ui'
 
 const chatStore = useChatStore()
 
-const props = defineProps<{ show: boolean }>()
+defineProps<{ show: boolean }>()
 const emit = defineEmits<{ 'update:show': [value: boolean] }>()
 
 const thinkingModeOptions = [

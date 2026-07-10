@@ -54,8 +54,7 @@ const {
   groupedModelOptions,
   selectedMainModelKey, selectedSubModelKey,
 
-  formMainProviderId, formMainModelId,
-  formSubProviderId, formSubModelId,
+  formSubProviderId,
   formSemaphore, formMaxIterations, formMaxExecutionTimeSec,
   formExecutionMode, formToolSelectionMode,
   formMemoryRounds,

@@ -92,9 +92,9 @@ const textColor = computed(() => '#ffffff')
   <div
       class="avatar"
       :style="{
-      width: size + 'px',
-      height: size + 'px',
-      fontSize: (size * 0.45) + 'px',
+      width: props.size + 'px',
+      height: props.size + 'px',
+      fontSize: (props.size * 0.45) + 'px',
       background: bgColor,
       color: textColor,
     }"

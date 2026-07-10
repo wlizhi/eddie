@@ -146,7 +146,7 @@ import {ChevronDown, Edit as EditIcon, Network, Trash2} from '@lucide/vue'
 import type {McpServer, McpToolItem} from '@/types/mcpServer'
 import {TRANSPORT_LABELS} from '@/types/mcpServer'
 
-const props = defineProps<{
+defineProps<{
   servers: McpServer[]
   loading: boolean
 }>()

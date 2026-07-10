@@ -45,7 +45,9 @@ import {computed, reactive, watch} from 'vue'
 import {NInputNumber, NSelect, NTooltip} from 'naive-ui'
 import type {ModelParamDef} from '@/constants/modelParams'
 import {MODEL_PARAM_DEFS} from '@/constants/modelParams'
+import {TIP_THEME_OVERRIDES} from '@/constants/theme'
 
+const tipTheme = TIP_THEME_OVERRIDES
 
 /**
  * 模型参数输入通用组件
@@ -99,8 +101,8 @@ function validateOne(def: ModelParamDef, value: any): string | null {
 }
 
 /** 获取输入框的状态 */
-function getFieldStatus(key: string): 'error' | 'default' {
-  return errorMessages[key] ? 'error' : 'default'
+function getFieldStatus(key: string): 'error' | undefined {
+  return errorMessages[key] ? 'error' : undefined
 }
 
 /** 数字输入值变化时同步并校验 */

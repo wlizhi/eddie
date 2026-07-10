@@ -92,7 +92,7 @@ function cp(e: MouseEvent) {
   return {x: (e.clientX - rc.left) * S / rc.width, y: (e.clientY - rc.top) * S / rc.height}
 }
 
-function hit(p: { x: number, y: number }): string | null {
+function hit(p: { x: number, y: number }): 'move' | 'n' | 's' | 'e' | 'w' | null {
   const cx = S / 2, cy = S / 2, d = Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2), hd = 14
   if (Math.abs(p.y - (cy - r)) < hd && Math.abs(p.x - cx) < hd) return 'n'
   if (Math.abs(p.y - (cy + r)) < hd && Math.abs(p.x - cx) < hd) return 's'
