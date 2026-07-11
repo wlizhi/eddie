@@ -118,8 +118,21 @@ function getToolStatusLabel(mcp: ToolSourceVO, toolName: string): string {
 
 /** 工具模式切换时，如果切到手动则弹出 MCP 选择器 */
 function onToolModeChange(val: string) {
+  const prevMode = chatStore.mcpToolMode
   chatStore.mcpToolMode = val as 'disabled' | 'auto' | 'manual'
   if (val === 'manual') {
+    // 首次从非手动模式切入手动模式时，预填充助手设置中已启用的工具
+    if (prevMode !== 'manual') {
+      const preSelected = new Set<string>()
+      for (const mcp of chatStore.boundMcpTools) {
+        for (const tool of mcp.tools) {
+          if (tool.enabledStatus != null ? tool.enabledStatus !== 0 : tool.enabled) {
+            preSelected.add(tool.name)
+          }
+        }
+      }
+      chatStore.selectedToolNames = [...preSelected]
+    }
     openMcpSelector()
   }
 }
