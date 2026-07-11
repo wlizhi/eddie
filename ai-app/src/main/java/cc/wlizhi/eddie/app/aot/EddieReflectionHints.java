@@ -40,7 +40,6 @@ import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
-import cc.wlizhi.eddie.common.entity.dto.FileResult;
 import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.entity.dto.ModelJsonItem;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
@@ -82,7 +81,6 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(AgentSessionEntity.class, members);
         reflection.registerType(AgentSessionVO.class, members);
         reflection.registerType(cc.wlizhi.eddie.agent.entity.response.AgentMessageVO.class, members);
-        reflection.registerType(FileResult.class, members);
         reflection.registerType(GeneralSettings.class, members);
         reflection.registerType(ModelJsonItem.class, members);
         reflection.registerType(AgentMode.class, members);
