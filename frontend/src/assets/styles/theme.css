@@ -116,6 +116,7 @@
     --hljs-addition: #4ec9b0;
 
     --scrollbar-thumb: #c0c4cc;
+    --scrollbar-thumb-hover: #a8adb3;
     --icon-muted: #d1d5db;
     --divider-light: #e0e2e6;
 
@@ -161,8 +162,35 @@
     --icon-size-xxl: 2rem; /* 32px */
 }
 
+/* ===== 全局自定义滚动条样式（非 scoped，确保所有浏览器生效） =====
+   标准属性 scrollbar-width / scrollbar-color → Firefox
+   ::-webkit-scrollbar 系列 → Chrome/Edge/Safari
+   放在全局 CSS 中避免 Vue scoped 属性选择器破坏伪元素匹配。 */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
 /* 主题切换过渡动画 — 仅在主题数据加载完成后生效，避免 FOUC
-    使用 [data-theme] 属性选择器约束，防止首次加载时触发过渡。
+     使用 [data-theme] 属性选择器约束，防止首次加载时触发过渡。
 
     ⚠ 性能说明：选择器范围已从通配符 * 缩小到实际使用主题变量的
     关键元素，避免 resize 期间全页样式重算。如需新增元素参与主题

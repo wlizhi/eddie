@@ -42,21 +42,7 @@
        让滚动条贴到卡片右边缘，不压内容 */
     margin: 0 -24px;
     padding: 4px 24px;
-    /* 细滚动条（Chrome/Safari） */
     scrollbar-width: thin;
-}
-
-.form::-webkit-scrollbar {
-    width: 5px;
-}
-
-.form::-webkit-scrollbar-thumb {
-    background-color: var(--scrollbar-thumb);
-    border-radius: 3px;
-}
-
-.form::-webkit-scrollbar-track {
-    background: transparent;
 }
 
 .field {

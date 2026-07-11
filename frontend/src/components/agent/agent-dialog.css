@@ -47,19 +47,6 @@
     scrollbar-width: thin;
 }
 
-.form::-webkit-scrollbar {
-    width: 5px;
-}
-
-.form::-webkit-scrollbar-thumb {
-    background-color: var(--scrollbar-thumb);
-    border-radius: 3px;
-}
-
-.form::-webkit-scrollbar-track {
-    background: transparent;
-}
-
 .field {
     display: flex;
     flex-direction: column;
