@@ -23,8 +23,12 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -179,26 +183,12 @@ public class ShellTools implements BuiltInToolProvider {
 
             int exitCode = process.exitValue();
 
-            // 读取输出
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (output.length() + line.length() + 1 > maxOutputChars) {
-                        output.append("\n...（输出已截断，超出 ").append(maxOutputChars).append(" 字符）");
-                        // 跳过剩余输入流
-                        process.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
-                        break;
-                    }
-                    if (!output.isEmpty()) {
-                        output.append("\n");
-                    }
-                    output.append(line);
-                }
+            // 读取输出（Windows 下自动检测编码，避免 cmd.exe 错误消息乱码）
+            String result;
+            try (InputStream in = process.getInputStream()) {
+                byte[] rawBytes = in.readAllBytes();
+                result = decodeOutput(rawBytes, isWindows, maxOutputChars);
             }
-
-            String result = output.toString();
 
             if (exitCode != 0) {
                 log.warn("[ShellTools] 命令退出码非零: exitCode={}, command={}", exitCode, command);
@@ -214,6 +204,47 @@ public class ShellTools implements BuiltInToolProvider {
             return ApiResult.error(ApiResultCode.INTERNAL_ERROR,
                     "命令执行失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 解码进程输出。<p>
+     * Windows 下先尝试 UTF-8 解码，失败时回退到系统默认编码（如 GBK/Shift_JIS），
+     * 避免 cmd.exe 内建错误消息因编码不匹配产生乱码。<br>
+     * 非 Windows 系统直接用 UTF-8 解码。
+     *
+     * @param rawBytes  原始字节
+     * @param isWindows 是否 Windows 系统
+     * @param maxChars  最大输出字符数
+     * @return 解码后的字符串（可能截断）
+     */
+    private static String decodeOutput(byte[] rawBytes, boolean isWindows, int maxChars) {
+        String decoded;
+        if (isWindows) {
+            CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT);
+            try {
+                decoded = decoder.decode(ByteBuffer.wrap(rawBytes)).toString();
+            } catch (CharacterCodingException e) {
+                // UTF-8 解码失败 → 回退到 Windows 系统原生编码
+                // native.encoding 是 JDK 19+ 标准属性，反映 OS 真实编码
+                // （中文=GBK, 日文=Shift_JIS），兼容 GraalVM AOT
+                String osEnc = System.getProperty("native.encoding");
+                if (osEnc == null) {
+                    osEnc = System.getProperty("sun.jnu.encoding");
+                }
+                Charset fallback = osEnc != null ? Charset.forName(osEnc) : StandardCharsets.UTF_8;
+                decoded = new String(rawBytes, fallback);
+            }
+        } else {
+            decoded = new String(rawBytes, StandardCharsets.UTF_8);
+        }
+
+        // 截断
+        if (decoded.length() > maxChars) {
+            return decoded.substring(0, maxChars) + "\n...（输出已截断，超出 " + maxChars + " 字符）";
+        }
+        return decoded;
     }
 
     /**

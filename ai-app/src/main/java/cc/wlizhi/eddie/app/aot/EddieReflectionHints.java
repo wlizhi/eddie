@@ -44,50 +44,58 @@ import org.springframework.aot.hint.RuntimeHintsRegistrar;
 public class EddieReflectionHints implements RuntimeHintsRegistrar {
     @Override
     public void registerHints(RuntimeHints hints, @Nullable ClassLoader classLoader) {
-        var members = new MemberCategory[]{
-                MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
-                MemberCategory.INVOKE_PUBLIC_METHODS
-        };
+        // ==================== 标准实体/DTO/工具类（INVOKE_PUBLIC_CONSTRUCTORS + INVOKE_PUBLIC_METHODS） ====================
+        registerType(hints,
+                GlobalConfigEntity.class,
+                ModelProviderEntity.class,
+                ChatModelProviderDao.EnabledProviderModel.class,
+                McpServerEntity.class,
+                ToolDefinitionEntity.class,
+                MetadataInfo.class,
+                ToolExecutionEvent.class,
+                ChatToolExecPayload.class,
+                ChatToolApprovalController.ChatToolApprovalRequest.class,
+                ToolExecutionStatus.class,
+                DeepseekChatClientFactory.class,
+                OpenAiChatClientFactory.class,
+                McpClientHolder.class,
+                McpToolCallback.class,
+                EddieOpenAiChatModel.class,
+                OwnerToolBindingContext.McpServerWithTools.class,
+                ModelParams.class,
+                AgentModelInfo.class,
+                AgentEntity.class,
+                AgentSessionEntity.class,
+                AgentSessionVO.class,
+                cc.wlizhi.eddie.agent.entity.response.AgentMessageVO.class,
+                GeneralSettings.class,
+                ModelJsonItem.class,
+                AgentMode.class,
+                TaskPlanStatus.class,
+                StepStatus.class,
+                AgentTaskPlan.class,
+                ApiResult.class,
+                ShellToolConfig.class,
+                NewlineStringToListDeserializer.class,
+                ConfigSchema.class,
+                ConfigFieldDescriptor.class,
+                cc.wlizhi.eddie.settings.entity.response.McpToolItemVO.class,
+                AgentTaskStep.class,
+                AgentMsgStepEntity.class,
+                AgentMsgEntity.class,
+                AgentIteratorState.class,
+                // ==================== SSE 事件 Payload ====================
+                ThinkingPayload.class,
+                AnswerPayload.class,
+                ToolExecutionPayload.class,
+                MessageCreatedPayload.class,
+                RoundPayload.class,
+                MetadataPayload.class,
+                CancelledPayload.class,
+                AgentTokenStatists.class
+        );
+        // ==================== OpenAI SDK 内部类（Jackson 反序列化需要，使用 INVOKE_DECLARED_METHODS） ====================
         ReflectionHints reflection = hints.reflection();
-        reflection.registerType(GlobalConfigEntity.class, members);
-        reflection.registerType(ModelProviderEntity.class, members);
-        reflection.registerType(ChatModelProviderDao.EnabledProviderModel.class, members);
-        reflection.registerType(McpServerEntity.class, members);
-        reflection.registerType(ToolDefinitionEntity.class, members);
-        reflection.registerType(MetadataInfo.class, members);
-        reflection.registerType(ToolExecutionEvent.class, members);
-        reflection.registerType(ChatToolExecPayload.class, members);
-        reflection.registerType(ChatToolApprovalController.ChatToolApprovalRequest.class, members);
-        reflection.registerType(ToolExecutionStatus.class, members);
-        reflection.registerType(DeepseekChatClientFactory.class, members);
-        reflection.registerType(OpenAiChatClientFactory.class, members);
-        reflection.registerType(McpClientHolder.class, members);
-        reflection.registerType(McpToolCallback.class, members);
-        reflection.registerType(EddieOpenAiChatModel.class, members);
-        reflection.registerType(OwnerToolBindingContext.McpServerWithTools.class, members);
-        reflection.registerType(ModelParams.class, members);
-        reflection.registerType(AgentModelInfo.class, members);
-        reflection.registerType(AgentEntity.class, members);
-        reflection.registerType(AgentSessionEntity.class, members);
-        reflection.registerType(AgentSessionVO.class, members);
-        reflection.registerType(cc.wlizhi.eddie.agent.entity.response.AgentMessageVO.class, members);
-        reflection.registerType(GeneralSettings.class, members);
-        reflection.registerType(ModelJsonItem.class, members);
-        reflection.registerType(AgentMode.class, members);
-        reflection.registerType(TaskPlanStatus.class, members);
-        reflection.registerType(StepStatus.class, members);
-        reflection.registerType(AgentTaskPlan.class, members);
-        reflection.registerType(ApiResult.class, members);
-        reflection.registerType(ShellToolConfig.class, members);
-        reflection.registerType(NewlineStringToListDeserializer.class, members);
-        reflection.registerType(ConfigSchema.class, members);
-        reflection.registerType(ConfigFieldDescriptor.class, members);
-        reflection.registerType(cc.wlizhi.eddie.settings.entity.response.McpToolItemVO.class, members);
-        reflection.registerType(AgentTaskStep.class, members);
-        reflection.registerType(AgentMsgStepEntity.class, members);
-        reflection.registerType(AgentMsgEntity.class, members);
-        reflection.registerType(AgentIteratorState.class, members);
-        // ==================== OpenAI SDK 内部类（Jackson 反序列化需要） ====================
         reflection.registerType(
                 com.openai.models.completions.CompletionUsage.CompletionTokensDetails.class,
                 MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
@@ -96,14 +104,16 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 com.openai.models.completions.CompletionUsage.PromptTokensDetails.class,
                 MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                 MemberCategory.INVOKE_DECLARED_METHODS);
-        // ==================== SSE 事件 Payload ====================
-        reflection.registerType(ThinkingPayload.class, members);
-        reflection.registerType(AnswerPayload.class, members);
-        reflection.registerType(ToolExecutionPayload.class, members);
-        reflection.registerType(MessageCreatedPayload.class, members);
-        reflection.registerType(RoundPayload.class, members);
-        reflection.registerType(MetadataPayload.class, members);
-        reflection.registerType(CancelledPayload.class, members);
-        reflection.registerType(AgentTokenStatists.class, members);
+    }
+
+    private void registerType(RuntimeHints hints, Class<?>... classArr) {
+        var members = new MemberCategory[]{
+                MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                MemberCategory.INVOKE_PUBLIC_METHODS
+        };
+        ReflectionHints reflection = hints.reflection();
+        for (Class<?> clazz : classArr) {
+            reflection.registerType(clazz, members);
+        }
     }
 }
