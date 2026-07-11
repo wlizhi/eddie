@@ -25,6 +25,7 @@ import {useAssistantStore} from '@/stores/assistant'
 import {Brain, ChevronDown, Copy, Eye, Loader, Pen, RefreshCw} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatShortTime} from '@/utils/format'
+import {formatToolResult} from '@/utils/tool-result'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
 import {displaySettings, getEffectiveFontSize} from '@/composables/useDisplaySettings'
 import {approveTool} from '@/api/chat'
@@ -45,10 +46,11 @@ function displayToolName(toolName: string): string {
       .replace(/\b\w/g, c => c.toUpperCase())
 }
 
-/** 构建工具调用内容的 Markdown：参数（JSON 代码块）+ 正文，中间隔空行 */
+/** 构建工具调用内容的 Markdown：参数 + 结果，带标签区分 */
 function buildToolContent(args: string | undefined, result: string | undefined): string {
   let content = ''
   if (args) {
+    content += '**→ 参数**\n\n'
     try {
       const parsed = JSON.parse(args)
       content += '```json\n' + JSON.stringify(parsed, null, 2) + '\n```'
@@ -58,43 +60,10 @@ function buildToolContent(args: string | undefined, result: string | undefined):
   }
   if (result) {
     if (content) content += '\n\n'
-    content += extractToolResultText(result)
+    content += '**← 结果**\n\n'
+    content += formatToolResult(result)
   }
   return content
-}
-
-/**
- * 从工具结果的 JSON 包裹中提取纯文本展示内容。
- *
- * MCP 工具的结果格式：{"content":[{"type":"text","text":"..."}],"isError":false}
- * 内置工具的结果为纯文本或 ApiResult 解包后的 data 字符串。
- */
-function extractToolResultText(result: string): string {
-  // 修复内容中可能存在的转义换行符
-  const text = fixNewlines(result)
-  try {
-    const parsed = JSON.parse(text)
-    // MCP 工具结果：提取所有 text 类型 content
-    if (parsed.content && Array.isArray(parsed.content)) {
-      const texts = parsed.content
-        .filter((c: any) => c.type === 'text' || c.type === 'resource')
-        .map((c: any) => c.text ?? c.resource ?? '')
-        .filter(Boolean)
-      if (texts.length > 0) return texts.join('\n\n')
-    }
-  } catch {
-    // 非 JSON 格式（内置工具解包后的纯文本），直接返回
-  }
-  return text
-}
-
-/**
- * 修复内容中可能存在的转义换行符 → 真实换行符
- * 某些外部工具返回的文本中，\n 以字面量形式存在而非真实换行符，
- * 需要转换以便 Markdown 渲染器正确解析。
- */
-function fixNewlines(text: string): string {
-  return text.replace(/\\n/g, '\n')
 }
 
 /** 消息容器 DOM，用于自动滚动 */

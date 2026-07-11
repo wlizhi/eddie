@@ -10,7 +10,6 @@ import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.common.tool.ToolBehavior;
 import cc.wlizhi.eddie.common.tool.ToolBehavior.SecurityLevel;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -43,8 +42,6 @@ import java.util.Map;
 public class LocalDbQueryTools implements BuiltInToolProvider {
 
     private static final Logger log = LoggerFactory.getLogger(LocalDbQueryTools.class);
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 查询结果最大行数
@@ -90,8 +87,8 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
      *
      * <p><b>操作说明：</b>
      * <ul>
-     *   <li>{@code action=query} — 执行 SELECT 查询，返回 JSON 格式的结果集</li>
-     *   <li>{@code action=execute} — 执行 INSERT/UPDATE/DELETE，返回受影响行数</li>
+     *   <li>{@code action=query} — 执行 SELECT 查询，返回结构化结果集</li>
+     *   <li>{@code action=execute} — 执行 INSERT/UPDATE/DELETE，返回写入结果</li>
      * </ul>
      *
      * <b>安全限制：</b>
@@ -104,16 +101,16 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
      * @param action 操作类型：query（只读查询）/ execute（写入操作）
      * @param sql    要执行的 SQL 语句
      * @param dbName 数据库名称：eddie（默认）/ eddie-agent
-     * @return 查询结果或受影响行数
+     * @return 结构化查询结果或写入结果
      */
-    @Tool(name = "built_in_db_query",
+    @Tool(name = "local_db_query",
             description = """
                     操作本地 SQLite 数据库（eddie.db / eddie-agent.db）。
                     
                     **参数说明：**
                     - action：操作类型
-                      • query — 只读查询（SELECT），返回 JSON 结果集
-                      • execute — 写入操作（INSERT/UPDATE/DELETE），返回受影响行数
+                      • query — 只读查询（SELECT），返回结构化结果集
+                      • execute — 写入操作（INSERT/UPDATE/DELETE），返回写入结果
                     - sql：要执行的 SQL 语句
                     - dbName：数据库名称（可选），eddie（默认）/ eddie-agent
                     
@@ -123,7 +120,7 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
                     - SELECT 最多返回 500 行
                     - 写入操作需用户手动审批
                     """)
-    public ApiResult<String> builtInDbQuery(
+    public ApiResult<Map<String, Object>> localDbQuery(
             @ToolParam(description = "操作类型：query（只读查询）/ execute（写入操作）") String action,
             @ToolParam(description = "要执行的 SQL 语句") String sql,
             @ToolParam(description = "数据库名称：eddie（默认）/ eddie-agent（可选）") String dbName) {
@@ -187,7 +184,6 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
         log.info("[LocalDbQueryTools] action={}, db={}, sql={}", normalizedAction, dbName, normalizedSql);
 
         // ===== 执行 SQL =====
-        // 复用 Spring 托管的 HikariCP 连接池，避免 DriverManager.getConnection() 在 Native Image 下找不到 JDBC 驱动
         DataSource ds = "eddie-agent".equals(dbName.trim().toLowerCase()) ? agentDataSource : dataSource;
         try (Connection conn = ds.getConnection()) {
             if ("query".equals(normalizedAction)) {
@@ -203,9 +199,10 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
     }
 
     /**
-     * 执行 SELECT 查询，返回 JSON 格式结果集。
+     * 执行 SELECT 查询，返回结构化结果集。
+     * <p>返回结构：{@code {"type":"query", "rows":[...], "rowCount":N, "truncated":false}}</p>
      */
-    private ApiResult<String> executeQuery(Connection conn, String sql) {
+    private ApiResult<Map<String, Object>> executeQuery(Connection conn, String sql) {
         try (Statement stmt = conn.createStatement()) {
             stmt.setQueryTimeout(QUERY_TIMEOUT);
             stmt.setMaxRows(MAX_ROWS);
@@ -215,9 +212,7 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
                 int columnCount = meta.getColumnCount();
 
                 List<Map<String, Object>> rows = new ArrayList<>();
-                int rowCount = 0;
                 while (rs.next()) {
-                    rowCount++;
                     Map<String, Object> row = new LinkedHashMap<>();
                     for (int i = 1; i <= columnCount; i++) {
                         String columnName = meta.getColumnLabel(i);
@@ -227,25 +222,14 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
                     rows.add(row);
                 }
 
-                StringBuilder result = new StringBuilder();
-                result.append("查询完成（共 ").append(rowCount).append(" 行）\n\n");
-                try {
-                    String json = objectMapper.writerWithDefaultPrettyPrinter()
-                            .writeValueAsString(rows);
-                    result.append(json);
-                } catch (Exception e) {
-                    log.warn("[LocalDbQueryTools] JSON 序列化失败，回退到文本格式", e);
-                    result.append("结果集 ").append(rowCount).append(" 行 × ").append(columnCount).append(" 列");
-                    for (Map<String, Object> row : rows) {
-                        result.append("\n").append(row);
-                    }
-                }
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("type", "query");
+                result.put("rows", rows);
+                result.put("rowCount", rows.size());
+                result.put("truncated", rows.size() >= MAX_ROWS);
 
-                if (rowCount >= MAX_ROWS) {
-                    result.append("\n\n⚠️ 结果已截断，仅显示前 ").append(MAX_ROWS).append(" 行");
-                }
-
-                return ApiResult.success(result.toString());
+                log.info("[LocalDbQueryTools] 查询完成，共 {} 行", rows.size());
+                return ApiResult.success(result);
             }
         } catch (SQLException e) {
             log.warn("[LocalDbQueryTools] 查询执行失败: {}", sql, e);
@@ -255,47 +239,51 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
     }
 
     /**
-     * 执行 INSERT/UPDATE/DELETE，返回受影响行数或插入行的自增 ID。
-     * <ul>
-     *   <li>INSERT — 返回新插入行的自增 ID（rowid）</li>
-     *   <li>UPDATE/DELETE — 返回受影响行数</li>
-     * </ul>
+     * 执行 INSERT/UPDATE/DELETE，返回结构化写入结果。
+     * <p>返回结构：{@code {"type":"execute", "affectedRows":N} 或 {"type":"execute", "insertId":N}}</p>
      */
-    private ApiResult<String> executeUpdate(Connection conn, String sql) {
+    private ApiResult<Map<String, Object>> executeUpdate(Connection conn, String sql) {
         String sqlType = extractSqlType(sql);
         boolean isInsert = "INSERT".equals(sqlType);
 
         try (Statement stmt = conn.createStatement()) {
             stmt.setQueryTimeout(QUERY_TIMEOUT);
 
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("type", "execute");
+
             if (isInsert) {
                 stmt.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
                 try (ResultSet keys = stmt.getGeneratedKeys()) {
                     if (keys != null && keys.next()) {
                         long rowId = keys.getLong(1);
-                        String msg = "插入成功，自增 ID: " + rowId;
-                        log.info("[LocalDbQueryTools] {}", msg);
-                        return ApiResult.success(msg);
+                        result.put("insertId", rowId);
+                        result.put("message", "插入成功");
+                        log.info("[LocalDbQueryTools] 插入成功，自增 ID: {}", rowId);
+                        return ApiResult.success(result);
                     }
                     // 无生成键的表（如无 rowid 的虚拟表），回退到 last_insert_rowid()
                     try (Statement idStmt = conn.createStatement();
                          ResultSet rs = idStmt.executeQuery("SELECT last_insert_rowid()")) {
                         if (rs.next()) {
                             long rowId = rs.getLong(1);
-                            String msg = "插入成功，自增 ID: " + rowId;
-                            log.info("[LocalDbQueryTools] {}", msg);
-                            return ApiResult.success(msg);
+                            result.put("insertId", rowId);
+                            result.put("message", "插入成功");
+                            log.info("[LocalDbQueryTools] 插入成功，自增 ID: {}", rowId);
+                            return ApiResult.success(result);
                         }
                     }
-                    String msg = "插入成功，但无法获取自增 ID";
-                    log.warn("[LocalDbQueryTools] {}", msg);
-                    return ApiResult.success(msg);
+                    result.put("insertId", null);
+                    result.put("message", "插入成功，但无法获取自增 ID");
+                    log.warn("[LocalDbQueryTools] 插入成功，但无法获取自增 ID");
+                    return ApiResult.success(result);
                 }
             } else {
                 int affectedRows = stmt.executeUpdate(sql);
-                String msg = "操作成功，受影响行数: " + affectedRows;
-                log.info("[LocalDbQueryTools] {}", msg);
-                return ApiResult.success(msg);
+                result.put("affectedRows", affectedRows);
+                result.put("message", "操作成功");
+                log.info("[LocalDbQueryTools] 操作成功，受影响行数: {}", affectedRows);
+                return ApiResult.success(result);
             }
         } catch (SQLException e) {
             log.warn("[LocalDbQueryTools] 写入操作执行失败: {}", sql, e);

@@ -88,3 +88,46 @@ export function renderMd(text: string): string {
         return text
     }
 }
+
+// ===== 代码块复制按钮：全局事件委托 =====
+
+/**
+ * 初始化代码块复制按钮的点击事件。
+ * 使用事件委托监听 document 上的 click，无需在每次 renderMd 时重新绑定。
+ */
+function initCodeCopy(): void {
+    document.addEventListener('click', async (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.code-copy-btn')
+        if (!btn) return
+
+        const wrapper = btn.closest<HTMLElement>('.code-block-wrapper')
+        if (!wrapper) return
+
+        const codeElement = wrapper.querySelector<HTMLElement>('pre code')
+        if (!codeElement) return
+
+        // 获取代码文本（highlight.js 转义了 HTML，需要从 textContent 获取原始文本）
+        const codeText = codeElement.textContent ?? ''
+
+        try {
+            await navigator.clipboard.writeText(codeText)
+            btn.classList.add('copied')
+            setTimeout(() => btn.classList.remove('copied'), 2000)
+        } catch {
+            // 降级方案：部分浏览器（非 HTTPS）不支持 clipboard API
+            const textarea = document.createElement('textarea')
+            textarea.value = codeText
+            textarea.style.position = 'fixed'
+            textarea.style.opacity = '0'
+            document.body.appendChild(textarea)
+            textarea.select()
+            document.execCommand('copy')
+            document.body.removeChild(textarea)
+            btn.classList.add('copied')
+            setTimeout(() => btn.classList.remove('copied'), 2000)
+        }
+    })
+}
+
+// 模块加载时自动初始化
+initCodeCopy()
