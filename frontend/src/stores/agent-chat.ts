@@ -301,6 +301,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 providerId: selectedProviderId.value ?? agent?.mainProviderId ?? undefined,
                 modelId: selectedModelId.value ?? agent?.mainModelId ?? undefined,
                 webSearchEnabled: webSearchEnabled.value || undefined,
+                thinkingMode: thinkingMode.value !== 'auto' ? thinkingMode.value : undefined,
             },
             signal: abortController.signal,
             onMessageCreated: (data) => {

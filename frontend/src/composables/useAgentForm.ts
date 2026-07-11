@@ -16,6 +16,7 @@
 import {computed, reactive, ref, watch} from 'vue'
 import {useDialog} from 'naive-ui'
 import {useAgentStore} from '@/stores/agent'
+import {useAgentChatStore} from '@/stores/agent-chat'
 import {useChatStore} from '@/stores/chat'
 import {fetchAgentDetail, fetchEnabledMcpServers} from '@/api/agent'
 import {fetchConfigs} from '@/api/settings'
@@ -37,6 +38,7 @@ export function useAgentForm(
     }
 ) {
     const agentStore = useAgentStore()
+    const agentChatStore = useAgentChatStore()
     const chatStore = useChatStore()
     const dialog = useDialog()
 
@@ -518,6 +520,18 @@ export function useAgentForm(
 
                 enabled: formEnabled.value,
             })
+            // 同步 agentChatStore 中的 MCP 绑定和偏好，确保聊天工具栏实时更新
+            await agentChatStore.loadBoundMcpTools(detail.value.id)
+            // 联动逻辑：如果 BuiltInSearch 不在绑定列表中，强制关闭联网搜索
+            const hasBuiltInSearch = agentChatStore.boundMcpTools.some(
+                t => t.mcpServerName === 'BuiltInSearch'
+            )
+            if (!hasBuiltInSearch) {
+                agentChatStore.webSearchEnabled = false
+            } else {
+                agentChatStore.webSearchEnabled = formPreferences.webSearchEnabled ?? false
+            }
+            agentChatStore.mcpToolMode = formPreferences.mcpToolMode as 'disabled' | 'auto' | 'manual'
             showToast('保存成功')
             close()
         } catch (err) {

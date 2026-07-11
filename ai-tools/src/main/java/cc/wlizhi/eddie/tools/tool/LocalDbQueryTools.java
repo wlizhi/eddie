@@ -15,12 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Path;
+import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -29,7 +28,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * 内置本地数据库查询工具。<p>
@@ -62,6 +60,15 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
      * SQL 语句最大长度，防止意外传入超长字符串
      */
     private static final int MAX_SQL_LENGTH = 10_000;
+
+    private final DataSource dataSource;
+    private final DataSource agentDataSource;
+
+    public LocalDbQueryTools(DataSource dataSource,
+                             @Qualifier("agentDataSource") DataSource agentDataSource) {
+        this.dataSource = dataSource;
+        this.agentDataSource = agentDataSource;
+    }
 
     @Override
     public String getMcpServerName() {
@@ -177,34 +184,12 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
                 return ApiResult.error(ApiResultCode.BAD_REQUEST, "不支持的 action 值，请使用 query 或 execute");
         }
 
-        // ===== 解析数据库路径 =====
-        String dataDir = System.getProperty("eddie.data");
-        if (dataDir == null || dataDir.isBlank()) {
-            log.warn("[LocalDbQueryTools] eddie.data 系统属性未设置，回退到默认路径");
-            dataDir = Path.of(System.getProperty("user.home"), ".eddie", "data").toString();
-        }
-
-        String dbFile;
-        switch (dbName.trim().toLowerCase()) {
-            case "eddie-agent":
-                dbFile = Path.of(dataDir, "eddie-agent.db").toString();
-                break;
-            case "eddie":
-            default:
-                dbFile = Path.of(dataDir, "eddie.db").toString();
-                break;
-        }
-
         log.info("[LocalDbQueryTools] action={}, db={}, sql={}", normalizedAction, dbName, normalizedSql);
 
         // ===== 执行 SQL =====
-        Properties connProps = new Properties();
-        connProps.setProperty("journal_mode", "WAL");
-        connProps.setProperty("synchronous", "NORMAL");
-        connProps.setProperty("cache_size", "10000");
-
-        String jdbcUrl = "jdbc:sqlite:" + dbFile;
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, connProps)) {
+        // 复用 Spring 托管的 HikariCP 连接池，避免 DriverManager.getConnection() 在 Native Image 下找不到 JDBC 驱动
+        DataSource ds = "eddie-agent".equals(dbName.trim().toLowerCase()) ? agentDataSource : dataSource;
+        try (Connection conn = ds.getConnection()) {
             if ("query".equals(normalizedAction)) {
                 return executeQuery(conn, normalizedSql);
             } else {
