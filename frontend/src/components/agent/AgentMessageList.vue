@@ -117,6 +117,19 @@ async function handleApprove(tool: { toolName: string; msgId?: number; stepId?: 
     }
     try {
         await approveTool(msgId, tool.toolName, approved, tool.stepId, tool.seq)
+        // 审批接口返回后立即更新本地状态，不等工具执行完毕的 SSE 事件
+        const target = agentChatStore.currentToolExecutions.find(
+            t => t.msgId === msgId && t.seq === tool.seq && !t.done
+        )
+        if (target) {
+            if (approved) {
+                target.pendingApproval = false  // 按钮消失，显示"运行中..."
+            } else {
+                target.done = true
+                target.rejected = true
+                target.pendingApproval = false
+            }
+        }
         showToast(approved ? '已批准' : '已拒绝', 'success')
     } catch (err) {
         showToast(`审批失败: ${(err as Error).message}`, 'error')

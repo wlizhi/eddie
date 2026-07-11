@@ -9,13 +9,7 @@ import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
-import cc.wlizhi.eddie.agent.entity.request.AgentMcpServerBinding;
-import cc.wlizhi.eddie.agent.entity.request.AgentToolBinding;
-import cc.wlizhi.eddie.agent.entity.dto.AgentIteratorState;
-import cc.wlizhi.eddie.agent.entity.dto.AgentModelInfo;
-import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
-import cc.wlizhi.eddie.agent.entity.dto.AgentTaskStep;
-import cc.wlizhi.eddie.agent.entity.dto.AgentTokenStatists;
+import cc.wlizhi.eddie.agent.entity.dto.*;
 import cc.wlizhi.eddie.agent.entity.event.payload.*;
 import cc.wlizhi.eddie.agent.entity.response.AgentSessionVO;
 import cc.wlizhi.eddie.chat.controller.ChatToolApprovalController;
@@ -27,21 +21,17 @@ import cc.wlizhi.eddie.chat.service.impl.OpenAiChatClientFactory;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
-import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatModel;
 import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import cc.wlizhi.eddie.common.dao.ChatModelProviderDao;
-import cc.wlizhi.eddie.common.dto.ApiResult;
-import cc.wlizhi.eddie.common.dto.ConfigFieldDescriptor;
-import cc.wlizhi.eddie.common.dto.ConfigSchema;
-import cc.wlizhi.eddie.common.dto.NewlineStringToListDeserializer;
-import cc.wlizhi.eddie.common.dto.ShellToolConfig;
+import cc.wlizhi.eddie.common.dto.*;
 import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
 import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.entity.dto.ModelJsonItem;
+import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.tools.service.McpClientHolder;
 import cc.wlizhi.eddie.tools.service.McpToolCallback;
@@ -97,12 +87,6 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
         reflection.registerType(AgentMsgStepEntity.class, members);
         reflection.registerType(AgentMsgEntity.class, members);
         reflection.registerType(AgentIteratorState.class, members);
-        // ==================== 系统剪贴板（java.awt） ====================
-        reflection.registerType(java.awt.Toolkit.class, members);
-        reflection.registerType(java.awt.datatransfer.Clipboard.class, members);
-        reflection.registerType(java.awt.datatransfer.StringSelection.class, members);
-        reflection.registerType(java.awt.datatransfer.DataFlavor.class, members);
-        reflection.registerType(java.awt.datatransfer.Transferable.class, members);
         // ==================== OpenAI SDK 内部类（Jackson 反序列化需要） ====================
         reflection.registerType(
                 com.openai.models.completions.CompletionUsage.CompletionTokensDetails.class,
