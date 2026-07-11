@@ -292,13 +292,13 @@ function tagType(type: string): 'success' | 'info' | 'warning' | 'default' {
 }
 
 .status-dot.connected {
-  background: var(--color-success, #52c41a);
-  box-shadow: 0 0 6px rgba(82, 196, 26, 0.5);
+  background: var(--success-default);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
 }
 
 .status-dot.disconnected {
-  background: var(--color-warning, #faad14);
-  box-shadow: 0 0 6px rgba(250, 173, 20, 0.5);
+  background: var(--warning-default);
+  box-shadow: 0 0 6px rgba(217, 119, 6, 0.5);
 }
 
 .tool-name {

@@ -84,8 +84,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
     public AgentSessionVO create(Long agentId) {
         AgentSessionEntity entity = new AgentSessionEntity();
         entity.setAgentId(agentId);
-        agentSessionDao.insert(entity);
-        Long id = agentSessionDao.findLastInsertId();
+        Long id = agentSessionDao.insert(entity);
         AgentSessionEntity saved = agentSessionDao.findById(id);
         return toVO(saved);
     }

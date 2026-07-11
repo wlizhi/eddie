@@ -85,8 +85,7 @@ public class SessionServiceImpl implements SessionService {
     public SessionVO create(Long assistantId) {
         SessionEntity entity = new SessionEntity();
         entity.setAssistantId(assistantId);
-        sessionDao.insert(entity);
-        Long id = sessionDao.findLastInsertId();
+        Long id = sessionDao.insert(entity);
         SessionEntity saved = sessionDao.findById(id);
         return toVO(saved);
     }

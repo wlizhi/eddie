@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.common.dao;
 
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
+import cc.wlizhi.eddie.common.util.JdbcUtil;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -59,15 +60,14 @@ public class AssistantDao {
     /**
      * 新增助手
      */
-    public void insert(AssistantEntity entity) {
+    public Long insert(AssistantEntity entity) {
         long now = System.currentTimeMillis();
-        String sql = """
+        return JdbcUtil.insertAndReturnKey(jdbcTemplate, """
                 INSERT INTO ai_assistant (name, avatar, description, system_prompt,
                                           provider_id, model_id, model_params, memory_rounds,
                                           tool_selection_mode, preferences, enabled, sort_order, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """;
-        jdbcTemplate.update(sql,
+                """,
                 entity.getName(),
                 entity.getAvatar(),
                 entity.getDescription(),
@@ -181,13 +181,6 @@ public class AssistantDao {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM ai_assistant WHERE id = ?", Integer.class, id);
         return count != null && count > 0;
-    }
-
-    /**
-     * 获取最后插入的自增 ID（SQLite）
-     */
-    public Long findLastInsertId() {
-        return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
     }
 
     /**

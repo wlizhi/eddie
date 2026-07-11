@@ -274,10 +274,7 @@ public class ChatServiceImpl implements ChatService {
             userMsg.setToolCalls("[]");
             userMsg.setMsgStatus("COMPLETED");
             userMsg.setRoundSeq(0L);
-            messageDao.insert(userMsg);
-
-            // 获取用户消息 ID（用于停止事件关联 + 流结束后回填 round_seq）
-            Long userMsgId = messageDao.findLastInsertId();
+            Long userMsgId = messageDao.insert(userMsg);
             ctx.setUserMessageId(userMsgId);
 
             // 占位 assistant 消息（round_seq=0，status=STREAMING，流结束后更新）
@@ -298,10 +295,7 @@ public class ChatServiceImpl implements ChatService {
             assistantMsg.setMsgStatus("STREAMING");
             assistantMsg.setDurationMs(0);
             assistantMsg.setRoundSeq(0L);
-            messageDao.insert(assistantMsg);
-
-            // 获取占位消息 ID（用于后续 UPDATE）
-            Long placeholderId = messageDao.findLastInsertId();
+            Long placeholderId = messageDao.insert(assistantMsg);
             ctx.setPlaceholderMsgId(placeholderId);
 
             // 更新会话计数器（+2 表示 user + assistant）

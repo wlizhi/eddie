@@ -157,8 +157,7 @@ public class McpToolServiceImpl implements McpToolService {
         entity.setMaxReconnectAttempts(request.getMaxReconnectAttempts());
 
         // 3. 插入 DB
-        mcpServerDao.insert(entity);
-        Long mcpServerId = mcpServerDao.findLastInsertId();
+        Long mcpServerId = mcpServerDao.insert(entity);
 
         // 4. 仅启用时才注册 MCP 客户端连接并自动扫描工具
         McpServerEntity saved = mcpServerDao.findById(mcpServerId).orElse(null);
@@ -686,6 +685,8 @@ public class McpToolServiceImpl implements McpToolService {
 
             // BUILT_IN 类型：填充 sourceConfig
             vo.setSourceConfig(entity.getSourceConfig());
+            // BUILT_IN 类型：填充 Server 级 configSchema
+            vo.setConfigSchema(findServerSchema(entity.getName()));
         } else if (entity.getEnabled() == 1) {
             vo.setConnectionStatus(mcpClientRegistry.getConnectionState(entity.getId()).name());
         } else {
@@ -730,7 +731,7 @@ public class McpToolServiceImpl implements McpToolService {
 
     /**
      * 根据 MCP Server 名称和工具名称查找对应内置工具的 Config Schema。
-     * 遍历所有 {@link BuiltInToolProvider}，匹配 serverName 和 schema.toolName。
+     * 遍历所有 {@link BuiltInToolProvider}，从 getToolConfigSchemas() Map 获取。
      */
     private ConfigSchema findToolSchema(String serverName, String toolName) {
         if (serverName == null || toolName == null || toolProviders == null) {
@@ -738,8 +739,27 @@ public class McpToolServiceImpl implements McpToolService {
         }
         for (BuiltInToolProvider provider : toolProviders) {
             if (serverName.equals(provider.getMcpServerName())) {
-                ConfigSchema schema = provider.getConfigSchema();
-                if (schema != null && toolName.equals(schema.getToolName()) && schema.isConfigurable()) {
+                ConfigSchema schema = provider.getToolConfigSchemas().get(toolName);
+                if (schema != null && schema.isConfigurable()) {
+                    return schema;
+                }
+            }
+        }
+        return ConfigSchema.empty();
+    }
+
+    /**
+     * 根据 MCP Server 名称查找对应内置工具的 Server 级 Config Schema。
+     * 遍历所有 {@link BuiltInToolProvider}，匹配 serverName，获取 getServerConfigSchema()。
+     */
+    private ConfigSchema findServerSchema(String serverName) {
+        if (serverName == null || toolProviders == null) {
+            return ConfigSchema.empty();
+        }
+        for (BuiltInToolProvider provider : toolProviders) {
+            if (serverName.equals(provider.getMcpServerName())) {
+                ConfigSchema schema = provider.getServerConfigSchema();
+                if (schema != null && schema.isConfigurable()) {
                     return schema;
                 }
             }

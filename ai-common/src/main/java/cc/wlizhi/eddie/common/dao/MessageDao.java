@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.common.dao;
 
 import cc.wlizhi.eddie.common.entity.MessageEntity;
+import cc.wlizhi.eddie.common.util.JdbcUtil;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -25,10 +26,12 @@ public class MessageDao {
 
     /**
      * 插入消息
+     *
+     * @return 自增主键 ID
      */
-    public void insert(MessageEntity entity) {
+    public Long insert(MessageEntity entity) {
         long now = System.currentTimeMillis();
-        jdbcTemplate.update(
+        return JdbcUtil.insertAndReturnKey(jdbcTemplate,
                 "INSERT INTO ai_session_msg (session_id, assistant_id, role, provider_id, " +
                         "model_code, model_name, thinking, content, prompt_tokens, completion_tokens, " +
                         "total_tokens, price_estimate, tool_calls, " +
@@ -99,13 +102,6 @@ public class MessageDao {
                         "currency, duration_ms, msg_status, round_seq, created_at FROM ai_session_msg WHERE session_id = ? " +
                         "ORDER BY id ASC LIMIT ?",
                 messageRowMapper, sessionId, limit);
-    }
-
-    /**
-     * 获取最后插入的自增 ID（仅在 INSERT 后立即调用有效）
-     */
-    public Long findLastInsertId() {
-        return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
     }
 
     /**

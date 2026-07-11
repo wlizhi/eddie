@@ -64,6 +64,8 @@ export interface McpServer {
     tools: McpToolItem[]
     /** 来源配置 JSON（仅 BUILT_IN 类型有值） */
     sourceConfig?: string
+    /** 配置描述 Schema（仅 BUILT_IN 类型有值，描述该 MCP Server 级配置字段） */
+    configSchema?: ConfigSchema
 }
 
 /**

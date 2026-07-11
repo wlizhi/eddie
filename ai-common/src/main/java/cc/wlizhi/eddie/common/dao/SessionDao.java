@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.common.dao;
 
 import cc.wlizhi.eddie.common.entity.SessionEntity;
+import cc.wlizhi.eddie.common.util.JdbcUtil;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -25,20 +26,15 @@ public class SessionDao {
 
     /**
      * 创建会话
+     *
+     * @return 自增主键 ID
      */
-    public void insert(SessionEntity entity) {
+    public Long insert(SessionEntity entity) {
         long now = System.currentTimeMillis();
-        jdbcTemplate.update(
+        return JdbcUtil.insertAndReturnKey(jdbcTemplate,
                 "INSERT INTO ai_session (assistant_id, title, pinned, created_at, updated_at) " +
                         "VALUES (?, '', 0, ?, ?)",
                 entity.getAssistantId(), now, now);
-    }
-
-    /**
-     * 获取最后插入的自增 ID
-     */
-    public Long findLastInsertId() {
-        return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
     }
 
     /**

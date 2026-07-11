@@ -95,8 +95,8 @@ public class WebSearchTools implements BuiltInToolProvider {
         stopProbe();
     }
 
-    @Tool(name = "built_in_search",
-            description = "搜索互联网并返回网页标题、URL 和摘要。适合查找最新信息、技术文档、新闻等。如需阅读全文可再用 fetch_markdown 工具")
+    @Tool(name = "search",
+            description = "搜索互联网并返回网页标题、URL 和摘要。适合查找最新信息、技术文档、新闻等。如需阅读全文可再用 fetch 工具")
     public ApiResult<String> search(
             @ToolParam(description = "搜索关键词") String query,
             @ToolParam(required = false, description = "可选参数，返回结果数量（1-20），默认值 1") Integer maxResults,

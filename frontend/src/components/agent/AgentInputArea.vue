@@ -20,9 +20,10 @@
 import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useAgentChatStore} from '@/stores/agent-chat'
 import {useAgentStore} from '@/stores/agent'
-import {NButton, NCheckbox, NCheckboxGroup, NModal, NPopselect, NSelect, NSpace} from 'naive-ui'
-import {Brain, Globe, Network, Plus, Send, Square} from '@lucide/vue'
+import {NButton, NCheckbox, NModal, NPopselect, NSelect, NSpace} from 'naive-ui'
+import {Brain, ChevronDown, ChevronRight, Globe, Network, Plus, Send, Square} from '@lucide/vue'
 import {useIconSize} from '@/composables/useIconSize'
+import type {ToolSourceVO} from '@/types/mcpServer'
 
 const {iconSizeXs, iconSizeSm} = useIconSize()
 
@@ -57,6 +58,64 @@ function openMcpSelector() {
 /** 确认 MCP 选择 */
 function confirmMcpSelection() {
   showMcpModal.value = false
+}
+
+/** MCP 服务展开状态 */
+const expandedMcpServers = ref<Record<number, boolean>>({})
+
+/** 切换 MCP 服务展开/折叠 */
+function toggleMcpExpand(mcpId: number) {
+  expandedMcpServers.value[mcpId] = !expandedMcpServers.value[mcpId]
+}
+
+/** MCP 服务是否已展开 */
+function isMcpExpanded(mcpId: number): boolean {
+  return !!expandedMcpServers.value[mcpId]
+}
+
+/** MCP 服务是否有任一工具被选中 */
+function isMcpServerChecked(mcp: ToolSourceVO): boolean {
+  return mcp.tools.some(t => agentChatStore.selectedToolNames.includes(t.name))
+}
+
+/** MCP 服务是否部分选中（半选状态） */
+function isMcpServerIndeterminate(mcp: ToolSourceVO): boolean {
+  const selected = mcp.tools.filter(t => agentChatStore.selectedToolNames.includes(t.name))
+  return selected.length > 0 && selected.length < mcp.tools.length
+}
+
+/** 点击 MCP 服务 checkbox：全选/全取消 */
+function onMcpServerCheck(checked: boolean, mcp: ToolSourceVO) {
+  if (checked) {
+    // 全选：将服务的所有工具名加入 selectedToolNames（去重）
+    const existing = new Set(agentChatStore.selectedToolNames)
+    for (const tool of mcp.tools) {
+      existing.add(tool.name)
+    }
+    agentChatStore.selectedToolNames = [...existing]
+  } else {
+    // 全取消：从 selectedToolNames 中移除该服务的所有工具名
+    const toolNames = new Set(mcp.tools.map(t => t.name))
+    agentChatStore.selectedToolNames = agentChatStore.selectedToolNames.filter(n => !toolNames.has(n))
+  }
+}
+
+/** 点击工具 checkbox：单选/取消 */
+function onToolCheck(checked: boolean, toolName: string) {
+  if (checked) {
+    agentChatStore.selectedToolNames.push(toolName)
+  } else {
+    agentChatStore.selectedToolNames = agentChatStore.selectedToolNames.filter(n => n !== toolName)
+  }
+}
+
+/** 工具状态标签 */
+function getToolStatusLabel(mcp: ToolSourceVO, toolName: string): string {
+  const tool = mcp.tools.find(t => t.name === toolName)
+  if (!tool) return ''
+  if (tool.enabledStatus === 1) return '自动'
+  if (tool.enabledStatus === 2) return '审批'
+  return '禁用'
 }
 
 /** 工具模式切换时，如果切到手动则弹出 MCP 选择器 */
@@ -328,18 +387,43 @@ defineExpose({focusInput})
 
         <!-- 手动模式 MCP 选择弹窗 -->
         <NModal v-model:show="showMcpModal" title="选择 MCP 服务" preset="card" style="width:420px">
-          <NCheckboxGroup v-model:value="agentChatStore.selectedMcpServerIds">
-            <NSpace vertical>
-              <div v-for="mcp in agentChatStore.boundMcpTools" :key="mcp.mcpServerId" class="mcp-checkbox-item">
-                <NCheckbox :value="mcp.mcpServerId" :label="mcp.mcpServerName"/>
+          <NSpace vertical>
+            <div v-for="mcp in agentChatStore.boundMcpTools" :key="mcp.mcpServerId" class="mcp-tree-item">
+              <!-- 服务级行 -->
+              <div class="mcp-server-row" @click="toggleMcpExpand(mcp.mcpServerId)">
+                <span class="mcp-expand-icon">
+                  <ChevronRight v-if="!isMcpExpanded(mcp.mcpServerId)" :size="14"/>
+                  <ChevronDown v-else :size="14"/>
+                </span>
+                <span class="mcp-server-checkbox-wrap" @click.stop>
+                  <NCheckbox
+                      :checked="isMcpServerChecked(mcp)"
+                      :indeterminate="isMcpServerIndeterminate(mcp)"
+                      @update:checked="(v: boolean) => onMcpServerCheck(v, mcp)"
+                  >
+                    {{ mcp.mcpServerName }}
+                  </NCheckbox>
+                </span>
                 <span class="mcp-tool-count">{{ mcp.tools.length }} 个工具</span>
               </div>
-              <div v-if="agentChatStore.boundMcpTools.length === 0" class="mcp-empty-hint">暂无可用 MCP 服务</div>
-            </NSpace>
-          </NCheckboxGroup>
+              <!-- 工具级列表 -->
+              <div v-if="isMcpExpanded(mcp.mcpServerId)" class="mcp-tool-list">
+                <div v-for="tool in mcp.tools" :key="tool.name" class="mcp-tool-row">
+                  <NCheckbox
+                      :checked="agentChatStore.selectedToolNames.includes(tool.name)"
+                      @update:checked="(v: boolean) => onToolCheck(v, tool.name)"
+                  >
+                    {{ tool.displayName || tool.name }}
+                  </NCheckbox>
+                  <span class="mcp-tool-status" :class="getToolStatusLabel(mcp, tool.name) === '自动' ? 'status-auto' : 'status-approval'">{{ getToolStatusLabel(mcp, tool.name) }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-if="agentChatStore.boundMcpTools.length === 0" class="mcp-empty-hint">暂无可用 MCP 服务</div>
+          </NSpace>
           <template #footer>
             <div class="mcp-modal-footer">
-              <span class="mcp-modal-hint">选择 MCP 后将启用其下所有工具</span>
+              <span class="mcp-modal-hint">勾选具体工具启用于本次对话</span>
               <n-button type="primary" size="small" @click="confirmMcpSelection">确定</n-button>
             </div>
           </template>
@@ -628,6 +712,100 @@ defineExpose({focusInput})
     box-shadow: 0 0 0 4px var(--danger-ring);
     transform: scale(1.08);
   }
+}
+
+/* ===== MCP 手动模式选择弹窗（树形） ===== */
+.mcp-tree-item {
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.mcp-server-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.mcp-server-row:hover {
+  background: var(--bg-hover);
+}
+
+.mcp-expand-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  width: var(--space-5);
+  justify-content: center;
+}
+
+.mcp-server-checkbox-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.mcp-tool-count {
+  font-size: var(--font-size-small);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.mcp-tool-list {
+  border-top: 1px solid var(--border-light);
+  padding: var(--space-2) 0;
+}
+
+.mcp-tool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-12);
+  transition: background 0.15s;
+}
+
+.mcp-tool-row:hover {
+  background: var(--bg-hover);
+}
+
+.mcp-tool-status {
+  font-size: var(--font-size-small);
+  padding: 0 var(--space-3);
+  border-radius: 4px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.mcp-tool-status.status-auto {
+  color: var(--accent-default);
+  background: var(--accent-light-bg);
+}
+
+.mcp-tool-status.status-approval {
+  color: var(--warning-default, #d97706);
+  background: var(--warning-light-bg, #fef3c7);
+}
+
+.mcp-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mcp-modal-hint {
+  font-size: var(--font-size-small);
+  color: var(--text-tertiary);
+}
+
+.mcp-empty-hint {
+  padding: var(--space-12) 0;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-small);
 }
 </style>
 

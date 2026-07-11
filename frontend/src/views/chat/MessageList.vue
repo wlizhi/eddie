@@ -39,9 +39,8 @@ const assistantStore = useAssistantStore()
 
 /** 工具内部名 → 友好显示名（通用映射，新增工具无需修改） */
 function displayToolName(toolName: string): string {
-  // 去掉 built_in_ 前缀，下划线转空格，首字母大写
+  // 下划线转空格，首字母大写
   return toolName
-      .replace(/^built_in_/, '')
       .replace(/_/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase())
 }

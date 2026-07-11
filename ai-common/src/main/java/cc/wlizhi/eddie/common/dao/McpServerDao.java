@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.common.dao;
 
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
+import cc.wlizhi.eddie.common.util.JdbcUtil;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -75,9 +76,9 @@ public class McpServerDao {
     /**
      * 插入 MCP 服务器
      */
-    public void insert(McpServerEntity entity) {
+    public Long insert(McpServerEntity entity) {
         long now = System.currentTimeMillis();
-        String sql = """
+        return JdbcUtil.insertAndReturnKey(jdbcTemplate, """
                 INSERT INTO ai_mcp_server
                     (name, description, source_type, source_config, transport_type,
                      command, args, env, url, headers,
@@ -89,8 +90,7 @@ public class McpServerDao {
                         ?, ?, ?,
                         ?, ?,
                         ?, ?)
-                """;
-        jdbcTemplate.update(sql,
+                """,
                 entity.getName(),
                 entity.getDescription() != null ? entity.getDescription() : "",
                 entity.getSourceType() != null ? entity.getSourceType() : "USER",
@@ -165,10 +165,4 @@ public class McpServerDao {
         jdbcTemplate.update(sql, id);
     }
 
-    /**
-     * 获取最后插入的自增 ID（SQLite）
-     */
-    public Long findLastInsertId() {
-        return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
-    }
 }

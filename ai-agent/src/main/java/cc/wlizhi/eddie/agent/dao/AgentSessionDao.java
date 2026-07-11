@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.agent.dao;
 
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
+import cc.wlizhi.eddie.common.util.JdbcUtil;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -23,16 +24,12 @@ public class AgentSessionDao {
     @Resource(name = "agentJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
 
-    public void insert(AgentSessionEntity entity) {
+    public Long insert(AgentSessionEntity entity) {
         long now = System.currentTimeMillis();
-        jdbcTemplate.update(
+        return JdbcUtil.insertAndReturnKey(jdbcTemplate,
                 "INSERT INTO ai_agent_session (agent_id, title, pinned, created_at, updated_at) " +
                         "VALUES (?, '', 0, ?, ?)",
                 entity.getAgentId(), now, now);
-    }
-
-    public Long findLastInsertId() {
-        return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
     }
 
     public AgentSessionEntity findById(Long id) {

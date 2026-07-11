@@ -153,8 +153,7 @@ public class AgentServiceImpl implements AgentService {
         entity.setBuiltIn(0);
         entity.setSortOrder(0);
 
-        agentDao.insert(entity);
-        Long agentId = agentDao.findLastInsertId();
+        Long agentId = agentDao.insert(entity);
 
         bindMcpServerTools(agentId, request.getMcpServerBindings());
 

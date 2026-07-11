@@ -91,26 +91,29 @@ public class ToolCallbackResolver {
 
         // auto 模式：加载所有绑定的工具
 
-        // 按 tool_type 分组解析
+        // 按 tool_type 分组解析（先解析 BUILT_IN，使内置工具名优先占据「干净」的名称）
         List<ToolCallback> result = new ArrayList<>(boundTools.size());
+        List<ToolCallback> mcpCallbacks = new ArrayList<>();
         for (ToolDefinitionEntity tool : boundTools) {
             ToolType toolType = tool.getToolType();
             try {
                 if (toolType == ToolType.BUILT_IN) {
                     resolveBuiltIn(tool).ifPresent(result::add);
                 } else if (toolType == ToolType.MCP) {
-                    resolveMcp(tool).ifPresent(callback -> {
-                        // 避免重名
-                        boolean hasRepeatName = result.stream().anyMatch(p ->
-                                Objects.equals(p.getToolDefinition().name(), callback.getOriginalToolName()));
-                        result.add(hasRepeatName ? callback.cloneForNewName(callback.getOriginalToolName() + "_" + callback.getMcpServerId()) : callback);
-                    });
+                    resolveMcp(tool).ifPresent(mcpCallbacks::add);
                 } else {
                     log.warn("[ToolCallbackResolver] 未知工具类型: {} (name={})", toolType, tool.getName());
                 }
             } catch (Exception e) {
                 log.error("[ToolCallbackResolver] 解析工具失败: {} (type={})", tool.getName(), toolType, e);
             }
+        }
+        // 全局重名检测：内置和 MCP 工具名冲突时，MCP 工具加 _mcp 后缀
+        for (ToolCallback mcp : mcpCallbacks) {
+            McpToolCallback mcpCb = (McpToolCallback) mcp;
+            boolean conflict = result.stream().anyMatch(p ->
+                    Objects.equals(p.getToolDefinition().name(), mcpCb.getOriginalToolName()));
+            result.add(conflict ? mcpCb.cloneForNewName(mcpCb.getOriginalToolName() + "_mcp") : mcpCb);
         }
         return result.toArray(new ToolCallback[0]);
     }

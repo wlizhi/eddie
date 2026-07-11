@@ -70,7 +70,7 @@ export interface ChatRequest {
 export interface ToolExecutionData {
     /** start | complete | pending_approval */
     status: string
-    /** 工具名称，如 built_in_search */
+    /** 工具名称，如 search、fetch */
     toolName: string
     /** 工具调用参数（JSON 字符串） */
     arguments?: string

@@ -8,6 +8,7 @@ package cc.wlizhi.eddie.common.tool;
 import cc.wlizhi.eddie.common.dto.ConfigSchema;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 内置工具提供者标记接口。<p>
@@ -31,14 +32,31 @@ public interface BuiltInToolProvider {
     }
 
     /**
-     * 返回此工具的配置描述 Schema。<p>
-     * 返回非空 Schema（{@link ConfigSchema#isConfigurable()} 为 {@code true}）表示该工具支持用户配置。
-     * 前端将根据 Schema 动态渲染配置表单，用户保存的值存储在 MCP Server 的 {@code source_config} 字段中。
+     * 返回此 MCP Server 级别的配置描述 Schema（可选）。<p>
+     * 描述该内置 MCP 自身的配置项，与具体工具无关（如搜索根目录、排除规则等）。
+     * 返回非空且 {@link ConfigSchema#isConfigurable()} 为 {@code true} 时，
+     * 前端将在 MCP 卡片上渲染"服务器配置"表单，用户保存的值写入 MCP Server 的 {@code source_config} 中，
+     * 以 {@code "server"} 为 key。
      * <p>
-     * 默认返回空 Schema（不支持配置）。
+     * 默认返回空 Schema（无 Server 级配置）。
      */
-    default ConfigSchema getConfigSchema() {
+    default ConfigSchema getServerConfigSchema() {
         return ConfigSchema.empty();
+    }
+
+    /**
+     * 返回此工具提供者下各工具的配置描述 Schema（可选）。<p>
+     * key 为 {@link org.springframework.ai.tool.annotation.Tool @Tool} 注解的 name，
+     * value 为对应工具的配置 Schema。
+     * 前端将在对应工具项上独立渲染配置表单，用户保存的值写入 MCP Server 的 {@code source_config} 中，
+     * 以工具名为 key。
+     * <p>
+     * 默认返回空 Map（无工具级配置）。
+     *
+     * @return 工具名 → ConfigSchema 的映射
+     */
+    default Map<String, ConfigSchema> getToolConfigSchemas() {
+        return Map.of();
     }
 
     /**

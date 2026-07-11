@@ -116,14 +116,11 @@ export const useAgentChatStore = defineStore('agentChat', () => {
     /** 🛠️ MCP 工具模式：disabled / auto / manual */
     const mcpToolMode = ref<'disabled' | 'auto' | 'manual'>('auto')
 
-    /** 手动模式下勾选的 MCP Server ID 列表 */
-    const selectedMcpServerIds = ref<number[]>([])
+    /** 手动模式下勾选的工具名列表 */
+    const selectedToolNames = ref<string[]>([])
 
     /** 当前智能体已绑定的 MCP + 工具列表缓存 */
     const boundMcpTools = ref<ToolSourceVO[]>([])
-
-    /** 联网按钮固定绑定的 3 个内置工具名（与 chat store 保持一致） */
-    const WEB_SEARCH_TOOL_NAMES = ['built_in_search', 'built_in_fetch_markdown', 'built_in_fetch_json']
 
     /**
      * 当前智能体绑定的 BuiltInSearch 下是否存在已启用的联网工具
@@ -135,7 +132,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         )
         if (!builtInSearch?.tools) return false
         return builtInSearch.tools.some(
-            t => WEB_SEARCH_TOOL_NAMES.includes(t.name) && t.enabled
+            t => t.toolType === 'BUILT_IN' && t.enabled
         )
     })
 
@@ -148,7 +145,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         )
         if (!builtInSearch?.tools) return []
         return builtInSearch.tools
-            .filter(t => WEB_SEARCH_TOOL_NAMES.includes(t.name) && t.enabled)
+            .filter(t => t.toolType === 'BUILT_IN' && t.enabled)
             .map(t => t.name)
     }
 
@@ -596,16 +593,8 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 toolNames.push(...getEnabledWebToolNames())
             }
         } else if (mode === 'manual') {
-            // 收集选中 MCP 中已启用的工具（含待审批）
-            for (const mcp of boundMcpTools.value) {
-                if (selectedMcpServerIds.value.includes(mcp.mcpServerId)) {
-                    toolNames.push(...mcp.tools.filter(t => {
-                        // 优先使用 enabledStatus：0=禁用, 1=启用, 2=待审批（均视为可用）
-                        if (t.enabledStatus != null) return t.enabledStatus !== 0
-                        return t.enabled
-                    }).map(t => t.name))
-                }
-            }
+            // 直接使用已勾选的工具名列表
+            toolNames.push(...selectedToolNames.value)
             // 联网开 → 合并 BuiltInSearch 下已启用的联网工具
             if (searchOn) {
                 toolNames.push(...getEnabledWebToolNames())
@@ -660,7 +649,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         webSearchEnabled,
         canWebSearch,
         mcpToolMode,
-        selectedMcpServerIds,
+        selectedToolNames,
         boundMcpTools,
 
         // 用户临时覆盖参数

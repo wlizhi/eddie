@@ -98,8 +98,8 @@ export const useChatStore = defineStore('chat', () => {
     /** 🛠️ MCP 工具模式：disabled / auto / manual */
     const mcpToolMode = ref<'disabled' | 'auto' | 'manual'>('auto')
 
-    /** 手动模式下勾选的 MCP Server ID 列表 */
-    const selectedMcpServerIds = ref<number[]>([])
+    /** 手动模式下勾选的工具名列表 */
+    const selectedToolNames = ref<string[]>([])
 
     /** 当前助手已绑定的 MCP + 工具列表缓存（按 sort_order 排序） */
     const boundMcpTools = ref<ToolSourceVO[]>([])
@@ -160,9 +160,6 @@ export const useChatStore = defineStore('chat', () => {
         }
     }
 
-    /** 联网按钮固定绑定的 3 个内置工具名 */
-    const WEB_SEARCH_TOOL_NAMES = ['built_in_search', 'built_in_fetch_markdown', 'built_in_fetch_json']
-
     /**
      * 当前助手绑定的 BuiltInSearch 下是否存在已启用的联网工具
      * 用于控制联网按钮的置灰状态
@@ -173,12 +170,12 @@ export const useChatStore = defineStore('chat', () => {
         )
         if (!builtInSearch?.tools) return false
         return builtInSearch.tools.some(
-            t => WEB_SEARCH_TOOL_NAMES.includes(t.name) && t.enabled
+            t => t.toolType === 'BUILT_IN' && t.enabled
         )
     })
 
     /**
-     * 获取 BuiltInSearch 下已启用的联网工具名（仅限固定 3 个）
+     * 获取 BuiltInSearch 下已启用的联网工具名
      * 从助手纬度绑定的工具列表中取 BuiltInSearch 服务器的 enabled 状态
      */
     function getEnabledWebToolNames(): string[] {
@@ -187,7 +184,7 @@ export const useChatStore = defineStore('chat', () => {
         )
         if (!builtInSearch?.tools) return []
         return builtInSearch.tools
-            .filter(t => WEB_SEARCH_TOOL_NAMES.includes(t.name) && t.enabled)
+            .filter(t => t.toolType === 'BUILT_IN' && t.enabled)
             .map(t => t.name)
     }
 
@@ -204,7 +201,6 @@ export const useChatStore = defineStore('chat', () => {
     function buildToolParams(): { toolSelectionMode?: string; toolNames?: string[] } {
         const mode = mcpToolMode.value
         const searchOn = webSearchEnabled.value
-        const selectedIds = selectedMcpServerIds.value
 
         // 收集工具列表（去重后）
         const toolNames: string[] = []
@@ -215,16 +211,8 @@ export const useChatStore = defineStore('chat', () => {
                 toolNames.push(...getEnabledWebToolNames())
             }
         } else if (mode === 'manual') {
-            // 收集选中 MCP 中已启用的工具（含待审批）
-            for (const mcp of boundMcpTools.value) {
-                if (selectedIds.includes(mcp.mcpServerId)) {
-                    toolNames.push(...mcp.tools.filter(t => {
-                        // 优先使用 enabledStatus：0=禁用, 1=启用, 2=待审批（均视为可用）
-                        if (t.enabledStatus != null) return t.enabledStatus !== 0
-                        return t.enabled
-                    }).map(t => t.name))
-                }
-            }
+            // 直接使用已勾选的工具名列表
+            toolNames.push(...selectedToolNames.value)
             // 联网开 → 合并 BuiltInSearch 下已启用的联网工具
             if (searchOn) {
                 toolNames.push(...getEnabledWebToolNames())
@@ -694,7 +682,7 @@ export const useChatStore = defineStore('chat', () => {
         webSearchEnabled,
         canWebSearch,
         mcpToolMode,
-        selectedMcpServerIds,
+        selectedToolNames,
         boundMcpTools,
         sessionMessageSignal,
         lastCreatedSession,

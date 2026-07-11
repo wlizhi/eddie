@@ -75,8 +75,7 @@ public class AgentMsgPreProcessor implements AgentChatPreProcessor {
 
             log.info("保存用户消息, sessionId={}, agentId={}, content={}",
                     session.getId(), agent.getId(), truncate(request.getMessage()));
-            agentMsgDao.insert(userMsg);
-            userMsg.setId(agentMsgDao.findLastInsertId());
+            userMsg.setId(agentMsgDao.insert(userMsg));
 
             // ② AI 占位消息（round_seq=0，流结束后统一回填 user+assistant）
             agentMsg.setSessionId(session.getId());
@@ -95,8 +94,7 @@ public class AgentMsgPreProcessor implements AgentChatPreProcessor {
 
             log.info("创建 AI 回复占位消息, sessionId={}, agentId={}, msgStatus=PROCESSING",
                     session.getId(), agent.getId());
-            agentMsgDao.insert(agentMsg);
-            agentMsg.setId(agentMsgDao.findLastInsertId());
+            agentMsg.setId(agentMsgDao.insert(agentMsg));
         });
 
         ctx.setUserMsg(userMsg);

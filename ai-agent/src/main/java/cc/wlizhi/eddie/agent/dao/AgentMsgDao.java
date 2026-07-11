@@ -6,6 +6,7 @@
 package cc.wlizhi.eddie.agent.dao;
 
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
+import cc.wlizhi.eddie.common.util.JdbcUtil;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -23,9 +24,9 @@ public class AgentMsgDao {
     @Resource(name = "agentJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
 
-    public void insert(AgentMsgEntity entity) {
+    public Long insert(AgentMsgEntity entity) {
         long now = System.currentTimeMillis();
-        jdbcTemplate.update(
+        return JdbcUtil.insertAndReturnKey(jdbcTemplate,
                 "INSERT INTO ai_agent_session_msg " +
                         "(session_id, agent_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
@@ -47,10 +48,6 @@ public class AgentMsgDao {
                 entity.getMsgStatus() != null ? entity.getMsgStatus() : "COMPLETED",
                 entity.getRoundSeq() != null ? entity.getRoundSeq() : 0,
                 now);
-    }
-
-    public Long findLastInsertId() {
-        return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
     }
 
     public AgentMsgEntity findById(Long id) {

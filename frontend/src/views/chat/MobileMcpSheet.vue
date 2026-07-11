@@ -9,7 +9,9 @@
 <script setup lang="ts">
 import {ref} from 'vue'
 import {useChatStore} from '@/stores/chat'
-import {NButton, NCheckbox, NCheckboxGroup, NModal, NSpace} from 'naive-ui'
+import {NButton, NCheckbox, NModal, NSpace} from 'naive-ui'
+import {ChevronDown, ChevronRight} from '@lucide/vue'
+import type {ToolSourceVO} from '@/types/mcpServer'
 
 const chatStore = useChatStore()
 
@@ -22,21 +24,71 @@ const toolModeOptions = [
   {label: '手动', value: 'manual'},
 ]
 
-const mcpTempSelected = ref<number[]>([])
+/** 临时勾选的工具名列表（确认后才写入 store） */
+const mcpTempSelectedToolNames = ref<string[]>([])
+
+/** MCP 服务展开状态 */
+const expandedMcpServers = ref<Record<number, boolean>>({})
+
+function toggleMcpExpand(mcpId: number) {
+  expandedMcpServers.value[mcpId] = !expandedMcpServers.value[mcpId]
+}
+
+function isMcpExpanded(mcpId: number): boolean {
+  return !!expandedMcpServers.value[mcpId]
+}
+
+function isMcpServerChecked(mcp: ToolSourceVO): boolean {
+  return mcp.tools.some(t => mcpTempSelectedToolNames.value.includes(t.name))
+}
+
+function isMcpServerIndeterminate(mcp: ToolSourceVO): boolean {
+  const selected = mcp.tools.filter(t => mcpTempSelectedToolNames.value.includes(t.name))
+  return selected.length > 0 && selected.length < mcp.tools.length
+}
+
+function onMcpServerCheck(checked: boolean, mcp: ToolSourceVO) {
+  if (checked) {
+    const existing = new Set(mcpTempSelectedToolNames.value)
+    for (const tool of mcp.tools) {
+      existing.add(tool.name)
+    }
+    mcpTempSelectedToolNames.value = [...existing]
+  } else {
+    const toolNames = new Set(mcp.tools.map(t => t.name))
+    mcpTempSelectedToolNames.value = mcpTempSelectedToolNames.value.filter(n => !toolNames.has(n))
+  }
+}
+
+function onToolCheck(checked: boolean, toolName: string) {
+  if (checked) {
+    mcpTempSelectedToolNames.value.push(toolName)
+  } else {
+    mcpTempSelectedToolNames.value = mcpTempSelectedToolNames.value.filter(n => n !== toolName)
+  }
+}
+
+function getToolStatusLabel(mcp: ToolSourceVO, toolName: string): string {
+  const tool = mcp.tools.find(t => t.name === toolName)
+  if (!tool) return ''
+  if (tool.enabledStatus === 1) return '自动'
+  if (tool.enabledStatus === 2) return '审批'
+  return '禁用'
+}
 
 function onOpen() {
-  mcpTempSelected.value = [...chatStore.selectedMcpServerIds]
+  mcpTempSelectedToolNames.value = [...chatStore.selectedToolNames]
 }
 
 function onToolModeChange(val: string) {
   chatStore.mcpToolMode = val as 'disabled' | 'auto' | 'manual'
   if (val === 'manual') {
-    mcpTempSelected.value = [...chatStore.selectedMcpServerIds]
+    mcpTempSelectedToolNames.value = [...chatStore.selectedToolNames]
   }
 }
 
 function confirmSelection() {
-  chatStore.selectedMcpServerIds = mcpTempSelected.value
+  chatStore.selectedToolNames = mcpTempSelectedToolNames.value
   emit('update:show', false)
 }
 </script>
@@ -67,18 +119,43 @@ function confirmSelection() {
         </button>
       </div>
 
-      <!-- 手动模式：MCP Server 勾选列表 -->
+      <!-- 手动模式：MCP 工具树形选择 -->
       <template v-if="chatStore.mcpToolMode === 'manual'">
         <div class="sheet-divider"/>
-        <NCheckboxGroup v-model:value="mcpTempSelected">
-          <NSpace vertical>
-            <div v-for="mcp in chatStore.boundMcpTools" :key="mcp.mcpServerId" class="mcp-checkbox-item-mobile">
-              <NCheckbox :value="mcp.mcpServerId" :label="mcp.mcpServerName"/>
+        <NSpace vertical>
+          <div v-for="mcp in chatStore.boundMcpTools" :key="mcp.mcpServerId" class="mcp-tree-item-mobile">
+            <!-- 服务级行 -->
+            <div class="mcp-server-row-mobile" @click="toggleMcpExpand(mcp.mcpServerId)">
+              <span class="mcp-expand-icon-mobile">
+                <ChevronRight v-if="!isMcpExpanded(mcp.mcpServerId)" :size="14"/>
+                <ChevronDown v-else :size="14"/>
+              </span>
+              <span class="mcp-server-checkbox-wrap-mobile" @click.stop>
+                <NCheckbox
+                    :checked="isMcpServerChecked(mcp)"
+                    :indeterminate="isMcpServerIndeterminate(mcp)"
+                    @update:checked="(v: boolean) => onMcpServerCheck(v, mcp)"
+                >
+                  {{ mcp.mcpServerName }}
+                </NCheckbox>
+              </span>
               <span class="mcp-tool-count-mobile">{{ mcp.tools.length }} 工具</span>
             </div>
-            <div v-if="chatStore.boundMcpTools.length === 0" class="sheet-empty-hint">暂无可用 MCP 服务</div>
-          </NSpace>
-        </NCheckboxGroup>
+            <!-- 工具级列表 -->
+            <div v-if="isMcpExpanded(mcp.mcpServerId)" class="mcp-tool-list-mobile">
+              <div v-for="tool in mcp.tools" :key="tool.name" class="mcp-tool-row-mobile">
+                <NCheckbox
+                    :checked="mcpTempSelectedToolNames.includes(tool.name)"
+                    @update:checked="(v: boolean) => onToolCheck(v, tool.name)"
+                >
+                  {{ tool.displayName || tool.name }}
+                </NCheckbox>
+                <span class="mcp-tool-status-mobile" :class="getToolStatusLabel(mcp, tool.name) === '自动' ? 'status-auto-mobile' : 'status-approval-mobile'">{{ getToolStatusLabel(mcp, tool.name) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="chatStore.boundMcpTools.length === 0" class="sheet-empty-hint">暂无可用 MCP 服务</div>
+        </NSpace>
       </template>
     </div>
     <template v-if="chatStore.mcpToolMode === 'manual'" #footer>
@@ -149,23 +226,79 @@ function confirmSelection() {
   font-size: var(--font-size-small);
 }
 
-.mcp-checkbox-item-mobile {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
+.mcp-tree-item-mobile {
   border-radius: 8px;
   background: var(--bg-secondary);
-  transition: background 0.15s;
+  overflow: hidden;
 }
 
-.mcp-checkbox-item-mobile:active {
+.mcp-server-row-mobile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.mcp-server-row-mobile:active {
   background: var(--bg-hover);
+}
+
+.mcp-expand-icon-mobile {
+  display: flex;
+  align-items: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  width: var(--space-5);
+  justify-content: center;
+}
+
+.mcp-server-checkbox-wrap-mobile {
+  flex: 1;
+  min-width: 0;
 }
 
 .mcp-tool-count-mobile {
   font-size: var(--font-size-small);
   color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.mcp-tool-list-mobile {
+  border-top: 1px solid var(--border-light);
+  padding: var(--space-2) 0;
+}
+
+.mcp-tool-row-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-12);
+  transition: background 0.15s;
+}
+
+.mcp-tool-row-mobile:active {
+  background: var(--bg-hover);
+}
+
+.mcp-tool-status-mobile {
+  font-size: var(--font-size-small);
+  padding: 0 var(--space-3);
+  border-radius: 4px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.mcp-tool-status-mobile.status-auto-mobile {
+  color: var(--accent-default);
+  background: var(--accent-light-bg);
+}
+
+.mcp-tool-status-mobile.status-approval-mobile {
+  color: var(--warning-default, #d97706);
+  background: var(--warning-light-bg, #fef3c7);
 }
 
 .mcp-modal-footer-mobile {

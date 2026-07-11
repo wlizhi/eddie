@@ -121,8 +121,7 @@ public class AssistantServiceImpl implements AssistantService {
         entity.setEnabled(1);
         entity.setSortOrder(0);
 
-        assistantDao.insert(entity);
-        Long assistantId = assistantDao.findLastInsertId();
+        Long assistantId = assistantDao.insert(entity);
 
         // 处理工具绑定
         bindMcpServerTools(assistantId, request.getMcpServerBindings());

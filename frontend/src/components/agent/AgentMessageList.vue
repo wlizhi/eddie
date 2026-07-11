@@ -44,8 +44,8 @@ defineProps({
 
 /** 工具内部名 → 友好显示名 */
 function displayToolName(toolName: string): string {
+  // 下划线转空格，首字母大写
   return toolName
-      .replace(/^built_in_/, '')
       .replace(/_/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase())
 }

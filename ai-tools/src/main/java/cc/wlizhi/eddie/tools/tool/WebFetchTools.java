@@ -99,7 +99,7 @@ public class WebFetchTools implements BuiltInToolProvider {
                 .build();
     }
 
-    @Tool(name = "built_in_fetch_markdown",
+    @Tool(name = "fetch",
             description = "获取指定 URL 列表的网页内容，提取正文后返回干净的 Markdown 文本，适合 LLM 阅读。每个 URL 独立截断")
     public ApiResult<String> fetchMarkdown(
             @ToolParam(description = "要抓取的 URL 列表") List<String> urls,
@@ -169,7 +169,7 @@ public class WebFetchTools implements BuiltInToolProvider {
         return ApiResult.success(result.toString().strip());
     }
 
-    @Tool(name = "built_in_fetch_json",
+    @Tool(name = "fetch_json",
             description = "获取指定 URL 的 JSON 数据（API 端点专用）。URL 必须返回 application/json，否则报错")
     public String fetchJson(
             @ToolParam(description = "要获取的 JSON 数据 URL") String url) {

@@ -64,6 +64,70 @@
             <code class="detail-value">{{ server.url }}</code>
           </div>
 
+          <!-- Server 级配置面板（FileSearch 等工具的 MCP Server 层级配置） -->
+          <div v-if="server.configSchema?.fields?.length" class="config-section">
+            <div class="config-title">{{ server.configSchema.title }}</div>
+            <div class="config-desc">{{ server.configSchema.description }}</div>
+
+            <div
+                v-for="field in server.configSchema.fields"
+                :key="field.name"
+                class="config-field"
+                v-show="!field.dependsOn || getServerFieldValue(server, field.dependsOn) === field.dependsOnValue"
+            >
+              <label class="config-field-label">{{ field.label }}</label>
+              <span class="config-field-hint">{{ field.description }}</span>
+
+              <!-- select 类型 -->
+              <n-select
+                  v-if="field.type === 'select'"
+                  :value="getServerFieldValue(server, field.name)"
+                  :options="field.options"
+                  class="config-input"
+                  @update:value="(val: string) => { setServerFieldValue(server, field.name, val); saveServerConfig(server) }"
+              />
+
+              <!-- textarea 类型 -->
+              <n-input
+                  v-else-if="field.type === 'textarea'"
+                  :value="getServerFieldValue(server, field.name)"
+                  type="textarea"
+                  :rows="5"
+                  class="config-input"
+                  @update:value="(val: string) => setServerFieldValue(server, field.name, val)"
+                  @blur="saveServerConfig(server)"
+              />
+
+              <!-- string 类型 -->
+              <n-input
+                  v-else-if="field.type === 'string'"
+                  :value="getServerFieldValue(server, field.name)"
+                  :placeholder="field.placeholder"
+                  class="config-input"
+                  @update:value="(val: string) => setServerFieldValue(server, field.name, val)"
+                  @blur="saveServerConfig(server)"
+              />
+
+              <!-- number 类型 -->
+              <n-input-number
+                  v-else-if="field.type === 'number'"
+                  :value="Number(getServerFieldValue(server, field.name))"
+                  :min="field.min"
+                  :max="field.max"
+                  class="config-input-number"
+                  @update:value="(val: number | null) => setServerFieldValue(server, field.name, val)"
+                  @blur="saveServerConfig(server)"
+              />
+
+              <!-- boolean 类型 -->
+              <n-switch
+                  v-else-if="field.type === 'boolean'"
+                  :value="getServerFieldValue(server, field.name) === true || getServerFieldValue(server, field.name) === 'true'"
+                  @update:value="(val: boolean) => { setServerFieldValue(server, field.name, val); saveServerConfig(server) }"
+              />
+            </div>
+          </div>
+
           <div class="tools-section">
             <div class="tools-title">工具列表</div>
             <div
@@ -268,6 +332,10 @@ function getFieldValue(server: McpServer, toolName: string, fieldName: string): 
   const val = config[fieldName]
   if (val !== undefined) return val
   // 找不到则从 schema 默认值查找
+  if (toolName === 'server') {
+    const field = server.configSchema?.fields?.find(f => f.name === fieldName)
+    return field?.defaultValue
+  }
   const tool = server.tools.find(t => t.name === toolName)
   const field = tool?.configSchema?.fields?.find(f => f.name === fieldName)
   return field?.defaultValue
@@ -320,6 +388,69 @@ async function saveConfig(server: McpServer, toolName: string) {
   }
   // 更新该工具的配置段
   full[toolName] = toolConfig
+
+  try {
+    await updateMcpServer(server.id, {
+      name: server.name,
+      sourceType: 'BUILT_IN',
+      sourceConfig: JSON.stringify(full),
+      transportType: 'BUILT_IN',
+    })
+    showToast('配置已保存', 'success')
+  } catch (err: any) {
+    showToast('保存配置失败: ' + (err.message || '未知错误'), 'error')
+  }
+}
+
+// ===== Server 级配置管理（以 "server" 作为命名空间 key） =====
+
+/**
+ * 获取 Server 级配置中指定字段的值
+ */
+function getServerFieldValue(server: McpServer, fieldName: string): any {
+  return getFieldValue(server, 'server', fieldName)
+}
+
+/**
+ * 设置 Server 级配置中指定字段的值
+ */
+function setServerFieldValue(server: McpServer, fieldName: string, value: any) {
+  setFieldValue(server, 'server', fieldName, value)
+}
+
+/**
+ * 保存 Server 级配置到后端（以 "server" 为命名空间合并写入 sourceConfig）
+ */
+async function saveServerConfig(server: McpServer) {
+  const serverConfig = configCache[server.id]?.['server']
+  if (!serverConfig) return
+
+  // textarea 类型的字段将换行文本转为 JSON 数组
+  if (server.configSchema?.fields) {
+    for (const field of server.configSchema.fields) {
+      if (field.type === 'textarea' && typeof serverConfig[field.name] === 'string') {
+        serverConfig[field.name] = serverConfig[field.name]
+          .split('\n')
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0)
+      }
+    }
+  }
+
+  // 读取当前完整 sourceConfig，保留所有命名空间级别的配置段
+  let full: Record<string, any> = {}
+  if (server.sourceConfig && server.sourceConfig !== '{}') {
+    try {
+      const parsed = JSON.parse(server.sourceConfig)
+      for (const [key, val] of Object.entries(parsed)) {
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          full[key] = val
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  // 写入 Server 级配置段
+  full['server'] = serverConfig
 
   try {
     await updateMcpServer(server.id, {
@@ -591,13 +722,13 @@ async function saveConfig(server: McpServer, toolName: string) {
 }
 
 .status-dot.connected {
-  background: var(--color-success, #52c41a);
-  box-shadow: 0 0 6px rgba(82, 196, 26, 0.5);
+  background: var(--success-default);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
 }
 
 .status-dot.disconnected {
-  background: var(--color-warning, #faad14);
-  box-shadow: 0 0 6px rgba(250, 173, 20, 0.5);
+  background: var(--warning-default);
+  box-shadow: 0 0 6px rgba(217, 119, 6, 0.5);
 }
 
 </style>

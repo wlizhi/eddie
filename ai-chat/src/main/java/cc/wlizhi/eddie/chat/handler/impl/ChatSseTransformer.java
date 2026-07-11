@@ -161,17 +161,19 @@ public class ChatSseTransformer {
         // 累积到上下文（仅 COMPLETE / REJECTED 事件记录到持久化列表，START 事件不持久化）
         if (event.getStatus() == ToolExecutionStatus.COMPLETE
                 || event.getStatus() == ToolExecutionStatus.REJECTED) {
-            String toolName = event.getToolName();
-            if (toolName != null && toolName.startsWith("built_in_") && event.getStatus() == ToolExecutionStatus.COMPLETE) {
+            // 尝试解包内置工具的 ApiResult 包裹，非 ApiResult 格式（如 MCP 工具结果）直接忽略
+            if (event.getStatus() == ToolExecutionStatus.COMPLETE) {
                 String result = event.getResult();
-                try {
-                    ApiResult<String> apiResult = objectMapper.readValue(result, new TypeReference<ApiResult<String>>() {
-                    });
-                    if (apiResult.getCode() == ApiResultCode.SUCCESS.getCode()) {
-                        event.setResult(apiResult.getData());
+                if (result != null) {
+                    try {
+                        ApiResult<String> apiResult = objectMapper.readValue(result, new TypeReference<ApiResult<String>>() {
+                        });
+                        if (apiResult.getCode() == ApiResultCode.SUCCESS.getCode()) {
+                            event.setResult(apiResult.getData());
+                        }
+                    } catch (JsonProcessingException e) {
+                        // 不是 ApiResult 格式（如 MCP 工具结果），忽略
                     }
-                } catch (JsonProcessingException e) {
-                    log.warn("解析内置工具结果失败 -> " + e.getMessage(), e);
                 }
             }
             // 第一阶段截断：SSE 实时渲染，允许更大的值

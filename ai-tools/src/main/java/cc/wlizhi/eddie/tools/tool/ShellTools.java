@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,7 +50,7 @@ public class ShellTools implements BuiltInToolProvider {
     }
 
     @Override
-    public ConfigSchema getConfigSchema() {
+    public Map<String, ConfigSchema> getToolConfigSchemas() {
         ConfigFieldDescriptor blacklistField = new ConfigFieldDescriptor(
                 "blacklist", "textarea", "黑名单",
                 "每行一个命令前缀，命中直接拒绝（仅 CUSTOM 模式生效）",
@@ -68,7 +69,7 @@ public class ShellTools implements BuiltInToolProvider {
         whitelistField.setDependsOn("mode");
         whitelistField.setDependsOnValue("CUSTOM");
 
-        return new ConfigSchema("built_in_shell_exec", "Shell 权限设置", "控制 AI 在本地执行 shell 命令的权限范围",
+        ConfigSchema schema = new ConfigSchema("exec", "Shell 权限设置", "控制 AI 在本地执行 shell 命令的权限范围",
                 List.of(
                         new ConfigFieldDescriptor(
                                 "mode", "select", "权限模式",
@@ -90,10 +91,10 @@ public class ShellTools implements BuiltInToolProvider {
                         blacklistField,
                         whitelistField
                 ));
+        return Map.of("exec", schema);
     }
 
-    /** 此工具的 @Tool name，用于在 source_config 中按 namespace 读取配置 */
-    private static final String MY_TOOL_NAME = "built_in_shell_exec";
+    private static final String MY_TOOL_NAME = "exec";
 
     private static final Logger log = LoggerFactory.getLogger(ShellTools.class);
 
@@ -117,7 +118,7 @@ public class ShellTools implements BuiltInToolProvider {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Tool(name = "built_in_shell_exec",
+    @Tool(name = "exec",
             description = """
                     在本地系统执行 shell 命令，返回标准输出和错误输出。
                     
@@ -213,7 +214,7 @@ public class ShellTools implements BuiltInToolProvider {
 
     /**
      * 从 MCP Server 的 source_config 中加载 Shell 权限配置。<p>
-     * 新格式：{ "built_in_shell_exec": { "mode": "SMART", ... } }<br>
+     * 新格式：{ "exec": { "mode": "SMART", ... } }<br>
      * 旧格式兼容：{ "mode": "SMART", ... }（扁平结构）
      *
      * @return 解析后的配置，解析失败返回默认配置（SMART 模式）
@@ -341,3 +342,4 @@ public class ShellTools implements BuiltInToolProvider {
         return null;
     }
 }
+
