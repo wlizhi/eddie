@@ -57,12 +57,35 @@ function buildToolContent(args: string | undefined, result: string | undefined):
     }
   }
   if (result) {
-    // 代码块闭合后，用标准 markdown 段落分隔（两个换行）添加空白行
     if (content) content += '\n\n'
-    content += fixNewlines(result)
+    content += extractToolResultText(result)
   }
-  // console.log('=== buildToolContent output ===', JSON.stringify(content))
   return content
+}
+
+/**
+ * 从工具结果的 JSON 包裹中提取纯文本展示内容。
+ *
+ * MCP 工具的结果格式：{"content":[{"type":"text","text":"..."}],"isError":false}
+ * 内置工具的结果为纯文本或 ApiResult 解包后的 data 字符串。
+ */
+function extractToolResultText(result: string): string {
+  // 修复内容中可能存在的转义换行符
+  const text = fixNewlines(result)
+  try {
+    const parsed = JSON.parse(text)
+    // MCP 工具结果：提取所有 text 类型 content
+    if (parsed.content && Array.isArray(parsed.content)) {
+      const texts = parsed.content
+        .filter((c: any) => c.type === 'text' || c.type === 'resource')
+        .map((c: any) => c.text ?? c.resource ?? '')
+        .filter(Boolean)
+      if (texts.length > 0) return texts.join('\n\n')
+    }
+  } catch {
+    // 非 JSON 格式（内置工具解包后的纯文本），直接返回
+  }
+  return text
 }
 
 /**

@@ -63,9 +63,27 @@ function buildToolContent(args: string | undefined, result: string | undefined):
   }
   if (result) {
     if (content) content += '\n\n'
-    content += result.replace(/\\n/g, '\n')
+    content += extractToolResultText(result)
   }
   return content
+}
+
+/** 从工具结果的 JSON 包裹中提取纯文本展示内容 */
+function extractToolResultText(result: string): string {
+  const text = result.replace(/\\n/g, '\n')
+  try {
+    const parsed = JSON.parse(text)
+    if (parsed.content && Array.isArray(parsed.content)) {
+      const texts = parsed.content
+        .filter((c: any) => c.type === 'text' || c.type === 'resource')
+        .map((c: any) => c.text ?? c.resource ?? '')
+        .filter(Boolean)
+      if (texts.length > 0) return texts.join('\n\n')
+    }
+  } catch {
+    // 非 JSON 格式，直接返回
+  }
+  return text
 }
 
 /** 消息容器 DOM */
