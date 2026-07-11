@@ -158,9 +158,13 @@ public class ShellTools implements BuiltInToolProvider {
             // 根据操作系统选择合适的 shell
             String osName = System.getProperty("os.name").toLowerCase();
             boolean isWindows = osName.contains("win");
+            // Windows 控制台默认编码为系统代码页（如中文 GBK），先切到 UTF-8 避免乱码
+            String effectiveCommand = isWindows
+                    ? "@chcp 65001>nul&" + command
+                    : command;
             ProcessBuilder pb = isWindows
-                    ? new ProcessBuilder("cmd.exe", "/c", command)
-                    : new ProcessBuilder("/bin/sh", "-c", command);
+                    ? new ProcessBuilder("cmd.exe", "/c", effectiveCommand)
+                    : new ProcessBuilder("/bin/sh", "-c", effectiveCommand);
             pb.redirectErrorStream(true);
             Process process = pb.start();
 

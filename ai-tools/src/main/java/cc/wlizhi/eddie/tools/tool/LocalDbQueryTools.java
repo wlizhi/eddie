@@ -17,6 +17,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -180,17 +181,17 @@ public class LocalDbQueryTools implements BuiltInToolProvider {
         String dataDir = System.getProperty("eddie.data");
         if (dataDir == null || dataDir.isBlank()) {
             log.warn("[LocalDbQueryTools] eddie.data 系统属性未设置，回退到默认路径");
-            dataDir = System.getProperty("user.home") + "/.eddie/data";
+            dataDir = Path.of(System.getProperty("user.home"), ".eddie", "data").toString();
         }
 
         String dbFile;
         switch (dbName.trim().toLowerCase()) {
             case "eddie-agent":
-                dbFile = dataDir + "/eddie-agent.db";
+                dbFile = Path.of(dataDir, "eddie-agent.db").toString();
                 break;
             case "eddie":
             default:
-                dbFile = dataDir + "/eddie.db";
+                dbFile = Path.of(dataDir, "eddie.db").toString();
                 break;
         }
 
