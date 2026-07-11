@@ -22,7 +22,10 @@
 export function formatToolResult(result: string): string {
   if (!result) return ''
 
-  const text = fixNewlines(result)
+  // 注意：不要在这里调用 fixNewlines()！它会将 JSON 字符串值中的 \n（合法转义序列）
+  // 替换为真实换行符，导致 JSON.parse() 失败，语法高亮失效。
+  // fixNewlines 仅在确认文本不是 JSON 后的降级路径中调用（见 wrapJsonBlock 末尾）。
+  const text = result
 
   // 1. MCP 信封格式：{"content":[{"type":"text","text":"..."}],"isError":false}
   //    提取 text/resource 内容后逐段格式化
@@ -79,7 +82,8 @@ function wrapJsonBlock(text: string): string {
     }
   }
 
-  return text
+  // 非 JSON → 修复转义换行符后返回，让 renderMd 渲染
+  return fixNewlines(trimmed)
 }
 
 /**
