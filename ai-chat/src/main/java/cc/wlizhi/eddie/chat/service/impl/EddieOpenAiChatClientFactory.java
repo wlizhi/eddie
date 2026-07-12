@@ -12,7 +12,6 @@ import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatOptions;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiOptionsHelper;
 import cc.wlizhi.eddie.common.entity.AssistantEntity;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -26,8 +25,6 @@ import java.time.Duration;
 @Service
 public class EddieOpenAiChatClientFactory implements ChatClientFactory {
 
-    @Resource
-    private ObjectMapper objectMapper;
     @Resource
     private EddieOpenAiOptionsHelper optionsHelper;
 

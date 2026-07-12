@@ -9,6 +9,8 @@ import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiOptionsHelper;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.ChatOptions;
+import org.springframework.ai.model.tool.DefaultToolCallingManager;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -41,7 +43,6 @@ public class EddieOpenAiAgentClientFactory implements AgentChatClientFactory {
 
         // 应用助手级 modelParams
         optionsHelper.applyModelParams(optionsBuilder, agent.getMainModelParams(), provider.getCode());
-
         // 请求级 thinkingMode 覆盖助手配置
         String requestThinkingMode = ctx.getOriginalRequest().getThinkingMode();
         if (requestThinkingMode != null && !requestThinkingMode.isBlank()) {
@@ -52,6 +53,8 @@ public class EddieOpenAiAgentClientFactory implements AgentChatClientFactory {
                 .options(optionsBuilder.build())
                 .build();
 
-        return ChatClient.builder(chatModel).build();
+        return ChatClient
+                .builder(chatModel)
+                .build();
     }
 }

@@ -118,7 +118,7 @@ public class ChatContext {
     /**
      * 是否被用户中断（手动取消或网络断开）
      */
-    private boolean interrupted;
+    private volatile boolean interrupted;
 
     /**
      * 用户消息 ID（持久化后获得，用于停止事件关联）
