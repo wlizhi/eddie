@@ -27,7 +27,12 @@ export function formatToolResult(result: string): string {
   // fixNewlines 仅在确认文本不是 JSON 后的降级路径中调用（见 wrapJsonBlock 末尾）。
   const text = result
 
-  // 1. MCP 信封格式：{"content":[{"type":"text","text":"..."}],"isError":false}
+  // 1. 尝试拆包 ApiResult 通用结构（{code: 200, data: ...}）
+  //    成功 → data 进入后续格式化；失败 → 继续原流程
+  const unwrapped = unwrapApiResult(text)
+  if (unwrapped !== null) return unwrapped
+
+  // 2. MCP 信封格式：{"content":[{"type":"text","text":"..."}],"isError":false}
   //    提取 text/resource 内容后逐段格式化
   try {
     const parsed = JSON.parse(text)
@@ -44,8 +49,39 @@ export function formatToolResult(result: string): string {
     // 非 MCP 格式，继续后续处理
   }
 
-  // 2. 普通文本 → 尝试识别其中的 JSON
+  // 3. 普通文本 → 尝试识别其中的 JSON
   return wrapJsonBlock(text)
+}
+
+/**
+ * 尝试拆包 ApiResult 通用结构。
+ *
+ * 如果结果是 {"code":200, "data":...}，提取 data 后重新走格式化逻辑：
+ * - data 为字符串 → 传入 wrapJsonBlock 检测是 JSON 还是 Markdown
+ * - data 为对象/数组 → JSON pretty-print + 高亮
+ * - data 为 null/undefined → 返回空串
+ *
+ * 非 ApiResult 或 code !== 200 时返回 null，由调用方继续原逻辑。
+ */
+function unwrapApiResult(text: string): string | null {
+  try {
+    const parsed = JSON.parse(text)
+    if (parsed && typeof parsed === 'object' && 'code' in parsed && 'data' in parsed) {
+      if (parsed.code === 200) {
+        const data = parsed.data
+        if (data === null || data === undefined) return ''
+        // data 是字符串 → 用 wrapJsonBlock 检测是 JSON 还是 Markdown
+        if (typeof data === 'string') return wrapJsonBlock(data)
+        // data 是对象/数组 → 直接 JSON pretty-print 高亮
+        return '```json\n' + JSON.stringify(data, null, 2) + '\n```'
+      }
+      // code !== 200，不拆包，显示完整错误响应
+      return null
+    }
+  } catch {
+    // 非 JSON，不处理
+  }
+  return null
 }
 
 /**

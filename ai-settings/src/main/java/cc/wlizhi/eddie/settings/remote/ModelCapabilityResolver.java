@@ -51,7 +51,7 @@ public class ModelCapabilityResolver {
 
     @PostConstruct
     public void init() {
-        initScheduler.addTask(this.getClass().getSimpleName(), 0, this::doInit);
+        initScheduler.addTask(this.getClass().getSimpleName(), 0, this::doInit, true);
     }
 
     private void doInit() {
@@ -73,7 +73,7 @@ public class ModelCapabilityResolver {
                         String modelCode = modelEntry.getKey();
                         List<ModelCapability> caps = modelEntry.getValue().stream()
                                 .map(ModelCapability::fromCode)
-                                .filter(c -> c != null)
+                                .filter(Objects::nonNull)
                                 .toList();
                         providerMap.put(modelCode, caps);
                     }

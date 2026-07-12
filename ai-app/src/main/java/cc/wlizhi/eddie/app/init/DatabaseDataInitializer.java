@@ -60,7 +60,7 @@ public class DatabaseDataInitializer {
 
     @PostConstruct
     public void init() {
-        initScheduler.addTask(this.getClass().getSimpleName(), 10, this::executePendingMigrations);
+        initScheduler.addTask(this.getClass().getSimpleName(), 10, this::executePendingMigrations, true);
     }
 
     private void executePendingMigrations() {

@@ -29,7 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @Component
 public class GlobalConfigContext implements GlobalCache {
 
-    private volatile Map<String, String> configMap;
+    private volatile Map<String, String> configMap = new LinkedHashMap<>();
     private final ReentrantLock lock = new ReentrantLock();
 
     @Resource
@@ -46,7 +46,9 @@ public class GlobalConfigContext implements GlobalCache {
 
     @PostConstruct
     void init() {
-        initScheduler.addTask(this.getClass().getSimpleName(), 1000, this::refresh);
+        // 异步兜底：InitScheduler 中的其他前期任务（如 DatabaseDataInitializer）
+        // 可能修改全局配置，order=1000 确保在其之后再次刷新
+        initScheduler.addTask(this.getClass().getSimpleName(), 1000, this::refresh, true);
     }
 
     /**

@@ -1,10 +1,5 @@
 server:
   port: 11520
-  servlet:
-    encoding:
-      charset: UTF-8
-      enabled: true
-      force: true
   tomcat:
     # 虚拟线程模式下，Tomcat 内部线程池被替换为虚拟线程执行器，
     # 以下 threads.max / min-spare 仅作为降级回退配置保留。
@@ -34,6 +29,11 @@ spring:
     init:
       mode: always
       schema-locations: classpath:db/ddl/schema.sql
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 # 自定义属性
 eddie:

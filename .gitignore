@@ -22,3 +22,4 @@ logs/
 .kilocode/
 plans
 /add-author-headers.sh
+/.kilo

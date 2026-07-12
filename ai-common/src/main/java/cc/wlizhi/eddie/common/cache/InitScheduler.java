@@ -51,10 +51,11 @@ public class InitScheduler {
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        CompletableFuture.runAsync(this::doInit);
+        doInit(true);
+        doInit(false);
     }
 
-    private void doInit() {
+    private void doInit(boolean sync) {
         long doInitStartTime = System.currentTimeMillis();
         Collections.sort(tasks);
         log.info("==================初始化任务列表===================");
@@ -66,7 +67,11 @@ public class InitScheduler {
             long startTime = System.currentTimeMillis();
             log.info("初始化任务-{}：{} 执行中...", taskDefinition.getOrder(), taskDefinition.getName());
             try {
-                taskDefinition.task.run();
+                if (taskDefinition.isSync() == sync) {
+                    taskDefinition.task.run();
+                } else {
+                    CompletableFuture.runAsync(taskDefinition.task);
+                }
                 log.info("初始化任务-{}：{} 执行完毕，耗时：{}ms", taskDefinition.getOrder(), taskDefinition.getName(), System.currentTimeMillis() - startTime);
             } catch (Exception e) {
                 log.error("初始化任务-{}：{} 执行异常，耗时：{}ms，应用即将退出", taskDefinition.getOrder(), taskDefinition.getName(), System.currentTimeMillis() - startTime, e);
@@ -80,7 +85,11 @@ public class InitScheduler {
     }
 
     public void addTask(String name, int order, Runnable task) {
-        tasks.add(new TaskDefinition(name, order, task));
+        addTask(name, order, task, false);
+    }
+
+    public void addTask(String name, int order, Runnable task, boolean sync) {
+        tasks.add(new TaskDefinition(name, order, task, sync));
     }
 
     @Getter
@@ -91,6 +100,7 @@ public class InitScheduler {
         private String name;
         private Integer order;
         private Runnable task;
+        private boolean sync;
 
 
         @Override

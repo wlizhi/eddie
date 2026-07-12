@@ -78,7 +78,7 @@ public class McpToolServiceImpl implements McpToolService {
      */
     @PostConstruct
     public void registerReconnectCallback() {
-        initScheduler.addTask(this.getClass().getSimpleName(), 100, this::doRegisterReconnectCallback);
+        initScheduler.addTask(this.getClass().getSimpleName(), 100, this::doRegisterReconnectCallback, true);
     }
 
     private void doRegisterReconnectCallback() {
@@ -707,8 +707,8 @@ public class McpToolServiceImpl implements McpToolService {
     /**
      * ToolDefinitionEntity → McpToolItemVO
      *
-     * @param entity         工具定义实体
-     * @param mcpServerName  所属 MCP Server 名称（用于查找 configSchema）
+     * @param entity        工具定义实体
+     * @param mcpServerName 所属 MCP Server 名称（用于查找 configSchema）
      */
     private McpToolItemVO toMcpToolItemVO(ToolDefinitionEntity entity, String mcpServerName) {
         if (entity == null) return null;

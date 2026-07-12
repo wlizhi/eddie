@@ -543,10 +543,18 @@ function applyTheme(): void {
         lastThemeKey = currentThemeKey
     }
 
-    // 应用主题的全部 CSS 变量
+    // ⚠ 强调色变量由 applyColorScheme() 全权负责，此处跳过避免冲突
+    const ACCENT_KEYS = new Set([
+        '--accent-default', '--accent-hover',
+        '--accent-light-bg', '--accent-light-border', '--accent-ring',
+        '--border-focus', '--text-accent',
+    ])
+
+    // 应用主题的全部 CSS 变量（跳过强调色，避免覆盖用户设定的强调色）
     const themeVars = getCurrentThemeVariables()
     if (themeVars) {
         for (const [key, value] of Object.entries(themeVars)) {
+            if (ACCENT_KEYS.has(key)) continue
             // 将多行渐变压缩为单行，确保 var(--bg-decoration) 在任何上下文中都能正确解析
             let v = key === '--bg-decoration' ? value.replace(/\s+/g, ' ').trim() : value
             // 仅在主题切换时随机化渐变位置，其他操作不触发
