@@ -35,7 +35,6 @@ public class EddieOpenAiAgentClientFactory implements AgentChatClientFactory {
         // 设 10 分钟确保完整输出。
         // TODO 这个超时事件后面改为可配置或用户页面设置，后端请求超时应当给出友好提示。
         EddieOpenAiChatOptions.Builder optionsBuilder = EddieOpenAiChatOptions.builder()
-                .streamUsage(true)
                 .apiKey(provider.getApiKey())
                 .baseUrl(provider.getBaseUrl())
                 .model(ctx.getUseModelInfo().getId())
