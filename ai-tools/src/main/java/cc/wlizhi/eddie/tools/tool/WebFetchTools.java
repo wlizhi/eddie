@@ -5,9 +5,7 @@
 
 package cc.wlizhi.eddie.tools.tool;
 
-import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
-import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
@@ -101,12 +99,12 @@ public class WebFetchTools implements BuiltInToolProvider {
 
     @Tool(name = "fetch",
             description = "获取指定 URL 列表的网页内容，提取正文后返回干净的 Markdown 文本，适合 LLM 阅读。每个 URL 独立截断")
-    public ApiResult<String> fetchMarkdown(
+    public String fetchMarkdown(
             @ToolParam(description = "要抓取的 URL 列表") List<String> urls,
             @ToolParam(required = false, description = "每个网页最大返回字符数，默认 " + DEFAULT_MAX_CHARS + "，最大 " + MAX_CHARS + "，超出部分会被截断") Integer maxCharacters,
             @ToolParam(required = false, description = "模式：article（提取正文）或 full（全文），默认 article") String mode) {
 
-        if (urls == null || urls.isEmpty()) return ApiResult.error(ApiResultCode.BAD_REQUEST, "未提供 URL");
+        if (urls == null || urls.isEmpty()) return "错误：未提供 URL";
 
         int maxChars = resolveMaxResults(maxCharacters);
         String actualMode = mode != null ? mode : "article";
@@ -166,7 +164,7 @@ public class WebFetchTools implements BuiltInToolProvider {
             log.info("[fetch_markdown] {} → {} chars", url, markdown.length());
         }
 
-        return ApiResult.success(result.toString().strip());
+        return result.toString().strip();
     }
 
     @Tool(name = "fetch_json",

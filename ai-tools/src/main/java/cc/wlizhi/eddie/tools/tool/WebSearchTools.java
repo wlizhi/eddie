@@ -6,8 +6,6 @@
 package cc.wlizhi.eddie.tools.tool;
 
 import cc.wlizhi.eddie.common.cache.InitScheduler;
-import cc.wlizhi.eddie.common.dto.ApiResult;
-import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
@@ -97,7 +95,7 @@ public class WebSearchTools implements BuiltInToolProvider {
 
     @Tool(name = "search",
             description = "搜索互联网并返回网页标题、URL 和摘要。适合查找最新信息、技术文档、新闻等。如需阅读全文可再用 fetch 工具")
-    public ApiResult<String> search(
+    public String search(
             @ToolParam(description = "搜索关键词") String query,
             @ToolParam(required = false, description = "可选参数，返回结果数量（1-20），默认值 1") Integer maxResults,
             @ToolParam(required = false, description = "可选参数，搜索引擎（DUCKDUCKGO / BING），默认 DUCKDUCKGO") String engine) {
@@ -137,8 +135,7 @@ public class WebSearchTools implements BuiltInToolProvider {
                 return searchBing(encodedQuery, query, limit);
             } catch (Exception ex) {
                 log.error("[搜索] 降级后仍然失败", ex);
-                return ApiResult.error(ApiResultCode.INTERNAL_ERROR,
-                        "搜索失败，请检查网络连接。\n提示：你可以在设置中添加 SearXNG 等 MCP 搜索服务器。");
+                return "搜索失败，请检查网络连接。\n提示：你可以在设置中添加 SearXNG 等 MCP 搜索服务器。";
             }
         }
     }
@@ -148,11 +145,10 @@ public class WebSearchTools implements BuiltInToolProvider {
     /**
      * 使用用户指定的搜索引擎搜索，失败时自动降级到另一个引擎。
      */
-    private ApiResult<String> searchWithEngine(String encodedQuery, String rawQuery, int limit, String engine) {
+    private String searchWithEngine(String encodedQuery, String rawQuery, int limit, String engine) {
         SearchBackend preferred = parseEngine(engine);
         if (preferred == null) {
-            return ApiResult.error(ApiResultCode.BAD_REQUEST,
-                    "不支持的搜索引擎：" + engine + "，可选值：DUCKDUCKGO / BING");
+            return "错误：不支持的搜索引擎：" + engine + "，可选值：DUCKDUCKGO / BING";
         }
 
         // 尝试首选引擎
@@ -170,7 +166,7 @@ public class WebSearchTools implements BuiltInToolProvider {
                 ? SearchBackend.BING : SearchBackend.DUCKDUCKGO;
 
         try {
-            ApiResult<String> fallbackResult;
+            String fallbackResult;
             if (fallback == SearchBackend.DUCKDUCKGO) {
                 fallbackResult = searchDdg(encodedQuery, rawQuery, limit);
             } else {
@@ -178,11 +174,10 @@ public class WebSearchTools implements BuiltInToolProvider {
             }
 
             String tip = "⚠️ 你指定的 " + preferred + " 暂时不可用，已自动降级到 " + fallback + " 搜索。\n\n";
-            return ApiResult.success(tip + fallbackResult.getData());
+            return tip + fallbackResult;
         } catch (Exception ex) {
             log.error("[搜索] 指定引擎 {} 降级 {} 后仍然失败", preferred, fallback, ex);
-            return ApiResult.error(ApiResultCode.INTERNAL_ERROR,
-                    "你指定的 " + preferred + " 暂时不可用，降级到 " + fallback + " 后也搜索失败，请稍后再试。");
+            return "错误：你指定的 " + preferred + " 暂时不可用，降级到 " + fallback + " 后也搜索失败，请稍后再试。";
         }
     }
 
@@ -197,7 +192,7 @@ public class WebSearchTools implements BuiltInToolProvider {
 
     // ==================== DuckDuckGo Lite 搜索 ====================
 
-    ApiResult<String> searchDdg(String encodedQuery, String rawQuery, int limit) throws Exception {
+    String searchDdg(String encodedQuery, String rawQuery, int limit) throws Exception {
         Document doc = Jsoup.connect(DDG_URL + "?q=" + encodedQuery)
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                 .timeout(DDG_TIMEOUT_MS)
@@ -234,7 +229,7 @@ public class WebSearchTools implements BuiltInToolProvider {
             }
             if (count > 0) {
                 sb.append("---\n共找到 ").append(count).append(" 条结果。\n💡 提示：如需阅读全文，可使用 fetch_markdown 工具");
-                return ApiResult.success(sb.toString());
+                return sb.toString();
             }
         }
 
@@ -262,7 +257,7 @@ public class WebSearchTools implements BuiltInToolProvider {
             }
             if (count > 0) {
                 sb.append("---\n共找到 ").append(count).append(" 条结果。\n💡 提示：如需阅读全文，可使用 fetch_markdown 工具");
-                return ApiResult.success(sb.toString());
+                return sb.toString();
             }
         }
 
@@ -277,14 +272,14 @@ public class WebSearchTools implements BuiltInToolProvider {
             if (!href.startsWith("http")) href = "https:" + href;
             sb.append(++count).append(". **").append(text).append("**\n   🔗 ").append(href).append("\n\n");
         }
-        if (count == 0) return ApiResult.success("未找到搜索结果。");
+        if (count == 0) return "未找到搜索结果。";
         sb.append("---\n共找到 ").append(count).append(" 条结果。");
-        return ApiResult.success(sb.toString());
+                return sb.toString();
     }
 
     // ==================== Bing 搜索（国内可直连，结果干净） ====================
 
-    ApiResult<String> searchBing(String encodedQuery, String rawQuery, int limit) throws Exception {
+    String searchBing(String encodedQuery, String rawQuery, int limit) throws Exception {
         Document doc = Jsoup.connect(BING_URL + "?q=" + encodedQuery + "&cc=cn")
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                 .header("Accept-Language", "zh-CN,zh;q=0.9")
@@ -332,11 +327,11 @@ public class WebSearchTools implements BuiltInToolProvider {
                 if (!href.startsWith("http")) continue;
                 sb.append(++count).append(". **").append(text).append("**\n   🔗 ").append(href).append("\n\n");
             }
-            if (count == 0) return ApiResult.success("未找到搜索结果。");
+            if (count == 0) return "未找到搜索结果。";
         }
 
         sb.append("---\n共找到 ").append(count).append(" 条结果。\n💡 提示：如需阅读全文，可使用 fetch_markdown 工具");
-        return ApiResult.success(sb.toString());
+                return sb.toString();
     }
 
     // ==================== 后台 DDG 可达性探测 ====================

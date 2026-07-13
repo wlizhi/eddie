@@ -5,12 +5,9 @@
 
 package cc.wlizhi.eddie.tools.tool;
 
-import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.dto.ConfigFieldDescriptor;
 import cc.wlizhi.eddie.common.dto.ConfigSchema;
 import cc.wlizhi.eddie.common.dto.ShellToolConfig;
-import cc.wlizhi.eddie.common.entity.McpServerEntity;
-import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -137,11 +134,11 @@ public class ShellTools implements BuiltInToolProvider {
                     - 输出长度上限：10,000 字符（可在设置中调整）
                     - 建议优先使用只读命令（ls、cat、echo、pwd 等），避免执行危险操作
                     """)
-    public ApiResult<String> exec(
+    public String exec(
             @ToolParam(description = "要执行的 shell 命令，如 'ls -la /tmp' 或 'echo hello'") String command) {
 
         if (command == null || command.isBlank()) {
-            return ApiResult.error(ApiResultCode.BAD_REQUEST, "命令不能为空");
+            return "错误：命令不能为空";
         }
 
         // 1. 读取权限配置
@@ -151,7 +148,7 @@ public class ShellTools implements BuiltInToolProvider {
         int maxOutputChars = resolveMaxOutputChars(config);
 
         // 3. 权限校验
-        ApiResult<String> permissionResult = checkPermission(command, config);
+        String permissionResult = checkPermission(command, config);
         if (permissionResult != null) {
             return permissionResult;
         }
@@ -177,8 +174,7 @@ public class ShellTools implements BuiltInToolProvider {
             if (!finished) {
                 process.destroyForcibly();
                 log.warn("[ShellTools] 命令超时已强制终止: {}", command);
-                return ApiResult.error(ApiResultCode.TIMEOUT,
-                        "命令执行超时（" + TIMEOUT_SECONDS + "秒），已强制终止进程");
+                return "错误：命令执行超时（" + TIMEOUT_SECONDS + "秒），已强制终止进程";
             }
 
             int exitCode = process.exitValue();
@@ -192,17 +188,15 @@ public class ShellTools implements BuiltInToolProvider {
 
             if (exitCode != 0) {
                 log.warn("[ShellTools] 命令退出码非零: exitCode={}, command={}", exitCode, command);
-                return ApiResult.success(
-                        "命令执行完成（退出码: " + exitCode + "）\n输出:\n" + result);
+                return "命令执行完成（退出码: " + exitCode + "）\n输出:\n" + result;
             }
 
             log.info("[ShellTools] 命令执行成功: exitCode=0, outputLength={}", result.length());
-            return ApiResult.success(result.isEmpty() ? "命令执行成功，无输出" : result);
+            return result.isEmpty() ? "命令执行成功，无输出" : result;
 
         } catch (Exception e) {
             log.error("[ShellTools] 命令执行异常: {}", command, e);
-            return ApiResult.error(ApiResultCode.INTERNAL_ERROR,
-                    "命令执行失败: " + e.getMessage());
+            return "错误：命令执行失败: " + e.getMessage();
         }
     }
 
@@ -304,9 +298,9 @@ public class ShellTools implements BuiltInToolProvider {
      *
      * @param command 待执行的 shell 命令
      * @param config  权限配置
-     * @return 校验不通过时返回错误 ApiResult，通过时返回 null
+     * @return 校验不通过时返回错误提示字符串，通过时返回 null
      */
-    private ApiResult<String> checkPermission(String command, ShellToolConfig config) {
+    private String checkPermission(String command, ShellToolConfig config) {
         String mode = config.getMode();
         if (mode == null) {
             mode = "SMART";
@@ -322,14 +316,12 @@ public class ShellTools implements BuiltInToolProvider {
             // 高危命令 → 直接拒绝
             if (ShellToolConfig.isDangerous(command)) {
                 log.warn("[ShellTools] SMART 模式拦截高危命令: {}", command);
-                return ApiResult.error(ApiResultCode.COMMAND_NOT_PERMITTED,
-                        "检测到高危命令，已拦截: " + command);
+                return "错误：检测到高危命令，已拦截: " + command;
             }
             // 写入操作 → 需要用户确认
             if (ShellToolConfig.isWriteOperation(command)) {
                 log.warn("[ShellTools] SMART 模式检测到写入操作，需确认: {}", command);
-                return ApiResult.error(ApiResultCode.NEED_CONFIRMATION,
-                        "检测到写入操作，请在页面确认后重试: " + command);
+                return "提示：检测到写入操作，请在页面确认后重试: " + command;
             }
             // 只读操作 → 自动放行
             return null;
@@ -348,9 +340,8 @@ public class ShellTools implements BuiltInToolProvider {
                         .anyMatch(trimmed::startsWith);
                 if (blocked) {
                     log.warn("[ShellTools] CUSTOM 模式黑名单拦截: {}", command);
-                    return ApiResult.error(ApiResultCode.COMMAND_NOT_PERMITTED,
-                            "命令在黑名单中，已拦截。允许的前缀: " +
-                                    String.join(", ", config.getWhitelist() != null ? config.getWhitelist() : List.of()));
+                    return "错误：命令在黑名单中，已拦截。允许的前缀: " +
+                                    String.join(", ", config.getWhitelist() != null ? config.getWhitelist() : List.of());
                 }
             }
 
@@ -363,9 +354,8 @@ public class ShellTools implements BuiltInToolProvider {
                         .anyMatch(trimmed::startsWith);
                 if (!permitted) {
                     log.warn("[ShellTools] CUSTOM 模式白名单拒绝: {}", command);
-                    return ApiResult.error(ApiResultCode.COMMAND_NOT_PERMITTED,
-                            "命令不在白名单中，允许的前缀: " +
-                                    String.join(", ", whitelist));
+                    return "错误：命令不在白名单中，允许的前缀: " +
+                                    String.join(", ", whitelist);
                 }
             }
 
