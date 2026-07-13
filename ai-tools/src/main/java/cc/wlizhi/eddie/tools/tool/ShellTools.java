@@ -8,6 +8,7 @@ package cc.wlizhi.eddie.tools.tool;
 import cc.wlizhi.eddie.common.dto.ConfigFieldDescriptor;
 import cc.wlizhi.eddie.common.dto.ConfigSchema;
 import cc.wlizhi.eddie.common.dto.ShellToolConfig;
+import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
