@@ -26,7 +26,7 @@ public class SubTaskResponseStreamProcessor extends AbstractStreamProcessor {
 
     @Override
     protected void beforeStream(AgentChatContext ctx) {
-        ctx.getSink().next(ServerSentEvent.<String>builder()
+        ctx.getEvent().getSink().next(ServerSentEvent.<String>builder()
                 .event("sub_task_start")
                 .data("子任务开始")
                 .build());
@@ -36,7 +36,7 @@ public class SubTaskResponseStreamProcessor extends AbstractStreamProcessor {
     protected void afterStream(AgentChatContext ctx) {
         // 先执行基类通用逻辑（token 提取 + 持久化 + metadata 推送）
         super.afterStream(ctx);
-        ctx.getSink().next(ServerSentEvent.<String>builder()
+        ctx.getEvent().getSink().next(ServerSentEvent.<String>builder()
                 .event("sub_task_complete")
                 .data("子任务完成")
                 .build());

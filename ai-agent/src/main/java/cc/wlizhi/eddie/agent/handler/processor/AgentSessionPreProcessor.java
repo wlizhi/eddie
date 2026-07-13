@@ -42,6 +42,6 @@ public class AgentSessionPreProcessor implements AgentChatPreProcessor {
         }
 
         ctx.setSession(session);
-        ctx.setObjectMapper(objectMapper);
+        ctx.getEvent().setObjectMapper(objectMapper);
     }
 }

@@ -115,7 +115,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         AgentIteratorState iteratorState = ctx.getIteratorState();
         if (iteratorState != null && ctx.getAgentMsg() != null && ctx.getAgentMsg().getId() != null) {
             try {
-                String iteratorStateJson = ctx.getObjectMapper().writeValueAsString(iteratorState);
+                String iteratorStateJson = ctx.getEvent().getObjectMapper().writeValueAsString(iteratorState);
                 agentMsgDao.updateIteratorState(ctx.getAgentMsg().getId(), iteratorStateJson);
                 log.info("迭代状态更新完成, msgId={}, iteratorState={}", ctx.getAgentMsg().getId(), iteratorStateJson);
             } catch (Exception e) {
@@ -143,7 +143,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         List<ChatToolExecutionEvent> toolCalls = stepCtx.getToolCalls();
         if (toolCalls != null && !toolCalls.isEmpty()) {
             try {
-                toolCallsJson = ctx.getObjectMapper().writeValueAsString(toolCalls);
+                toolCallsJson = ctx.getEvent().getObjectMapper().writeValueAsString(toolCalls);
             } catch (Exception e) {
                 log.warn("序列化工具调用记录失败, stepRecordId={}: {}", stepCtx.getStepRecordId(), e.getMessage());
             }
@@ -204,7 +204,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
     @Override
     protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
         AgentMode agentMode = ctx.getIteratorState().getAgentMode();
-        Integer currentStepNumber = ctx.getCurrentStepNumber();
+        Integer currentStepNumber = ctx.getMetrics().getCurrentStepNumber();
         List<AgentTaskStep> steps = ctx.getTaskPlan().getSteps();
         String stepStatus = steps.get(currentStepNumber - 1).getStatus();
         boolean isFinal = Objects.equals(stepStatus, StepStatus.COMPLETED.getValue())

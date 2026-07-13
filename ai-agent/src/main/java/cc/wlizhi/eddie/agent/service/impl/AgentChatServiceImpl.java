@@ -65,14 +65,14 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Override
     public Flux<ServerSentEvent<String>> chat(AgentChatRequest request) {
         AgentChatContext ctx = new AgentChatContext();
-        ctx.setStartTime(System.currentTimeMillis());
+        ctx.getMetrics().setStartTime(System.currentTimeMillis());
         ctx.setOriginalRequest(request);
-        ctx.setEventPublisher(publisher);
-        ctx.setEventRegistry(eventRegistry);
+        ctx.getEvent().setEventPublisher(publisher);
+        ctx.getEvent().setEventRegistry(eventRegistry);
 
 
         return Flux.create(sink -> {
-            ctx.setSink(sink);
+            ctx.getEvent().setSink(sink);
 
             // 按 @Order 顺序执行所有预处理器，填充 AgentChatContext 字段
             preProcessors(ctx);
@@ -80,7 +80,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             // 消息已持久化（preProcessors 中已完成），通知前端消息 ID
             publisher.messageCreated(ctx);
             Thread agentThread = Thread.ofVirtual().name("agent-chat").start(() -> {
-                ctx.setAgentThread(Thread.currentThread());
+                ctx.getEvent().setAgentThread(Thread.currentThread());
                 doChat(ctx);
             });
             // 客户端断连时中断虚拟线程
@@ -135,7 +135,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             }
             // 显式关闭 Flux，结束 SSE 连接
             try {
-                ctx.getSink().complete();
+                ctx.getEvent().getSink().complete();
             } catch (Exception ignored) {
                 // sink 可能已被关闭或因中断异常
             }
@@ -170,7 +170,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             String toolErrorFeedback = """
                     注意：你刚才调用了工具 "%s"，但该工具不存在。请确认工具名称是否正确，仅使用系统提供的可用工具。
                     """.formatted(toolName);
-            ctx.getToolErrorFeedback().append(toolErrorFeedback);
+            ctx.getEvent().getToolErrorFeedback().append(toolErrorFeedback);
             return;
         }
         throw ex;
@@ -224,13 +224,13 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         boolean isFailed = status == StepStatus.FAILED;
         // 使用 stepStreamContext.stepNumber（工具实际更新的步骤编号）而非 ctx.getCurrentStepNumber()
-        int currentStepNumber = stepCtx.getStepNumber() != null ? stepCtx.getStepNumber() : ctx.getCurrentStepNumber();
+        int currentStepNumber = stepCtx.getStepNumber() != null ? stepCtx.getStepNumber() : ctx.getMetrics().getCurrentStepNumber();
         int totalSteps = taskPlan.getSteps().size();
 
         if (currentStepNumber < totalSteps) {
             // 推进到下一步
             int nextStepNumber = currentStepNumber + 1;
-            ctx.setCurrentStepNumber(nextStepNumber);
+            ctx.getMetrics().setCurrentStepNumber(nextStepNumber);
             AgentTaskStep nextPlanStep = taskPlan.getSteps().get(nextStepNumber - 1);
             nextPlanStep.setStatus(StepStatus.PROCESSING.getValue());
             log.info("步骤 {} {}，推进至步骤 {}", currentStepNumber, isFailed ? "失败" : "完成", nextStepNumber);
@@ -244,12 +244,12 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         // 持久化 taskPlan 并推送更新事件
         persistTaskPlan(ctx);
-        ctx.getEventPublisher().updateTaskPlan(ctx, taskPlan);
+        ctx.getEvent().getEventPublisher().updateTaskPlan(ctx, taskPlan);
     }
 
     private boolean shouldBreakIterator(AgentChatContext ctx) {
         AgentIteratorState iteratorState = ctx.getIteratorState();
-        if (ctx.getAgentThread().isInterrupted()) {
+        if (ctx.getEvent().getAgentThread().isInterrupted()) {
             return true;
         }
         String stopKey = EventRegistry.key(AgentEvent.STOP_MSG.name().toLowerCase(), ctx.getAgentMsg().getId().toString());
@@ -268,8 +268,8 @@ public class AgentChatServiceImpl implements AgentChatService {
         for (AgentChatPreProcessor processor : preProcessors) {
             processor.process(ctx);
         }
-        ChatClient newClient = ctx.getChatClient().mutate().defaultAdvisors(modelThrottleAdvisor).build();
-        ctx.setChatClient(newClient);
+        ChatClient newClient = ctx.getEvent().getChatClient().mutate().defaultAdvisors(modelThrottleAdvisor).build();
+        ctx.getEvent().setChatClient(newClient);
     }
 
     @Override

@@ -12,10 +12,7 @@ import cc.wlizhi.eddie.agent.tool.SwitchModeTool;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
-import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.enums.RoleType;
-import cc.wlizhi.eddie.common.util.ConfigUtil;
-import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
@@ -40,8 +37,6 @@ public class ChatClientPostProcessor implements AgentClientPostProcessor {
     private SwitchModeTool switchModeTool;
     @Resource
     private AgentShortTermMemory agentShortTermMemory;
-    @Resource
-    private GlobalConfigContext globalConfigContext;
     @Resource
     private OwnerToolBindingContext ownerToolBindingContext;
     @Resource
@@ -79,7 +74,7 @@ public class ChatClientPostProcessor implements AgentClientPostProcessor {
         allTools.addAll(Arrays.asList(switchModeTools));
 
         // 4. 构建 ChatClient（仅在 chatting 模式注入记忆窗口 advisor）
-        ChatClient.Builder builder = ctx.getChatClient().mutate();
+        ChatClient.Builder builder = ctx.getEvent().getChatClient().mutate();
         if (ctx.getIteratorState().getAgentMode() == AgentMode.CHAT) {
             var memoryAdvisor = MessageChatMemoryAdvisor.builder(agentShortTermMemory).build();
             builder.defaultAdvisors(memoryAdvisor);
@@ -99,20 +94,8 @@ public class ChatClientPostProcessor implements AgentClientPostProcessor {
             builder.defaultTools(wrappers);
         }
 
-        // 4. 解析并注入各层级截断长度
-        // 4a. 模型上下文截断（提交给 LLM 的数据）
-        String modelMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_RESULT_MODEL_MAX_LENGTH);
-        int modelMaxLen = ConfigUtil.resolveIntConfig(100000, modelMaxLenStr, 0, 100000);
-        ctx.setToolResultModelMaxLength(modelMaxLen);
-        // 4b. SSE 渲染截断（推送前端展示）
-        String sseMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
-        int sseMaxLen = ConfigUtil.resolveIntConfig(5000, sseMaxLenStr, 100, 8000);
-        ctx.setToolCallMaxLength(sseMaxLen);
-        // 4c. 存储截断（持久化到数据库，固定为 SSE 截断的一半）
-        ctx.setToolCallStoreMaxLength(sseMaxLen >> 1);
-
         String resolvePrompts = agentPromptsResolver.resolvePrompts(ctx);
-        log.debug("当前模式：{}，系统提示词：\n{}", ctx.getIteratorState().getAgentMode().name(), resolvePrompts);
+        log.debug("当前模式：{}，系统提示词字符数：{}", ctx.getIteratorState().getAgentMode().name(), resolvePrompts.length());
         return builder.build().prompt()
                 .system(resolvePrompts)
                 .user(ctx.getOriginalRequest().getMessage())

@@ -82,7 +82,7 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
             // 持久化到数据库 task_plan 字段
             Long msgId = ctx.getAgentMsg().getId();
             try {
-                String taskPlanJson = ctx.getObjectMapper().writeValueAsString(taskPlan);
+                String taskPlanJson = ctx.getEvent().getObjectMapper().writeValueAsString(taskPlan);
                 agentMsgDao.updateTaskPlan(msgId, taskPlanJson);
             } catch (Exception e) {
                 log.warn("[PlanProcessor] 持久化 task_plan 失败, msgId={}: {}", msgId, e.getMessage());
@@ -90,7 +90,7 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
 
             // 更新 agentMsg 的 content（用于前端对话气泡展示简要文本）
             String summary = String.format("【任务规划】%s — %s", taskPlan.getTitle(), taskPlan.getSummary());
-            ctx.getFullAnswer().append(summary);
+            ctx.getOutput().getFullAnswer().append(summary);
 
             long elapsed = System.currentTimeMillis() - streamStart;
             log.debug("[PlanProcessor] 规划完成, title={}, steps={}, 耗时={}ms",
@@ -119,7 +119,7 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
         // 切换到执行模式
         ctx.getIteratorState().setAgentMode(AgentMode.EXECUTE);
         // 初始化每个步骤的任务上下文
-        ctx.setCurrentStepNumber(1);
+        ctx.getMetrics().setCurrentStepNumber(1);
 
         // 更新任务计划及首个步骤的状态
         AgentTaskPlan taskPlan = ctx.getTaskPlan();

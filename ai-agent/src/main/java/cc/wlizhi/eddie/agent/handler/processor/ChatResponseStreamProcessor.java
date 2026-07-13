@@ -70,12 +70,12 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
             return;
         }
 
-        String content = ctx.getFullAnswer().toString();
-        String thinking = ctx.getFullThinking().toString();
+        String content = ctx.getOutput().getFullAnswer().toString();
+        String thinking = ctx.getOutput().getFullThinking().toString();
 
         // 序列化工具调用记录（与 ai-chat 模块的 ToolExecutionEvent 格式一致）
         String toolCallsJson = serializeToolCalls(ctx);
-        List<ChatToolExecutionEvent> toolCalls = ctx.getToolCalls();
+        List<ChatToolExecutionEvent> toolCalls = ctx.getOutput().getToolCalls();
 
         if (content.isEmpty() && thinking.isEmpty() && "[]".equals(toolCallsJson)) {
             log.debug("累积内容为空，仅更新状态为 COMPLETED, agentMsgId={}", agentMsgId);
@@ -99,12 +99,12 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
      * 序列化工具调用记录为 JSON 字符串
      */
     private String serializeToolCalls(AgentChatContext ctx) {
-        List<ChatToolExecutionEvent> toolCalls = ctx.getToolCalls();
+        List<ChatToolExecutionEvent> toolCalls = ctx.getOutput().getToolCalls();
         if (toolCalls == null || toolCalls.isEmpty()) {
             return "[]";
         }
         try {
-            return ctx.getObjectMapper().writeValueAsString(toolCalls);
+            return ctx.getEvent().getObjectMapper().writeValueAsString(toolCalls);
         } catch (JsonProcessingException e) {
             log.warn("序列化工具调用记录失败", e);
             return "[]";

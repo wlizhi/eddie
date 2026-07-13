@@ -70,7 +70,7 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
                 .forEach(res -> {
                    chunkCount.incrementAndGet();
                     // 保存最后一次响应，供后续提取 tool_calls / token 用量
-                    ctx.setLastResponse(res);
+                    ctx.getOutput().setLastResponse(res);
 
                     // 1. 提取并推送思考内容（JSON 格式 via AgentEventPublisher）
                     handleThinking(ctx, res);
@@ -90,7 +90,7 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
     }
 
     private boolean checkUserStopEvent(AgentChatContext ctx) {
-        if (ctx.getAgentThread().isInterrupted()) {
+        if (ctx.getEvent().getAgentThread().isInterrupted()) {
             return true;
         }
         // 用户中断指令发出，应当中断。
@@ -124,7 +124,7 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
             if (reasoning != null && !reasoning.toString().isEmpty()) {
                 String text = reasoning.toString();
                 publisher.thinking(ctx, null, text);
-                ctx.getFullThinking().append(text);
+                ctx.getOutput().getFullThinking().append(text);
             }
         } catch (Exception ignored) {
             // 忽略解析异常
@@ -143,7 +143,7 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
                     .collect(Collectors.joining());
             if (!answer.isEmpty()) {
                 publisher.answer(ctx, null, answer);
-                ctx.getFullAnswer().append(answer);
+                ctx.getOutput().getFullAnswer().append(answer);
             }
         } catch (Exception ignored) {
             // 忽略解析异常
@@ -176,14 +176,14 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
      * 子类若覆盖此方法，<b>必须</b>调用 {@code super.afterStream(ctx)} 以确保统计逻辑执行。
      */
     protected void afterStream(AgentChatContext ctx) {
-        Usage usage = ctx.getLastResponse().getMetadata().getUsage();
+        Usage usage = ctx.getOutput().getLastResponse().getMetadata().getUsage();
         log.debug("afterStream，getTotalTokens:{}，getPromptTokens：{}，getCompletionTokens：{}", usage.getTotalTokens(), usage.getPromptTokens(), usage.getCompletionTokens());
         // 1. 从最后一条 ChatResponse 提取 token 统计，增量合并到 ctx.tokenStatists
         TokenStatsHelper.extractAndMergeTokenStats(ctx);
 
         // 2. 先推流给前端（低延迟，用户先看到数据）
-        if (ctx.getTokenStatists() != null) {
-            publisher.metadata(ctx, ctx.getTokenStatists());
+        if (ctx.getOutput().getTokenStatists() != null) {
+            publisher.metadata(ctx, ctx.getOutput().getTokenStatists());
         }
 
         // 3. 后持久化到数据库（I/O 操作，不阻塞用户体验）

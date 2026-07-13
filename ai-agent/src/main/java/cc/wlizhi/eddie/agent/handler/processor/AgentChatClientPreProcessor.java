@@ -22,6 +22,6 @@ public class AgentChatClientPreProcessor implements AgentChatPreProcessor {
     public void process(AgentChatContext ctx) {
         ModelProviderEntity modelProvider = ctx.getModelProvider();
         AgentChatClientFactory factory = factoryRouter.resolve(modelProvider.getCode());
-        ctx.setChatClient(factory.getChatClient(ctx));
+        ctx.getEvent().setChatClient(factory.getChatClient(ctx));
     }
 }

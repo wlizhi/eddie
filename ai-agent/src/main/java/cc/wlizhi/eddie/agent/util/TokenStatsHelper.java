@@ -41,17 +41,17 @@ public final class TokenStatsHelper {
      * @param ctx 当前请求上下文（其 lastResponse 必须有值）
      */
     public static void extractAndMergeTokenStats(AgentChatContext ctx) {
-        ChatResponse last = ctx.getLastResponse();
+        ChatResponse last = ctx.getOutput().getLastResponse();
         if (last == null) return;
 
         ChatResponseMetadata responseMetadata = last.getMetadata();
 
         Usage usage = responseMetadata.getUsage();
 
-        AgentTokenStatists stats = ctx.getTokenStatists();
+        AgentTokenStatists stats = ctx.getOutput().getTokenStatists();
         if (stats == null) {
             stats = new AgentTokenStatists();
-            ctx.setTokenStatists(stats);
+            ctx.getOutput().setTokenStatists(stats);
         }
 
         // 标准 token 字段（Usage.getXxx() 返回 int）
@@ -82,7 +82,7 @@ public final class TokenStatsHelper {
 
         // 耗时（从请求开始时间到当前）
         long now = System.currentTimeMillis();
-        int elapsedMs = (int) (now - ctx.getStartTime());
+        int elapsedMs = (int) (now - ctx.getMetrics().getStartTime());
         stats.setDurationMs(elapsedMs);
     }
 
@@ -93,7 +93,7 @@ public final class TokenStatsHelper {
      * @param agentMsgDao AgentMsgDao 实例
      */
     public static void persistTokenStats(AgentChatContext ctx, AgentMsgDao agentMsgDao) {
-        AgentTokenStatists stats = ctx.getTokenStatists();
+        AgentTokenStatists stats = ctx.getOutput().getTokenStatists();
         if (stats == null) return;
         Long agentMsgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         if (agentMsgId == null) return;

@@ -69,7 +69,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
         this.behaviors = behaviors;
         this.mcpServer = mcpServer;
         this.ctx = ctx;
-        this.objectMapper = ctx.getObjectMapper() != null ? ctx.getObjectMapper() : new ObjectMapper();
+        this.objectMapper = ctx.getEvent().getObjectMapper() != null ? ctx.getEvent().getObjectMapper() : new ObjectMapper();
     }
 
     @Override
@@ -118,8 +118,8 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
                     "agent:" + ctx.getAgentMsg().getId() + ":" + resolveStepRecordId() + ":" + currentSeq);
             String stopKey = getStopEventKey();
             Object approvalResult = stopKey != null
-                    ? ctx.getEventRegistry().waitFor(approvalKey, stopKey)
-                    : ctx.getEventRegistry().waitFor(approvalKey);
+                    ? ctx.getEvent().getEventRegistry().waitFor(approvalKey, stopKey)
+                    : ctx.getEvent().getEventRegistry().waitFor(approvalKey);
 
             if (approvalResult == null) {
                 log.info("[UnifiedAgentInterceptor] 工具审批被中断: tool={}", toolName);
@@ -259,7 +259,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
             AgentToolExecutionPayload payload = new AgentToolExecutionPayload(
                     msgId, stepRecordId, stepNumber,
                     toolName, status, toolInput, result, error, currentSeq);
-            ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
+            ctx.getEvent().getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
         } catch (Exception e) {
             log.warn("[UnifiedAgentInterceptor] 发射 SSE 事件失败: tool={}", toolName, e);
         }
@@ -271,7 +271,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
 
     private String truncateModel(String result) {
         if (result == null) return "";
-        int maxLen = ctx.getToolResultModelMaxLength();
+        int maxLen = ctx.getOutput().getToolResultModelMaxLength();
         if (maxLen > 0 && result.length() > maxLen) {
             return result.substring(0, maxLen) + "\n\n...（工具结果已截断，更多内容请参考原始数据）";
         }
@@ -280,7 +280,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
 
     private String truncateSse(String result) {
         if (result == null) return "";
-        int maxLen = ctx.getToolCallMaxLength();
+        int maxLen = ctx.getOutput().getToolCallMaxLength();
         if (maxLen > 0 && result.length() > maxLen) {
             return result.substring(0, maxLen) + "...（已截断）";
         }
@@ -289,7 +289,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
 
     private String truncateStore(String result) {
         if (result == null) return "";
-        int maxLen = ctx.getToolCallStoreMaxLength();
+        int maxLen = ctx.getOutput().getToolCallStoreMaxLength();
         if (maxLen > 0 && result.length() > maxLen) {
             return result.substring(0, maxLen) + "...（已截断）";
         }
@@ -315,7 +315,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
             AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
             if (stepCtx != null) stepCtx.getToolCalls().add(event);
         } else {
-            ctx.getToolCalls().add(event);
+            ctx.getOutput().getToolCalls().add(event);
         }
     }
 
@@ -327,7 +327,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
         if (ctx.getStepStreamContext() != null) {
             return ctx.getStepStreamContext().getToolCallSequence().incrementAndGet();
         }
-        return ctx.getToolCallSequence().incrementAndGet();
+        return ctx.getOutput().getToolCallSequence().incrementAndGet();
     }
 
     private Long resolveStepRecordId() {
@@ -340,7 +340,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
         if (stepCtx != null && stepCtx.getStepNumber() != null) {
             return stepCtx.getStepNumber();
         }
-        return ctx.getCurrentStepNumber();
+        return ctx.getMetrics().getCurrentStepNumber();
     }
 
     @Nullable
@@ -352,7 +352,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
     }
 
     private boolean isStopRequested() {
-        EventRegistry registry = ctx.getEventRegistry();
+        EventRegistry registry = ctx.getEvent().getEventRegistry();
         if (registry == null || ctx.getAgentMsg() == null) return false;
         String stopKey = getStopEventKey();
         if (stopKey == null) return false;

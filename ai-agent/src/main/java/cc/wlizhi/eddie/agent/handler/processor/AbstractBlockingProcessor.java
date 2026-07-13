@@ -68,7 +68,7 @@ public abstract class AbstractBlockingProcessor implements ResponseStreamProcess
             throw new AppException(ApiResultCode.PROVIDER_CALL_FAILED,
                     "阻塞式模型调用返回 null，请检查日志确认异常原因");
         }
-        ctx.setLastResponse(response);
+        ctx.getOutput().setLastResponse(response);
 
         // ==================== 基类统一收尾（子类不可跳过） ====================
 
@@ -82,8 +82,8 @@ public abstract class AbstractBlockingProcessor implements ResponseStreamProcess
         TokenStatsHelper.extractAndMergeTokenStats(ctx);
 
         // 3. 先推流给前端（低延迟，用户先看到数据）
-        if (ctx.getTokenStatists() != null) {
-            publisher.metadata(ctx, ctx.getTokenStatists());
+        if (ctx.getOutput().getTokenStatists() != null) {
+            publisher.metadata(ctx, ctx.getOutput().getTokenStatists());
         }
 
         // 4. 后持久化到数据库（I/O 操作，不阻塞用户体验）
@@ -145,7 +145,7 @@ public abstract class AbstractBlockingProcessor implements ResponseStreamProcess
             }
             if (reasoning != null && !reasoning.toString().isEmpty()) {
                 String text = reasoning.toString();
-                ctx.getFullThinking().append(text);
+                ctx.getOutput().getFullThinking().append(text);
             }
         } catch (Exception ignored) {
             // 忽略解析异常
@@ -159,7 +159,7 @@ public abstract class AbstractBlockingProcessor implements ResponseStreamProcess
                     .filter(f -> !f.isEmpty())
                     .collect(Collectors.joining());
             if (!answer.isEmpty()) {
-                ctx.getFullAnswer().append(answer);
+                ctx.getOutput().getFullAnswer().append(answer);
             }
         } catch (Exception ignored) {
             // 忽略解析异常

@@ -53,7 +53,7 @@ public class AgentEventPublisher {
         try {
             String json = objectMapper.writeValueAsString(result);
             String sseEventName = event.name().toLowerCase();
-            ctx.getSink().next(ServerSentEvent.<String>builder()
+            ctx.getEvent().getSink().next(ServerSentEvent.<String>builder()
                     .event(sseEventName)
                     .data(json)
                     .build());
@@ -133,7 +133,7 @@ public class AgentEventPublisher {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Long stepRecordId = ctx.getStepStreamContext() == null ? null : ctx.getStepStreamContext().getStepRecordId();
         AtomicInteger currentIterator = ctx.getIteratorState().getCurrentIterator();
-        AgentRoundPayload payload = new AgentRoundPayload(msgId, stepRecordId, ctx.getCurrentStepNumber(), currentIterator.get());
+        AgentRoundPayload payload = new AgentRoundPayload(msgId, stepRecordId, ctx.getMetrics().getCurrentStepNumber(), currentIterator.get());
         emit(ctx, event, ApiResult.success(payload));
     }
 
@@ -186,7 +186,7 @@ public class AgentEventPublisher {
         if (stepCtx != null && stepCtx.getStepNumber() != null) {
             return stepCtx.getStepNumber();
         }
-        return ctx.getCurrentStepNumber();
+        return ctx.getMetrics().getCurrentStepNumber();
     }
 
     /**
@@ -194,7 +194,7 @@ public class AgentEventPublisher {
      */
     private void emitFallbackError(AgentChatContext ctx, Long msgId, String text) {
         String fallback = "{\"code\":1000,\"message\":\"" + text + "\",\"detail\":null,\"data\":null}";
-        ctx.getSink().next(ServerSentEvent.<String>builder()
+        ctx.getEvent().getSink().next(ServerSentEvent.<String>builder()
                 .event("error")
                 .data(fallback)
                 .build());

@@ -43,7 +43,7 @@ public class PlanClientPostProcessor implements AgentClientPostProcessor {
         String resolvePrompts = agentPromptsResolver.resolvePrompts(ctx);
         log.debug("PLAN 模式系统提示词：\n{}", resolvePrompts);
         var memoryAdvisor = MessageChatMemoryAdvisor.builder(agentShortTermMemory).build();
-        return ctx.getChatClient().mutate()
+        return ctx.getEvent().getChatClient().mutate()
                 .defaultAdvisors(memoryAdvisor)
                 .build().prompt()
                 .system(resolvePrompts)

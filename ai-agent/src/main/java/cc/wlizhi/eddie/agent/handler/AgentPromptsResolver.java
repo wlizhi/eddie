@@ -32,11 +32,11 @@ public class AgentPromptsResolver {
     }
 
     private String appendToolErrorIfNecessary(String prompt, AgentChatContext context) {
-        StringBuilder toolErrorFeedback = context.getToolErrorFeedback();
+        StringBuilder toolErrorFeedback = context.getEvent().getToolErrorFeedback();
         if (ObjectUtils.isEmpty(toolErrorFeedback)) {
             return prompt;
         }
-        context.setToolErrorFeedback(new StringBuilder());
+        context.getEvent().setToolErrorFeedback(new StringBuilder());
         return toolErrorFeedback + "\n====\n" + prompt;
     }
 
@@ -54,13 +54,13 @@ public class AgentPromptsResolver {
         }
 
         // 当前步骤编号
-        Integer currentStepNumber = context.getCurrentStepNumber();
+        Integer currentStepNumber = context.getMetrics().getCurrentStepNumber();
 
         // 完整 taskPlan 序列化为 JSON
         AgentTaskPlan taskPlan = context.getTaskPlan();
         String taskPlanJson;
         try {
-            taskPlanJson = context.getObjectMapper().writeValueAsString(taskPlan);
+            taskPlanJson = context.getEvent().getObjectMapper().writeValueAsString(taskPlan);
         } catch (Exception e) {
             log.warn("Failed to serialize taskPlan to JSON, use empty", e);
             taskPlanJson = "{}";

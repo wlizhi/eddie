@@ -20,11 +20,8 @@ import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
-import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.common.tool.ToolBehavior;
 import cc.wlizhi.eddie.common.enums.RoleType;
-import cc.wlizhi.eddie.common.util.ConfigUtil;
-import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
 import cc.wlizhi.eddie.memory.context.OwnerToolBindingContext;
 import cc.wlizhi.eddie.tools.service.ToolCallbackResolver;
 import jakarta.annotation.Resource;
@@ -54,8 +51,6 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
     @Resource
     private StepFinishTool stepFinishTool;
     @Resource
-    private GlobalConfigContext globalConfigContext;
-    @Resource
     private OwnerToolBindingContext ownerToolBindingContext;
     @Resource
     private AgentMsgStepDao agentMsgStepDao;
@@ -71,35 +66,35 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
         String resolvePrompts = agentPromptsResolver.resolvePrompts(ctx);
         log.debug("{} 模式系统提示词：\n{}", AgentMode.EXECUTE.name(), resolvePrompts);
 
-        String stepConversationId = ctx.getAgentMsg().getId() + ":" + ctx.getCurrentStepNumber();
+        String stepConversationId = ctx.getAgentMsg().getId() + ":" + ctx.getMetrics().getCurrentStepNumber();
 
         String userPrompt = "请根据系统提示词及历史消息（如果有）继续完成当前步骤的任务内容";
 
         // 初始化步骤级流式累加器，设置 prompt（供 ExecuteResponseStreamProcessor 使用）
         AgentStepStreamContext stepCtx = new AgentStepStreamContext();
-        stepCtx.setStepNumber(ctx.getCurrentStepNumber());
+        stepCtx.setStepNumber(ctx.getMetrics().getCurrentStepNumber());
         stepCtx.setPrompt(userPrompt);
         // 从 taskPlan 同步当前步骤的状态到迭代缓冲
         AgentTaskPlan taskPlan = ctx.getTaskPlan();
         if (taskPlan != null && taskPlan.getSteps() != null
-                && ctx.getCurrentStepNumber() != null && ctx.getCurrentStepNumber() > 0
-                && ctx.getCurrentStepNumber() <= taskPlan.getSteps().size()) {
-            AgentTaskStep planStep = taskPlan.getSteps().get(ctx.getCurrentStepNumber() - 1);
+                && ctx.getMetrics().getCurrentStepNumber() != null && ctx.getMetrics().getCurrentStepNumber() > 0
+                && ctx.getMetrics().getCurrentStepNumber() <= taskPlan.getSteps().size()) {
+            AgentTaskStep planStep = taskPlan.getSteps().get(ctx.getMetrics().getCurrentStepNumber() - 1);
             stepCtx.setStepStatus(StepStatus.fromValue(planStep.getStatus()));
         }
         ctx.setStepStreamContext(stepCtx);
 
         // 预创建步骤占位记录，获取 stepRecordId（审批拦截器需要 stepRecordId 定位步骤）
-        String stepDesc = ExecuteResponseStreamProcessor.resolveStepDesc(ctx, ctx.getCurrentStepNumber());
-        AgentMsgStepEntity placeholder = ExecuteResponseStreamProcessor.buildPlaceholderEntity(ctx, ctx.getCurrentStepNumber(), stepDesc);
+        String stepDesc = ExecuteResponseStreamProcessor.resolveStepDesc(ctx, ctx.getMetrics().getCurrentStepNumber());
+        AgentMsgStepEntity placeholder = ExecuteResponseStreamProcessor.buildPlaceholderEntity(ctx, ctx.getMetrics().getCurrentStepNumber(), stepDesc);
         try {
             Long stepRecordId = agentMsgStepDao.insertPlaceholder(placeholder);
             stepCtx.setStepRecordId(stepRecordId);
-            log.info("预创建步骤占位记录成功, stepRecordId={}, stepNumber={}", stepRecordId, ctx.getCurrentStepNumber());
+            log.info("预创建步骤占位记录成功, stepRecordId={}, stepNumber={}", stepRecordId, ctx.getMetrics().getCurrentStepNumber());
         } catch (Exception e) {
             log.warn("预创建步骤占位记录失败, msgId={}, stepNumber={}: {}",
                     ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null,
-                    ctx.getCurrentStepNumber(), e.getMessage());
+                    ctx.getMetrics().getCurrentStepNumber(), e.getMessage());
         }
 
         // 1. 解析用户可配置的工具（WebSearch/WebFetch/Shell/MCP 等）
@@ -124,7 +119,7 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
         allTools.addAll(Arrays.asList(internalTools));
 
         // 3. 构建 ChatClient（注入记忆窗口 advisor + 工具）
-        ChatClient.Builder builder = ctx.getChatClient().mutate();
+        ChatClient.Builder builder = ctx.getEvent().getChatClient().mutate();
         var memoryAdvisor = MessageChatMemoryAdvisor.builder(agentStepWindowedMemory).build();
         builder.defaultAdvisors(memoryAdvisor);
         if (!allTools.isEmpty()) {
@@ -141,15 +136,6 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
                     .toArray();
             builder.defaultTools(wrappers);
         }
-
-        // 4. 解析并注入各层级截断长度
-        String modelMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_RESULT_MODEL_MAX_LENGTH);
-        int modelMaxLen = ConfigUtil.resolveIntConfig(100000, modelMaxLenStr, 0, 100000);
-        ctx.setToolResultModelMaxLength(modelMaxLen);
-        String sseMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
-        int sseMaxLen = ConfigUtil.resolveIntConfig(5000, sseMaxLenStr, 100, 8000);
-        ctx.setToolCallMaxLength(sseMaxLen);
-        ctx.setToolCallStoreMaxLength(sseMaxLen >> 1);
 
         ChatClient.ChatClientRequestSpec requestSpec = builder.build().prompt()
                 .system(resolvePrompts)
