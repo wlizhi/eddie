@@ -53,8 +53,14 @@ let prevScrollHeight = 0
 /** 随字体大小动态变化的头像大小 */
 const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 2.2))
 
+/** 将 avatarSize 同步为 CSS 自定义属性，供 CSS var(--avatar-size) 引用 */
+const avatarSizeStyle = computed(() => ({ '--avatar-size': avatarSize.value + 'px' }))
+
 /** 用户是否已手动上滑（打断自动滚动） */
 const userScrolledAway = ref(false)
+
+/** 已渲染完成的 thinking / toolCall 单元 key 集合（首次展开后不再重复渲染） */
+const renderedUnits = ref<Record<string, boolean>>({})
 
 function isNearBottom(): boolean {
   const el = messageListRef.value
@@ -79,14 +85,14 @@ async function scrollToBottomIfNeeded() {
 }
 
 /** 审批工具调用 */
-async function handleApprove(tool: { toolName: string; msgId?: number; stepId?: number | null; seq?: number }, approved: boolean): Promise<void> {
+async function handleApprove(tool: { toolName: string; msgId?: number; stepRecordId?: number | null; seq?: number }, approved: boolean): Promise<void> {
     const msgId = tool.msgId
     if (msgId == null) {
         showToast('缺少消息 ID，无法审批', 'error')
         return
     }
     try {
-        await approveTool(msgId, tool.toolName, approved, tool.stepId, tool.seq)
+        await approveTool(msgId, tool.toolName, approved, tool.stepRecordId, tool.seq)
         // 审批接口返回后立即更新本地状态，不等工具执行完毕的 SSE 事件
         const target = agentChatStore.currentToolExecutions.find(
             t => t.msgId === msgId && t.seq === tool.seq && !t.done
@@ -203,10 +209,11 @@ function onScroll() {
     </div>
 
     <!-- ===== 消息遍历 ===== -->
-    <template v-for="(msg, idx) in agentChatStore.messages" :key="msg.id">
+    <template v-for="(msg) in agentChatStore.messages" :key="msg.id">
       <div
           class="message-row"
           :class="[msg.role === 'user' ? 'user-row' : 'assistant-row']"
+          :style="avatarSizeStyle"
       >
         <!-- 头像 -->
         <div class="avatar-col">
@@ -244,16 +251,17 @@ function onScroll() {
 
           <!-- 消息气泡 -->
           <div class="message-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'">
-            <!-- ===== 按轮次渲染（agent 流式场景） ===== -->
+            <!-- ===== round steps 渲染（历史/流式统一使用 msg.rounds） ===== -->
             <template v-if="msg.rounds && msg.rounds.length > 0">
-              <template v-for="(round, ri) in msg.rounds" :key="'r-' + ri">
+              <template v-for="(round, ri) in msg.rounds" :key="round.stepRecordId ?? '__main__'">
                 <!-- thinking（每轮次独立折叠） -->
                 <AgentThinkingBlock
-                    v-if="msg.role === 'assistant'"
+                    v-if="msg.role === 'assistant' && (round.thinking || round.thinkingStreaming)"
                     :thinking="round.thinking"
                     :is-streaming="agentChatStore.isStreaming"
-                    :is-last="msg === agentChatStore.messages[agentChatStore.messages.length - 1] && ri === msg.rounds.length - 1"
+                    :is-last="msg === agentChatStore.messages[agentChatStore.messages.length - 1]"
                     :has-content="!!round.content"
+                    :thinking-streaming="round.thinkingStreaming"
                 />
 
                 <!-- tool_calls（每轮次独立） -->
@@ -263,7 +271,10 @@ function onScroll() {
                       v-for="(tc, ti) in round.toolCalls"
                       :key="'r-' + msg.id + '-' + ri + '-' + ti"
                       :tool-call="tc"
-                      @approve="(approved) => handleApprove(tc, approved)"
+                      :unit-key="'tool-' + msg.id + '-' + ri + '-' + ti"
+                      :unit-rendered="!!renderedUnits['tool-' + msg.id + '-' + ri + '-' + ti]"
+                      @approve="(approved: boolean) => handleApprove(tc, approved)"
+                      @rendered="(key: string) => renderedUnits[key] = true"
                   />
                 </div>
 
@@ -275,38 +286,38 @@ function onScroll() {
               </template>
             </template>
 
-            <!-- ===== 兼容：无 rounds 的历史消息 ===== -->
-            <template v-else>
+            <!-- ===== 兼容：无 rounds 的旧 assistant 数据 ===== -->
+            <template v-else-if="msg.role === 'assistant' && (msg.thinking || msg.content || (msg.toolCalls && msg.toolCalls.length > 0))">
               <!-- thinking -->
               <AgentThinkingBlock
-                  v-if="msg.role === 'assistant'"
-                  :thinking="msg.thinking || ''"
+                  v-if="msg.thinking"
+                  :thinking="msg.thinking"
                   :is-streaming="agentChatStore.isStreaming"
                   :is-last="msg === agentChatStore.messages[agentChatStore.messages.length - 1]"
                   :has-content="!!msg.content"
               />
 
               <!-- tool_calls -->
-              <div v-if="msg.role === 'assistant' &&
-                    ((msg.toolCalls && msg.toolCalls.length > 0) ||
-                     (msg === agentChatStore.messages[agentChatStore.messages.length - 1] && agentChatStore.currentToolExecutions.length > 0))"
-                   class="tool-calls-section">
-                <!-- 历史消息中的工具调用 -->
+              <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="tool-calls-section">
                 <AgentToolCard
                     v-for="(tc, ti) in msg.toolCalls"
                     :key="'h-' + msg.id + '-' + ti"
                     :tool-call="tc"
-                />
-                <!-- 当前流式中的工具调用（仅最新消息） -->
-                <AgentToolCard
-                    v-for="(tool, ti) in msg === agentChatStore.messages[agentChatStore.messages.length - 1] ? agentChatStore.currentToolExecutions : []"
-                    :key="'s-' + msg.id + '-' + ti"
-                    :tool-call="tool"
-                    @approve="(approved) => handleApprove(tool, approved)"
+                    :unit-key="'tool-' + msg.id + '-legacy-' + ti"
+                    :unit-rendered="!!renderedUnits['tool-' + msg.id + '-legacy-' + ti]"
+                    @rendered="(key: string) => renderedUnits[key] = true"
                 />
               </div>
 
               <!-- content -->
+              <AgentContentBlock
+                  v-if="msg.content"
+                  :content="msg.content"
+              />
+            </template>
+
+            <!-- ===== 用户消息 / 兜底：有内容就显示 ===== -->
+            <template v-else>
               <AgentContentBlock
                   v-if="msg.content"
                   :content="msg.content"
@@ -329,9 +340,9 @@ function onScroll() {
                   v-if="msg.taskPlan"
                   :plan="msg.taskPlan"
               />
-              <!-- 任务完成结果摘要 -->
+              <!-- 任务完成结果摘要（result 非空时展示，不依赖 status） -->
               <AgentContentBlock
-                  v-if="msg.taskPlan?.status === 'completed' && msg.taskPlan?.result"
+                  v-if="msg.taskPlan?.result"
                   :content="msg.taskPlan.result"
               />
             </template>

@@ -140,7 +140,7 @@ public class AgentMsgDao {
                 "SELECT id, session_id, agent_id, role, provider_id, model_code, model_name, " +
                         "thinking, content, prompt_tokens, completion_tokens, total_tokens, " +
                         "price_estimate, tool_calls, cache_read_input_tokens, cache_written_input_tokens, " +
-                        "currency, duration_ms, msg_status, round_seq, created_at FROM ai_agent_session_msg " +
+                        "currency, duration_ms, msg_status, round_seq, task_plan, created_at FROM ai_agent_session_msg " +
                         "WHERE session_id = ? AND round_seq > 0");
         List<Object> params = new ArrayList<>();
         params.add(sessionId);

@@ -80,8 +80,8 @@ export interface ToolExecutionData {
     error?: boolean
     /** 消息 ID（用于审批场景） */
     msgId?: number
-    /** 步骤 ID（智能体场景） */
-    stepId?: number
+    /** 步骤记录 ID（智能体场景，对应 ai_agent_session_msg_step.id） */
+    stepRecordId?: number
     /** 工具调用序号（审批 key 唯一标识） */
     seq?: number
 }
@@ -119,8 +119,8 @@ export interface ToolExecutionRecord {
     rejected?: boolean
     /** 消息 ID（用于审批场景） */
     msgId?: number
-    /** 步骤 ID（智能体多轮迭代定位） */
-    stepId?: number | null
+    /** 步骤记录 ID（智能体多轮迭代定位，对应 ai_agent_session_msg_step.id） */
+    stepRecordId?: number | null
     /** 工具调用序号（用于审批 key 唯一标识） */
     seq?: number
 }

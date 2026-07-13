@@ -26,14 +26,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AgentStepStreamContext {
 
     /**
-     * 步骤记录 ID（预创建占位后得到的自增 ID）
+     * 步骤记录 ID（预创建占位后得到的自增主键，对应 ai_agent_session_msg_step.id）
      */
-    private Long stepId;
+    private Long stepRecordId;
 
     /**
-     * 步骤序号（1-based，对应任务清单中的步骤编号）
+     * 步骤编号（1-based），对应任务规划 AgentTaskPlan.steps[].stepNumber
      */
-    private Integer step;
+    private Integer stepNumber;
 
     /**
      * 当前迭代次数，从1开始

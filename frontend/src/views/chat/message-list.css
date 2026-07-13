@@ -34,6 +34,15 @@
     border-bottom-right-radius: 10px;
 }
 
+/* ===== chat 模式：约束气泡宽度，避免交叉 ===== */
+.message-list:not(.qa-mode) .user-row .msg-col {
+    margin-left: calc(var(--avatar-size, 1.75rem) + var(--space-4));
+}
+
+.message-list:not(.qa-mode) .assistant-row .msg-col {
+    margin-right: calc(var(--avatar-size, 1.75rem) + var(--space-4));
+}
+
 /* ===== 头像 ===== */
 .avatar-col {
     flex-shrink: 0;
@@ -640,6 +649,7 @@
         padding: var(--space-2) var(--space-3);
         font-size: var(--font-size-base);
     }
+
 
     .action-btn {
         width: var(--touch-btn-size, 2.25rem);

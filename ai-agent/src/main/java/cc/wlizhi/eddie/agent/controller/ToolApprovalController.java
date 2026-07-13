@@ -40,7 +40,7 @@ public class ToolApprovalController {
     public ApiResult<Void> approveTool(@RequestBody ToolApprovalRequest request) {
         String key = EventRegistry.key("tool_approval",
                 request.getOwnerType() + ":" + request.getMsgId()
-                        + ":" + request.getStepId() + ":" + request.getSeq());
+                        + ":" + request.getStepRecordId() + ":" + request.getSeq());
         eventRegistry.register(key, request.isApproved() ? "approved" : "rejected");
         return ApiResult.success();
     }
@@ -52,8 +52,8 @@ public class ToolApprovalController {
         private String ownerType;
         /** 消息 ID */
         private Long msgId;
-        /** 步骤 ID（聊天场景为 null） */
-        private Integer stepId;
+        /** 步骤记录 ID（聊天场景为 null，对应 ai_agent_session_msg_step.id） */
+        private Integer stepRecordId;
         /** 工具调用序号（审批 key 唯一标识，替代 toolName） */
         private int seq;
         /** 是否批准 */

@@ -115,7 +115,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
 
             // 3b. 阻塞等待审批
             String approvalKey = EventRegistry.key("tool_approval",
-                    "agent:" + ctx.getAgentMsg().getId() + ":" + resolveStepId() + ":" + currentSeq);
+                    "agent:" + ctx.getAgentMsg().getId() + ":" + resolveStepRecordId() + ":" + currentSeq);
             String stopKey = getStopEventKey();
             Object approvalResult = stopKey != null
                     ? ctx.getEventRegistry().waitFor(approvalKey, stopKey)
@@ -254,10 +254,10 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
     private void emitSse(String toolName, String toolInput, String status, String result, boolean error) {
         try {
             Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-            Long stepId = resolveStepId();
-            Integer step = resolveStep();
+            Long stepRecordId = resolveStepRecordId();
+            Integer stepNumber = resolveStepNumber();
             AgentToolExecutionPayload payload = new AgentToolExecutionPayload(
-                    msgId, stepId, step,
+                    msgId, stepRecordId, stepNumber,
                     toolName, status, toolInput, result, error, currentSeq);
             ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
         } catch (Exception e) {
@@ -330,17 +330,17 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
         return ctx.getToolCallSequence().incrementAndGet();
     }
 
-    private Long resolveStepId() {
+    private Long resolveStepRecordId() {
         AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
-        return stepCtx != null ? stepCtx.getStepId() : null;
+        return stepCtx != null ? stepCtx.getStepRecordId() : null;
     }
 
-    private Integer resolveStep() {
+    private Integer resolveStepNumber() {
         AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
-        if (stepCtx != null && stepCtx.getStep() != null) {
-            return stepCtx.getStep();
+        if (stepCtx != null && stepCtx.getStepNumber() != null) {
+            return stepCtx.getStepNumber();
         }
-        return ctx.getCurrentStep();
+        return ctx.getCurrentStepNumber();
     }
 
     @Nullable

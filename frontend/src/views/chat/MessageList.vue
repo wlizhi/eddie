@@ -45,8 +45,11 @@ const messageListRef = ref<HTMLElement | null>(null)
 /** 记录加载更多前的高度，用于保持滚动位置 */
 let prevScrollHeight = 0
 
-/** 随字体大小动态变化的头像大小（基准字号 × 2.5，与 --avatar-size 保持一致） */
+/** 随字体大小动态变化的头像大小（基准字号 × 2.2） */
 const avatarSize = computed(() => Math.round(getEffectiveFontSize() * 2.2))
+
+/** 将 avatarSize 同步为 CSS 自定义属性，供 CSS var(--avatar-size) 引用 */
+const avatarSizeStyle = computed(() => ({ '--avatar-size': avatarSize.value + 'px' }))
 
 /** 用户是否已手动上滑（打断自动滚动） */
 const userScrolledAway = ref(false)
@@ -216,6 +219,7 @@ function onScroll() {
         :key="msg.id"
         class="message-row"
         :class="[msg.role === 'user' ? 'user-row' : 'assistant-row']"
+        :style="avatarSizeStyle"
     >
       <!-- 头像 -->
       <div class="avatar-col">

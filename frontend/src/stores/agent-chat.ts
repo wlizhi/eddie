@@ -37,9 +37,9 @@ import {showToast} from '@/composables/useToast'
 import {
     generateId,
     debounceRender,
-    ensureRounds,
     toChatMessage,
     renderFinalContent,
+    findOrCreateStep,
 } from './agent-chat-helpers'
 
 export const useAgentChatStore = defineStore('agentChat', () => {
@@ -219,7 +219,8 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                 return
             }
             // 后端返回正序，直接赋值
-            messages.value = list.map(toChatMessage)
+            const msgs = list.map(toChatMessage)
+            messages.value = msgs
             if (list.length < MESSAGE_PAGE_SIZE) {
                 hasMoreMessages.value = false
             }
@@ -248,6 +249,18 @@ export const useAgentChatStore = defineStore('agentChat', () => {
             console.error('创建智能体会话失败:', err)
             return null
         }
+    }
+
+    /**
+     * 按后端 DB ID 查找消息（用于 msgId 定位正确的气泡，而非总是取最后一条）
+     * 从数组末尾往前搜索——在流式场景中目标消息总是在最近创建的几条中。
+     */
+    function findMsgByDbId(dbId?: number | null): ChatMessage | undefined {
+        if (dbId == null) return undefined
+        for (let i = messages.value.length - 1; i >= 0; i--) {
+            if (messages.value[i].dbId === dbId) return messages.value[i]
+        }
+        return undefined
     }
 
     /**
@@ -323,6 +336,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     })
                     messages.value.push({
                         id: generateId(),
+                        dbId: data.assistantMsgId,
                         role: 'assistant',
                         content: '',
                         thinking: '',
@@ -332,6 +346,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     // 仅 assistantMsgId → 子任务副消息，只创建 agent slot
                     messages.value.push({
                         id: generateId(),
+                        dbId: data.assistantMsgId,
                         role: 'assistant',
                         content: '',
                         thinking: '',
@@ -339,39 +354,43 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                     })
                 }
             },
-            onThinking: (chunk) => {
+            onThinking: (chunk, _stepNumber, msgId, stepRecordId) => {
                 currentThinking.value += chunk
-                const last = messages.value[messages.value.length - 1]
-                if (last && last.role === 'assistant') {
-                    last.thinking = currentThinking.value
-                    // 按 currentRound 路由到对应轮次（round_start 事件的 round 值，而非 plan step）
-                    const roundIndex = currentRound.value
-                    const rounds = ensureRounds(last, roundIndex)
-                    rounds[roundIndex].thinking += chunk
+                const target = msgId ? findMsgByDbId(msgId) : undefined
+                const msg = target ?? messages.value[messages.value.length - 1]
+                if (msg && msg.role === 'assistant') {
+                    msg.thinking = currentThinking.value
+                    // 按 stepRecordId 定位步骤，追加思考内容
+                    const step = findOrCreateStep(msg, stepRecordId)
+                    // 检查动画状态，不是动画则改为动画
+                    if (!step.thinkingStreaming) {
+                        step.thinkingStreaming = true
+                    }
+                    step.thinking += chunk
                 }
             },
-            onAnswer: (chunk) => {
+            onAnswer: (chunk, _stepNumber, msgId, stepRecordId) => {
                 currentAnswer.value += chunk
-                const last = messages.value[messages.value.length - 1]
-                if (last && last.role === 'assistant') {
-                    last.content = currentAnswer.value
-                    // 按 currentRound 路由到对应轮次（round_start 事件的 round 值，而非 plan step）
-                    const roundIndex = currentRound.value
-                    const rounds = ensureRounds(last, roundIndex)
-                    rounds[roundIndex].content += chunk
-                    debounceRender(last)
+                const target = msgId ? findMsgByDbId(msgId) : undefined
+                const msg = target ?? messages.value[messages.value.length - 1]
+                if (msg && msg.role === 'assistant') {
+                    msg.content = currentAnswer.value
+                    debounceRender(msg)
+                    // 按 stepRecordId 定位步骤，追加回答内容
+                    const step = findOrCreateStep(msg, stepRecordId)
+                    step.content += chunk
                 }
             },
-            onToolExecution: (data) => {
+            onToolExecution: (data, _stepNumber, _msgId2, _stepRecordId2) => {
                 const msgId = data.msgId
-                const stepId = data.stepId
-                const roundIndex = currentRound.value
+                const stepRecordId = data.stepRecordId
+                const seq = data.seq ?? 0
 
-                /** 按 msgId + stepId + toolName + !done 定位匹配的 tool record */
+                /** 按 msgId + stepRecordId + toolName + !done 定位匹配的 tool record */
                 const findTool = (arr: ToolExecutionRecord[]) => arr.find(t =>
                     t.toolName === data.toolName &&
                     t.msgId === msgId &&
-                    t.stepId === stepId &&
+                    t.stepRecordId === stepRecordId &&
                     !t.done
                 )
 
@@ -381,20 +400,32 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                         arguments: data.arguments,
                         done: false,
                         msgId,
-                        stepId,
-                        seq: data.seq,
+                        stepRecordId,
+                        seq,
                     }
+                    // 记录到 currentToolExecutions（兼容旧引用）
                     currentToolExecutions.value = [...currentToolExecutions.value, toolRec]
+                    // 按 stepRecordId 定位步骤，追加工具调用
                     const last = messages.value[messages.value.length - 1]
                     if (last?.role === 'assistant') {
-                        const rounds = ensureRounds(last, roundIndex)
-                        rounds[roundIndex].toolCalls.push(toolRec)
+                        const step = findOrCreateStep(last, stepRecordId)
+                        step.toolCalls.push(toolRec)
                     }
                 } else if (data.status === 'pending_approval') {
                     const found = findTool(currentToolExecutions.value)
                     if (found) {
                         found.pendingApproval = true
                         found.arguments = data.arguments
+                    }
+                    // 同步更新步骤中的 toolCall
+                    const last = messages.value[messages.value.length - 1]
+                    if (last?.role === 'assistant') {
+                        const step = findOrCreateStep(last, stepRecordId)
+                        const stepTool = findTool(step.toolCalls)
+                        if (stepTool) {
+                            stepTool.pendingApproval = true
+                            stepTool.arguments = data.arguments
+                        }
                     }
                 } else if (data.status === 'complete' || data.status === 'rejected') {
                     const found = findTool(currentToolExecutions.value)
@@ -404,6 +435,19 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                         found.done = true
                         found.pendingApproval = false
                         found.rejected = data.status === 'rejected'
+                    }
+                    // 同步更新步骤中的 toolCall
+                    const last = messages.value[messages.value.length - 1]
+                    if (last?.role === 'assistant') {
+                        const step = findOrCreateStep(last, stepRecordId)
+                        const stepTool = findTool(step.toolCalls)
+                        if (stepTool) {
+                            stepTool.result = data.result
+                            stepTool.error = data.status === 'rejected' ? false : !!data.error
+                            stepTool.done = true
+                            stepTool.pendingApproval = false
+                            stepTool.rejected = data.status === 'rejected'
+                        }
                     }
                 }
             },
@@ -432,7 +476,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
             },
             onMetadata: (json) => {
                 try {
-                    // MetadataPayload: { msgId, stepId, step, stats: { promptTokens, ... } }
+                    // MetadataPayload: { msgId, stepRecordId, stepNumber, stats }
                     // 提取 stats 展开为扁平结构以匹配 ChatMetadata 接口
                     const payload = JSON.parse(json) as Record<string, unknown>
                     const stats = (payload?.stats ?? {}) as Record<string, unknown>
@@ -447,11 +491,22 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                         currency: stats.currency as string | undefined,
                         durationMs: stats.durationMs as number | undefined,
                     } as ChatMetadata
-                    const last = messages.value[messages.value.length - 1]
-                    if (last && last.role === 'assistant') {
-                        last.metadata = currentMetadata.value
+                    // 按 msgId 定位消息，而非总是取最后一条
+                    const msgId = payload.msgId as number | null | undefined
+                    const target = msgId ? findMsgByDbId(msgId) : undefined
+                    const msg = target ?? messages.value[messages.value.length - 1]
+                    if (msg && msg.role === 'assistant') {
+                        // 关闭思考动画：按 stepRecordId 定位 round
+                        const stepRecordId = payload.stepRecordId as number | null | undefined
+                        if (msg.rounds) {
+                            const round = msg.rounds.find(r => (r.stepRecordId ?? null) === (stepRecordId ?? null))
+                            if (round) {
+                                round.thinkingStreaming = false
+                            }
+                        }
+                        msg.metadata = currentMetadata.value
                         // metadata 到达时强制最终渲染
-                        renderFinalContent(last)
+                        renderFinalContent(msg)
                     }
                 } catch {
                     // ignore
@@ -542,6 +597,10 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         // 将流式工具执行记录赋给最后一条 agent 消息
         const last = messages.value[messages.value.length - 1]
         if (last?.role === 'assistant') {
+            // 关闭所有 round 的思考动画（兜底，防止 metadata 事件漏处理导致动画永久持续）
+            if (last.rounds) {
+                last.rounds.forEach(r => { r.thinkingStreaming = false })
+            }
             if (currentToolExecutions.value.length > 0) {
                 last.toolCalls = [...currentToolExecutions.value]
             }

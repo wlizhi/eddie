@@ -20,8 +20,8 @@ import lombok.Setter;
 public class AgentMessageCreatedPayload {
 
     private Long msgId;
-    private Long stepId;
-    private Integer step;
+    private Long stepRecordId;
+    private Integer stepNumber;
     private Long userMsgId;
     private Long assistantMsgId;
 }

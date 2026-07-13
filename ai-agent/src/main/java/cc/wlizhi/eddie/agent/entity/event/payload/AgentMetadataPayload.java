@@ -21,7 +21,7 @@ import lombok.Setter;
 public class AgentMetadataPayload {
 
     private Long msgId;
-    private Long stepId;
-    private Integer step;
+    private Long stepRecordId;
+    private Integer stepNumber;
     private AgentTokenStatists stats;
 }

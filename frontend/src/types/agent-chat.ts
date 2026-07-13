@@ -49,8 +49,8 @@ export interface AgentChatRequest {
  * 待办事项 — 计划清单中的单个步骤
  */
 export interface AgentTodoItem {
-    /** 步骤序号（从 1 开始） */
-    id: number
+    /** 步骤编号（从 1 开始），对应后端 AgentTaskStep.stepNumber */
+    stepNumber: number
     /** 步骤标题（简短精炼，对应后端 AgentTaskStep.title） */
     title: string
     /** 步骤描述（对应后端 AgentTaskStep.description） */
@@ -116,8 +116,8 @@ export interface AgentMessageVO {
     cacheWriteInputTokens: number
     currency: string
     durationMs: number
-    /** JSON 字符串：工具调用数组 */
-    toolCalls: string
+    /** 工具调用数组（已由后端解析为结构化数据，前端直接使用） */
+    toolCalls: ToolExecutionRecord[]
     msgStatus: string      // COMPLETED / STOPPED / ERROR
     createdAt: number
     /** 规划清单（已解析的对象，前端直接使用，仅 PLAN 模式的 assistant 消息有值） */
@@ -134,22 +134,29 @@ export interface AgentMsgStepVO {
     msgId: number
     msgType: number
     msgDataType: number
-    step: number
+    stepNumber: number
     stepDesc: string
     prompt: string
     thinking: string
     content: string
-    toolCalls: string
+    /** 工具调用数组（已由后端解析为结构化数据） */
+    toolCalls: ToolExecutionRecord[]
     createdAt: number
 }
 
 /**
  * 单轮次内容 — 独立的一组 thinking + toolCalls + content
+ * stepRecordId = null 表示气泡最外层（CHAT 模式主消息）
+ * stepRecordId = DB ID 表示步骤级（EXECUTE 模式步骤）
  */
 export interface RoundContent {
+    /** 步骤记录 ID，null=最外层，有值=步骤级 */
+    stepRecordId?: number | null
     thinking: string
     toolCalls: ToolExecutionRecord[]
     content: string
+    /** 此轮次思考内容是否正在流式接收中（事件驱动，收到 thinking 事件为 true，收到 metadata 为 false） */
+    thinkingStreaming?: boolean
 }
 
 /**
@@ -158,13 +165,13 @@ export interface RoundContent {
 export interface AgentStreamChatOptions {
     /** 请求参数 */
     request: AgentChatRequest
-    /** 每次收到 thinking 内容时的回调（step=null 表示 CHAT 轮次，step=N 表示 EXECUTE 步骤） */
-    onThinking?: (chunk: string, step?: number | null) => void
-    /** 每次收到 answer 内容时的回调（step=null 表示 CHAT 轮次，step=N 表示 EXECUTE 步骤） */
-    onAnswer?: (chunk: string, step?: number | null) => void
+    /** 每次收到 thinking 内容时的回调 */
+    onThinking?: (chunk: string, stepNumber?: number | null, msgId?: number, stepRecordId?: number) => void
+    /** 每次收到 answer 内容时的回调 */
+    onAnswer?: (chunk: string, stepNumber?: number | null, msgId?: number, stepRecordId?: number) => void
     /** 收到完整 metadata JSON 时的回调 */
     onMetadata?: (json: string) => void
-    /** 收到工具执行事件时的回调（step=null 表示 CHAT 轮次，step=N 表示 EXECUTE 步骤） */
+    /** 收到工具执行事件时的回调 */
     onToolExecution?: (data: {
         status: string
         toolName: string
@@ -172,9 +179,9 @@ export interface AgentStreamChatOptions {
         result?: string
         error?: boolean
         msgId?: number
-        stepId?: number
+        stepRecordId?: number
         seq?: number
-    }, step?: number | null) => void
+    }, stepNumber?: number | null, msgId?: number, stepRecordId?: number) => void
     /** 收到新一轮迭代开始事件时的回调 */
     onRoundStart?: (round: number) => void
     /** 收到 message_created 事件时的回调 */
@@ -186,7 +193,7 @@ export interface AgentStreamChatOptions {
     /** 收到 update_task_plan 事件时的回调（后续清单内容更新） */
     onTaskPlan?: (plan: AgentTaskPlan) => void
     /** 收到 execute_complete 事件时的回调（步骤执行完成） */
-    onExecuteComplete?: (step: number) => void
+    onExecuteComplete?: (stepNumber: number) => void
     /** 收到 cancelled 事件时的回调 */
     onCancelled?: (reason: string) => void
     /** 流结束时的回调 */

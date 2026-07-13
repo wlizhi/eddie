@@ -31,13 +31,13 @@ public class AgentMsgStepDao {
         long now = System.currentTimeMillis();
         jdbcTemplate.update(
                 "INSERT INTO ai_agent_session_msg_step " +
-                        "(msg_id, msg_type, msg_data_type, step, step_desc, " +
+                        "(msg_id, msg_type, msg_data_type, step_number, step_desc, " +
                         "prompt, thinking, content, tool_calls, created_at) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 entity.getMsgId(),
                 entity.getMsgType() != null ? entity.getMsgType() : 0,
                 entity.getMsgDataType() != null ? entity.getMsgDataType() : 0,
-                entity.getStep() != null ? entity.getStep() : 0,
+                entity.getStepNumber() != null ? entity.getStepNumber() : 0,
                 entity.getStepDesc() != null ? entity.getStepDesc() : "",
                 entity.getPrompt() != null ? entity.getPrompt() : "",
                 entity.getThinking() != null ? entity.getThinking() : "",
@@ -56,14 +56,14 @@ public class AgentMsgStepDao {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO ai_agent_session_msg_step " +
-                            "(msg_id, msg_type, msg_data_type, step, step_desc, " +
+                            "(msg_id, msg_type, msg_data_type, step_number, step_desc, " +
                             "prompt, thinking, content, tool_calls, created_at) " +
                             "VALUES (?, ?, ?, ?, ?, ?, '', '', '[]', ?)",
                     new String[]{"id"});
             ps.setLong(1, entity.getMsgId());
             ps.setInt(2, entity.getMsgType() != null ? entity.getMsgType() : 0);
             ps.setInt(3, entity.getMsgDataType() != null ? entity.getMsgDataType() : 0);
-            ps.setInt(4, entity.getStep() != null ? entity.getStep() : 0);
+            ps.setInt(4, entity.getStepNumber() != null ? entity.getStepNumber() : 0);
             ps.setString(5, entity.getStepDesc() != null ? entity.getStepDesc() : "");
             ps.setString(6, entity.getPrompt() != null ? entity.getPrompt() : "");
             ps.setLong(7, now);
@@ -90,27 +90,27 @@ public class AgentMsgStepDao {
     }
 
     public List<AgentMsgStepEntity> findByMsgId(Long msgId) {
-        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step, step_desc, " +
+        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step_number, step_desc, " +
                 "prompt, thinking, content, tool_calls, created_at " +
-                "FROM ai_agent_session_msg_step WHERE msg_id = ? ORDER BY step";
+                "FROM ai_agent_session_msg_step WHERE msg_id = ? ORDER BY step_number";
         return jdbcTemplate.query(sql, rowMapper, msgId);
     }
 
     /**
-     * 根据消息 ID 和消息类型查询步骤列表，按 step ASC 排序
+     * 根据消息 ID 和消息类型查询步骤列表，按 step_number ASC 排序
      * <p>
      * 用于历史消息加载时返回前端展示的步骤明细（msg_type=0）。
      */
     public List<AgentMsgStepEntity> findByMsgIdAndType(Long msgId, int msgType) {
-        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step, step_desc, " +
+        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step_number, step_desc, " +
                 "prompt, thinking, content, tool_calls, created_at " +
                 "FROM ai_agent_session_msg_step " +
-                "WHERE msg_id = ? AND msg_type = ? ORDER BY step ASC";
+                "WHERE msg_id = ? AND msg_type = ? ORDER BY step_number ASC";
         return jdbcTemplate.query(sql, rowMapper, msgId, msgType);
     }
 
     /**
-     * 批量查询多条消息的步骤（msg_type=0），按 msg_id + step ASC 排序
+     * 批量查询多条消息的步骤（msg_type=0），按 msg_id + step_number ASC 排序
      * <p>
      * 用于消息列表查询时避免 N+1 问题，一次性查出所有步骤后在 Java 中按 msgId 分组聚合。
      */
@@ -119,7 +119,7 @@ public class AgentMsgStepDao {
             return Collections.emptyList();
         }
         String placeholders = msgIds.stream().map(id -> "?").collect(Collectors.joining(","));
-        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step, step_desc, " +
+        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step_number, step_desc, " +
                 "prompt, thinking, content, tool_calls, created_at " +
                 "FROM ai_agent_session_msg_step " +
                 "WHERE msg_id IN (" + placeholders + ") AND msg_type = 0";
@@ -132,11 +132,11 @@ public class AgentMsgStepDao {
      * 一个步骤可能包含多轮模型交互（如 tool call 自循环），
      * 每轮产生一条记录，按 id 正序返回以还原执行时序。
      */
-    public List<AgentMsgStepEntity> findByMsgIdAndStep(Long msgId, int step) {
-        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step, step_desc, " +
+    public List<AgentMsgStepEntity> findByMsgIdAndStepNumber(Long msgId, int stepNumber) {
+        String sql = "SELECT id, msg_id, msg_type, msg_data_type, step_number, step_desc, " +
                 "prompt, thinking, content, tool_calls, created_at " +
-                "FROM ai_agent_session_msg_step WHERE msg_id = ? AND step = ? ORDER BY id";
-        return jdbcTemplate.query(sql, rowMapper, msgId, step);
+                "FROM ai_agent_session_msg_step WHERE msg_id = ? AND step_number = ? ORDER BY id";
+        return jdbcTemplate.query(sql, rowMapper, msgId, stepNumber);
     }
 
     /**
@@ -172,7 +172,7 @@ public class AgentMsgStepDao {
         e.setMsgId(rs.getLong("msg_id"));
         e.setMsgType(rs.getInt("msg_type"));
         e.setMsgDataType(rs.getInt("msg_data_type"));
-        e.setStep(rs.getInt("step"));
+        e.setStepNumber(rs.getInt("step_number"));
         e.setStepDesc(rs.getString("step_desc"));
         e.setPrompt(rs.getString("prompt"));
         e.setThinking(rs.getString("thinking"));

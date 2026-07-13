@@ -10,6 +10,8 @@ import cc.wlizhi.eddie.agent.dao.AgentMsgDao;
 import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
 import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
+import cc.wlizhi.eddie.agent.entity.response.AgentMsgStepVO;
+import cc.wlizhi.eddie.agent.entity.response.AgentToolCallVO;
 import cc.wlizhi.eddie.agent.dao.AgentSessionDao;
 import cc.wlizhi.eddie.agent.entity.AgentEntity;
 import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
@@ -302,8 +304,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         Map<Long, List<AgentMsgStepEntity>> stepsMap = agentMsgStepDao.findByMsgIds(msgIds)
                 .stream()
                 .collect(Collectors.groupingBy(AgentMsgStepEntity::getMsgId));
-        // Java 代码中按 step ASC 排序
-        stepsMap.values().forEach(list -> list.sort(Comparator.comparingInt(AgentMsgStepEntity::getStep)));
+        // Java 代码中按 stepNumber ASC 排序
+        stepsMap.values().forEach(list -> list.sort(Comparator.comparingInt(AgentMsgStepEntity::getStepNumber)));
 
         // AgentMsgDao 返回倒序（最新在前），反转为正序
         List<AgentMessageVO> vos = new ArrayList<>(entities.size());
@@ -343,7 +345,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         vo.setTotalTokens(entity.getTotalTokens());
         vo.setPriceEstimate(entity.getPriceEstimate());
         vo.setCurrency(entity.getCurrency());
-        vo.setToolCalls(entity.getToolCalls());
+        vo.setToolCalls(parseToolCalls(entity.getToolCalls()));
         vo.setCacheReadInputTokens(entity.getCacheReadInputTokens());
         vo.setCacheWriteInputTokens(entity.getCacheWriteInputTokens());
         vo.setDurationMs(entity.getDurationMs());
@@ -360,9 +362,51 @@ public class AgentSessionServiceImpl implements AgentSessionService {
             }
         }
 
-        // 从预加载的 stepsMap 中获取步骤列表（msg_type=0，按 step ASC 排序）
-        vo.setStepList(stepsMap.getOrDefault(entity.getId(), List.of()));
+        // 从预加载的 stepsMap 中获取步骤列表（msg_type=0，按 step ASC 排序），映射为 VO
+        vo.setStepList(stepsMap.getOrDefault(entity.getId(), List.of()).stream()
+                .map(this::toStepVO)
+                .collect(Collectors.toList()));
 
+        return vo;
+    }
+
+    /**
+     * 解析 toolCalls JSON 字符串 → List&lt;AgentToolCallVO&gt;
+     * <p>
+     * null/空字符串/"[]" 均返回空列表，解析失败返回空列表。
+     * 使用数组类型避免 TypeReference 匿名类在 GraalVM AOT 下的注册问题。
+     */
+    private List<AgentToolCallVO> parseToolCalls(String json) {
+        if (json == null || json.isEmpty() || "[]".equals(json)) {
+            return List.of();
+        }
+        try {
+            AgentToolCallVO[] arr = objectMapper.readValue(json, AgentToolCallVO[].class);
+            return arr != null ? List.of(arr) : List.of();
+        } catch (Exception e) {
+            log.warn("解析 toolCalls JSON 失败", e);
+            return List.of();
+        }
+    }
+
+    /**
+     * AgentMsgStepEntity → AgentMsgStepVO 映射
+     * <p>
+     * 复制所有基本字段，同时解析 toolCalls JSON 为结构化列表。
+     */
+    private AgentMsgStepVO toStepVO(AgentMsgStepEntity entity) {
+        AgentMsgStepVO vo = new AgentMsgStepVO();
+        vo.setId(entity.getId());
+        vo.setMsgId(entity.getMsgId());
+        vo.setMsgType(entity.getMsgType());
+        vo.setMsgDataType(entity.getMsgDataType());
+        vo.setStepNumber(entity.getStepNumber());
+        vo.setStepDesc(entity.getStepDesc());
+        vo.setPrompt(entity.getPrompt());
+        vo.setThinking(entity.getThinking());
+        vo.setContent(entity.getContent());
+        vo.setToolCalls(parseToolCalls(entity.getToolCalls()));
+        vo.setCreatedAt(entity.getCreatedAt());
         return vo;
     }
 }

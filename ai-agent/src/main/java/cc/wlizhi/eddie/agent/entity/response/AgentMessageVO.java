@@ -5,7 +5,6 @@
 
 package cc.wlizhi.eddie.agent.entity.response;
 
-import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.dto.AgentTaskPlan;
 import lombok.Getter;
 import lombok.Setter;
@@ -92,9 +91,9 @@ public class AgentMessageVO {
     private String currency;
 
     /**
-     * 工具调用 JSON
+     * 工具调用列表（已解析为结构化数据，null/空字符串时返回空列表）
      */
-    private String toolCalls;
+    private List<AgentToolCallVO> toolCalls;
 
     /**
      * 缓存读取 input token 数
@@ -131,5 +130,5 @@ public class AgentMessageVO {
      * 前端展示步骤列表（msg_type=0，按 step ASC 排序）
      * 对应 ai_agent_session_msg_step 表中当前 msgId 且 msg_type=0 的记录
      */
-    private List<AgentMsgStepEntity> stepList;
+    private List<AgentMsgStepVO> stepList;
 }

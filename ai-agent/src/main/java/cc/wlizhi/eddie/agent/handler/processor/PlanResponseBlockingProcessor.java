@@ -119,7 +119,7 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
         // 切换到执行模式
         ctx.getIteratorState().setAgentMode(AgentMode.EXECUTE);
         // 初始化每个步骤的任务上下文
-        ctx.setCurrentStep(1);
+        ctx.setCurrentStepNumber(1);
 
         // 更新任务计划及首个步骤的状态
         AgentTaskPlan taskPlan = ctx.getTaskPlan();

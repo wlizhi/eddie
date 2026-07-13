@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS ai_agent_session_msg_step
     msg_id        INTEGER NOT NULL,            -- 关联 ai_agent_session_msg.id
     msg_type      INTEGER NOT NULL DEFAULT 0,  -- 消息类型，0 前端展示，1 后端任务规划
     msg_data_type INTEGER NOT NULL DEFAULT 0,  -- 消息数据类型，0 文本，1 json字符串
-    step          INTEGER NOT NULL DEFAULT 0,  -- 阶段，步骤索引，对应清单中的步骤
+    step_number   INTEGER NOT NULL DEFAULT 0,  -- 步骤编号（1-based），对应任务规划 AgentTaskPlan.steps[].stepNumber
     step_desc     TEXT    NOT NULL DEFAULT '', -- 阶段描述信息
     prompt        TEXT    NOT NULL DEFAULT '', -- 提示词
     thinking      TEXT    NOT NULL DEFAULT '', -- 思考内容

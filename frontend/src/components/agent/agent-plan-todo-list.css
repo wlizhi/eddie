@@ -33,6 +33,12 @@
     border-radius: 3px;
     background: var(--bg-hover);
     line-height: 1.5;
+    margin-left: auto;
+}
+
+/* "执行中"标签呼吸动效 */
+.plan-status-tag.status-executing {
+    animation: aptl-status-pulse 1.6s ease-in-out infinite;
 }
 
 /* ===== 进度横条 ===== */
@@ -172,6 +178,16 @@
     }
     50% {
         box-shadow: 0 0 0 4px rgba(var(--accent-default-rgb, 99, 102, 241), 0);
+    }
+}
+
+/* "执行中"状态标签呼吸动效 */
+@keyframes aptl-status-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.55;
     }
 }
 

@@ -134,9 +134,9 @@ public class AgentChatContext {
     // ==================== 执行上下文 =====================
 
     /**
-     * 当前步骤序号，从1开始，用来表示当前正在执行的步骤
+     * 当前步骤编号（1-based），表示当前正在执行的任务规划步骤
      */
-    private Integer currentStep;
+    private Integer currentStepNumber;
 
     /**
      * 步骤级流式累加器（执行模式专用），作用域是每一步的迭代中

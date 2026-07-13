@@ -1,15 +1,22 @@
 <!--
  * @author Eddie
- * @date 2026-07-13
+ * {@code @date} 2026-07-13
  *
  * AgentThinkingBlock — 思考过程块
  *
- * 独立的 thinking 折叠/展开组件。每个 thinking 块拥有自己的 expanded 状态，
- * 展开时才渲染 Markdown 内容（v-if 控制），折叠时 renderMd 完全不执行。
- * 思考中状态（isStreaming && isLast && showPending）显示 "思考中..." 动画。
+ * 独立的 thinking 折叠/展开组件。
+ *
+ * 行为设计：
+ * 1. 历史记录模式（页面刷新后）：
+ *    - 默认折叠，不渲染任何内容
+ *    - 用户点击展开 → renderMd 渲染并缓存 HTML → 再次展开直接显示缓存
+ * 2. 增量模式（流式响应中）：
+ *    - 收到 thinking 事件 → JS 数据增量追加，当前展开则增量渲染，折叠则不渲染
+ *    - 用户思考中展开 → 渲染当前最新数据，后续增量继续追加渲染
+ *    - 收到 metadata（思考完成）→ 折叠状态清除缓存（下次展开重新渲染完整内容），展开状态直接渲染最终版
  -->
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {Brain, ChevronDown} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 
@@ -22,22 +29,60 @@ const props = defineProps<{
   isLast: boolean
   /** 当前轮次是否还有 content（有 content 表示思考完成） */
   hasContent: boolean
+  /** 此轮次思考内容是否正在流式接收中（事件驱动，收到 thinking 事件为 true，收到 metadata 为 false） */
+  thinkingStreaming?: boolean
 }>()
 
-/** 自身展开/折叠状态，不依赖父组件 */
+/** 自身展开/折叠状态 */
 const expanded = ref(false)
+
+/** 缓存已渲染的 HTML，避免重复调用 renderMd */
+const cachedHtml = ref('')
 
 /** 切换展开/折叠 */
 function toggle() {
   expanded.value = !expanded.value
 }
 
-/** 缓存 Markdown 渲染结果 */
-const renderedThinking = computed(() => renderMd(props.thinking))
+/** 渲染并缓存 HTML */
+function renderAndCache() {
+  if (props.thinking) {
+    cachedHtml.value = renderMd(props.thinking)
+  }
+}
 
-/** 是否显示"思考中..."占位：正在流式 + 最新消息 + 无 content + 有 thinking 内容（正在思考中） */
+/**
+ * 展开时：有缓存直接用，无缓存则渲染当前内容
+ */
+watch(expanded, (val) => {
+  if (val && !cachedHtml.value && props.thinking) {
+    renderAndCache()
+  }
+})
+
+/**
+ * 流式增量数据到达且展开时 → 增量渲染
+ */
+watch(() => props.thinking, () => {
+  if (expanded.value && props.thinking) {
+    renderAndCache()
+  }
+})
+
+/**
+ * 思考完成（收到 metadata）：
+ * - 折叠态 → 清空缓存，下次展开时重新渲染完整最终版
+ * - 展开态 → 数据已通过 thinking watch 增量渲染，无需额外操作
+ */
+watch(() => props.thinkingStreaming, (newVal, oldVal) => {
+  if (oldVal === true && newVal === false && !expanded.value) {
+    cachedHtml.value = ''
+  }
+})
+
+/** 是否显示"思考中..."占位 */
 const showPending = computed(() =>
-    props.isStreaming && props.isLast && !props.hasContent
+    !!props.thinkingStreaming
 )
 </script>
 
@@ -49,7 +94,7 @@ const showPending = computed(() =>
           class="chevron"
           :class="{ rotated: expanded }"
       />
-      <span v-if="hasContent || !isStreaming || !isLast">
+      <span v-if="!thinkingStreaming">
         <Brain :size="12" :stroke-width="2" class="thinking-icon"/> 思考过程
       </span>
       <span v-else class="thinking-pending">
@@ -60,9 +105,9 @@ const showPending = computed(() =>
       </span>
     </button>
     <div
-        v-if="expanded && thinking"
+        v-if="expanded && cachedHtml"
         class="thinking-content markdown-body"
-        v-html="renderedThinking"
+        v-html="cachedHtml"
     />
   </div>
 </template>

@@ -28,10 +28,10 @@ import java.util.stream.Collectors;
  * <p>
  * 核心职责：
  * <ol>
- *     <li>流开始前获取 {@link AgentStepStreamContext} 步骤级累加器（由 {@link ExecuteClientPostProcessor} 创建并预置 stepId）；
+ *     <li>流开始前获取 {@link AgentStepStreamContext} 步骤级累加器（由 {@link ExecuteClientPostProcessor} 创建并预置 stepRecordId）；
  *         若该步骤序号首次执行则推送 {@code step_started} 事件</li>
  *     <li>流处理中覆写 {@code handleThinking/handleAnswer}，使用步骤级累加器独立存储，
- *         用真实 stepId 发射事件（父类保持 {@code null}，不影响消息级别）</li>
+ *         用真实 stepRecordId 发射事件（父类保持 {@code null}，不影响消息级别）</li>
  *     <li>流结束后将占位记录更新为步骤累加器的实际内容，推送 {@code execute_complete} 事件</li>
  * </ol>
  * <p>
@@ -64,8 +64,8 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
                 String text = reasoning.toString();
                 AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
                 if (stepCtx != null) {
-                    // 用真实 stepId 发射（父类发射的 stepId=null，不影响消息级别）
-                    publisher.thinking(ctx, stepCtx.getStepId(), text);
+                    // 用真实 stepRecordId 发射（父类发射的 stepRecordId=null，不影响消息级别）
+                    publisher.thinking(ctx, stepCtx.getStepRecordId(), text);
                     // 累加到步骤级（独立于消息级 fullThinking）
                     int thinkLength = stepCtx.getFullThinking().length();
                     if (thinkLength < 500) {
@@ -92,8 +92,8 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
             if (!answer.isEmpty()) {
                 AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
                 if (stepCtx != null) {
-                    // 用真实 stepId 发射（父类发射的 stepId=null，不影响消息级别）
-                    publisher.answer(ctx, stepCtx.getStepId(), answer);
+                    // 用真实 stepRecordId 发射（父类发射的 stepRecordId=null，不影响消息级别）
+                    publisher.answer(ctx, stepCtx.getStepRecordId(), answer);
                     // 累加到步骤级（独立于消息级 fullAnswer）
                     stepCtx.getFullAnswer().append(answer);
                 }
@@ -130,8 +130,8 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
      */
     private void updateStepRecord(AgentChatContext ctx) {
         AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
-        if (stepCtx == null || stepCtx.getStepId() == null) {
-            log.warn("stepStreamContext 或 stepId 为空，跳过步骤记录更新");
+        if (stepCtx == null || stepCtx.getStepRecordId() == null) {
+            log.warn("stepStreamContext 或 stepRecordId 为空，跳过步骤记录更新");
             return;
         }
 
@@ -145,17 +145,17 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
             try {
                 toolCallsJson = ctx.getObjectMapper().writeValueAsString(toolCalls);
             } catch (Exception e) {
-                log.warn("序列化工具调用记录失败, stepId={}: {}", stepCtx.getStepId(), e.getMessage());
+                log.warn("序列化工具调用记录失败, stepRecordId={}: {}", stepCtx.getStepRecordId(), e.getMessage());
             }
         }
 
         try {
-            agentMsgStepDao.updateContent(stepCtx.getStepId(), content, thinking, toolCallsJson);
-            log.info("步骤记录更新完成, stepId={}, contentLen={}, thinkingLen={}, toolCallsSize={}",
-                    stepCtx.getStepId(), content.length(), thinking.length(),
+            agentMsgStepDao.updateContent(stepCtx.getStepRecordId(), content, thinking, toolCallsJson);
+            log.info("步骤记录更新完成, stepRecordId={}, contentLen={}, thinkingLen={}, toolCallsSize={}",
+                    stepCtx.getStepRecordId(), content.length(), thinking.length(),
                     toolCalls != null ? toolCalls.size() : 0);
         } catch (Exception e) {
-            log.warn("步骤记录更新失败, stepId={}: {}", stepCtx.getStepId(), e.getMessage());
+            log.warn("步骤记录更新失败, stepRecordId={}: {}", stepCtx.getStepRecordId(), e.getMessage());
         }
     }
 
@@ -175,7 +175,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         entity.setMsgId(msgId);
         entity.setMsgType(0);
         entity.setMsgDataType(0);
-        entity.setStep(currentStep != null ? currentStep : 0);
+        entity.setStepNumber(currentStep != null ? currentStep : 0);
         entity.setStepDesc(stepDesc);
         entity.setPrompt(prompt);
         entity.setCreatedAt(System.currentTimeMillis());
@@ -185,8 +185,8 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
     /**
      * 从任务计划中解析当前步骤的描述信息（标题）
      */
-    static String resolveStepDesc(AgentChatContext ctx, Integer currentStep) {
-        if (currentStep == null || currentStep <= 0) {
+    static String resolveStepDesc(AgentChatContext ctx, Integer currentStepNumber) {
+        if (currentStepNumber == null || currentStepNumber <= 0) {
             return "";
         }
         AgentTaskPlan taskPlan = ctx.getTaskPlan();
@@ -194,19 +194,19 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
             return "";
         }
         List<AgentTaskStep> steps = taskPlan.getSteps();
-        if (currentStep > steps.size()) {
+        if (currentStepNumber > steps.size()) {
             return "";
         }
-        AgentTaskStep step = steps.get(currentStep - 1);
+        AgentTaskStep step = steps.get(currentStepNumber - 1);
         return step.getTitle() != null ? step.getTitle() : "";
     }
 
     @Override
     protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
         AgentMode agentMode = ctx.getIteratorState().getAgentMode();
-        Integer currentStep = ctx.getCurrentStep();
+        Integer currentStepNumber = ctx.getCurrentStepNumber();
         List<AgentTaskStep> steps = ctx.getTaskPlan().getSteps();
-        String stepStatus = steps.get(currentStep - 1).getStatus();
+        String stepStatus = steps.get(currentStepNumber - 1).getStatus();
         boolean isFinal = Objects.equals(stepStatus, StepStatus.COMPLETED.getValue())
                 || Objects.equals(stepStatus, StepStatus.FAILED.getValue());
         if (AgentMode.EXECUTE == agentMode && isFinal) {

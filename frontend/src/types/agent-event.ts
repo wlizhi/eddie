@@ -24,47 +24,49 @@ export interface ApiResult<T = unknown> {
 
 export interface ThinkingPayload {
     msgId?: number
-    stepId?: number
-    step?: number
+    stepRecordId?: number
+    stepNumber?: number
     text: string
 }
 
 export interface AnswerPayload {
     msgId?: number
-    stepId?: number
-    step?: number
+    stepRecordId?: number
+    stepNumber?: number
     text: string
 }
 
 export interface ToolExecutionPayload {
     msgId?: number
-    stepId?: number
-    step?: number
+    stepRecordId?: number
+    stepNumber?: number
     toolName: string
     status: string
     arguments?: string
     result?: string
     error?: boolean
+    /** 工具调用序号（后端 Java int 原语，始终有值） */
+    seq?: number
 }
 
 export interface MessageCreatedPayload {
     msgId?: number
-    stepId?: number
-    step?: number
+    stepRecordId?: number
+    stepNumber?: number
     userMsgId?: number
     assistantMsgId?: number
 }
 
 export interface RoundStartPayload {
     msgId?: number
-    stepId?: number
-    step?: number
+    stepRecordId?: number
+    stepNumber?: number
     round: number
 }
 
 export interface CancelledPayload {
     msgId?: number
-    stepId?: number
-    step?: number
+    stepRecordId?: number
+    stepNumber?: number
     reason: string
 }

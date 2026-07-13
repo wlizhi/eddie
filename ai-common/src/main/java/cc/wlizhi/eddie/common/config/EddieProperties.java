@@ -48,5 +48,7 @@ public class EddieProperties {
         private String driverClassName;
         private int maximumPoolSize = 1;
         private String schemaLocation;
+        /** DDL 初始化模式：always=每次都执行, never=禁用 */
+        private String initMode = "always";
     }
 }

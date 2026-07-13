@@ -11,7 +11,9 @@ import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.dto.*;
 import cc.wlizhi.eddie.agent.entity.event.payload.*;
+import cc.wlizhi.eddie.agent.entity.response.AgentMsgStepVO;
 import cc.wlizhi.eddie.agent.entity.response.AgentSessionVO;
+import cc.wlizhi.eddie.agent.entity.response.AgentToolCallVO;
 import cc.wlizhi.eddie.chat.controller.ChatToolApprovalController;
 import cc.wlizhi.eddie.chat.entity.dto.ChatCancelledPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatErrorPayload;
@@ -86,6 +88,8 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 AgentMsgStepEntity.class,
                 AgentMsgEntity.class,
                 AgentIteratorState.class,
+                AgentMsgStepVO.class,
+                AgentToolCallVO.class,
                 // ==================== SSE 事件 Payload ====================
                 AgentThinkingPayload.class,
                 AgentAnswerPayload.class,

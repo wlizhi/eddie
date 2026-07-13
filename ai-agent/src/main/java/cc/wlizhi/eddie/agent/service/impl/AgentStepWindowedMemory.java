@@ -60,17 +60,17 @@ public class AgentStepWindowedMemory extends AbstractWindowedMemory {
         }
 
         long msgId;
-        int step;
+        int stepNumber;
         try {
             msgId = Long.parseLong(parts[0]);
-            step = Integer.parseInt(parts[1]);
+            stepNumber = Integer.parseInt(parts[1]);
         } catch (NumberFormatException e) {
             log.warn("解析 conversationId 失败: {}", conversationId, e);
             return List.of();
         }
 
-        // 精准查询：只查该 msgId + step 相关的交互记录（可能有多次迭代）
-        List<AgentMsgStepEntity> rows = agentMsgStepDao.findByMsgIdAndStep(msgId, step);
+        // 精准查询：只查该 msgId + stepNumber 相关的交互记录（可能有多次迭代）
+        List<AgentMsgStepEntity> rows = agentMsgStepDao.findByMsgIdAndStepNumber(msgId, stepNumber);
         if (rows.isEmpty()) {
             return List.of();
         }
@@ -81,7 +81,7 @@ public class AgentStepWindowedMemory extends AbstractWindowedMemory {
             // 1. user: prompt（步骤指令或模型追问）
             if (row.getPrompt() != null && !row.getPrompt().isEmpty()) {
                 messages.add(new UserMessage(
-                        "> **步骤 " + step + " 指令**\n\n" + row.getPrompt()));
+                        "> **步骤 " + stepNumber + " 指令**\n\n" + row.getPrompt()));
             }
 
             // 2. tool: ToolExecutionEvent → 提取 result.data 为自然语言文本
@@ -97,7 +97,7 @@ public class AgentStepWindowedMemory extends AbstractWindowedMemory {
             // 3. assistant: content（模型输出，不含 thinking）
             if (row.getContent() != null && !row.getContent().isEmpty()) {
                 messages.add(new AssistantMessage(
-                        "> **步骤 " + step + " 执行结果**\n\n" + row.getContent()));
+                        "> **步骤 " + stepNumber + " 执行结果**\n\n" + row.getContent()));
             }
         }
         return messages;

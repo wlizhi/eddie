@@ -10,7 +10,7 @@
  * 通过事件向父组件传递审批操作。
  -->
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {ChevronDown} from '@lucide/vue'
 import {renderMd} from '@/utils/markdown'
 import {formatToolResult} from '@/utils/tool-result'
@@ -19,10 +19,15 @@ import type {ToolExecutionRecord} from '@/types/chat'
 const props = defineProps<{
   /** 工具执行记录（含 toolName、arguments、result、done 等） */
   toolCall: ToolExecutionRecord
+  /** 渲染单元唯一标识（用于防重复渲染） */
+  unitKey?: string
+  /** 父组件标记此单元是否已完成首次展开渲染 */
+  unitRendered?: boolean
 }>()
 
 const emit = defineEmits<{
   approve: [approved: boolean]
+  rendered: [unitKey: string]
 }>()
 
 /** 自身展开/折叠状态 */
@@ -59,10 +64,33 @@ function buildToolContent(args: string | undefined, result: string | undefined):
   return content
 }
 
-/** 缓存 Markdown 渲染结果 */
+/** 缓存 Markdown 渲染结果 — 按 unitKey 做缓存，工具执行完成前可重建 */
+let renderedHtmlCache = ''
+let cacheUnitKey = ''
+let cacheIsFinal = false
 const renderedContent = computed(() => {
+  if (!expanded.value) return ''
   if (!props.toolCall.arguments && !props.toolCall.result) return ''
-  return renderMd(buildToolContent(props.toolCall.arguments, props.toolCall.result))
+
+  // unitKey 匹配且缓存内容已是最终态 → 命中，不再重复渲染
+  if (renderedHtmlCache && cacheIsFinal && props.unitKey === cacheUnitKey) {
+    return renderedHtmlCache
+  }
+
+  renderedHtmlCache = renderMd(buildToolContent(props.toolCall.arguments, props.toolCall.result))
+  cacheUnitKey = props.unitKey || ''
+  cacheIsFinal = !!props.toolCall.done
+  return renderedHtmlCache
+})
+
+/** 首次展开且工具已执行完成（内容稳定）→ 发射 rendered 信号 */
+watch(expanded, (val) => {
+  if (val && !props.unitRendered && props.unitKey && props.toolCall.done) {
+    // 强制 computed 先求值并缓存渲染结果，再发射标记
+    // 避免 pre-flush 时序导致 unitRendered 先于缓存生效
+    renderedContent.value
+    emit('rendered', props.unitKey)
+  }
 })
 
 /** 状态图标 */
@@ -102,7 +130,7 @@ const cardClass = computed(() => ({
       </span>
     </div>
 
-    <!-- 工具结果内容：展开时才渲染，折叠时 renderMd 完全不执行 -->
+    <!-- 工具结果内容：展开时才渲染，标记后返回缓存，折叠再展开不重复计算 -->
     <div
         v-if="expanded && renderedContent"
         class="tool-execution-result markdown-body"

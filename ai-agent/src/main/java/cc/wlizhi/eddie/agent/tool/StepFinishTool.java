@@ -32,7 +32,7 @@ public class StepFinishTool implements AgentToolProvider {
                     """)
     public ApiResult<String> stepFinish(
             @ToolParam(description = "消息 ID") Long msgId,
-            @ToolParam(description = "步骤编号，对应完整计划清单中的步骤 id 值") Integer step,
+            @ToolParam(description = "步骤编号，对应任务规划清单中的步骤编号 stepNumber") Integer stepNumber,
             @ToolParam(description = """
                     取值范围：processing/completed/failed。必填。
                     processing — 本轮执行完成，但还需要继续迭代（如工具调用后需继续推理）；
@@ -47,8 +47,8 @@ public class StepFinishTool implements AgentToolProvider {
         if (msgId == null) {
             return ApiResult.error(ApiResultCode.BAD_REQUEST, "msgId 不能为空");
         }
-        if (step == null) {
-            return ApiResult.error(ApiResultCode.BAD_REQUEST, "step 不能为空");
+        if (stepNumber == null) {
+            return ApiResult.error(ApiResultCode.BAD_REQUEST, "stepNumber 不能为空");
         }
         if (status == null) {
             return ApiResult.error(ApiResultCode.BAD_REQUEST, "status 不能为空");
@@ -77,29 +77,29 @@ public class StepFinishTool implements AgentToolProvider {
             return ApiResult.error(ApiResultCode.BAD_REQUEST, "消息 ID 不匹配");
         }
 
-        // 5. 用 step 参数定位 taskPlan.steps 中的步骤
+        // 5. 用 stepNumber 参数定位 taskPlan.steps 中的步骤
         AgentTaskPlan taskPlan = ctx.getTaskPlan();
         if (taskPlan != null && taskPlan.getSteps() != null
-                && step > 0 && step <= taskPlan.getSteps().size()) {
-            AgentTaskStep stepObj = taskPlan.getSteps().get(step - 1);
+                && stepNumber > 0 && stepNumber <= taskPlan.getSteps().size()) {
+            AgentTaskStep stepObj = taskPlan.getSteps().get(stepNumber - 1);
             // 模型重复调用的时候，报错提示
             if (StepStatus.COMPLETED.getValue().equals(stepObj.getStatus())
                     || StepStatus.FAILED.getValue().equals(stepObj.getStatus())) {
-                log.info("[StepFinishTool] 步骤 {} 已处于终态({})，忽略重复调用", step, stepObj.getStatus());
-                return ApiResult.error(ApiResultCode.BAD_REQUEST, "步骤 " + step + " 已处于 "
+                log.info("[StepFinishTool] 步骤 {} 已处于终态({})，忽略重复调用", stepNumber, stepObj.getStatus());
+                return ApiResult.error(ApiResultCode.BAD_REQUEST, "步骤 " + stepNumber + " 已处于 "
                         + stepObj.getStatus() + " 状态，请勿重复调用。当前状态已是终结状态，请立即停止输出，结束对话。");
             }
 
             stepObj.setStatus(stepStatus.getValue());
             stepObj.setResult(result != null ? result : "");
             // 最后一步时，需要更新整个任务清单状态为完成状态
-            if (step == taskPlan.getSteps().size()) {
+            if (stepNumber == taskPlan.getSteps().size()) {
                 taskPlan.setStatus(TaskPlanStatus.COMPLETED.getValue());
                 taskPlan.setResult(result);
             }
         } else {
             return ApiResult.error(ApiResultCode.BAD_REQUEST,
-                    "步骤编号 " + step + " 超出任务计划范围");
+                    "步骤编号 " + stepNumber + " 超出任务计划范围");
         }
 
         // 6. 修改迭代缓冲：stepStreamContext.stepStatus
@@ -109,7 +109,7 @@ public class StepFinishTool implements AgentToolProvider {
         }
 
         log.info("[StepFinishTool] 步骤 {} 标记{}, msgId={}",
-                step, stepStatus.getValue(), msgId);
-        return ApiResult.success("步骤 " + step + " 已标记为 " + stepStatus.getValue());
+                stepNumber, stepStatus.getValue(), msgId);
+        return ApiResult.success("步骤 " + stepNumber + " 已标记为 " + stepStatus.getValue());
     }
 }

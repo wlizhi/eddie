@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.init.DataSourceInitializer;
+import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -57,24 +57,24 @@ public class EddieConfig {
     // ==================== Agent 库（独立数据库 eddie-agent.db） ====================
 
     @Bean(name = "agentDataSource")
-    public DataSource agentDataSource(EddieProperties props) {
+    public DataSource agentDataSource(EddieProperties props, ResourceLoader resourceLoader) {
         var agentDs = props.getAgentDatasource();
         var config = new HikariConfig();
         config.setJdbcUrl(agentDs.getUrl());
         config.setDriverClassName(agentDs.getDriverClassName());
         config.setMaximumPoolSize(agentDs.getMaximumPoolSize());
-        return new HikariDataSource(config);
-    }
+        var ds = new HikariDataSource(config);
 
-    @Bean
-    public DataSourceInitializer agentDataSourceInitializer(@Autowired @Qualifier("agentDataSource") DataSource agentDataSource, EddieProperties props, ResourceLoader resourceLoader) {
-        var populator = new ResourceDatabasePopulator();
-        populator.addScript(resourceLoader.getResource(props.getAgentDatasource().getSchemaLocation()));
-        var initializer = new DataSourceInitializer();
-        initializer.setDataSource(agentDataSource);
-        initializer.setDatabasePopulator(populator);
-        initializer.setEnabled(true);
-        return initializer;
+        // 同步执行 DDL（在 DataSource 创建后立即执行），避免 InitializingBean 回调在 AOT 下失效
+        if ("always".equals(agentDs.getInitMode())) {
+            var populator = new ResourceDatabasePopulator();
+            populator.addScript(resourceLoader.getResource(agentDs.getSchemaLocation()));
+            DatabasePopulatorUtils.execute(populator, ds);
+            log.info("Agent 数据库 DDL 已执行: {}", agentDs.getSchemaLocation());
+        } else {
+            log.info("Agent 数据库 DDL 已跳过 (init-mode={})", agentDs.getInitMode());
+        }
+        return ds;
     }
 
     @Bean(name = "agentJdbcTemplate")

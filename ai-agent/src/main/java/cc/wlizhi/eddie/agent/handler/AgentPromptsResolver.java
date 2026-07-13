@@ -54,7 +54,7 @@ public class AgentPromptsResolver {
         }
 
         // 当前步骤编号
-        Integer currentStep = context.getCurrentStep();
+        Integer currentStepNumber = context.getCurrentStepNumber();
 
         // 完整 taskPlan 序列化为 JSON
         AgentTaskPlan taskPlan = context.getTaskPlan();
@@ -67,7 +67,7 @@ public class AgentPromptsResolver {
         }
 
         String prompt = builtInPromptsContext.resolvePrompt(executePrompts, Map.of(
-                "stepNumber", String.valueOf(currentStep),
+                "stepNumber", String.valueOf(currentStepNumber),
                 "taskPlan", taskPlanJson,
                 "msgId", context.getAgentMsg().getId().toString()
         ));

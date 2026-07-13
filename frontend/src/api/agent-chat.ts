@@ -126,18 +126,18 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
             switch (currentEvent) {
                 case 'thinking': {
                     const payload = envelope.data as ThinkingPayload
-                    onThinking?.(payload?.text ?? raw, payload?.step)
+                    onThinking?.(payload?.text ?? raw, payload?.stepNumber, payload?.msgId, payload?.stepRecordId)
                     break
                 }
                 case 'answer': {
                     const payload = envelope.data as AnswerPayload
-                    onAnswer?.(payload?.text ?? raw, payload?.step)
+                    onAnswer?.(payload?.text ?? raw, payload?.stepNumber, payload?.msgId, payload?.stepRecordId)
                     break
                 }
                 case 'tool_execution': {
                     const payload = envelope.data as ToolExecutionPayload
                     if (payload) {
-                        onToolExecution?.(payload, payload.step)
+                        onToolExecution?.(payload, payload.stepNumber, payload.msgId, payload.stepRecordId)
                     }
                     break
                 }
@@ -177,7 +177,7 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
                     onTaskPlan?.(envelope.data as import('@/types/agent-chat').AgentTaskPlan)
                     break
                 case 'execute_complete':
-                    onExecuteComplete?.((envelope.data as { step?: number })?.step ?? 0)
+                    onExecuteComplete?.((envelope.data as { stepNumber?: number })?.stepNumber ?? 0)
                     break
                 case 'round_end':
                 case 'task_finish':
@@ -246,14 +246,14 @@ export async function streamAgentChat(options: AgentStreamChatOptions): Promise<
  * 用户在前端点击"批准/拒绝"按钮时调用，
  * 通知后端 {@code ApprovalInterceptor} 继续执行或中断。
  */
-export async function approveTool(msgId: number, toolName: string, approved: boolean, stepId?: number | null, seq?: number): Promise<void> {
+export async function approveTool(msgId: number, toolName: string, approved: boolean, stepRecordId?: number | null, seq?: number): Promise<void> {
     const res = await fetch('/api/agent/tools/approve', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
             ownerType: 'agent',
             msgId,
-            stepId: stepId ?? null,
+            stepRecordId: stepRecordId ?? null,
             toolName,
             approved,
             seq: seq ?? 0,

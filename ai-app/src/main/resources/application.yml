@@ -51,3 +51,4 @@ eddie:
     driver-class-name: org.sqlite.JDBC
     maximum-pool-size: 1
     schema-location: classpath:db/ddl/schema-agent.sql
+    init-mode: always

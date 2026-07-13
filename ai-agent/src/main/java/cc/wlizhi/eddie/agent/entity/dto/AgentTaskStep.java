@@ -7,7 +7,6 @@ package cc.wlizhi.eddie.agent.entity.dto;
 
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,11 +28,11 @@ import java.util.List;
 public class AgentTaskStep {
 
     /**
-     * 步骤序号（从 1 开始）
+     * 步骤编号（1-based），唯一标识步骤在计划中的顺序
      */
     @NotNull
-    @JsonPropertyDescription("步骤序号，从1开始递增")
-    private Integer id;
+    @JsonPropertyDescription("步骤编号，从1开始递增，用于标识步骤在计划中的执行顺序")
+    private Integer stepNumber;
 
     @JsonPropertyDescription("当前步骤标题，简短概括，30字以内")
     private String title;
@@ -73,14 +72,12 @@ public class AgentTaskStep {
     /**
      * 依赖的步骤 ID 列表（空列表表示无依赖，可与其他无依赖步骤并行执行）
      */
-    @JsonProperty("depends_on")
     @JsonPropertyDescription("依赖的步骤ID列表，空数组表示无依赖，可与其他无依赖步骤并行执行")
     private List<Integer> dependsOn;
 
     /**
      * 预估复杂度：simple / medium / complex
      */
-    @JsonProperty("estimated_complexity")
     @JsonPropertyDescription("预估复杂度：simple/medium/complex")
     private String estimatedComplexity;
 }

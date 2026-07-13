@@ -20,8 +20,8 @@ import lombok.Setter;
 public class AgentToolExecutionPayload {
 
     private Long msgId;
-    private Long stepId;
-    private Integer step;
+    private Long stepRecordId;
+    private Integer stepNumber;
     private String toolName;
     private String status;
     private String arguments;

@@ -11,7 +11,6 @@
  */
 import type {ChatMessage, ToolExecutionRecord} from '@/types/chat'
 import type {RoundContent} from '@/types/agent-chat'
-import type {ToolExecutionEventItem} from '@/types/session'
 import {renderMd} from '@/utils/markdown'
 
 /**
@@ -53,33 +52,58 @@ export function renderFinalContent(msg: ChatMessage): void {
     msg.renderedContent = renderMd(msg.content || '')
 }
 
-/** 将 AgentMessageVO.toolCalls（JSON 字符串）解析为 ToolExecutionRecord[] */
-export function parseToolCalls(toolCallsJson: string | null | undefined): ToolExecutionRecord[] {
-    if (!toolCallsJson) return []
-    try {
-        const parsed = JSON.parse(toolCallsJson) as ToolExecutionEventItem[]
-        return parsed.map(item => ({
-            toolName: item.toolName,
-            arguments: item.arguments,
-            result: item.result,
-            error: item.status === 'rejected' ? false : !!item.error,
-            done: item.status === 'complete' || item.status === 'rejected',
-            rejected: item.status === 'rejected',
-        }))
-    } catch {
-        return []
-    }
+/** 将 AgentMessageVO.toolCalls（已解析的数组）映射为 ToolExecutionRecord[]，确保字段兼容 */
+export function parseToolCalls(toolCalls: ToolExecutionRecord[] | null | undefined): ToolExecutionRecord[] {
+    if (!toolCalls || !Array.isArray(toolCalls)) return []
+    return toolCalls.map(item => ({
+        toolName: item.toolName,
+        arguments: item.arguments,
+        result: item.result,
+        error: !!item.error,
+        done: true,
+        seq: item.seq,
+    }))
 }
 
-/** 确保消息的 rounds 数组存在并扩展到指定索引，返回 rounds 引用 */
-export function ensureRounds(msg: ChatMessage, count: number): RoundContent[] {
+/**
+ * 在消息的 steps（rounds）中按 stepRecordId 查找或创建步骤。
+ *
+ * 定位规则：
+ * - stepRecordId = null/undefined → 最外层主步骤
+ * - stepRecordId = DB ID → 步骤级子步骤
+ *
+ * 插入位置：
+ * - null step 始终在最前面
+ * - 非 null step 按 stepRecordId 升序排列
+ */
+export function findOrCreateStep(msg: ChatMessage, stepRecordId?: number | null): RoundContent {
     if (!msg.rounds) {
         msg.rounds = []
     }
-    while (msg.rounds.length <= count) {
-        msg.rounds.push({thinking: '', toolCalls: [], content: ''})
+    const rid = stepRecordId ?? null
+    const existing = msg.rounds.find(r => (r.stepRecordId ?? null) === rid)
+    if (existing) return existing
+
+    const newStep: RoundContent = {
+        stepRecordId: rid,
+        thinking: '',
+        toolCalls: [],
+        content: '',
     }
-    return msg.rounds
+
+    if (rid === null) {
+        // null step 插入到最前面
+        msg.rounds.unshift(newStep)
+    } else {
+        // 非 null step：找到第一个比它大的非 null step，在其前面插入
+        const insertIdx = msg.rounds.findIndex(r => r.stepRecordId != null && r.stepRecordId > rid)
+        if (insertIdx === -1) {
+            msg.rounds.push(newStep)
+        } else {
+            msg.rounds.splice(insertIdx, 0, newStep)
+        }
+    }
+    return newStep
 }
 
 /** 将后端 AgentMessageVO 转换为前端 ChatMessage */
@@ -88,7 +112,7 @@ export function toChatMessage(vo: {
     role: string
     thinking: string
     content: string
-    toolCalls: string
+    toolCalls: ToolExecutionRecord[]
     modelName: string
     durationMs: number
     promptTokens: number
@@ -129,9 +153,10 @@ export function toChatMessage(vo: {
             ...(vo.currency ? {currency: vo.currency} : {}),
         },
     }
-    // 历史消息：从 stepList 构建 rounds，每个 step 对应一个轮次
+    // 从 stepList 构建 rounds，每个 step 对应一个轮次
     if (vo.role === 'assistant' && vo.stepList && vo.stepList.length > 0) {
         msg.rounds = vo.stepList.map(step => ({
+            stepRecordId: step.id,
             thinking: step.thinking || '',
             toolCalls: parseToolCalls(step.toolCalls),
             content: step.content || '',
@@ -139,6 +164,7 @@ export function toChatMessage(vo: {
     } else if (vo.role === 'assistant' && (thinking || toolCalls.length > 0 || content)) {
         // 兼容无 stepList 的历史消息（旧数据），回填为单轮次
         msg.rounds = [{
+            stepRecordId: null,
             thinking: thinking ?? '',
             toolCalls,
             content,

@@ -67,38 +67,39 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
 
     @Override
     public ChatClient.ChatClientRequestSpec buildChatClientRequestSpec(AgentChatContext ctx) {
+        long startTime = System.currentTimeMillis();
         String resolvePrompts = agentPromptsResolver.resolvePrompts(ctx);
         log.debug("{} 模式系统提示词：\n{}", AgentMode.EXECUTE.name(), resolvePrompts);
 
-        String stepConversationId = ctx.getAgentMsg().getId() + ":" + ctx.getCurrentStep();
+        String stepConversationId = ctx.getAgentMsg().getId() + ":" + ctx.getCurrentStepNumber();
 
         String userPrompt = "请根据系统提示词及历史消息（如果有）继续完成当前步骤的任务内容";
 
         // 初始化步骤级流式累加器，设置 prompt（供 ExecuteResponseStreamProcessor 使用）
         AgentStepStreamContext stepCtx = new AgentStepStreamContext();
-        stepCtx.setStep(ctx.getCurrentStep());
+        stepCtx.setStepNumber(ctx.getCurrentStepNumber());
         stepCtx.setPrompt(userPrompt);
         // 从 taskPlan 同步当前步骤的状态到迭代缓冲
         AgentTaskPlan taskPlan = ctx.getTaskPlan();
         if (taskPlan != null && taskPlan.getSteps() != null
-                && ctx.getCurrentStep() != null && ctx.getCurrentStep() > 0
-                && ctx.getCurrentStep() <= taskPlan.getSteps().size()) {
-            AgentTaskStep planStep = taskPlan.getSteps().get(ctx.getCurrentStep() - 1);
+                && ctx.getCurrentStepNumber() != null && ctx.getCurrentStepNumber() > 0
+                && ctx.getCurrentStepNumber() <= taskPlan.getSteps().size()) {
+            AgentTaskStep planStep = taskPlan.getSteps().get(ctx.getCurrentStepNumber() - 1);
             stepCtx.setStepStatus(StepStatus.fromValue(planStep.getStatus()));
         }
         ctx.setStepStreamContext(stepCtx);
 
-        // 预创建步骤占位记录，获取 stepId（审批拦截器 AgentApprovalInterceptor 需要 stepId 定位步骤）
-        String stepDesc = ExecuteResponseStreamProcessor.resolveStepDesc(ctx, ctx.getCurrentStep());
-        AgentMsgStepEntity placeholder = ExecuteResponseStreamProcessor.buildPlaceholderEntity(ctx, ctx.getCurrentStep(), stepDesc);
+        // 预创建步骤占位记录，获取 stepRecordId（审批拦截器需要 stepRecordId 定位步骤）
+        String stepDesc = ExecuteResponseStreamProcessor.resolveStepDesc(ctx, ctx.getCurrentStepNumber());
+        AgentMsgStepEntity placeholder = ExecuteResponseStreamProcessor.buildPlaceholderEntity(ctx, ctx.getCurrentStepNumber(), stepDesc);
         try {
-            Long stepId = agentMsgStepDao.insertPlaceholder(placeholder);
-            stepCtx.setStepId(stepId);
-            log.info("预创建步骤占位记录成功, stepId={}, step={}", stepId, ctx.getCurrentStep());
+            Long stepRecordId = agentMsgStepDao.insertPlaceholder(placeholder);
+            stepCtx.setStepRecordId(stepRecordId);
+            log.info("预创建步骤占位记录成功, stepRecordId={}, stepNumber={}", stepRecordId, ctx.getCurrentStepNumber());
         } catch (Exception e) {
-            log.warn("预创建步骤占位记录失败, msgId={}, step={}: {}",
+            log.warn("预创建步骤占位记录失败, msgId={}, stepNumber={}: {}",
                     ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null,
-                    ctx.getCurrentStep(), e.getMessage());
+                    ctx.getCurrentStepNumber(), e.getMessage());
         }
 
         // 1. 解析用户可配置的工具（WebSearch/WebFetch/Shell/MCP 等）
@@ -148,9 +149,9 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
         String sseMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
         int sseMaxLen = ConfigUtil.resolveIntConfig(5000, sseMaxLenStr, 100, 8000);
         ctx.setToolCallMaxLength(sseMaxLen);
-        ctx.setToolCallStoreMaxLength(sseMaxLen >> 4);
+        ctx.setToolCallStoreMaxLength(sseMaxLen >> 1);
 
-        return builder.build().prompt()
+        ChatClient.ChatClientRequestSpec requestSpec = builder.build().prompt()
                 .system(resolvePrompts)
                 .user(userPrompt)
                 .toolContext(Map.of("agentChatContext", ctx))
@@ -158,5 +159,7 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
                         .param("chat_memory_conversation_id", stepConversationId)
                         .param("providerId", ctx.getModelProvider().getId())
                         .param("modelCode", ctx.getUseModelInfo().getId()));
+        log.debug("[buildChatClientRequestSpec] 构建请求客户端，耗时：{}ms", System.currentTimeMillis() - startTime);
+        return requestSpec;
     }
 }

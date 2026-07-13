@@ -1,6 +1,9 @@
+/* noinspection CssUnresolvedCustomProperty — 以下 Naive UI 自定义属性由主题系统在运行时注入 */
+
 /* ===== 智能体消息列表 ===== */
 
 .agent-message-list {
+    --avatar-size: 1.75rem;
     flex: 1;
     overflow-y: auto;
     padding: var(--space-6) var(--space-8);
@@ -22,6 +25,15 @@
 
 .assistant-row {
     align-self: flex-start;
+}
+
+/* ===== chat 模式：约束气泡宽度，避免交叉 ===== */
+.agent-message-list:not(.qa-mode) .user-row .msg-col {
+    margin-left: calc(var(--avatar-size, 1.75rem) + var(--space-4));
+}
+
+.agent-message-list:not(.qa-mode) .assistant-row .msg-col {
+    margin-right: calc(var(--avatar-size, 1.75rem) + var(--space-4));
 }
 
 /* ===== 头像 ===== */
@@ -310,6 +322,7 @@
         padding: var(--space-2) var(--space-3);
         font-size: var(--font-size-base);
     }
+
 
     .meta-expand-btn {
         display: inline-flex;

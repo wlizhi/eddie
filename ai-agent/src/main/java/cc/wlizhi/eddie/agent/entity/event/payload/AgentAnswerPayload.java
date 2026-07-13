@@ -20,7 +20,7 @@ import lombok.Setter;
 public class AgentAnswerPayload {
 
     private Long msgId;
-    private Long stepId;
-    private Integer step;
+    private Long stepRecordId;
+    private Integer stepNumber;
     private String text;
 }

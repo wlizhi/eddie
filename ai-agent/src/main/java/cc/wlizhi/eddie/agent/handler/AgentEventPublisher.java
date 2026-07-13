@@ -42,7 +42,7 @@ public class AgentEventPublisher {
     // ==================== 通用发射 ====================
 
     /**
-     * 发射 SSE 事件。从 ctx 自动提取 msgId/stepId/step。
+     * 发射 SSE 事件。从 ctx 自动提取 msgId/stepRecordId/stepNumber。
      *
      * @param ctx    上下文
      * @param event  事件类型
@@ -80,31 +80,31 @@ public class AgentEventPublisher {
     /**
      * 模型思考内容（流式）
      */
-    public void thinking(AgentChatContext ctx, Long stepId, String text) {
+    public void thinking(AgentChatContext ctx, Long stepRecordId, String text) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        Integer step = resolveStep(ctx);
-        AgentThinkingPayload payload = new AgentThinkingPayload(msgId, stepId, step, text);
+        Integer stepNumber = resolveStepNumber(ctx);
+        AgentThinkingPayload payload = new AgentThinkingPayload(msgId, stepRecordId, stepNumber, text);
         emit(ctx, AgentEvent.THINKING, ApiResult.success(payload));
     }
 
     /**
      * 模型回答内容（流式）
      */
-    public void answer(AgentChatContext ctx, Long stepId, String text) {
+    public void answer(AgentChatContext ctx, Long stepRecordId, String text) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        Integer step = resolveStep(ctx);
-        AgentAnswerPayload payload = new AgentAnswerPayload(msgId, stepId, step, text);
+        Integer stepNumber = resolveStepNumber(ctx);
+        AgentAnswerPayload payload = new AgentAnswerPayload(msgId, stepRecordId, stepNumber, text);
         emit(ctx, AgentEvent.ANSWER, ApiResult.success(payload));
     }
 
     /**
      * 工具执行结果
      */
-    public void toolExecution(AgentChatContext ctx, Long stepId, String toolName, String status, Object result) {
+    public void toolExecution(AgentChatContext ctx, Long stepRecordId, String toolName, String status, Object result) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        Integer step = resolveStep(ctx);
+        Integer stepNumber = resolveStepNumber(ctx);
         AgentToolExecutionPayload payload = new AgentToolExecutionPayload(
-                msgId, stepId, step, toolName, status, null, result, false, 0);
+                msgId, stepRecordId, stepNumber, toolName, status, null, result, false, 0);
         emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
     }
 
@@ -131,9 +131,9 @@ public class AgentEventPublisher {
 
     public void round(AgentChatContext ctx, AgentEvent event) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        Long stepId = ctx.getStepStreamContext() == null ? null : ctx.getStepStreamContext().getStepId();
+        Long stepRecordId = ctx.getStepStreamContext() == null ? null : ctx.getStepStreamContext().getStepRecordId();
         AtomicInteger currentIterator = ctx.getIteratorState().getCurrentIterator();
-        AgentRoundPayload payload = new AgentRoundPayload(msgId, stepId, ctx.getCurrentStep(), currentIterator.get());
+        AgentRoundPayload payload = new AgentRoundPayload(msgId, stepRecordId, ctx.getCurrentStepNumber(), currentIterator.get());
         emit(ctx, event, ApiResult.success(payload));
     }
 
@@ -142,8 +142,14 @@ public class AgentEventPublisher {
      */
     public void metadata(AgentChatContext ctx, AgentTokenStatists stats) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        Integer step = resolveStep(ctx);
-        AgentMetadataPayload payload = new AgentMetadataPayload(msgId, null, step, stats);
+        Integer stepNumber = resolveStepNumber(ctx);
+        // 优先从 stepStreamContext 获取真实 stepRecordId（EXECUTE 模式有值），
+        // 使前端能准确定位到对应的 round 并关闭"思考中"动画。
+        // CHAT 模式 stepStreamContext 为 null，stepRecordId=null 匹配主 round。
+        Long stepRecordId = ctx.getStepStreamContext() != null
+                ? ctx.getStepStreamContext().getStepRecordId()
+                : null;
+        AgentMetadataPayload payload = new AgentMetadataPayload(msgId, stepRecordId, stepNumber, stats);
         emit(ctx, AgentEvent.METADATA, ApiResult.success(payload));
     }
 
@@ -173,14 +179,14 @@ public class AgentEventPublisher {
     // ==================== 内部方法 ====================
 
     /**
-     * 从 StepStreamContext 解析当前步骤序号
+     * 从 StepStreamContext 解析当前步骤编号
      */
-    private Integer resolveStep(AgentChatContext ctx) {
+    private Integer resolveStepNumber(AgentChatContext ctx) {
         AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
-        if (stepCtx != null && stepCtx.getStep() != null) {
-            return stepCtx.getStep();
+        if (stepCtx != null && stepCtx.getStepNumber() != null) {
+            return stepCtx.getStepNumber();
         }
-        return ctx.getCurrentStep();
+        return ctx.getCurrentStepNumber();
     }
 
     /**

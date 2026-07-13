@@ -80,9 +80,9 @@ public class AgentChatServiceImpl implements AgentChatService {
             // 消息已持久化（preProcessors 中已完成），通知前端消息 ID
             publisher.messageCreated(ctx);
             Thread agentThread = Thread.ofVirtual().name("agent-chat").start(() -> {
+                ctx.setAgentThread(Thread.currentThread());
                 doChat(ctx);
             });
-            ctx.setAgentThread(agentThread);
             // 客户端断连时中断虚拟线程
             sink.onDispose(agentThread::interrupt);
         });
@@ -223,17 +223,17 @@ public class AgentChatServiceImpl implements AgentChatService {
         }
 
         boolean isFailed = status == StepStatus.FAILED;
-        // 使用 stepStreamContext.step（工具实际更新的步骤编号）而非 ctx.getCurrentStep()
-        int currentStep = stepCtx.getStep() != null ? stepCtx.getStep() : ctx.getCurrentStep();
+        // 使用 stepStreamContext.stepNumber（工具实际更新的步骤编号）而非 ctx.getCurrentStepNumber()
+        int currentStepNumber = stepCtx.getStepNumber() != null ? stepCtx.getStepNumber() : ctx.getCurrentStepNumber();
         int totalSteps = taskPlan.getSteps().size();
 
-        if (currentStep < totalSteps) {
+        if (currentStepNumber < totalSteps) {
             // 推进到下一步
-            int nextStep = currentStep + 1;
-            ctx.setCurrentStep(nextStep);
-            AgentTaskStep nextPlanStep = taskPlan.getSteps().get(nextStep - 1);
+            int nextStepNumber = currentStepNumber + 1;
+            ctx.setCurrentStepNumber(nextStepNumber);
+            AgentTaskStep nextPlanStep = taskPlan.getSteps().get(nextStepNumber - 1);
             nextPlanStep.setStatus(StepStatus.PROCESSING.getValue());
-            log.info("步骤 {} {}，推进至步骤 {}", currentStep, isFailed ? "失败" : "完成", nextStep);
+            log.info("步骤 {} {}，推进至步骤 {}", currentStepNumber, isFailed ? "失败" : "完成", nextStepNumber);
         } else {
             // 最后一步完成或失败
             taskPlan.setStatus(isFailed ? TaskPlanStatus.FAILED.getValue() : TaskPlanStatus.COMPLETED.getValue());

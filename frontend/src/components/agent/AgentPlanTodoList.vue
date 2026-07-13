@@ -76,7 +76,7 @@ function statusIcon(status: string): string {
     <!-- 标题 -->
     <div class="plan-header">
       <span class="plan-title-text">{{ plan.title }}</span>
-      <span class="plan-status-tag" :style="{ color: statusColor(plan.status) }">
+      <span class="plan-status-tag" :class="'status-' + plan.status" :style="{ color: statusColor(plan.status) }">
         {{ statusText }}
       </span>
     </div>
@@ -86,7 +86,7 @@ function statusIcon(status: string): string {
       <div class="plan-bar-track">
         <div
             v-for="(todo, idx) in plan.steps"
-            :key="todo.id"
+            :key="todo.stepNumber"
             class="plan-bar-node"
             :class="todo.status"
             :style="{ zIndex: totalCount - idx }"
@@ -97,7 +97,7 @@ function statusIcon(status: string): string {
             <X v-else-if="todo.status === 'failed'" :size="8" class="node-icon"/>
             <Circle v-else :size="6" class="node-icon pending-icon"/>
           </div>
-          <span class="node-label">Step {{ todo.id }}</span>
+          <span class="node-label">Step {{ todo.stepNumber }}</span>
         </div>
       </div>
       <span class="plan-bar-count">{{ doneCount }}/{{ totalCount }}</span>
@@ -107,12 +107,12 @@ function statusIcon(status: string): string {
     <div class="plan-todos">
       <div
           v-for="todo in plan.steps"
-          :key="todo.id"
+          :key="todo.stepNumber"
           class="plan-todo-item"
           :class="todo.status"
       >
         <span class="todo-dot" :class="todo.status"/>
-        <span class="todo-step-label">Step {{ todo.id }}</span>
+        <span class="todo-step-label">Step {{ todo.stepNumber }}</span>
         <span class="todo-desc">{{ todo.title || todo.description }}</span>
       </div>
     </div>
