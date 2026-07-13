@@ -62,7 +62,7 @@ java -jar dist/eddie-app.jar
 - **💬 多模型聊天** — 支持 DeepSeek / OpenAI 等兼容 API，对话中可随时切换模型
 - **🤖 智能体** — 自主规划任务、逐步执行，集成 MCP 工具调用
 - **🔌 MCP 工具扩展** — 通过 MCP 协议接入 WebSearch、WebFetch 等外部工具
-- **🧠 模型记忆** — 短期对话记忆 + 中期压缩 + 长期摘要，全局缓存、持久化
+- **🧠 模型记忆** — 短期对话记忆、智能体任务上下文记忆
 - **🖥 纯本地运行** — 数据存储在本地 `~/.eddie/`，隐私安全
 
 ---
@@ -158,40 +158,40 @@ java -jar dist/eddie-app.jar
 
 ### 🔄 构建方式对比
 
-| 方式 | 特点 | 适用场景 |
-|------|------|----------|
-| **JAR 包** | 最稳定，跨平台，需 JRE 25 | 通用部署、容器化、服务端 |
-| **原生二进制** | 启动快（毫秒级），性能高，无需 JRE | 追求性能、资源受限环境 |
-| **本地安装包** | 使用简单，桌面集成好（系统托盘、自动启动） | 普通用户日常使用 |
+| 方式 | 特点 | 适用场景       |
+|------|------|------------|
+| **JAR 包** | 最稳定，跨平台，需 JRE 25 | 通用部署、容器化   |
+| **原生二进制** | 启动快（毫秒级），性能高，无需 JRE | 极致性能、低内存占用 |
+| **本地安装包** | 使用简单，桌面集成好（系统托盘、自动启动） | 日常使用       |
 
 ---
 
 ## 🧩 模块
 
-| 模块                           | 包名                         | 说明                       |
-|------------------------------|----------------------------|--------------------------|
-| [`ai-common`](ai-common)     | `cc.wlizhi.eddie.common`   | 公共定义：DTO、枚举、工具类          |
+| 模块                           | 包名                         | 说明                            |
+|------------------------------|----------------------------|-------------------------------|
+| [`ai-common`](ai-common)     | `cc.wlizhi.eddie.common`   | 公共定义：DTO、枚举、工具类               |
 | [`ai-tools`](ai-tools)       | `cc.wlizhi.eddie.tools`    | 内置工具（WebSearch/WebFetch）注册与管理 |
-| [`ai-settings`](ai-settings) | `cc.wlizhi.eddie.settings` | 全局设置：模型提供商、MCP、显示配置      |
-| [`ai-memory`](ai-memory)     | `cc.wlizhi.eddie.memory`   | 记忆：模型记忆、上下文处理及缓存相关       |
-| [`ai-chat`](ai-chat)         | `cc.wlizhi.eddie.chat`     | 助手聊天：对话管理、上下文构建          |
-| [`ai-agent`](ai-agent)       | `cc.wlizhi.eddie.agent`    | 智能体：任务规划、逐步执行            |
-| [`ai-app`](ai-app)           | `cc.wlizhi.eddie.app`      | 启动入口 + GraalVM 打包        |
+| [`ai-settings`](ai-settings) | `cc.wlizhi.eddie.settings` | 全局设置：模型提供商、MCP、显示配置           |
+| [`ai-memory`](ai-memory)     | `cc.wlizhi.eddie.memory`   | 记忆：模型记忆、上下文处理及缓存相关            |
+| [`ai-chat`](ai-chat)         | `cc.wlizhi.eddie.chat`     | 助手聊天：对话管理、上下文构建               |
+| [`ai-agent`](ai-agent)       | `cc.wlizhi.eddie.agent`    | 智能体：任务规划、步骤执行                 |
+| [`ai-app`](ai-app)           | `cc.wlizhi.eddie.app`      | 启动入口 + GraalVM 打包             |
 
 ---
 
 ## 🔧 技术选型
 
-| 类别      | 技术                                                      |
-|---------|---------------------------------------------------------|
-| 语言      | Java 25（GraalVM Native Image 打包）                        |
-| 后端框架    | Spring Boot 4.1.0 + Spring AI 2.0.0                     |
-| 数据库     | SQLite（`~/.eddie/eddie.db`）                             |
-| 持久层     | Spring JDBC Template（HikariCP 连接池，最大 1 连接）              |
-| AI 协议   | OpenAI 兼容协议（DeepSeek API / OpenAI API）                  |
-| MCP 客户端 | `spring-ai-starter-mcp-client`                          |
-| 前端      | Vue 3 + Vite + TypeScript                               |
-| 构建工具    | Maven                                                   |
+| 类别      | 技术                                                     |
+|---------|--------------------------------------------------------|
+| 语言      | Java 25（GraalVM Native Image 打包）                       |
+| 后端框架    | Spring Boot 4.1.0 + Spring AI 2.0.0                    |
+| 数据库     | SQLite                           |
+| 持久层     | Spring JDBC Template（HikariCP 连接池，最大 1 连接）             |
+| AI 协议   | OpenAI 兼容协议（DeepSeek API / OpenAI API）                 |
+| MCP 客户端 | `spring-ai-starter-mcp-client`                         |
+| 前端      | Vue 3 + Vite + TypeScript                              |
+| 构建工具    | Maven                                                  |
 | 打包方式    | JAR（源码构建）/ GraalVM Native Image（AOT 编译）/本地安装包（Electron） |
 
 ---
@@ -204,8 +204,12 @@ java -jar dist/eddie-app.jar
 
 ## 🗄 数据库
 
-- 文件路径：`~/.eddie/eddie.db`
-- 建表脚本：[`ai-app/src/main/resources/schema.sql`](ai-app/src/main/resources/schema.sql)
+- 文件路径（存储在 `~/.eddie/data/` 目录下）：
+  - 主数据库：`~/.eddie/data/eddie.db`
+  - 智能体数据库：`~/.eddie/data/eddie-agent.db`
+- DDL 建表脚本：
+  - 主库：[`ai-app/src/main/resources/db/ddl/schema.sql`](ai-app/src/main/resources/db/ddl/schema.sql)
+  - 智能体库：[`ai-app/src/main/resources/db/ddl/schema-agent.sql`](ai-app/src/main/resources/db/ddl/schema-agent.sql)
 
 ---
 
