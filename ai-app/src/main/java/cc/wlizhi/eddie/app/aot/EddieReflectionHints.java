@@ -87,13 +87,13 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 AgentMsgEntity.class,
                 AgentIteratorState.class,
                 // ==================== SSE 事件 Payload ====================
-                ThinkingPayload.class,
-                AnswerPayload.class,
-                ToolExecutionPayload.class,
-                MessageCreatedPayload.class,
-                RoundPayload.class,
-                MetadataPayload.class,
-                CancelledPayload.class,
+                AgentThinkingPayload.class,
+                AgentAnswerPayload.class,
+                AgentToolExecutionPayload.class,
+                AgentMessageCreatedPayload.class,
+                AgentRoundPayload.class,
+                AgentMetadataPayload.class,
+                AgentCancelledPayload.class,
                 AgentTokenStatists.class
         );
         // ==================== OpenAI SDK 内部类（Jackson 反序列化需要，使用 INVOKE_DECLARED_METHODS） ====================
