@@ -39,7 +39,7 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
     public MetadataInfo buildMetadata(ChatContext ctx) {
         MetadataInfo.MetadataInfoBuilder builder = MetadataInfo.builder();
 
-        ChatResponse lastResponse = ctx.getLastResponse();
+        ChatResponse lastResponse = ctx.getAssistantMsgContext().getLastResponse();
         if (lastResponse != null) {
             ChatResponseMetadata metadata = lastResponse.getMetadata();
             Usage usage = metadata.getUsage();
@@ -73,7 +73,7 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
 
         MetadataInfo info = builder.build();
         // 存入上下文，作为单一数据源供持久化使用
-        ctx.setMetadata(info);
+        ctx.getAssistantMsgContext().setMetadata(info);
         return info;
     }
 }

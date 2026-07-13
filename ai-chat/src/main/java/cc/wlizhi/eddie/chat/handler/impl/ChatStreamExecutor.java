@@ -43,23 +43,23 @@ public class ChatStreamExecutor {
      * @return ChatResponse 流
      */
     public Flux<ChatResponse> execute(ChatContext ctx) {
-        String registryKey = EventRegistry.key("STOP", String.valueOf(ctx.getPlaceholderMsgId()));
+        String registryKey = EventRegistry.key("STOP", String.valueOf(ctx.getAssistantMsgContext().getAssistantMsgId()));
         return ctx.getChatClient().prompt()
                 .system(promptVariableResolver.resolve(ctx.getAssistant().getSystemPrompt()))
-                .user(ctx.getUserMessage())
+                .user(ctx.getUserMsgContext().getContent())
                 .advisors(advisor -> advisor
                         .param("chat_memory_conversation_id", ctx.getOriginalRequest().getConversationId())
                         .param("providerId", ctx.getProvider().getId())
                         .param("modelCode", ctx.getOriginalRequest().getModelId()))
                 .stream()
                 .chatResponse()
-                .doOnNext(ctx::setLastResponse)
+                .doOnNext(resp -> ctx.getAssistantMsgContext().setLastResponse(resp))
                 .takeWhile(__ -> {
                     String mode = chatEventRegistry.get(registryKey);
                     if (mode != null) {
-                        log.info("检测到停止事件 ({}), 终止流: userMessageId={}", mode, ctx.getUserMessageId());
-                        ctx.setInterrupted(true);
-                        ctx.getAttributes().put("cancelMode", mode);
+                        log.info("检测到停止事件 ({}), 终止流: userMessageId={}", mode, ctx.getUserMsgContext().getMsgId());
+                        ctx.getFlowState().setInterrupted(true);
+                        ctx.getFlowState().setCancelMode(mode);
                         return false;
                     }
                     return true;

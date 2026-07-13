@@ -26,6 +26,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -48,15 +49,18 @@ public class OpenAiChatThinkingHandler implements ChatThinkingHandler {
 
     @Override
     public String extractThinking(ChatResponse response, ChatContext ctx) {
-        if (response == null || response.getResults() == null) {
+        if (response == null) {
             return null;
         }
 
         String reasoning = response.getResults().stream()
                 .map(Generation::getOutput)
-                .filter(msg -> msg instanceof AssistantMessage)
                 .map(msg -> {
-                    Object val = msg.getMetadata().get(REASONING_CONTENT_KEY);
+                    Map<String, Object> metadata = msg.getMetadata();
+                    Object val = metadata.get(REASONING_CONTENT_KEY);
+                    if (val == null){
+                        val = metadata.get("reasoning_content");
+                    }
                     return (val instanceof String str && !str.isEmpty()) ? str : null;
                 })
                 .filter(Objects::nonNull)

@@ -67,7 +67,6 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
             throw new BadRequestException("请先为 [" + provider.getName() + "] 配置 API Key");
         }
         ctx.setProvider(provider);
-        ctx.setProviderCode(provider.getCode());
 
         // 2. 根据 conversationId 查询会话 → 获取助手 → 填充完整实体
         SessionEntity session = sessionDao.findById(request.getConversationId());
@@ -86,7 +85,7 @@ public class DefaultChatPreProcessor implements ChatPreProcessor {
         ctx.setSession(session);
 
         // 3. 基础字段
-        ctx.setUserMessage(request.getMessage());
+        ctx.getUserMsgContext().setContent(request.getMessage());
 
         // 4. 解析模型价格（每百万 token 单价）：从 provider.models JSON 中匹配当前 modelId，提取 input_price / output_price / currency
         String modelsJson = provider.getModels();

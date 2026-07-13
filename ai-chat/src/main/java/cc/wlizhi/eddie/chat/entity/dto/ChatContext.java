@@ -23,13 +23,8 @@ import cc.wlizhi.eddie.common.entity.SessionEntity;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatResponse;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+
 
 @Getter
 @Setter
@@ -37,118 +32,43 @@ public class ChatContext {
 
     // ==================== 阶段一：原始请求 ====================
 
-    /**
-     * 用户原始请求
-     */
+    /** 用户原始请求 */
     private ChatRequest originalRequest;
 
     // ==================== 阶段二：预处理 & Provider ====================
 
-    /**
-     * 供应商实体
-     */
+    /** 供应商实体 */
     private ModelProviderEntity provider;
 
-    /**
-     * 供应商代码 (openai / deepseek / anthropic ...)
-     */
-    private String providerCode;
-
-    /**
-     * 完整的助手实体（含 systemPrompt、modelId、modelParams、memoryRounds 等）
-     */
+    /** 完整助手实体（含 systemPrompt、modelId、modelParams、memoryRounds） */
     private AssistantEntity assistant;
 
-    /**
-     * 完整的会话实体（含 title、assistantId、pinned 等）
-     */
+    /** 完整会话实体（含 title、assistantId、pinned） */
     private SessionEntity session;
 
-    /**
-     * 用户消息内容
-     */
-    private String userMessage;
+    /** 用户消息上下文（预处理阶段填充 content，持久化后回填 msgId） */
+    private final ChatUserMsgContext userMsgContext = new ChatUserMsgContext();
 
-    // ==================== 阶段三：构建 & 执行 ====================
+    // ==================== 阶段二·五：模型价格配置（预处理解析） ====================
 
-    /**
-     * 构建好的 ChatClient
-     */
-    private ChatClient chatClient;
-
-    // ==================== 阶段二.五：模型价格配置（预处理解析） ====================
-
-    /**
-     * 模型价格配置（含 inputPrice / outputPrice / cacheInputPrice / currency）
-     */
+    /** 模型价格配置（预处理阶段解析，用于后续 token 费用估算） */
     private ModelPricing pricing;
 
-    // ==================== 阶段四：执行 & 响应 ====================
+    // ==================== 阶段三：消息持久化 & 响应构建 ====================
 
     /**
-     * 请求开始时间戳（毫秒）
+     * Assistant 消息上下文（持久化阶段写入 assistantMsgId，
+     * 执行阶段流式构建 thinking/answer，完成后回填 metadata/toolCalls）
      */
-    private long startTime;
+    private final ChatAssistantMsgContext assistantMsgContext = new ChatAssistantMsgContext();
 
-    /**
-     * 最后一次 ChatResponse（用于提取 token 用量等元数据）
-     */
-    private ChatResponse lastResponse;
+    // ==================== 阶段四：构建 & 执行 ====================
 
-    /**
-     * 响应元数据（由 ChatMetadataHandler 构建，同时供 SSE 和持久化使用）
-     */
-    private MetadataInfo metadata;
+    /** 工厂路由 + 注入 Advisor/工具 后构建的 ChatClient */
+    private ChatClient chatClient;
 
-    /**
-     * 完整思考内容（StringBuilder，流式拼接）
-     */
-    private StringBuilder fullThinking;
+    // ==================== 阶段五：运行时流转状态 ====================
 
-    /**
-     * 完整回答内容（StringBuilder，流式拼接）
-     */
-    private StringBuilder fullAnswer;
-
-    /**
-     * 工具执行记录列表（用于持久化到 ai_session_msg.tool_calls）
-     */
-    private List<ToolExecutionEvent> toolCalls = new ArrayList<>();
-
-    /**
-     * 是否被用户中断（手动取消或网络断开）
-     */
-    private volatile boolean interrupted;
-
-    /**
-     * 用户消息 ID（持久化后获得，用于停止事件关联）
-     */
-    private Long userMessageId;
-
-    /**
-     * 占位 assistant 消息的 ID（流开始前插入，doFinally 中通过此 ID 更新内容）
-     */
-    private Long placeholderMsgId;
-
-    // ==================== 会话锁 ====================
-
-    /**
-     * 会话锁 token（由 {@link cc.wlizhi.eddie.common.cache.SessionLockManager#tryLock} 返回的 nanoTime）
-     * <p>
-     * 0 表示未持有锁，在 {@code doFinally} 中传递给 {@code unlock} 用以原子比对释放。
-     */
-    private long lockNanoTime;
-
-    // ==================== 扩展属性 ====================
-
-    /**
-     * 扩展属性 Map，供任意阶段写入临时数据
-     */
-    private Map<String, Object> attributes = new HashMap<>();
-
-    /**
-     * 工具调用序号计数器（从 1 开始自动递增），
-     * 用于构建唯一审批 key，区分同一轮对话中同一工具的多次调用。
-     */
-    private final AtomicInteger toolCallSequence = new AtomicInteger(0);
+    /** 运行时流转状态（startTime、interrupted、lockNanoTime、toolCallSequence、cancelMode） */
+    private final ChatFlowState flowState = new ChatFlowState();
 }

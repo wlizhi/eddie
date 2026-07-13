@@ -20,8 +20,6 @@ import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
-import cc.wlizhi.eddie.common.exception.AppException;
-import cc.wlizhi.eddie.common.exception.ModelRateLimitException;
 import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
 import cc.wlizhi.eddie.common.exception.ToolApprovalException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
@@ -81,7 +79,7 @@ public class AgentChatServiceImpl implements AgentChatService {
 
             // 消息已持久化（preProcessors 中已完成），通知前端消息 ID
             publisher.messageCreated(ctx);
-            Thread agentThread = Thread.ofVirtual().name("demo-agent").start(() -> {
+            Thread agentThread = Thread.ofVirtual().name("agent-chat").start(() -> {
                 doChat(ctx);
             });
             ctx.setAgentThread(agentThread);

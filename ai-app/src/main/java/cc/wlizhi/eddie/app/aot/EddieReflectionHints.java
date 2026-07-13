@@ -13,11 +13,12 @@ import cc.wlizhi.eddie.agent.entity.dto.*;
 import cc.wlizhi.eddie.agent.entity.event.payload.*;
 import cc.wlizhi.eddie.agent.entity.response.AgentSessionVO;
 import cc.wlizhi.eddie.chat.controller.ChatToolApprovalController;
+import cc.wlizhi.eddie.chat.entity.dto.CancelledPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatErrorPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecPayload;
+import cc.wlizhi.eddie.chat.entity.dto.MessageCreatedPayload;
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
-import cc.wlizhi.eddie.chat.service.impl.DeepseekChatClientFactory;
-import cc.wlizhi.eddie.chat.service.impl.OpenAiChatClientFactory;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
@@ -54,10 +55,11 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 MetadataInfo.class,
                 ToolExecutionEvent.class,
                 ChatToolExecPayload.class,
+                MessageCreatedPayload.class,
+                ChatErrorPayload.class,
+                CancelledPayload.class,
                 ChatToolApprovalController.ChatToolApprovalRequest.class,
                 ToolExecutionStatus.class,
-                DeepseekChatClientFactory.class,
-                OpenAiChatClientFactory.class,
                 McpClientHolder.class,
                 McpToolCallback.class,
                 EddieOpenAiChatModel.class,

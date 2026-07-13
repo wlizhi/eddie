@@ -267,7 +267,6 @@ public class SessionServiceImpl implements SessionService {
         // 构建最小 ChatContext 用于获取 ChatClient
         ChatContext ctx = new ChatContext();
         ctx.setProvider(provider);
-        ctx.setProviderCode(provider.getCode());
         ChatRequest request = new ChatRequest();
         request.setModelId(modelCode);
         ctx.setOriginalRequest(request);

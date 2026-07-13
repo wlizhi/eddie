@@ -5,6 +5,7 @@
 
 package cc.wlizhi.eddie.chat.entity.request;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -39,6 +40,8 @@ public class ChatRequest {
     /**
      * 供应商实例 ID，用于精确查找服务商配置
      */
+    @NotNull
+    @Min(1)
     private Long providerId;
 
     /**

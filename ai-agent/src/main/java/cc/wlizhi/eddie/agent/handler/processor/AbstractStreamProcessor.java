@@ -68,7 +68,7 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
         requestSpec.stream().chatResponse()
                 .takeWhile(_ -> !checkUserStopEvent(ctx)).toStream()
                 .forEach(res -> {
-                    int idx = chunkCount.incrementAndGet();
+                   chunkCount.incrementAndGet();
                     // 保存最后一次响应，供后续提取 tool_calls / token 用量
                     ctx.setLastResponse(res);
 

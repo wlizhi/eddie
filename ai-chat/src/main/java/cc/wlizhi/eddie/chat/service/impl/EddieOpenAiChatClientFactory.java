@@ -50,12 +50,12 @@ public class EddieOpenAiChatClientFactory implements ChatClientFactory {
                 .timeout(Duration.ofMinutes(10));
 
         // 应用助手级 modelParams
-        optionsHelper.applyModelParams(optionsBuilder, assistant.getModelParams(), ctx.getProviderCode());
+        optionsHelper.applyModelParams(optionsBuilder, assistant.getModelParams(), ctx.getProvider().getCode());
 
         // 请求级 thinkingMode 覆盖助手配置
         String requestThinkingMode = ctx.getOriginalRequest().getThinkingMode();
         if (requestThinkingMode != null && !requestThinkingMode.isBlank()) {
-            optionsHelper.applyThinkingMode(optionsBuilder, requestThinkingMode, ctx.getProviderCode());
+            optionsHelper.applyThinkingMode(optionsBuilder, requestThinkingMode, ctx.getProvider().getCode());
         }
 
         EddieOpenAiChatModel chatModel = EddieOpenAiChatModel.builder()

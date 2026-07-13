@@ -43,19 +43,20 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
 
     @Override
     public void process(ChatContext ctx) {
-        Long placeholderMsgId = ctx.getPlaceholderMsgId();
-        if (placeholderMsgId == null) {
+        var assistantMsgCtx = ctx.getAssistantMsgContext();
+        Long assistantMsgId = assistantMsgCtx.getAssistantMsgId();
+        if (assistantMsgId == null) {
             return;
         }
 
-        String fullAnswer = ctx.getFullAnswer() != null ? ctx.getFullAnswer().toString() : "";
-        String fullThinking = ctx.getFullThinking() != null ? ctx.getFullThinking().toString() : "";
-        String toolCallsJson = serializeToolCalls(ctx.getToolCalls());
-        Long userMsgId = ctx.getUserMessageId();
-        String msgStatus = ctx.isInterrupted() ? "INTERRUPTED" : "COMPLETED";
+        String fullAnswer = assistantMsgCtx.getFullAnswer().toString();
+        String fullThinking = assistantMsgCtx.getFullThinking().toString();
+        String toolCallsJson = serializeToolCalls(assistantMsgCtx.getToolCalls());
+        Long userMsgId = ctx.getUserMsgContext().getMsgId();
+        String msgStatus = ctx.getFlowState().isInterrupted() ? "INTERRUPTED" : "COMPLETED";
 
         // 回填 round_seq = userMsgId（user 和 assistant 共用同一值），事务保证原子性
-        MetadataInfo metadata = ctx.getMetadata();
+        MetadataInfo metadata = assistantMsgCtx.getMetadata();
         transactionTemplate.executeWithoutResult(status -> {
             int promptTokens = 0, completionTokens = 0, totalTokens = 0;
             int cacheReadInputTokens = 0, cacheWriteInputTokens = 0;
@@ -78,7 +79,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
             }
 
             messageDao.updateAssistantMsg(
-                    placeholderMsgId, fullAnswer, fullThinking, toolCallsJson,
+                    assistantMsgId, fullAnswer, fullThinking, toolCallsJson,
                     promptTokens, completionTokens, totalTokens,
                     cacheReadInputTokens, cacheWriteInputTokens,
                     currency, priceEstimate, durationMs,

@@ -19,8 +19,11 @@
 
 package cc.wlizhi.eddie.chat.handler.impl;
 
+import cc.wlizhi.eddie.chat.entity.dto.CancelledPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
+import cc.wlizhi.eddie.chat.entity.dto.ChatErrorPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecPayload;
+import cc.wlizhi.eddie.chat.enums.ChatSseEvent;
 import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
 import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
@@ -82,7 +85,7 @@ public class ChatSseTransformer {
     public Flux<ServerSentEvent<String>> transform(Flux<ChatResponse> responseFlux, ChatContext ctx,
                                                    Flux<ToolExecutionEvent> toolEventFlux,
                                                    Sinks.Many<ToolExecutionEvent> toolEventSink) {
-        long startTime = ctx.getStartTime();
+        long startTime = ctx.getFlowState().getStartTime();
 
         // 主 SSE 流：thinking + answer
         Flux<ServerSentEvent<String>> mainSse = responseFlux
@@ -101,8 +104,8 @@ public class ChatSseTransformer {
                         Mono.fromSupplier(() -> {
                             long endTime = System.currentTimeMillis();
                             // 如果被中断，先发送 cancelled 事件
-                            if (ctx.isInterrupted()) {
-                                String reason = (String) ctx.getAttributes().get("cancelMode");
+                            if (ctx.getFlowState().isInterrupted()) {
+                                String reason = ctx.getFlowState().getCancelMode();
                                 if (reason == null) reason = "unknown";
                                 return buildCancelledEvent(reason);
                             }
@@ -112,10 +115,9 @@ public class ChatSseTransformer {
                 ).onErrorResume(e -> {
                     log.error("Chat 流式响应异常: {}", e.getMessage(), e);
                     String message = extractFriendlyErrorMessage(e);
-                    String data = "{\"message\":\"" + escapeJson(message) + "\"}";
                     return Flux.just(ServerSentEvent.<String>builder()
-                            .event("error")
-                            .data(data)
+                            .event(ChatSseEvent.ERROR.getEventName())
+                            .data(toJson(new ChatErrorPayload(message)))
                             .build());
                 });
 
@@ -131,7 +133,7 @@ public class ChatSseTransformer {
                 toolSse
         ).doOnCancel(() -> {
             log.debug("SSE 流被用户中断");
-            ctx.setInterrupted(true);
+            ctx.getFlowState().setInterrupted(true);
             toolEventSink.tryEmitComplete();
         });
     }
@@ -144,7 +146,7 @@ public class ChatSseTransformer {
     private ServerSentEvent<String> buildToolExecutionEvent(ToolExecutionEvent event, ChatContext ctx) {
         // 构建公共 Payload（统一携带 msgId，用于审批场景）
         ChatToolExecPayload payload = new ChatToolExecPayload(
-                ctx.getPlaceholderMsgId(),
+                ctx.getAssistantMsgContext().getAssistantMsgId(),
                 event.getToolName(),
                 event.getStatus().getValue(),
                 event.getArguments(),
@@ -190,7 +192,7 @@ public class ChatSseTransformer {
             if (event.getResult() != null && event.getResult().length() > storeMaxLength) {
                 event.setResult(event.getResult().substring(0, storeMaxLength) + "...（已截断）");
             }
-            ctx.getToolCalls().add(event);
+            ctx.getAssistantMsgContext().getToolCalls().add(event);
         }
 
         return buildSseEvent(payload);
@@ -201,7 +203,7 @@ public class ChatSseTransformer {
      */
     private ServerSentEvent<String> buildSseEvent(ChatToolExecPayload payload) {
         return ServerSentEvent.<String>builder()
-                .event("tool_execution")
+                .event(ChatSseEvent.TOOL_EXECUTION.getEventName())
                 .data(toJson(ApiResult.success(payload)))
                 .build();
     }
@@ -213,18 +215,15 @@ public class ChatSseTransformer {
      */
     private ServerSentEvent<String> buildThinkEvent(ChatResponse response, ChatContext ctx) {
         for (ChatThinkingHandler handler : thinkingHandlers) {
-            if (handler.support(ctx.getProviderCode())) {
+            if (handler.support(ctx.getProvider().getCode())) {
                 String thinking = handler.extractThinking(response, ctx);
                 if (ObjectUtils.isEmpty(thinking)) {
                     return null;
                 }
                 // 累加完整思考内容到上下文（用于持久化）
-                if (ctx.getFullThinking() == null) {
-                    ctx.setFullThinking(new StringBuilder());
-                }
-                ctx.getFullThinking().append(thinking);
+                ctx.getAssistantMsgContext().getFullThinking().append(thinking);
                 return ServerSentEvent.<String>builder()
-                        .event("thinking")
+                        .event(ChatSseEvent.THINKING.getEventName())
                         .data(thinking)
                         .build();
             }
@@ -245,12 +244,9 @@ public class ChatSseTransformer {
             return null;
         }
         // 累加完整回答到上下文
-        if (ctx.getFullAnswer() == null) {
-            ctx.setFullAnswer(new StringBuilder());
-        }
-        ctx.getFullAnswer().append(content);
+        ctx.getAssistantMsgContext().getFullAnswer().append(content);
         return ServerSentEvent.<String>builder()
-                .event("answer")
+                .event(ChatSseEvent.ANSWER.getEventName())
                 .data(content)
                 .build();
     }
@@ -267,27 +263,27 @@ public class ChatSseTransformer {
 
         // 优先使用 ChatMetadataHandler
         for (ChatMetadataHandler handler : metadataHandlers) {
-            if (handler.support(ctx.getProviderCode())) {
+            if (handler.support(ctx.getProvider().getCode())) {
                 handler.buildMetadata(ctx);
-                MetadataInfo info = ctx.getMetadata();
+                MetadataInfo info = ctx.getAssistantMsgContext().getMetadata();
                 if (info != null) {
                     info.setDurationMs(durationMs);
                     info.setTimestamp(endTime);
                     return ServerSentEvent.<String>builder()
-                            .event("metadata")
+                            .event(ChatSseEvent.METADATA.getEventName())
                             .data(toJson(info))
                             .build();
                 }
                 // info 为 null：回退到空 MetadataInfo
                 return ServerSentEvent.<String>builder()
-                        .event("metadata")
+                        .event(ChatSseEvent.METADATA.getEventName())
                         .data(toJson(new MetadataInfo()))
                         .build();
             }
         }
 
         // fallback：无匹配 handler 时从 ctx 读取 MetadataInfo
-        MetadataInfo info = ctx.getMetadata();
+        MetadataInfo info = ctx.getAssistantMsgContext().getMetadata();
         if (info != null) {
             info.setDurationMs(durationMs);
             info.setTimestamp(endTime);
@@ -298,7 +294,7 @@ public class ChatSseTransformer {
                     .build();
         }
         return ServerSentEvent.<String>builder()
-                .event("metadata")
+                .event(ChatSseEvent.METADATA.getEventName())
                 .data(toJson(info))
                 .build();
     }
@@ -308,8 +304,8 @@ public class ChatSseTransformer {
      */
     private ServerSentEvent<String> buildCancelledEvent(String reason) {
         return ServerSentEvent.<String>builder()
-                .event("cancelled")
-                .data("{\"reason\":\"" + reason + "\"}")
+                .event(ChatSseEvent.CANCELLED.getEventName())
+                .data(toJson(new CancelledPayload(reason)))
                 .build();
     }
 
