@@ -196,9 +196,14 @@ function onSelectSuggestion(text: string) {
 /* 窄屏模式 */
 .agent-view.narrow :deep(.agent-message-list),
 .agent-view.narrow :deep(.agent-input-area) {
-  max-width: 800px;
+  max-width: 50rem;
   margin: 0 auto;
   width: 100%;
+}
+
+/* 窄屏模式：消息行宽度自适应容器内容区（避免 padding 导致溢出） */
+.agent-view.narrow :deep(.agent-message-list .message-row) {
+  max-width: 100%;
 }
 
 /* 全宽模式：消息行按父容器百分比自适应 */
