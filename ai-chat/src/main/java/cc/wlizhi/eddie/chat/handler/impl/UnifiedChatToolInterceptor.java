@@ -5,7 +5,7 @@
 
 package cc.wlizhi.eddie.chat.handler.impl;
 
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
@@ -53,7 +53,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
     private final McpServerEntity mcpServer;
     private final EventRegistry eventRegistry;
     private final Long msgId;
-    private final Sinks.Many<ToolExecutionEvent> sink;
+    private final Sinks.Many<ChatToolExecutionEvent> sink;
     private final AtomicInteger toolCallCounter;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -75,7 +75,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
             McpServerEntity mcpServer,
             EventRegistry eventRegistry,
             Long msgId,
-            Sinks.Many<ToolExecutionEvent> sink,
+            Sinks.Many<ChatToolExecutionEvent> sink,
             AtomicInteger toolCallCounter) {
         this.delegate = delegate;
         this.toolDef = toolDef;
@@ -111,7 +111,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
         this.currentSeq = toolCallCounter.incrementAndGet();
 
         // ═══ 步骤 1：发射 START 事件（最先通知前端"模型正在调用工具"） ═══
-        ToolExecutionEvent startEvent = ToolExecutionEvent.start(toolName, toolInput);
+        ChatToolExecutionEvent startEvent = ChatToolExecutionEvent.start(toolName, toolInput);
         startEvent.setSeq(currentSeq);
         emitSafe(startEvent);
 
@@ -121,7 +121,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
         // ═══ 步骤 3：根据安全级别分流 ═══
         if (security == SecurityLevel.DENY) {
             log.info("[UnifiedChatInterceptor] 行为被配置为 DENY: tool={}, input={}", toolName, toolInput);
-            ToolExecutionEvent deniedEvent = ToolExecutionEvent.complete(
+            ChatToolExecutionEvent deniedEvent = ChatToolExecutionEvent.complete(
                     toolName, toolInput, "该操作已被管理员禁止执行。", true);
             deniedEvent.setSeq(currentSeq);
             emitSafe(deniedEvent);
@@ -153,7 +153,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
             if (!"approved".equals(approvalResult)) {
                 log.info("[UnifiedChatInterceptor] 用户拒绝了工具调用: tool={}, msgId={}", toolName, msgId);
                 this.rejected = true;
-                ToolExecutionEvent rejectedEvent = ToolExecutionEvent.rejected(toolName, toolInput);
+                ChatToolExecutionEvent rejectedEvent = ChatToolExecutionEvent.rejected(toolName, toolInput);
                 rejectedEvent.setSeq(currentSeq);
                 rejectedEvent.setResult("提示：用户拒绝了此工具调用，请根据用户意图决定是询问用户还是换种方式继续回答。");
                 emitSafe(rejectedEvent);
@@ -168,7 +168,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
             result = delegate.call(toolInput, toolContext);
         } catch (Exception e) {
             log.error("[UnifiedChatInterceptor] 工具执行失败: {}", toolName, e);
-            ToolExecutionEvent errorEvent = ToolExecutionEvent.complete(
+            ChatToolExecutionEvent errorEvent = ChatToolExecutionEvent.complete(
                     toolName, toolInput, "错误: " + e.getMessage(), true);
             errorEvent.setSeq(currentSeq);
             emitSafe(errorEvent);
@@ -176,7 +176,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
         }
 
         // ═══ 步骤 5：发射 COMPLETE 事件（终态） ═══
-        ToolExecutionEvent completeEvent = ToolExecutionEvent.complete(
+        ChatToolExecutionEvent completeEvent = ChatToolExecutionEvent.complete(
                 toolName, toolInput, result, false);
         completeEvent.setSeq(currentSeq);
         emitSafe(completeEvent);
@@ -308,7 +308,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
 
     private void emitPendingApproval(String toolName, String toolInput) {
         try {
-            ToolExecutionEvent event = new ToolExecutionEvent();
+            ChatToolExecutionEvent event = new ChatToolExecutionEvent();
             event.setStatus(ToolExecutionStatus.PENDING_APPROVAL);
             event.setToolName(toolName);
             event.setArguments(toolInput);
@@ -326,7 +326,7 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
     /**
      * 安全发射事件，失败仅打日志，不影响主流程。
      */
-    private void emitSafe(ToolExecutionEvent event) {
+    private void emitSafe(ChatToolExecutionEvent event) {
         try {
             var result = sink.tryEmitNext(event);
             if (result.isFailure()) {

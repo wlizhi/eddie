@@ -5,7 +5,7 @@
 
 package cc.wlizhi.eddie.chat.entity.response;
 
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -81,7 +81,7 @@ public class MessageVO {
     /**
      * 工具调用记录列表（由 JSON 字符串反序列化而来）
      */
-    private List<ToolExecutionEvent> toolCalls;
+    private List<ChatToolExecutionEvent> toolCalls;
 
     /**
      * 缓存读取的 input token 数

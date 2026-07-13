@@ -20,7 +20,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MetadataInfo {
+public class ChatMetadataInfoPayload {
 
     /**
      * 本轮对话耗时（毫秒）

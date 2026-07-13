@@ -8,7 +8,7 @@ package cc.wlizhi.eddie.agent.handler.processor;
 import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
 import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
 import cc.wlizhi.eddie.agent.entity.dto.*;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import jakarta.annotation.Resource;
@@ -140,7 +140,7 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
 
         // 序列化工具调用记录
         String toolCallsJson = "[]";
-        List<ToolExecutionEvent> toolCalls = stepCtx.getToolCalls();
+        List<ChatToolExecutionEvent> toolCalls = stepCtx.getToolCalls();
         if (toolCalls != null && !toolCalls.isEmpty()) {
             try {
                 toolCallsJson = ctx.getObjectMapper().writeValueAsString(toolCalls);

@@ -18,7 +18,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ToolExecutionEvent {
+public class ChatToolExecutionEvent {
 
     /**
      * 事件状态：START / COMPLETE
@@ -50,8 +50,8 @@ public class ToolExecutionEvent {
      */
     private int seq;
 
-    public static ToolExecutionEvent start(String toolName, String arguments) {
-        ToolExecutionEvent event = new ToolExecutionEvent();
+    public static ChatToolExecutionEvent start(String toolName, String arguments) {
+        ChatToolExecutionEvent event = new ChatToolExecutionEvent();
         event.setStatus(ToolExecutionStatus.START);
         event.setToolName(toolName);
         event.setArguments(arguments);
@@ -61,8 +61,8 @@ public class ToolExecutionEvent {
     /**
      * 创建 complete 事件，携带 arguments 以保留工具调用参数（用于持久化）
      */
-    public static ToolExecutionEvent complete(String toolName, String arguments, String result, boolean error) {
-        ToolExecutionEvent event = new ToolExecutionEvent();
+    public static ChatToolExecutionEvent complete(String toolName, String arguments, String result, boolean error) {
+        ChatToolExecutionEvent event = new ChatToolExecutionEvent();
         event.setStatus(ToolExecutionStatus.COMPLETE);
         event.setToolName(toolName);
         event.setArguments(arguments);
@@ -74,8 +74,8 @@ public class ToolExecutionEvent {
     /**
      * 创建 rejected 事件，标记工具调用被用户拒绝
      */
-    public static ToolExecutionEvent rejected(String toolName, String arguments) {
-        ToolExecutionEvent event = new ToolExecutionEvent();
+    public static ChatToolExecutionEvent rejected(String toolName, String arguments) {
+        ChatToolExecutionEvent event = new ChatToolExecutionEvent();
         event.setStatus(ToolExecutionStatus.REJECTED);
         event.setToolName(toolName);
         event.setArguments(arguments);

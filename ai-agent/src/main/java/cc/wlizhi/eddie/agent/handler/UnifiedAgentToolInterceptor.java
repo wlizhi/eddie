@@ -7,8 +7,8 @@ package cc.wlizhi.eddie.agent.handler;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.agent.entity.dto.AgentStepStreamContext;
-import cc.wlizhi.eddie.agent.entity.event.payload.ToolExecutionPayload;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.agent.entity.event.payload.AgentToolExecutionPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
@@ -250,7 +250,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
             Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
             Long stepId = resolveStepId();
             Integer step = resolveStep();
-            ToolExecutionPayload payload = new ToolExecutionPayload(
+            AgentToolExecutionPayload payload = new AgentToolExecutionPayload(
                     msgId, stepId, step,
                     toolName, status, toolInput, result, error, currentSeq);
             ctx.getEventPublisher().emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
@@ -295,7 +295,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
     // ═══════════════════════════════════════════════
 
     private void persistToolCall(String toolName, String toolInput, String result, boolean error) {
-        ToolExecutionEvent event = new ToolExecutionEvent();
+        ChatToolExecutionEvent event = new ChatToolExecutionEvent();
         event.setStatus(error && rejected
                 ? cc.wlizhi.eddie.common.enums.ToolExecutionStatus.REJECTED
                 : cc.wlizhi.eddie.common.enums.ToolExecutionStatus.COMPLETE);

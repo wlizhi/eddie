@@ -6,21 +6,17 @@
 package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.messages.AbstractMessage;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.model.Generation;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * CHAT 模式流式响应处理器
@@ -79,7 +75,7 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
 
         // 序列化工具调用记录（与 ai-chat 模块的 ToolExecutionEvent 格式一致）
         String toolCallsJson = serializeToolCalls(ctx);
-        List<ToolExecutionEvent> toolCalls = ctx.getToolCalls();
+        List<ChatToolExecutionEvent> toolCalls = ctx.getToolCalls();
 
         if (content.isEmpty() && thinking.isEmpty() && "[]".equals(toolCallsJson)) {
             log.debug("累积内容为空，仅更新状态为 COMPLETED, agentMsgId={}", agentMsgId);
@@ -103,7 +99,7 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
      * 序列化工具调用记录为 JSON 字符串
      */
     private String serializeToolCalls(AgentChatContext ctx) {
-        List<ToolExecutionEvent> toolCalls = ctx.getToolCalls();
+        List<ChatToolExecutionEvent> toolCalls = ctx.getToolCalls();
         if (toolCalls == null || toolCalls.isEmpty()) {
             return "[]";
         }

@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AnswerPayload {
+public class AgentAnswerPayload {
 
     private Long msgId;
     private Long stepId;

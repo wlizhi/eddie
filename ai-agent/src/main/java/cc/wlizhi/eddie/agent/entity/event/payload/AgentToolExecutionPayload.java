@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ToolExecutionPayload {
+public class AgentToolExecutionPayload {
 
     private Long msgId;
     private Long stepId;

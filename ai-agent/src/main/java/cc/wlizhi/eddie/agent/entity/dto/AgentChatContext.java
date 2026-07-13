@@ -10,7 +10,7 @@ import cc.wlizhi.eddie.agent.entity.AgentMsgEntity;
 import cc.wlizhi.eddie.agent.entity.AgentSessionEntity;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentEventPublisher;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -163,7 +163,7 @@ public class AgentChatContext {
     /**
      * 工具执行记录列表（用于持久化到 ai_agent_session_msg.tool_calls）
      */
-    private final List<ToolExecutionEvent> toolCalls = new ArrayList<>();
+    private final List<ChatToolExecutionEvent> toolCalls = new ArrayList<>();
 
     /**
      * 工具结果返回模型前的最大字符数（0=不截断），来自 TOOL_RESULT_MODEL_MAX_LENGTH 配置

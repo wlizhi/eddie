@@ -7,7 +7,7 @@ package cc.wlizhi.eddie.agent.service.impl;
 
 import cc.wlizhi.eddie.agent.dao.AgentMsgStepDao;
 import cc.wlizhi.eddie.agent.entity.AgentMsgStepEntity;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.memory.shortterm.AbstractWindowedMemory;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -119,16 +119,16 @@ public class AgentStepWindowedMemory extends AbstractWindowedMemory {
             return "";
         }
         try {
-            List<ToolExecutionEvent> events = objectMapper.readValue(
+            List<ChatToolExecutionEvent> events = objectMapper.readValue(
                     toolCallsJson,
-                    new TypeReference<List<ToolExecutionEvent>>() {
+                    new TypeReference<List<ChatToolExecutionEvent>>() {
                     });
             if (events.isEmpty()) {
                 return "";
             }
 
             StringBuilder sb = new StringBuilder("工具调用结果：\n\n");
-            for (ToolExecutionEvent event : events) {
+            for (ChatToolExecutionEvent event : events) {
                 String toolName = event.getToolName();
                 String arguments = event.getArguments();
                 String result = event.getResult();

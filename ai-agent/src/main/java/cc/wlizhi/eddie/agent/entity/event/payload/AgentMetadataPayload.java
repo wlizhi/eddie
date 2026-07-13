@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MetadataPayload {
+public class AgentMetadataPayload {
 
     private Long msgId;
     private Long stepId;

@@ -24,6 +24,7 @@ public interface ModelJsonMapper {
 
     @Mapping(source = "id", target = "code")
     @Mapping(target = "capabilities", ignore = true)
+    @Mapping(target = "created", ignore = true)
     ModelVO toVo(ModelJsonItem item);
 
     @Mapping(target = "created", ignore = true)

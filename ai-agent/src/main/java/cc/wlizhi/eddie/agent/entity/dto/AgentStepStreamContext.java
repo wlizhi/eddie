@@ -5,7 +5,7 @@
 
 package cc.wlizhi.eddie.agent.entity.dto;
 
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import lombok.Getter;
 import lombok.Setter;
@@ -69,7 +69,7 @@ public class AgentStepStreamContext {
     /**
      * 工具调用记录列表
      */
-    private final List<ToolExecutionEvent> toolCalls = new ArrayList<>();
+    private final List<ChatToolExecutionEvent> toolCalls = new ArrayList<>();
 
     /**
      * 工具调用序号计数器（从 1 开始自动递增），

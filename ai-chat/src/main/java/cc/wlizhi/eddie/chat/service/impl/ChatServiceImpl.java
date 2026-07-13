@@ -6,11 +6,10 @@
 package cc.wlizhi.eddie.chat.service.impl;
 
 import cc.wlizhi.eddie.chat.advisor.ModelThrottleAdvisor;
-import cc.wlizhi.eddie.chat.entity.dto.CancelledPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.ChatErrorPayload;
-import cc.wlizhi.eddie.chat.entity.dto.MessageCreatedPayload;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatMessageCreatedPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.chat.enums.ChatSseEvent;
 import cc.wlizhi.eddie.chat.handler.ChatPostProcessor;
@@ -168,13 +167,13 @@ public class ChatServiceImpl implements ChatService {
 
         // 4.5 持久化完成后立即创建 message_created 事件（不放后面等准备工作）
         //     告知前端用户消息 ID，用于停止事件关联。事件在 concatWith 中先于流式内容发射
-        MessageCreatedPayload messageCreatedPayload = new MessageCreatedPayload(
+        ChatMessageCreatedPayload chatMessageCreatedPayload = new ChatMessageCreatedPayload(
                 ctx.getUserMsgContext().getMsgId(),
                 ctx.getAssistantMsgContext().getAssistantMsgId()
         );
         Flux<ServerSentEvent<String>> messageCreatedEvent = Flux.just(ServerSentEvent.<String>builder()
                 .event(ChatSseEvent.MESSAGE_CREATED.getEventName())
-                .data(toJson(messageCreatedPayload))
+                .data(toJson(chatMessageCreatedPayload))
                 .build());
 
         // 5. 工厂路由 + 构建 ChatClient
@@ -200,7 +199,7 @@ public class ChatServiceImpl implements ChatService {
                 RoleType.ASSISTANT.name(), ctx.getAssistant().getId(), toolMode, chatRequest.getToolNames());
 
         // 6.2 创建工具执行事件 Sinks（旁路通道，零 token 消耗）
-        Sinks.Many<ToolExecutionEvent> toolEventSink = Sinks.many().unicast().onBackpressureBuffer();
+        Sinks.Many<ChatToolExecutionEvent> toolEventSink = Sinks.many().unicast().onBackpressureBuffer();
 
         // 6.2.5 一步完成：用 UnifiedChatToolInterceptor 包装所有工具回调
         //       内置三层审批决策（助手级 enabled → 行为匹配 → 用户配置），无 instanceof 判断
@@ -227,7 +226,7 @@ public class ChatServiceImpl implements ChatService {
                     .toArray(ToolCallback[]::new);
             builder.defaultTools((Object[]) wrappedCallbacks);
         }
-        Flux<ToolExecutionEvent> toolEventFlux = toolEventSink.asFlux();
+        Flux<ChatToolExecutionEvent> toolEventFlux = toolEventSink.asFlux();
 
         chatClient = builder.build();
         ctx.setChatClient(chatClient);

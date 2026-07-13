@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ThinkingPayload {
+public class AgentThinkingPayload {
 
     private Long msgId;
     private Long stepId;

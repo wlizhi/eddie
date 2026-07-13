@@ -21,7 +21,7 @@
 package cc.wlizhi.eddie.chat.handler;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
-import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
+import cc.wlizhi.eddie.chat.entity.dto.ChatMetadataInfoPayload;
 
 /**
  * 元数据处理接口
@@ -39,5 +39,5 @@ public interface ChatMetadataHandler {
      * @param ctx 上下文（含 startTime, lastResponse 等）
      * @return 元数据实体，将被序列化为 JSON 发送给前端并用于持久化
      */
-    MetadataInfo buildMetadata(ChatContext ctx);
+    ChatMetadataInfoPayload buildMetadata(ChatContext ctx);
 }

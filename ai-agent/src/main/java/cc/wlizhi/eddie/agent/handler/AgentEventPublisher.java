@@ -72,7 +72,7 @@ public class AgentEventPublisher {
         Long userMsgId = ctx.getUserMsg() != null ? ctx.getUserMsg().getId() : null;
         Long assistantMsgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        MessageCreatedPayload payload = new MessageCreatedPayload(
+        AgentMessageCreatedPayload payload = new AgentMessageCreatedPayload(
                 msgId, null, null, userMsgId, assistantMsgId);
         emit(ctx, AgentEvent.MESSAGE_CREATED, ApiResult.success(payload));
     }
@@ -83,7 +83,7 @@ public class AgentEventPublisher {
     public void thinking(AgentChatContext ctx, Long stepId, String text) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
-        ThinkingPayload payload = new ThinkingPayload(msgId, stepId, step, text);
+        AgentThinkingPayload payload = new AgentThinkingPayload(msgId, stepId, step, text);
         emit(ctx, AgentEvent.THINKING, ApiResult.success(payload));
     }
 
@@ -93,7 +93,7 @@ public class AgentEventPublisher {
     public void answer(AgentChatContext ctx, Long stepId, String text) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
-        AnswerPayload payload = new AnswerPayload(msgId, stepId, step, text);
+        AgentAnswerPayload payload = new AgentAnswerPayload(msgId, stepId, step, text);
         emit(ctx, AgentEvent.ANSWER, ApiResult.success(payload));
     }
 
@@ -103,7 +103,7 @@ public class AgentEventPublisher {
     public void toolExecution(AgentChatContext ctx, Long stepId, String toolName, String status, Object result) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
-        ToolExecutionPayload payload = new ToolExecutionPayload(
+        AgentToolExecutionPayload payload = new AgentToolExecutionPayload(
                 msgId, stepId, step, toolName, status, null, result, false, 0);
         emit(ctx, AgentEvent.TOOL_EXECUTION, ApiResult.success(payload));
     }
@@ -133,7 +133,7 @@ public class AgentEventPublisher {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Long stepId = ctx.getStepStreamContext() == null ? null : ctx.getStepStreamContext().getStepId();
         AtomicInteger currentIterator = ctx.getIteratorState().getCurrentIterator();
-        RoundPayload payload = new RoundPayload(msgId, stepId, ctx.getCurrentStep(), currentIterator.get());
+        AgentRoundPayload payload = new AgentRoundPayload(msgId, stepId, ctx.getCurrentStep(), currentIterator.get());
         emit(ctx, event, ApiResult.success(payload));
     }
 
@@ -143,7 +143,7 @@ public class AgentEventPublisher {
     public void metadata(AgentChatContext ctx, AgentTokenStatists stats) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Integer step = resolveStep(ctx);
-        MetadataPayload payload = new MetadataPayload(msgId, null, step, stats);
+        AgentMetadataPayload payload = new AgentMetadataPayload(msgId, null, step, stats);
         emit(ctx, AgentEvent.METADATA, ApiResult.success(payload));
     }
 
@@ -152,7 +152,7 @@ public class AgentEventPublisher {
      */
     public void cancelled(AgentChatContext ctx, String reason) {
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        CancelledPayload payload = new CancelledPayload(msgId, null, null, reason);
+        AgentCancelledPayload payload = new AgentCancelledPayload(msgId, null, null, reason);
         emit(ctx, AgentEvent.CANCELLED, ApiResult.success(payload));
     }
 

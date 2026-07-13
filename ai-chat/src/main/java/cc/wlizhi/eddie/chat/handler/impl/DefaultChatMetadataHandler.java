@@ -16,7 +16,7 @@
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
-import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
+import cc.wlizhi.eddie.chat.entity.dto.ChatMetadataInfoPayload;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
 import cc.wlizhi.eddie.common.entity.ModelPricing;
 import cc.wlizhi.eddie.common.util.PriceCalculator;
@@ -36,8 +36,8 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
     }
 
     @Override
-    public MetadataInfo buildMetadata(ChatContext ctx) {
-        MetadataInfo.MetadataInfoBuilder builder = MetadataInfo.builder();
+    public ChatMetadataInfoPayload buildMetadata(ChatContext ctx) {
+        var builder = ChatMetadataInfoPayload.builder();
 
         ChatResponse lastResponse = ctx.getAssistantMsgContext().getLastResponse();
         if (lastResponse != null) {
@@ -71,7 +71,7 @@ public class DefaultChatMetadataHandler implements ChatMetadataHandler {
             }
         }
 
-        MetadataInfo info = builder.build();
+        ChatMetadataInfoPayload info = builder.build();
         // 存入上下文，作为单一数据源供持久化使用
         ctx.getAssistantMsgContext().setMetadata(info);
         return info;

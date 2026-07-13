@@ -13,12 +13,12 @@ import cc.wlizhi.eddie.agent.entity.dto.*;
 import cc.wlizhi.eddie.agent.entity.event.payload.*;
 import cc.wlizhi.eddie.agent.entity.response.AgentSessionVO;
 import cc.wlizhi.eddie.chat.controller.ChatToolApprovalController;
-import cc.wlizhi.eddie.chat.entity.dto.CancelledPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatCancelledPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatErrorPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecPayload;
-import cc.wlizhi.eddie.chat.entity.dto.MessageCreatedPayload;
-import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatMessageCreatedPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatMetadataInfoPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
 import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
@@ -52,12 +52,12 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 ChatModelProviderDao.EnabledProviderModel.class,
                 McpServerEntity.class,
                 ToolDefinitionEntity.class,
-                MetadataInfo.class,
-                ToolExecutionEvent.class,
+                ChatMetadataInfoPayload.class,
+                ChatToolExecutionEvent.class,
                 ChatToolExecPayload.class,
-                MessageCreatedPayload.class,
+                ChatMessageCreatedPayload.class,
                 ChatErrorPayload.class,
-                CancelledPayload.class,
+                ChatCancelledPayload.class,
                 ChatToolApprovalController.ChatToolApprovalRequest.class,
                 ToolExecutionStatus.class,
                 McpClientHolder.class,

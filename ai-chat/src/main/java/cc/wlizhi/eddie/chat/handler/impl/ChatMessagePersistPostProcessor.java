@@ -6,8 +6,8 @@
 package cc.wlizhi.eddie.chat.handler.impl;
 
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
-import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatMetadataInfoPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatPostProcessor;
 import cc.wlizhi.eddie.common.dao.MessageDao;
 import cc.wlizhi.eddie.common.dao.SessionDao;
@@ -56,7 +56,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
         String msgStatus = ctx.getFlowState().isInterrupted() ? "INTERRUPTED" : "COMPLETED";
 
         // 回填 round_seq = userMsgId（user 和 assistant 共用同一值），事务保证原子性
-        MetadataInfo metadata = assistantMsgCtx.getMetadata();
+        ChatMetadataInfoPayload metadata = assistantMsgCtx.getMetadata();
         transactionTemplate.executeWithoutResult(status -> {
             int promptTokens = 0, completionTokens = 0, totalTokens = 0;
             int cacheReadInputTokens = 0, cacheWriteInputTokens = 0;
@@ -96,7 +96,7 @@ public class ChatMessagePersistPostProcessor implements ChatPostProcessor {
     /**
      * 序列化工具调用记录为 JSON 字符串
      */
-    private String serializeToolCalls(List<ToolExecutionEvent> toolCalls) {
+    private String serializeToolCalls(List<ChatToolExecutionEvent> toolCalls) {
         if (toolCalls == null || toolCalls.isEmpty()) {
             return "[]";
         }

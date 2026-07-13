@@ -31,10 +31,10 @@ public class ChatAssistantMsgContext {
     /**
      * 响应元数据（由 ChatMetadataHandler 构建，同时供 SSE 和持久化使用）
      */
-    private MetadataInfo metadata;
+    private ChatMetadataInfoPayload metadata;
 
     /**
      * 工具执行记录列表（用于持久化到 ai_session_msg.tool_calls）
      */
-    private List<ToolExecutionEvent> toolCalls = new ArrayList<>();
+    private List<ChatToolExecutionEvent> toolCalls = new ArrayList<>();
 }

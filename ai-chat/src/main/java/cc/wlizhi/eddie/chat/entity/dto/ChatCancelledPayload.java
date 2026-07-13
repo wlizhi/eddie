@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CancelledPayload {
+public class ChatCancelledPayload {
 
     /** 取消原因 */
     private String reason;

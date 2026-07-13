@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MessageCreatedPayload {
+public class ChatMessageCreatedPayload {
 
     /** 用户消息 ID */
     private Long userMsgId;

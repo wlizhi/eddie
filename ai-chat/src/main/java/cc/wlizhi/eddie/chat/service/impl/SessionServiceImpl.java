@@ -7,7 +7,7 @@ package cc.wlizhi.eddie.chat.service.impl;
 
 import cc.wlizhi.eddie.chat.context.AssistantContext;
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.chat.entity.request.ChatRequest;
 import cc.wlizhi.eddie.chat.entity.response.MessageVO;
 import cc.wlizhi.eddie.chat.entity.response.SessionVO;
@@ -339,7 +339,7 @@ public class SessionServiceImpl implements SessionService {
         if (toolCallsStr != null && !toolCallsStr.isEmpty() && !"[]".equals(toolCallsStr)) {
             try {
                 vo.setToolCalls(objectMapper.readValue(toolCallsStr,
-                        new TypeReference<List<ToolExecutionEvent>>() {
+                        new TypeReference<List<ChatToolExecutionEvent>>() {
                         }));
             } catch (Exception e) {
                 log.warn("反序列化 toolCalls 失败, sessionId={}: {}", entity.getSessionId(), e.getMessage());

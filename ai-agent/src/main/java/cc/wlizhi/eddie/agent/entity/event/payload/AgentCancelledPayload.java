@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CancelledPayload {
+public class AgentCancelledPayload {
 
     private Long msgId;
     private Long stepId;

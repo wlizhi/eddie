@@ -19,13 +19,13 @@
 
 package cc.wlizhi.eddie.chat.handler.impl;
 
-import cc.wlizhi.eddie.chat.entity.dto.CancelledPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatCancelledPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatContext;
 import cc.wlizhi.eddie.chat.entity.dto.ChatErrorPayload;
 import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecPayload;
 import cc.wlizhi.eddie.chat.enums.ChatSseEvent;
-import cc.wlizhi.eddie.chat.entity.dto.MetadataInfo;
-import cc.wlizhi.eddie.chat.entity.dto.ToolExecutionEvent;
+import cc.wlizhi.eddie.chat.entity.dto.ChatMetadataInfoPayload;
+import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.chat.handler.ChatMetadataHandler;
 import cc.wlizhi.eddie.chat.handler.ChatThinkingHandler;
 import cc.wlizhi.eddie.common.dto.ApiResult;
@@ -83,8 +83,8 @@ public class ChatSseTransformer {
      * @param toolEventSink 工具执行事件 Sink，在 mainSse 完成时自动关闭以释放合并流
      */
     public Flux<ServerSentEvent<String>> transform(Flux<ChatResponse> responseFlux, ChatContext ctx,
-                                                   Flux<ToolExecutionEvent> toolEventFlux,
-                                                   Sinks.Many<ToolExecutionEvent> toolEventSink) {
+                                                   Flux<ChatToolExecutionEvent> toolEventFlux,
+                                                   Sinks.Many<ChatToolExecutionEvent> toolEventSink) {
         long startTime = ctx.getFlowState().getStartTime();
 
         // 主 SSE 流：thinking + answer
@@ -143,7 +143,7 @@ public class ChatSseTransformer {
      * PENDING_APPROVAL 事件直接透传（不累积到上下文），
      * COMPLETE 事件同时累积到上下文用于持久化。
      */
-    private ServerSentEvent<String> buildToolExecutionEvent(ToolExecutionEvent event, ChatContext ctx) {
+    private ServerSentEvent<String> buildToolExecutionEvent(ChatToolExecutionEvent event, ChatContext ctx) {
         // 构建公共 Payload（统一携带 msgId，用于审批场景）
         ChatToolExecPayload payload = new ChatToolExecPayload(
                 ctx.getAssistantMsgContext().getAssistantMsgId(),
@@ -265,7 +265,7 @@ public class ChatSseTransformer {
         for (ChatMetadataHandler handler : metadataHandlers) {
             if (handler.support(ctx.getProvider().getCode())) {
                 handler.buildMetadata(ctx);
-                MetadataInfo info = ctx.getAssistantMsgContext().getMetadata();
+                ChatMetadataInfoPayload info = ctx.getAssistantMsgContext().getMetadata();
                 if (info != null) {
                     info.setDurationMs(durationMs);
                     info.setTimestamp(endTime);
@@ -277,18 +277,18 @@ public class ChatSseTransformer {
                 // info 为 null：回退到空 MetadataInfo
                 return ServerSentEvent.<String>builder()
                         .event(ChatSseEvent.METADATA.getEventName())
-                        .data(toJson(new MetadataInfo()))
+                        .data(toJson(new ChatMetadataInfoPayload()))
                         .build();
             }
         }
 
         // fallback：无匹配 handler 时从 ctx 读取 MetadataInfo
-        MetadataInfo info = ctx.getAssistantMsgContext().getMetadata();
+        ChatMetadataInfoPayload info = ctx.getAssistantMsgContext().getMetadata();
         if (info != null) {
             info.setDurationMs(durationMs);
             info.setTimestamp(endTime);
         } else {
-            info = MetadataInfo.builder()
+            info = ChatMetadataInfoPayload.builder()
                     .durationMs(durationMs)
                     .timestamp(endTime)
                     .build();
@@ -305,7 +305,7 @@ public class ChatSseTransformer {
     private ServerSentEvent<String> buildCancelledEvent(String reason) {
         return ServerSentEvent.<String>builder()
                 .event(ChatSseEvent.CANCELLED.getEventName())
-                .data(toJson(new CancelledPayload(reason)))
+                .data(toJson(new ChatCancelledPayload(reason)))
                 .build();
     }
 
