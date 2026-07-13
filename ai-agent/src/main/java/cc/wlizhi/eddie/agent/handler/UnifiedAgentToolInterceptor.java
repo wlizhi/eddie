@@ -20,6 +20,7 @@ import cc.wlizhi.eddie.common.exception.ToolApprovalException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
 import cc.wlizhi.eddie.common.tool.ToolBehavior;
 import cc.wlizhi.eddie.common.tool.ToolBehavior.SecurityLevel;
+import cc.wlizhi.eddie.common.util.JsonUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,9 +49,13 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
     private final AgentChatContext ctx;
     private final ObjectMapper objectMapper;
 
-    /** 当前调用的序号 */
+    /**
+     * 当前调用的序号
+     */
     private volatile int currentSeq = 0;
-    /** 是否被用户拒绝 */
+    /**
+     * 是否被用户拒绝
+     */
     private volatile boolean rejected = false;
 
     public UnifiedAgentToolInterceptor(
@@ -142,6 +147,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
         String result;
         try {
             result = delegate.call(toolInput, toolContext);
+            result = JsonUtil.unwrapJsonString(result);
         } catch (UserStopException | SwitchModeToPlanException | ToolApprovalException e) {
             throw e;
         } catch (Exception e) {

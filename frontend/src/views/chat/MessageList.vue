@@ -22,14 +22,15 @@
 import {computed, nextTick, onMounted, ref, watch} from 'vue'
 import {useChatStore} from '@/stores/chat'
 import {useAssistantStore} from '@/stores/assistant'
-import {Brain, ChevronDown, Copy, Eye, Loader, Pen, RefreshCw} from '@lucide/vue'
-import {renderMd} from '@/utils/markdown'
+import {ChevronDown, Copy, Eye, Loader, Pen, RefreshCw} from '@lucide/vue'
 import {formatShortTime} from '@/utils/format'
-import {formatToolResult} from '@/utils/tool-result'
 import AssistantAvatar from '@/components/common/AssistantAvatar.vue'
 import {displaySettings, getEffectiveFontSize} from '@/composables/useDisplaySettings'
 import {approveTool} from '@/api/chat'
 import {showToast} from '@/composables/useToast'
+import AgentThinkingBlock from '@/components/chat/AgentThinkingBlock.vue'
+import AgentToolCard from '@/components/chat/AgentToolCard.vue'
+import AgentContentBlock from '@/components/chat/AgentContentBlock.vue'
 
 defineProps<{
   qaMode: boolean
@@ -38,42 +39,8 @@ defineProps<{
 const chatStore = useChatStore()
 const assistantStore = useAssistantStore()
 
-/** 工具内部名 → 友好显示名（通用映射，新增工具无需修改） */
-function displayToolName(toolName: string): string {
-  // 下划线转空格，首字母大写
-  return toolName
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase())
-}
-
-/** 构建工具调用内容的 Markdown：参数 + 结果，带标签区分 */
-function buildToolContent(args: string | undefined, result: string | undefined): string {
-  let content = ''
-  if (args) {
-    content += '**→ 参数**\n\n'
-    try {
-      const parsed = JSON.parse(args)
-      content += '```json\n' + JSON.stringify(parsed, null, 2) + '\n```'
-    } catch {
-      content += '```\n' + args + '\n```'
-    }
-  }
-  if (result) {
-    if (content) content += '\n\n'
-    content += '**← 结果**\n\n'
-    content += formatToolResult(result)
-  }
-  return content
-}
-
 /** 消息容器 DOM，用于自动滚动 */
 const messageListRef = ref<HTMLElement | null>(null)
-
-/** 跟踪每条消息的 thinking 展开状态 */
-const thinkingExpanded = ref<Record<string, boolean>>({})
-
-/** 跟踪每次工具调用的结果展开状态 */
-const toolResultExpanded = ref<Record<string, boolean>>({})
 
 /** 记录加载更多前的高度，用于保持滚动位置 */
 let prevScrollHeight = 0
@@ -169,17 +136,6 @@ watch(
 onMounted(() => {
   scrollToBottom()
 })
-
-/** 切换 thinking 折叠状态 */
-function toggleThinking(msgId: string) {
-  thinkingExpanded.value[msgId] = !thinkingExpanded.value[msgId]
-}
-
-/** 切换工具执行结果折叠状态 */
-function toggleToolResult(toolIndex: string) {
-  const key = toolIndex
-  toolResultExpanded.value[key] = !toolResultExpanded.value[key]
-}
 
 /** 当前正在显示"已复制"提示的消息 ID */
 const copiedMessageId = ref<string | null>(null)
@@ -298,84 +254,39 @@ function onScroll() {
         <!-- 消息正文（内含 thinking → tool_calls → content） -->
         <div class="message-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'">
           <!-- thinking（仅 assistant） -->
-          <div
-              v-if="msg.role === 'assistant' && (msg.thinking || (chatStore.isStreaming && msg === chatStore.messages[chatStore.messages.length - 1] && !msg.content))"
-              class="thinking-section">
-            <button class="thinking-toggle" @click="toggleThinking(msg.id)">
-              <ChevronDown
-                  :size="13"
-                  :stroke-width="2"
-                  class="chevron"
-                  :class="{ rotated: thinkingExpanded[msg.id] }"
-              />
-              <span v-if="msg.content || !chatStore.isStreaming">
-                <Brain :size="12" :stroke-width="2" class="thinking-icon"/> 思考过程
-              </span>
-              <span v-else class="thinking-pending">
-                <span class="thinking-text"><Brain :size="12" :stroke-width="2" class="thinking-icon thinking-pulse"/> 思考中<span
-                    class="dots-blink"><span>.</span><span>.</span><span>.</span></span></span>
-              </span>
-            </button>
-            <div v-if="thinkingExpanded[msg.id] && msg.thinking" class="thinking-content markdown-body"
-                 v-html="renderMd(msg.thinking)"/>
-          </div>
+          <AgentThinkingBlock
+              v-if="msg.role === 'assistant'"
+              :thinking="msg.thinking || ''"
+              :is-streaming="chatStore.isStreaming"
+              :is-last="msg === chatStore.messages[chatStore.messages.length - 1]"
+              :has-content="!!msg.content"
+          />
 
           <!-- tool_calls（历史消息中的 + 当前流式中的） -->
-          <div v-if="msg.role === 'assistant'" class="tool-calls-section">
+          <div v-if="msg.role === 'assistant' &&
+                ((msg.toolCalls && msg.toolCalls.length > 0) ||
+                 (msg === chatStore.messages[chatStore.messages.length - 1] && chatStore.currentToolExecutions.length > 0))"
+               class="tool-calls-section">
             <!-- 历史消息中的工具调用 -->
-            <div
+            <AgentToolCard
                 v-for="(tc, ti) in msg.toolCalls"
-                :key="'h-' + ti"
-                class="tool-execution-card"
-                :class="{ 'tool-error': tc.error, 'tool-rejected': tc.rejected }"
-            >
-              <div class="tool-execution-header" @click="toggleToolResult('h-' + ti)">
-                <ChevronDown :size="12" :stroke-width="2" class="tool-chevron"
-                             :class="{ rotated: toolResultExpanded['h-' + ti] }"/>
-                <span class="tool-execution-icon">{{ tc.error ? '✕' : (tc.rejected ? '⚠' : '✓') }}</span>
-                <span class="tool-execution-name">{{ displayToolName(tc.toolName) }}</span>
-              </div>
-              <div v-if="tc.arguments || tc.result" class="tool-execution-result markdown-body"
-                   :class="{ collapsed: !toolResultExpanded['h-' + ti] }"
-                   v-html="renderMd(buildToolContent(tc.arguments, tc.result))">
-              </div>
-            </div>
+                :key="'h-' + msg.id + '-' + ti"
+                :tool-call="tc"
+            />
             <!-- 当前流式中的工具调用（仅最新消息） -->
-            <div
+            <AgentToolCard
                 v-for="(tool, ti) in msg === chatStore.messages[chatStore.messages.length - 1] ? chatStore.currentToolExecutions : []"
-                :key="'s-' + ti"
-                class="tool-execution-card"
-                :class="{ 'tool-error': tool.error, 'tool-rejected': tool.rejected }"
-            >
-              <div class="tool-execution-header" @click="toggleToolResult('s-' + ti)">
-                <ChevronDown :size="12" :stroke-width="2" class="tool-chevron"
-                             :class="{ rotated: toolResultExpanded['s-' + ti] }"/>
-                <span class="tool-execution-icon">{{ tool.done ? (tool.error ? '✕' : (tool.rejected ? '⚠' : '✓')) : (tool.pendingApproval ? '⏳' : '⟳') }}</span>
-                <span class="tool-execution-name">{{ displayToolName(tool.toolName) }}</span>
-                <span v-if="!tool.done" class="tool-execution-status"
-                      :class="{ 'tool-status-pending': tool.pendingApproval }">
-                  {{ tool.pendingApproval ? '等待审批...' : '运行中...' }}
-                </span>
-              </div>
-              <div v-if="tool.arguments || tool.result"
-                   class="tool-execution-result markdown-body"
-                   :class="{ collapsed: !toolResultExpanded['s-' + ti] }"
-                   v-html="renderMd(buildToolContent(tool.arguments, tool.result))">
-              </div>
-              <!-- 审批按钮 -->
-              <div v-if="tool.pendingApproval" class="tool-approval-actions">
-                <button class="tool-approve-btn" @click.stop="handleApprove(tool, true)">✓ 批准</button>
-                <button class="tool-reject-btn" @click.stop="handleApprove(tool, false)">✕ 拒绝</button>
-              </div>
-            </div>
+                :key="'s-' + msg.id + '-' + ti"
+                :tool-call="tool"
+                @approve="(approved) => handleApprove(tool, approved)"
+            />
           </div>
 
           <!-- content -->
-          <div
+          <AgentContentBlock
               v-if="msg.content"
-              class="message-content markdown-body"
-              v-html="renderMd(msg.content)"
-          ></div>
+              :content="msg.content"
+          />
         </div>
 
         <!-- 底部区域：元数据 + 操作按钮合并 -->

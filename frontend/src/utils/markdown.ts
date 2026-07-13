@@ -75,15 +75,30 @@ function escapeHtml(text: string): string {
         .replace(/"/g, '"')
 }
 
+// ===== renderMd 缓存 =====
+
+/** 渲染结果缓存，避免同一段 Markdown 反复调用 marked.parse + highlight.js */
+const renderMdCache = new Map<string, string>()
+const CACHE_MAX = 300
+
 /**
- * 将 Markdown 文本渲染为 HTML 字符串
+ * 将 Markdown 文本渲染为 HTML 字符串（带 memo 缓存）
  * @param text 原始 Markdown 文本
  * @returns 渲染后的 HTML，解析失败时返回原文本
  */
 export function renderMd(text: string): string {
     if (!text) return ''
+    const cached = renderMdCache.get(text)
+    if (cached !== undefined) return cached
     try {
-        return marked.parse(text) as string
+        const html = marked.parse(text) as string
+        // LRU 淘汰：超出上限时删除最早一条
+        if (renderMdCache.size >= CACHE_MAX) {
+            const firstKey = renderMdCache.keys().next().value
+            if (firstKey) renderMdCache.delete(firstKey)
+        }
+        renderMdCache.set(text, html)
+        return html
     } catch {
         return text
     }

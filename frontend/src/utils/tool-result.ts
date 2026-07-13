@@ -8,9 +8,11 @@
  *
  * 将工具返回的原始文本处理为 Markdown 格式：
  * - 合法 JSON → 包裹 ```json 代码块，highlight.js 自动高亮
- * - 含 JSON 片段的文本（如 "查询完成\n\n[{...}]"）→ 识别并包裹 JSON 部分
  * - MCP 信封格式 {"content":[...]} → 提取内容后逐段处理
- * - 纯文本 → 原样返回，renderMd 自然渲染其中的 Markdown/代码块
+ * - 纯文本/Markdown → 原样返回，renderMd 自然渲染其中的 Markdown/代码块
+ *
+ * 判断逻辑：直接对整个字符串做 JSON.parse，成功才视为 JSON，不额外用正则匹配尾部 JSON 片段，
+ * 避免 Markdown 内容（如以 } 或 ] 结尾的文本）被误识别为 JSON。
  */
 
 /**
@@ -86,7 +88,9 @@ function unwrapApiResult(text: string): string | null {
 
 /**
  * 如果内容是 JSON 则用 ```json 代码块包裹（pretty-print 美化），否则原样返回。
- * 支持整体 JSON 以及文本尾部包含 JSON 片段两种场景。
+ *
+ * 判断逻辑：尝试对整个字符串做 JSON.parse，成功 → JSON，失败 → 纯文本/Markdown。
+ * 不额外使用正则去尾部找 JSON 片段，避免将 Markdown 误识别为 JSON。
  */
 function wrapJsonBlock(text: string): string {
   const trimmed = text.trim()
@@ -97,29 +101,9 @@ function wrapJsonBlock(text: string): string {
     const parsed = JSON.parse(trimmed)
     return '```json\n' + JSON.stringify(parsed, null, 2) + '\n```'
   } catch {
-    // 非完整 JSON，继续
+    // 非 JSON → 修复转义换行符后返回，让 renderMd 渲染
+    return fixNewlines(trimmed)
   }
-
-  // 尾部包含 [...] 或 {...} JSON 片段
-  // 如 "查询完成（共 9 行）\n\n[{\"name\":\"ai_assistant\"}]"
-  const m = trimmed.match(/^([\s\S]*?)((?:\[[\s\S]*\]|\{[\s\S]*\})\s*)$/)
-  if (m) {
-    const jsonCandidate = m[2].trim()
-    try {
-      const parsed = JSON.parse(jsonCandidate)
-      const prefix = m[1].trim()
-      const prettyJson = '```json\n' + JSON.stringify(parsed, null, 2) + '\n```'
-      if (prefix) {
-        return prefix + '\n\n' + prettyJson
-      }
-      return prettyJson
-    } catch {
-      // 不是合法 JSON，原样返回
-    }
-  }
-
-  // 非 JSON → 修复转义换行符后返回，让 renderMd 渲染
-  return fixNewlines(trimmed)
 }
 
 /**

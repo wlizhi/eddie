@@ -13,6 +13,7 @@ import cc.wlizhi.eddie.common.enums.ToolExecutionStatus;
 import cc.wlizhi.eddie.common.exception.ToolApprovalException;
 import cc.wlizhi.eddie.common.tool.ToolBehavior;
 import cc.wlizhi.eddie.common.tool.ToolBehavior.SecurityLevel;
+import cc.wlizhi.eddie.common.util.JsonUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -166,6 +167,9 @@ public class UnifiedChatToolInterceptor implements ToolCallback {
         String result;
         try {
             result = delegate.call(toolInput, toolContext);
+            // 只有 "以双引号开头且是合法 JSON 字符串" 才解码
+            // 这样不会误伤 Map/List/POJO 的 JSON 对象输出
+            result = JsonUtil.unwrapJsonString(result);
         } catch (Exception e) {
             log.error("[UnifiedChatInterceptor] 工具执行失败: {}", toolName, e);
             ChatToolExecutionEvent errorEvent = ChatToolExecutionEvent.complete(
