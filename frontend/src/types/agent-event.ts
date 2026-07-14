@@ -55,6 +55,10 @@ export interface MessageCreatedPayload {
     stepNumber?: number
     userMsgId?: number
     assistantMsgId?: number
+    /** 模型 Code（ID） */
+    modelCode?: string
+    /** 模型名称（显示用） */
+    modelName?: string
 }
 
 export interface RoundStartPayload {

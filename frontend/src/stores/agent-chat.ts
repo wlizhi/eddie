@@ -350,6 +350,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                         content: '',
                         thinking: '',
                         timestamp: Date.now(),
+                        modelName: data.modelName,
                     })
                 } else if (data.assistantMsgId) {
                     // 仅 assistantMsgId → 子任务副消息，只创建 agent slot
@@ -360,6 +361,7 @@ export const useAgentChatStore = defineStore('agentChat', () => {
                         content: '',
                         thinking: '',
                         timestamp: Date.now(),
+                        modelName: data.modelName,
                     })
                 }
             },
