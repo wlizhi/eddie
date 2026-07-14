@@ -16,7 +16,12 @@ public class AgentClientPostProcessorRouter {
     public ChatClient.ChatClientRequestSpec buildChatClientRequestSpec(AgentChatContext context) {
         for (AgentClientPostProcessor processor : processors) {
             if (processor.support(context.getIteratorState().getAgentMode())) {
-                return processor.buildChatClientRequestSpec(context);
+                context.getMetrics().getStopWatch().start(processor.getClass().getSimpleName());
+                try {
+                    return processor.buildChatClientRequestSpec(context);
+                } finally {
+                    context.getMetrics().getStopWatch().stop();
+                }
             }
         }
         throw new NotFoundException("找不到支持 " + context.getIteratorState().getAgentMode() + " 的 AgentClientPostProcessor");

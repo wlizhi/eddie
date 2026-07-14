@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import type {AgentTaskPlan} from '@/types/agent-chat'
-import {Check, Circle, Loader, X} from '@lucide/vue'
+import {Ban, Check, Circle, Loader, X} from '@lucide/vue'
 
 const props = defineProps<{
   plan: AgentTaskPlan
@@ -51,6 +51,8 @@ function statusColor(status: string): string {
       return 'var(--accent-default)'
     case 'failed':
       return 'var(--danger-default)'
+    case 'interrupted':
+      return 'var(--warning-default)'
     default:
       return 'var(--text-muted)'
   }
@@ -65,6 +67,8 @@ function statusIcon(status: string): string {
       return 'processing'
     case 'failed':
       return 'failed'
+    case 'interrupted':
+      return 'interrupted'
     default:
       return 'pending'
   }
@@ -95,6 +99,7 @@ function statusIcon(status: string): string {
             <Check v-if="todo.status === 'completed'" :size="8" class="node-icon"/>
             <Loader v-else-if="todo.status === 'processing'" :size="8" class="node-icon processing-icon"/>
             <X v-else-if="todo.status === 'failed'" :size="8" class="node-icon"/>
+            <Ban v-else-if="todo.status === 'interrupted'" :size="8" class="node-icon"/>
             <Circle v-else :size="6" class="node-icon pending-icon"/>
           </div>
           <span class="node-label">Step {{ todo.stepNumber }}</span>

@@ -62,7 +62,6 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
 
     @Override
     public ChatClient.ChatClientRequestSpec buildChatClientRequestSpec(AgentChatContext ctx) {
-        long startTime = System.currentTimeMillis();
         String resolvePrompts = agentPromptsResolver.resolvePrompts(ctx);
         log.debug("{} 模式系统提示词：\n{}", AgentMode.EXECUTE.name(), resolvePrompts);
 
@@ -145,7 +144,6 @@ public class ExecuteClientPostProcessor implements AgentClientPostProcessor {
                         .param("chat_memory_conversation_id", stepConversationId)
                         .param("providerId", ctx.getModelProvider().getId())
                         .param("modelCode", ctx.getUseModelInfo().getId()));
-        log.debug("[buildChatClientRequestSpec] 构建请求客户端，耗时：{}ms", System.currentTimeMillis() - startTime);
         return requestSpec;
     }
 }

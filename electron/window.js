@@ -149,6 +149,23 @@ function createMainWindow() {
         mainWindow = null;
     });
 
+    // ============================================================
+    // ★ 拦截 will-navigate：防止普通 <a href> 点击导致窗口离开应用
+    // ============================================================
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        try {
+            const parsedUrl = new URL(url);
+            // 允许 localhost 导航（应用自身路由）
+            if (parsedUrl.hostname === 'localhost') return;
+        } catch {
+            // URL 解析失败（如 data:、blob: 协议），允许导航
+            return;
+        }
+        // 外部 URL → 用系统浏览器打开，并阻止应用内导航
+        event.preventDefault();
+        require('electron').shell.openExternal(url);
+    });
+
     mainWindow.webContents.setWindowOpenHandler(({url}) => {
         if (url.startsWith('http://localhost')) return {action: 'allow'};
         require('electron').shell.openExternal(url);

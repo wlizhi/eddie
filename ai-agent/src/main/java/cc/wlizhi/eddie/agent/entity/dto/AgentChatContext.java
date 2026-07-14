@@ -60,7 +60,7 @@ public class AgentChatContext {
     /**
      * 迭代状态
      */
-    private AgentIteratorState iteratorState;
+    private final AgentIteratorState iteratorState = new AgentIteratorState();
 
     // ==================== 规划上下文 ====================
 
@@ -82,15 +82,15 @@ public class AgentChatContext {
     /**
      * 模型回复上下文 — 模型输出的回复内容、工具调用记录、截断配置等
      */
-    private AgentOutputContext output = new AgentOutputContext();
+    private final AgentOutputContext output = new AgentOutputContext();
 
     /**
      * 指标/计数上下文 — 请求时间、步骤计数等
      */
-    private AgentMetrics metrics = new AgentMetrics();
+    private final AgentMetrics metrics = new AgentMetrics();
 
     /**
      * 事件/功能上下文 — SSE 推送、事件发布、线程、序列化等基础设施
      */
-    private AgentEventContext event = new AgentEventContext();
+    private final AgentEventContext event = new AgentEventContext();
 }

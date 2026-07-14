@@ -21,6 +21,7 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
  *         <li>{@link #handleAnswer(AgentChatContext, ChatResponse)} — 提取回答内容</li>
  *         <li>{@link #handleCustomEvent(AgentChatContext, ChatResponse)} — 模式特有事件</li>
  *     </ul>
- *     <li>{@link #afterStream(AgentChatContext)} — 流结束后钩子</li>
+ *     <li>{@link #afterStream(AgentChatContext, ChatResponse)} — 流结束后钩子（携带最后一帧）</li>
  * </ol>
  * 子类只需覆盖需要自定义的钩子方法，公共逻辑由基类统一提供。
  * <p>
@@ -61,32 +62,48 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
         // 钩子：流开始前的预处理
         beforeStream(ctx);
 
-        // 日志计数器：记录 chunk 数量，用于诊断工具调用后是否卡死
-        AtomicInteger chunkCount = new AtomicInteger(0);
-        long streamStart = System.currentTimeMillis();
+        // 使用 Iterator 遍历流，自然捕获最后一个 chunk 供后续 token 提取使用
+        Iterator<ChatResponse> iterator = requestSpec.stream().chatResponse()
+                .takeWhile(_ -> !checkUserStopEvent(ctx))
+                .toStream()
+                .iterator();
 
-        requestSpec.stream().chatResponse()
-                .takeWhile(_ -> !checkUserStopEvent(ctx)).toStream()
-                .forEach(res -> {
-                   chunkCount.incrementAndGet();
-                    // 保存最后一次响应，供后续提取 tool_calls / token 用量
-                    ctx.getOutput().setLastResponse(res);
+        ChatResponse lastResponse = null;
+        try {
+            while (iterator.hasNext()) {
+                ChatResponse res = iterator.next();
+                lastResponse = res;
 
-                    // 1. 提取并推送思考内容（JSON 格式 via AgentEventPublisher）
-                    handleThinking(ctx, res);
+                // 1. 提取并推送思考内容（JSON 格式 via AgentEventPublisher）
+                handleThinking(ctx, res);
 
-                    // 2. 提取并推送回答内容（JSON 格式 via AgentEventPublisher）
-                    handleAnswer(ctx, res);
+                // 2. 提取并推送回答内容（JSON 格式 via AgentEventPublisher）
+                handleAnswer(ctx, res);
 
-                    // 3. 模式特有事件（子类可覆盖）
-                    handleCustomEvent(ctx, res);
-                });
+                // 3. 模式特有事件（子类可覆盖）
+                handleCustomEvent(ctx, res);
+            }
+        } catch (Exception ex) {
+            if (ex.getCause() instanceof InterruptedException) {
+                onStreamInterrupted(ctx);
+            }
+            throw ex;
+        }
 
-        long elapsed = System.currentTimeMillis() - streamStart;
-        log.debug("[StreamDiagnostic] 流处理完成, 共 {} chunks, 耗时 {}ms", chunkCount.get(), elapsed);
 
-        // 钩子：流结束后的收尾
-        afterStream(ctx);
+        // 统一收尾：从最后一帧提取 token 统计 → 推送 → 持久化
+        if (lastResponse != null) {
+            Usage usage = lastResponse.getMetadata().getUsage();
+            log.debug("afterStream，getTotalTokens:{}，getPromptTokens：{}，getCompletionTokens：{}", usage.getTotalTokens(), usage.getPromptTokens(), usage.getCompletionTokens());
+            TokenStatsHelper.extractAndMergeTokenStats(ctx, lastResponse);
+            if (ctx.getOutput().getTokenStatists() != null) {
+                publisher.metadata(ctx, ctx.getOutput().getTokenStatists());
+            }
+            TokenStatsHelper.persistTokenStats(ctx, agentMsgDao);
+        }
+
+        // 钩子：流结束后的收尾（携带最后一帧，子类按需使用）
+        afterStream(ctx, lastResponse);
     }
 
     private boolean checkUserStopEvent(AgentChatContext ctx) {
@@ -99,10 +116,6 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
             log.info("用户点击停止回答");
             return true;
         }
-        return false;
-    }
-
-    protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
         return false;
     }
 
@@ -171,22 +184,32 @@ public abstract class AbstractStreamProcessor implements ResponseStreamProcessor
     }
 
     /**
-     * 流结束后的收尾 — 通用逻辑：提取 token 统计 + 增量持久化 + 发射 metadata 事件
+     * 流处理过程中线程中断后的业务处理钩子。
      * <p>
-     * 子类若覆盖此方法，<b>必须</b>调用 {@code super.afterStream(ctx)} 以确保统计逻辑执行。
+     * 触发场景：前端刷新或离开页面 → SSE 连接断开 → 虚拟线程被中断
+     * → 流式 API 抛出 {@link InterruptedException}。
+     * <p>
+     * 此时前端已断开，无需推送 SSE 事件，只需做好数据持久化，
+     * 确保刷新后页面能正确展示中断状态。
+     * <p>
+     * 默认空实现，子类按需覆写。
+     *
+     * @param ctx 流处理上下文
      */
-    protected void afterStream(AgentChatContext ctx) {
-        Usage usage = ctx.getOutput().getLastResponse().getMetadata().getUsage();
-        log.debug("afterStream，getTotalTokens:{}，getPromptTokens：{}，getCompletionTokens：{}", usage.getTotalTokens(), usage.getPromptTokens(), usage.getCompletionTokens());
-        // 1. 从最后一条 ChatResponse 提取 token 统计，增量合并到 ctx.tokenStatists
-        TokenStatsHelper.extractAndMergeTokenStats(ctx);
+    protected void onStreamInterrupted(AgentChatContext ctx) {
+        // 默认空实现
+    }
 
-        // 2. 先推流给前端（低延迟，用户先看到数据）
-        if (ctx.getOutput().getTokenStatists() != null) {
-            publisher.metadata(ctx, ctx.getOutput().getTokenStatists());
-        }
-
-        // 3. 后持久化到数据库（I/O 操作，不阻塞用户体验）
-        TokenStatsHelper.persistTokenStats(ctx, agentMsgDao);
+    /**
+     * 流结束后的收尾钩子。
+     * <p>
+     * 基类已在 {@link #process} 中完成 token 统计提取 + 推送 + 持久化，
+     * 子类只需在此处理模式特有的收尾逻辑（如内容持久化、步骤记录更新等）。
+     *
+     * @param ctx          流处理上下文
+     * @param lastResponse 流式响应的最后一帧（可为 null），子类可按需使用
+     */
+    protected void afterStream(AgentChatContext ctx, ChatResponse lastResponse) {
+        // 默认空实现
     }
 }

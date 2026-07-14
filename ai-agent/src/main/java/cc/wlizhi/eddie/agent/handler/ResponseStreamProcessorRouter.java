@@ -32,7 +32,12 @@ public class ResponseStreamProcessorRouter {
     public void process(AgentChatContext ctx, ChatClient.ChatClientRequestSpec requestSpec) {
         for (ResponseStreamProcessor processor : processors) {
             if (processor.support(ctx.getIteratorState().getAgentMode())) {
-                processor.process(ctx, requestSpec);
+                ctx.getMetrics().getStopWatch().start(processor.getClass().getSimpleName());
+                try {
+                    processor.process(ctx, requestSpec);
+                } finally {
+                    ctx.getMetrics().getStopWatch().stop();
+                }
                 return;
             }
         }

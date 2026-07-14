@@ -31,6 +31,7 @@ import {showToast} from '@/composables/useToast'
 import AgentPlanTodoList from '@/components/agent/AgentPlanTodoList.vue'
 import AgentThinkingBlock from '@/components/chat/AgentThinkingBlock.vue'
 import AgentToolCard from '@/components/chat/AgentToolCard.vue'
+import type {AgentTaskPlan} from '@/types/agent-chat'
 import AgentContentBlock from '@/components/chat/AgentContentBlock.vue'
 
 const agentChatStore = useAgentChatStore()
@@ -154,8 +155,12 @@ function toggleMetaExpanded(msgId: string) {
 /** 复制消息内容 */
 const copiedMessageId = ref<string | null>(null)
 
-function copyContent(msgId: string, content: string) {
-  navigator.clipboard.writeText(content.replace(/^\n+/, '')).then(() => {
+/** 复制消息内容到剪贴板。
+ *  规划模式下，若 taskPlan.result 有值则优先复制 result，否则回退到 content。
+ *  这确保完成/失败状态的规划模式消息复制的是最终汇总结果。 */
+function copyContent(msgId: string, content: string, taskPlan?: AgentTaskPlan | null) {
+  const textToCopy = taskPlan?.result || content
+  navigator.clipboard.writeText(textToCopy.replace(/^\n+/, '')).then(() => {
     copiedMessageId.value = msgId
     setTimeout(() => {
       if (copiedMessageId.value === msgId) {
@@ -423,11 +428,11 @@ function onScroll() {
               </button>
             </div>
 
-            <div v-if="msg.content" class="message-actions">
+            <div v-if="msg.content || msg.taskPlan?.result" class="message-actions">
               <button
                   class="action-btn"
                   :data-copied="copiedMessageId === msg.id || undefined"
-                  @click="copyContent(msg.id, msg.content)"
+                  @click="copyContent(msg.id, msg.content, msg.taskPlan)"
                   :title="copiedMessageId === msg.id ? '已复制' : '复制消息'"
               >
                 <Copy v-if="copiedMessageId !== msg.id" :size="13" :stroke-width="2"/>

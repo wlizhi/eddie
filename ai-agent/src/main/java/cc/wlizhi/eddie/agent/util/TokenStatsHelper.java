@@ -38,13 +38,13 @@ public final class TokenStatsHelper {
      * 费用计算复用 {@link PriceCalculator#calculate(int, int, int, int, double, double, double, double)}，
      * 价格来源优先使用 {@link AgentChatContext#getUseModelInfo()} 中的定价字段。
      *
-     * @param ctx 当前请求上下文（其 lastResponse 必须有值）
+     * @param ctx          当前请求上下文
+     * @param lastResponse 流式响应的最后一帧（用于提取 token 用量）
      */
-    public static void extractAndMergeTokenStats(AgentChatContext ctx) {
-        ChatResponse last = ctx.getOutput().getLastResponse();
-        if (last == null) return;
+    public static void extractAndMergeTokenStats(AgentChatContext ctx, ChatResponse lastResponse) {
+        if (lastResponse == null) return;
 
-        ChatResponseMetadata responseMetadata = last.getMetadata();
+        ChatResponseMetadata responseMetadata = lastResponse.getMetadata();
 
         Usage usage = responseMetadata.getUsage();
 

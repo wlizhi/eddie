@@ -15,7 +15,6 @@ import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.dto.ApiResult;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
 import cc.wlizhi.eddie.common.entity.ToolDefinitionEntity;
-import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
 import cc.wlizhi.eddie.common.exception.ToolApprovalException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
 import cc.wlizhi.eddie.common.tool.ToolBehavior;
@@ -148,7 +147,7 @@ public class UnifiedAgentToolInterceptor implements ToolCallback {
         try {
             result = delegate.call(toolInput, toolContext);
             result = JsonUtil.unwrapJsonString(result);
-        } catch (UserStopException | SwitchModeToPlanException | ToolApprovalException e) {
+        } catch (UserStopException | ToolApprovalException e) {
             throw e;
         } catch (Exception e) {
             log.warn("[UnifiedAgentInterceptor] 工具执行失败: {}", toolName, e);

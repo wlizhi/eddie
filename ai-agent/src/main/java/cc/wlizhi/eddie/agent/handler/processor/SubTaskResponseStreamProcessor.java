@@ -7,6 +7,7 @@ package cc.wlizhi.eddie.agent.handler.processor;
 
 import cc.wlizhi.eddie.agent.entity.dto.AgentChatContext;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 
@@ -33,9 +34,8 @@ public class SubTaskResponseStreamProcessor extends AbstractStreamProcessor {
     }
 
     @Override
-    protected void afterStream(AgentChatContext ctx) {
-        // 先执行基类通用逻辑（token 提取 + 持久化 + metadata 推送）
-        super.afterStream(ctx);
+    protected void afterStream(AgentChatContext ctx, ChatResponse lastResponse) {
+        // 基类通用逻辑已在 AbstractStreamProcessor.process() 中完成
         ctx.getEvent().getSink().next(ServerSentEvent.<String>builder()
                 .event("sub_task_complete")
                 .data("子任务完成")

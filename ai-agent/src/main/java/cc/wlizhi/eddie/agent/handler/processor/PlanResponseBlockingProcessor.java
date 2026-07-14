@@ -55,8 +55,6 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
 
     @Override
     protected ChatResponse doBlock(AgentChatContext ctx, ChatClient.ChatClientRequestSpec requestSpec) {
-        long streamStart = System.currentTimeMillis();
-
         try {
             // 发射规划开始事件，前端可据此显示"正在生成任务计划..."的加载指示器
             publisher.planStarted(ctx);
@@ -92,18 +90,12 @@ public class PlanResponseBlockingProcessor extends AbstractBlockingProcessor {
             String summary = String.format("【任务规划】%s — %s", taskPlan.getTitle(), taskPlan.getSummary());
             ctx.getOutput().getFullAnswer().append(summary);
 
-            long elapsed = System.currentTimeMillis() - streamStart;
-            log.debug("[PlanProcessor] 规划完成, title={}, steps={}, 耗时={}ms",
-                    taskPlan.getTitle(),
-                    taskPlan.getSteps() != null ? taskPlan.getSteps().size() : 0,
-                    elapsed);
             return chatResponse;
         } catch (UserStopException e) {
             // 用户终止回答，直接透传，不包装
             throw e;
         } catch (Exception e) {
-            long elapsed = System.currentTimeMillis() - streamStart;
-            log.warn("[PlanProcessor] 规划调用异常 after {}ms: {}", elapsed, e.getMessage(), e);
+            log.warn("[PlanProcessor] 规划调用异常: {}", e.getMessage(), e);
             throw new AppException(ApiResultCode.PROVIDER_CALL_FAILED,
                     "模型规划调用异常: " + e.getMessage(), e);
         }

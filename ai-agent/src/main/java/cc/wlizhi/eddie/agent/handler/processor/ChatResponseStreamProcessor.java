@@ -16,13 +16,13 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * CHAT 模式流式响应处理器
  * <p>
  * 聊天模式：仅推送 thinking + answer 事件，无额外的模式特有事件。
- * 流结束后调用 {@link #afterStream(AgentChatContext)} 持久化累积的回复内容。
  */
 @Component
 public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
@@ -38,13 +38,8 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
     }
 
     @Override
-    protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
-        return ctx.getIteratorState().getAgentMode() == AgentMode.PLAN;
-    }
-
-    @Override
     protected void handleAnswer(AgentChatContext ctx, ChatResponse response) {
-        if (breakInStreamIfNecessary(ctx)) {
+        if (ctx.getIteratorState().getAgentMode() == AgentMode.PLAN) {
             // 任务规划中，不推送事件了，也不保存。
         } else {
             super.handleAnswer(ctx, response);
@@ -52,12 +47,21 @@ public class ChatResponseStreamProcessor extends AbstractStreamProcessor {
     }
 
     @Override
-    protected void afterStream(AgentChatContext ctx) {
-        // 1. 基类通用逻辑：token 提取 + 增量持久化 + metadata 推送
-        super.afterStream(ctx);
+    protected void afterStream(AgentChatContext ctx, ChatResponse lastResponse) {
+        // 1. 基类通用逻辑已在 AbstractStreamProcessor.process() 中完成（token 提取 + 推送 + 持久化）
 
         // 2. CHAT 模式特有：持久化累积的 thinking / content，更新状态为 COMPLETED
         persistAccumulatedContent(ctx);
+
+        // 3. 标记本轮处理完成，shouldBreakIterator() 据此退出迭代循环
+        if (ctx.getIteratorState().getAgentMode() == AgentMode.CHAT) {
+            ctx.getIteratorState().setFinished(true);
+        }
+
+        // ↓ 大文本/工具结果已落库，提前释放内存
+        ctx.getOutput().setFullAnswer(new StringBuilder());
+        ctx.getOutput().setFullThinking(new StringBuilder());
+        ctx.getOutput().setToolCalls(new ArrayList<>());
     }
 
     /**
