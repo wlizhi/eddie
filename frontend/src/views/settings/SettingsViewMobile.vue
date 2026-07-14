@@ -31,32 +31,12 @@ interface NavItem {
   component: Component
 }
 
-interface NavGroup {
-  label: string
-  items: NavItem[]
-}
-
-const navGroups: NavGroup[] = [
-  {
-    label: '模型配置',
-    items: [
-      {key: 'model-provider', label: '模型服务', icon: Cpu, component: ModelProviderPanelMobile},
-      {key: 'default-model', label: '默认模型', icon: Zap, component: DefaultModelPanel},
-    ],
-  },
-  {
-    label: '通用设置',
-    items: [
-      {key: 'display', label: '显示设置', icon: Monitor, component: DisplayPanel},
-    ],
-  },
-  {
-    label: '扩展功能',
-    items: [
-      {key: 'mcp', label: 'MCP 服务', icon: Network, component: McpPanelMobile},
-      // 占位面板（技能/搜索/频道/定时任务）手机端暂不展示
-    ],
-  },
+const navItems: NavItem[] = [
+  {key: 'model-provider', label: '模型服务', icon: Cpu, component: ModelProviderPanelMobile},
+  {key: 'default-model', label: '默认模型', icon: Zap, component: DefaultModelPanel},
+  {key: 'display', label: '显示设置', icon: Monitor, component: DisplayPanel},
+  {key: 'mcp', label: 'MCP 服务', icon: Network, component: McpPanelMobile},
+  // 占位面板（技能/搜索/频道/定时任务）手机端暂不展示
 ]
 
 /** 当前所在页：'list' 或具体 panel key */
@@ -65,11 +45,7 @@ const currentPage = ref<string>('list')
 /** 当前活跃的导航项 */
 const activeItem = computed<NavItem | null>(() => {
   if (currentPage.value === 'list') return null
-  for (const group of navGroups) {
-    const found = group.items.find(i => i.key === currentPage.value)
-    if (found) return found
-  }
-  return null
+  return navItems.find(i => i.key === currentPage.value) ?? null
 })
 
 const activeComponent = computed<Component | null>(() => activeItem.value?.component ?? null)
@@ -106,25 +82,22 @@ function goBack() {
     <div class="settings-mobile-body">
       <!-- ===== 列表导航 ===== -->
       <template v-if="currentPage === 'list'">
-        <template v-for="(group, gi) in navGroups" :key="gi">
-          <div class="settings-nav-group-label">{{ group.label }}</div>
-          <button
-              v-for="item in group.items"
-              :key="item.key"
-              class="settings-nav-item"
-              @click="navigateTo(item.key)"
-          >
-                        <span class="settings-nav-item-icon">
-                            <component :is="item.icon" :size="iconSizeSm" :stroke-width="1.8"/>
-                        </span>
-            <span class="settings-nav-item-label">{{ item.label }}</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                 class="settings-nav-item-arrow">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </button>
-        </template>
+        <button
+            v-for="item in navItems"
+            :key="item.key"
+            class="settings-nav-item"
+            @click="navigateTo(item.key)"
+        >
+                    <span class="settings-nav-item-icon">
+                        <component :is="item.icon" :size="iconSizeSm" :stroke-width="1.8"/>
+                    </span>
+          <span class="settings-nav-item-label">{{ item.label }}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               class="settings-nav-item-arrow">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
       </template>
 
       <!-- ===== 面板视图 ===== -->

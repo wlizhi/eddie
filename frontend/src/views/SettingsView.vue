@@ -27,27 +27,23 @@ interface NavSection {
 }
 
 interface NavGroup {
-  label?: string
   items: NavSection[]
 }
 
 const navGroups: NavGroup[] = [
   {
-    label: '模型配置',
     items: [
       {key: 'model-provider', label: '模型服务', icon: Cpu},
       {key: 'default-model', label: '默认模型', icon: Zap},
     ],
   },
   {
-    label: '通用设置',
     items: [
       {key: 'general', label: '常规设置', icon: Settings},
       {key: 'display', label: '显示设置', icon: Monitor},
     ],
   },
   {
-    label: '扩展功能',
     items: [
       {key: 'mcp', label: 'MCP 服务', icon: Network},
       {key: 'skills', label: '技能', icon: Puzzle},
@@ -83,7 +79,6 @@ const currentPanel = computed(() => panelMap[activeKey.value])
     <div class="settings-layout">
       <nav class="settings-nav">
         <template v-for="(group, gi) in navGroups" :key="gi">
-          <div v-if="group.label" class="nav-group-label">{{ group.label }}</div>
           <button
               v-for="item in group.items"
               :key="item.key"
