@@ -6,30 +6,10 @@
 
 ## 🖼 截图
 
-<div style="margin: 16px 0;">
-
-<div style="display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; border-radius: 8px;">
-
-<div id="slide-1" style="flex: 0 0 100%; scroll-snap-align: start;">
-  <img src="screenshots/assistant.png" alt="聊天界面" style="width: 100%; border-radius: 8px; display: block;">
-</div>
-
-<div id="slide-2" style="flex: 0 0 100%; scroll-snap-align: start;">
-  <img src="screenshots/agent.png" alt="智能体界面" style="width: 100%; border-radius: 8px; display: block;">
-</div>
-
-<div id="slide-3" style="flex: 0 0 100%; scroll-snap-align: start;">
-  <img src="screenshots/settings.png" alt="设置面板" style="width: 100%; border-radius: 8px; display: block;">
-</div>
-
-</div>
-
-<div style="display: flex; justify-content: center; gap: 10px; margin-top: 12px;">
-  <a href="#slide-1" style="width: 10px; height: 10px; border-radius: 50%; background: #999; display: inline-block; cursor: pointer; transition: background 0.2s;"></a>
-  <a href="#slide-2" style="width: 10px; height: 10px; border-radius: 50%; background: #999; display: inline-block; cursor: pointer; transition: background 0.2s;"></a>
-  <a href="#slide-3" style="width: 10px; height: 10px; border-radius: 50%; background: #999; display: inline-block; cursor: pointer; transition: background 0.2s;"></a>
-</div>
-
+<div align="center">
+  <a href="screenshots/assistant.png"><img src="screenshots/assistant.png" alt="聊天界面" width="30%"></a>
+  <a href="screenshots/agent.png"><img src="screenshots/agent.png" alt="智能体界面" width="30%"></a>
+  <a href="screenshots/settings.png"><img src="screenshots/settings.png" alt="设置面板" width="30%"></a>
 </div>
 
 ---
