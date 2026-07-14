@@ -248,7 +248,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         }
 
         String prompt = builtInPromptsContext.resolvePrompt(promptTemplate, Map.of(
-                "conversation", conversation != null ? conversation : ""
+                "conversation", conversation != null ? conversation : "",
+                "assistantLabel", "智能体"
         ));
 
         // 构建最小 ChatContext 用于获取 ChatClient

@@ -122,6 +122,33 @@ export function useAgentSessionList(
         }
     })
 
+    // 模型回复完毕 → 更新当前会话消息数 + 自动生成标题
+    watch(() => agentChatStore.sessionMessageSignal, async () => {
+        const sid = Number(agentChatStore.currentConversationId)
+        if (!sid) return
+        const session = sessions.value.find(s => s.id === sid)
+        if (!session) return
+
+        // 本地更新当前会话的消息数（+2）和更新时间
+        session.messageCount = Math.max(session.messageCount + 2, 2)
+        session.updatedAt = Date.now()
+
+        // 加载自动标题配置（仅首次）
+        await agentChatStore.loadAutoTitleConfig()
+
+        // 当消息数量达到配置轮数 × 2 时自动生成标题
+        const targetMsgCount = agentChatStore.titleGenerationRounds * 2
+        if (agentChatStore.autoTitleEnabled && session.messageCount === targetMsgCount) {
+            try {
+                const title = await generateAgentSessionTitle(sid)
+                // 生成成功后直接更新本地标题，无需全量刷新
+                session.title = title
+            } catch (err) {
+                console.error('自动生成智能体会话标题失败:', err)
+            }
+        }
+    })
+
     /** 删除会话 */
     async function removeSession(sessionId: number) {
         try {

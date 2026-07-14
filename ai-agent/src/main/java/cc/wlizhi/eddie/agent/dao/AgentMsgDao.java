@@ -165,7 +165,7 @@ public class AgentMsgDao {
     public List<AgentMsgEntity> findRounds(Long sessionId, int rounds) {
         int limit = Math.max(rounds * 2, 2);
         return jdbcTemplate.query(
-                "SELECT * FROM ai_agent_session_msg WHERE session_id = ? ORDER BY id ASC LIMIT ?",
+                "SELECT * FROM ai_agent_session_msg WHERE session_id = ? AND round_seq > 0 ORDER BY id ASC LIMIT ?",
                 rowMapper, sessionId, limit);
     }
 

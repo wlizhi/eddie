@@ -31,8 +31,9 @@ import type {SessionVO} from '@/types/session'
 import {useAgentStore} from '@/stores/agent'
 import type {ToolSourceVO} from '@/types/mcpServer'
 import {fetchAgentMessages, stopAgentChat, streamAgentChat} from '@/api/agent-chat'
-import {createAgentSession, generateAgentSessionTitle} from '@/api/agent-session'
+import {createAgentSession} from '@/api/agent-session'
 import {fetchAgentBoundMcpTools} from '@/api/agent'
+import {fetchConfigs} from '@/api/settings'
 import {showToast} from '@/composables/useToast'
 import {
     generateId,
@@ -98,6 +99,14 @@ export const useAgentChatStore = defineStore('agentChat', () => {
 
     /** 是否正在加载更早的消息 */
     const isLoadingMore = ref(false)
+
+    /** 是否自动生成会话标题 */
+    const autoTitleEnabled = ref(true)
+
+    /** 生成标题取前几轮对话（默认 1） */
+    const titleGenerationRounds = ref(1)
+    /** 自动标题配置是否已加载 */
+    let autoTitleLoaded = false
 
     /** 每页消息数量（与后端保持一致） */
     const MESSAGE_PAGE_SIZE = 20
@@ -618,15 +627,30 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         abortController = null
         // 通知侧边栏本地更新当前会话的消息数（+2）和更新时间
         sessionMessageSignal.value++
+    }
 
-        // 首轮对话后自动生成标题（2 条消息：1 user + 1 assistant）
-        if (messages.value.length === 2) {
-            const sid = Number(currentConversationId.value)
-            if (sid) {
-                generateAgentSessionTitle(sid).catch(err => {
-                    console.error('自动生成智能体会话标题失败:', err)
-                })
+    /**
+     * 加载自动标题配置（autoTitleEnabled / titleGenerationRounds）
+     */
+    async function loadAutoTitleConfig(): Promise<void> {
+        if (autoTitleLoaded) return
+        autoTitleLoaded = true
+        try {
+            const configs = await fetchConfigs()
+            const raw = configs['GENERAL_SETTINGS']
+            const settings = raw ? JSON.parse(raw) : {}
+
+            if (settings.enableAutoTitle != null) {
+                autoTitleEnabled.value = settings.enableAutoTitle === true
             }
+            if (settings.titleGenerationRounds != null) {
+                const n = Number(settings.titleGenerationRounds)
+                if (!isNaN(n) && n >= 1) {
+                    titleGenerationRounds.value = n
+                }
+            }
+        } catch (err) {
+            console.error('加载自动标题配置失败:', err)
         }
     }
 
@@ -719,6 +743,11 @@ export const useAgentChatStore = defineStore('agentChat', () => {
         // 计算属性
         hasMessages,
         isNewConversation,
+
+        // 自动标题配置
+        autoTitleEnabled,
+        titleGenerationRounds,
+        loadAutoTitleConfig,
 
         // 方法
         newConversation,
