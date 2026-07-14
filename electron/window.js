@@ -182,6 +182,14 @@ function setupIpc() {
     mainWindow?.on('maximize', () => mainWindow?.webContents.send('window-maximized-changed', true));
     mainWindow?.on('unmaximize', () => mainWindow?.webContents.send('window-maximized-changed', false));
 
+    // macOS 原生全屏状态变化通知（绿色按钮全屏 → 隐藏 TitleBar，让内容铺满）
+    mainWindow?.on('enter-full-screen', () => {
+        mainWindow?.webContents.send('fullscreen-changed', true);
+    });
+    mainWindow?.on('leave-full-screen', () => {
+        mainWindow?.webContents.send('fullscreen-changed', false);
+    });
+
     // 更新标题栏 overlay 颜色（前端主题切换时调用）
     ipcMain.on('update-title-bar-overlay', (_e, {color, symbolColor}) => {
         if (mainWindow && !mainWindow.isDestroyed()) {

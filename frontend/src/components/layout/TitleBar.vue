@@ -11,9 +11,10 @@
  -->
 
 <script setup lang="ts">
-import {ref, onMounted} from 'vue'
+import {ref, onMounted, onUnmounted} from 'vue'
 
 const isMacTitleBar = ref(false)
+const isFullscreen = ref(false)
 
 onMounted(() => {
   // 仅在 macOS Electron 环境下显示（titleBarStyle: 'hiddenInset'）
@@ -21,12 +22,28 @@ onMounted(() => {
   if (api && navigator.platform?.toLowerCase().includes('mac')) {
     isMacTitleBar.value = true
     document.documentElement.style.setProperty('--title-bar-height', '38px')
+
+    // 监听 macOS 原生全屏状态变化 → 全屏时隐藏 TitleBar，让内容铺满
+    api.onFullscreenChange((fullscreen: boolean) => {
+      isFullscreen.value = fullscreen
+      document.documentElement.style.setProperty(
+        '--title-bar-height',
+        fullscreen ? '0px' : '38px'
+      )
+    })
+  }
+})
+
+onUnmounted(() => {
+  const api = (window as any).electronAPI
+  if (api) {
+    api.removeFullscreenChangeListener()
   }
 })
 </script>
 
 <template>
-  <div v-if="isMacTitleBar" class="title-bar">
+  <div v-if="isMacTitleBar && !isFullscreen" class="title-bar">
     <!-- 左侧留空 → macOS 交通灯浮层，设 no-drag 避免拦截点击 -->
     <div class="title-bar-spacer"/>
 

@@ -36,6 +36,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.send('set-theme-source', source);
     },
 
+    // ===== 全屏状态变化（macOS 原生全屏时隐藏 TitleBar） =====
+    onFullscreenChange: (callback) => {
+        ipcRenderer.on('fullscreen-changed', (_event, isFullscreen) => callback(isFullscreen));
+    },
+    removeFullscreenChangeListener: () => {
+        ipcRenderer.removeAllListeners('fullscreen-changed');
+    },
+
     // ===== 持久化启动主题（主题切换时写入，下次启动加载页使用相同配色） =====
     saveStartupTheme: (theme) => {
         ipcRenderer.send('save-startup-theme', theme);
