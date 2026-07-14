@@ -21,7 +21,7 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:sqlite:${eddie.data}/eddie.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000
+    url: jdbc:sqlite:${eddie.data}/eddie.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000&page_size=16384
     driver-class-name: org.sqlite.JDBC
     hikari:
       maximum-pool-size: 1
@@ -48,7 +48,7 @@ eddie:
     agent-task-execute-prompts: prompts/agent-task-execute.md
     web-fetch-summary-prompts: prompts/web-fetch-summary.md
   agent-datasource:
-    url: jdbc:sqlite:${eddie.data}/eddie-agent.db?journal_mode=WAL&synchronous=NORMAL&cache_size=10000
+    url: jdbc:sqlite:${eddie.data}/eddie-agent.db?journal_mode=WAL&synchronous=NORMAL&cache_size=30000&page_size=16384
     driver-class-name: org.sqlite.JDBC
     maximum-pool-size: 1
     schema-location: classpath:db/ddl/schema-agent.sql
