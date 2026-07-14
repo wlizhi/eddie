@@ -11,6 +11,7 @@ import cc.wlizhi.eddie.agent.entity.dto.*;
 import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import cc.wlizhi.eddie.common.agent.enums.AgentMode;
 import cc.wlizhi.eddie.common.agent.enums.StepStatus;
+import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,9 +105,8 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
     }
 
     @Override
-    protected void afterStream(AgentChatContext ctx) {
-        // 1. 基类通用逻辑：token 提取 + 增量持久化 + metadata 推送（消息级别）
-        super.afterStream(ctx);
+    protected void afterStream(AgentChatContext ctx, ChatResponse lastResponse) {
+        // 1. 基类通用逻辑已在 AbstractStreamProcessor.process() 中完成（token 提取 + 推送 + 持久化）
 
         // 2. 更新占位记录的实际内容（步骤级别，使用独立累加器）
         updateStepRecord(ctx);
@@ -122,6 +122,35 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
                 log.warn("迭代状态序列化或持久化失败, msgId={}: {}", ctx.getAgentMsg().getId(), e.getMessage());
             }
         }
+
+        // 4. 检测当前步骤是否完成，推进步骤状态机
+        handleStepOnFinish(ctx);
+    }
+
+    @Override
+    protected void onStreamInterrupted(AgentChatContext ctx) {
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        if (stepCtx == null) {
+            return;
+        }
+
+        // 同步更新 stepCtx 和 taskPlan 中当前步骤的状态为 INTERRUPTED
+        stepCtx.setStepStatus(StepStatus.INTERRUPTED);
+
+        AgentTaskPlan taskPlan = ctx.getTaskPlan();
+        if (taskPlan != null && taskPlan.getSteps() != null) {
+            int currentStepNumber = stepCtx.getStepNumber() != null
+                    ? stepCtx.getStepNumber()
+                    : ctx.getMetrics().getCurrentStepNumber();
+            if (currentStepNumber > 0 && currentStepNumber <= taskPlan.getSteps().size()) {
+                AgentTaskStep currentPlanStep = taskPlan.getSteps().get(currentStepNumber - 1);
+                currentPlanStep.setStatus(StepStatus.INTERRUPTED.getValue());
+            }
+        }
+
+        // 持久化 taskPlan 到 DB
+        persistTaskPlan(ctx);
+        log.info("流处理被中断，步骤 {} 已标记为 INTERRUPTED", stepCtx.getStepNumber());
     }
 
     /**
@@ -201,17 +230,71 @@ public class ExecuteResponseStreamProcessor extends AbstractStreamProcessor {
         return step.getTitle() != null ? step.getTitle() : "";
     }
 
-    @Override
-    protected boolean breakInStreamIfNecessary(AgentChatContext ctx) {
-        AgentMode agentMode = ctx.getIteratorState().getAgentMode();
-        Integer currentStepNumber = ctx.getMetrics().getCurrentStepNumber();
-        List<AgentTaskStep> steps = ctx.getTaskPlan().getSteps();
-        String stepStatus = steps.get(currentStepNumber - 1).getStatus();
-        boolean isFinal = Objects.equals(stepStatus, StepStatus.COMPLETED.getValue())
-                || Objects.equals(stepStatus, StepStatus.FAILED.getValue());
-        if (AgentMode.EXECUTE == agentMode && isFinal) {
-            return true;
+    /**
+     * 检测当前步骤是否已完成或失败，若是则推进到下一步或结束任务。
+     * <p>
+     * 步骤失败（FAILED）时采用"继续执行"策略：任务标记 FAILED 但仍尝试执行剩余步骤。
+     */
+    private void handleStepOnFinish(AgentChatContext ctx) {
+        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
+        if (stepCtx == null) {
+            return;
         }
-        return super.breakInStreamIfNecessary(ctx);
+        StepStatus status = stepCtx.getStepStatus();
+        if (status != StepStatus.COMPLETED && status != StepStatus.FAILED) {
+            return;
+        }
+        if (ctx.getIteratorState().getAgentMode() != AgentMode.EXECUTE) {
+            return;
+        }
+
+        AgentTaskPlan taskPlan = ctx.getTaskPlan();
+        if (taskPlan == null || taskPlan.getSteps() == null || taskPlan.getSteps().isEmpty()) {
+            return;
+        }
+
+        boolean isFailed = status == StepStatus.FAILED;
+        // 使用 stepStreamContext.stepNumber（工具实际更新的步骤编号）而非 ctx.getCurrentStepNumber()
+        int currentStepNumber = stepCtx.getStepNumber() != null ? stepCtx.getStepNumber() : ctx.getMetrics().getCurrentStepNumber();
+        int totalSteps = taskPlan.getSteps().size();
+
+        if (currentStepNumber < totalSteps) {
+            // 推进到下一步
+            int nextStepNumber = currentStepNumber + 1;
+            ctx.getMetrics().setCurrentStepNumber(nextStepNumber);
+            AgentTaskStep nextPlanStep = taskPlan.getSteps().get(nextStepNumber - 1);
+            nextPlanStep.setStatus(StepStatus.PROCESSING.getValue());
+            log.info("步骤 {} {}，推进至步骤 {}", currentStepNumber, isFailed ? "失败" : "完成", nextStepNumber);
+        } else {
+            // 最后一步完成或失败
+            taskPlan.setStatus(isFailed ? TaskPlanStatus.FAILED.getValue() : TaskPlanStatus.COMPLETED.getValue());
+            taskPlan.setResult(taskPlan.getSteps().getLast().getResult());
+            ctx.getIteratorState().setFinished(true);
+            log.info("所有步骤执行{}，设置 finished=true，迭代循环即将退出", isFailed ? "（含失败步骤）" : "完成");
+        }
+
+        // 持久化 taskPlan 并推送更新事件
+        persistTaskPlan(ctx);
+        ctx.getEvent().getEventPublisher().updateTaskPlan(ctx, taskPlan);
+    }
+
+    /**
+     * 持久化 taskPlan 到数据库
+     */
+    private void persistTaskPlan(AgentChatContext ctx) {
+        AgentTaskPlan taskPlan = ctx.getTaskPlan();
+        if (taskPlan == null) {
+            return;
+        }
+        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        if (msgId == null) {
+            return;
+        }
+        try {
+            String taskPlanJson = ctx.getEvent().getObjectMapper().writeValueAsString(taskPlan);
+            agentMsgDao.updateTaskPlan(msgId, taskPlanJson);
+        } catch (Exception e) {
+            log.warn("持久化 taskPlan 失败, msgId={}: {}", msgId, e.getMessage());
+        }
     }
 }

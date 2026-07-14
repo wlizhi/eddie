@@ -5,7 +5,6 @@
 
 package cc.wlizhi.eddie.agent.service.impl;
 
-import cc.wlizhi.eddie.agent.dao.AgentMsgDao;
 import cc.wlizhi.eddie.agent.entity.dto.*;
 import cc.wlizhi.eddie.agent.entity.request.AgentChatRequest;
 import cc.wlizhi.eddie.agent.handler.AgentChatPreProcessor;
@@ -15,15 +14,11 @@ import cc.wlizhi.eddie.agent.handler.ResponseStreamProcessorRouter;
 import cc.wlizhi.eddie.agent.service.AgentChatService;
 import cc.wlizhi.eddie.chat.advisor.ModelThrottleAdvisor;
 import cc.wlizhi.eddie.common.agent.enums.AgentEvent;
-import cc.wlizhi.eddie.common.agent.enums.AgentMode;
-import cc.wlizhi.eddie.common.agent.enums.StepStatus;
-import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.cache.EventRegistry;
 import cc.wlizhi.eddie.common.enums.ApiResultCode;
-import cc.wlizhi.eddie.common.exception.SwitchModeToPlanException;
 import cc.wlizhi.eddie.common.exception.ToolApprovalException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.errors.InternalServerException;
 import com.openai.errors.RateLimitException;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -56,12 +51,6 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Resource
     private AgentStepWindowedMemory agentStepWindowedMemory;
 
-    @Resource
-    private AgentMsgDao agentMsgDao;
-
-    @Resource
-    private ObjectMapper objectMapper;
-
     @Override
     public Flux<ServerSentEvent<String>> chat(AgentChatRequest request) {
         AgentChatContext ctx = new AgentChatContext();
@@ -73,12 +62,6 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         return Flux.create(sink -> {
             ctx.getEvent().setSink(sink);
-
-            // 按 @Order 顺序执行所有预处理器，填充 AgentChatContext 字段
-            preProcessors(ctx);
-
-            // 消息已持久化（preProcessors 中已完成），通知前端消息 ID
-            publisher.messageCreated(ctx);
             Thread agentThread = Thread.ofVirtual().name("agent-chat").start(() -> {
                 ctx.getEvent().setAgentThread(Thread.currentThread());
                 doChat(ctx);
@@ -90,6 +73,12 @@ public class AgentChatServiceImpl implements AgentChatService {
 
     private void doChat(AgentChatContext ctx) {
         try {
+            // 按 @Order 顺序执行所有预处理器，填充 AgentChatContext 字段
+            preProcessors(ctx);
+
+            // 消息已持久化（preProcessors 中已完成），通知前端消息 ID
+            publisher.messageCreated(ctx);
+
             while (!shouldBreakIterator(ctx)) {
                 log.debug("开始迭代：{}", ctx.getIteratorState().getCurrentIterator());
                 // 迭代次数 + 1
@@ -104,19 +93,12 @@ public class AgentChatServiceImpl implements AgentChatService {
                 // process() 内部在 afterStream() 中自动完成 token 提取 + 持久化 + metadata 推送
                 try {
                     responseStreamRouter.process(ctx, requestSpec);
-                } catch (SwitchModeToPlanException ignored) {
-                    log.info("聊天模式切换至规划模式，进入下一轮迭代，当前迭代轮次：{}", ctx.getIteratorState().getCurrentIterator());
                 } catch (ToolApprovalException e) {
                     log.info("工具审批被中断/拒绝: {}", e.getMessage());
                 } catch (Exception ex) {
                     handleExceptionOnStreamProcess(ctx, ex);
                 }
-                // 智能体内置工具（如 built_in_switch_mode）已在执行过程中
-                // 通过 ToolContext 直接修改了 ctx.getIteratorState().agentMode
-                // 会话结束还处于聊天模式，则退出循环
 
-                // 检测当前迭代步骤是否已完成（由 agent_step_finish 工具标记）
-                handleStepCompletionIfNeeded(ctx);
                 publisher.round(ctx, AgentEvent.ROUND_END);
             }
         } catch (UserStopException e) {
@@ -125,6 +107,8 @@ public class AgentChatServiceImpl implements AgentChatService {
         } catch (Exception e) {
             handleExceptionOnDoChat(ctx, e);
         } finally {
+            // 打印全链路耗时统计
+            logStopWatch(ctx);
             // 通知前端本轮对话结束
             publisher.taskFinish(ctx);
             // 任务完成，主动释放步骤记忆缓存
@@ -149,11 +133,24 @@ public class AgentChatServiceImpl implements AgentChatService {
             publisher.cancelled(ctx, "线程中断");
         }
         if (e.getCause() instanceof CompletionException) {
-            if (e.getCause().getCause() instanceof RateLimitException) {
-                log.warn("{}: {}", ApiResultCode.AGENT_RATE_LIMIT.getMessage(), e.getCause().getCause().getMessage());
-                publisher.error(ctx, ApiResultCode.AGENT_RATE_LIMIT, e.getCause().getCause().getMessage(), null);
+            Throwable actualCause = e.getCause().getCause();
+            if (actualCause instanceof RateLimitException) {
+                log.warn("{}: {}", ApiResultCode.AGENT_RATE_LIMIT.getMessage(), actualCause.getMessage());
+                publisher.error(ctx, ApiResultCode.AGENT_RATE_LIMIT, actualCause.getMessage(), null);
                 return;
             }
+            if (actualCause instanceof InternalServerException) {
+                log.warn("模型服务商返回服务端异常: statusCode={}, message={}",
+                        ((InternalServerException) actualCause).statusCode(),
+                        actualCause.getMessage());
+                publisher.error(ctx, ApiResultCode.PROVIDER_CALL_FAILED,
+                        "模型服务商接口异常（" + actualCause.getMessage() + "），请稍后重试", null);
+                return;
+            }
+        }
+        if (e.getCause() instanceof InterruptedException) {
+            log.info("agent-chat 执行中断: messageId={}", msgId);
+            return;
         }
         log.warn("Agent doChat 异常: messageId={}, exceptionType={}, message={}",
                 msgId, e.getClass().getName(), e.getMessage(), e);
@@ -176,77 +173,6 @@ public class AgentChatServiceImpl implements AgentChatService {
         throw ex;
     }
 
-    /**
-     * 持久化 taskPlan 到数据库
-     */
-    private void persistTaskPlan(AgentChatContext ctx) {
-        AgentTaskPlan taskPlan = ctx.getTaskPlan();
-        if (taskPlan == null) {
-            return;
-        }
-        Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
-        if (msgId == null) {
-            return;
-        }
-        try {
-            String taskPlanJson = objectMapper.writeValueAsString(taskPlan);
-            agentMsgDao.updateTaskPlan(msgId, taskPlanJson);
-        } catch (Exception e) {
-            log.warn("持久化 taskPlan 失败, msgId={}: {}", msgId, e.getMessage());
-        }
-    }
-
-    /**
-     * 检测当前 EXECUTE 模式下的步骤是否已完成或失败，若是则推进到下一步或结束任务。
-     * <p>
-     * 此方法仅在流结束后执行（不修改流处理中的 currentStep），
-     * 通过 stepStreamContext.stepStatus 缓冲检测步骤终态。
-     * <p>
-     * 步骤失败（FAILED）时采用"继续执行"策略：任务标记 FAILED 但仍尝试执行剩余步骤。
-     */
-    private void handleStepCompletionIfNeeded(AgentChatContext ctx) {
-        AgentStepStreamContext stepCtx = ctx.getStepStreamContext();
-        if (stepCtx == null) {
-            return;
-        }
-        StepStatus status = stepCtx.getStepStatus();
-        if (status != StepStatus.COMPLETED && status != StepStatus.FAILED) {
-            return;
-        }
-        if (ctx.getIteratorState().getAgentMode() != AgentMode.EXECUTE) {
-            return;
-        }
-
-        AgentTaskPlan taskPlan = ctx.getTaskPlan();
-        if (taskPlan == null || taskPlan.getSteps() == null || taskPlan.getSteps().isEmpty()) {
-            return;
-        }
-
-        boolean isFailed = status == StepStatus.FAILED;
-        // 使用 stepStreamContext.stepNumber（工具实际更新的步骤编号）而非 ctx.getCurrentStepNumber()
-        int currentStepNumber = stepCtx.getStepNumber() != null ? stepCtx.getStepNumber() : ctx.getMetrics().getCurrentStepNumber();
-        int totalSteps = taskPlan.getSteps().size();
-
-        if (currentStepNumber < totalSteps) {
-            // 推进到下一步
-            int nextStepNumber = currentStepNumber + 1;
-            ctx.getMetrics().setCurrentStepNumber(nextStepNumber);
-            AgentTaskStep nextPlanStep = taskPlan.getSteps().get(nextStepNumber - 1);
-            nextPlanStep.setStatus(StepStatus.PROCESSING.getValue());
-            log.info("步骤 {} {}，推进至步骤 {}", currentStepNumber, isFailed ? "失败" : "完成", nextStepNumber);
-        } else {
-            // 最后一步完成或失败
-            taskPlan.setStatus(isFailed ? TaskPlanStatus.FAILED.getValue() : TaskPlanStatus.COMPLETED.getValue());
-            taskPlan.setResult(taskPlan.getSteps().getLast().getResult());
-            ctx.getIteratorState().setAgentMode(AgentMode.CHAT);
-            log.info("所有步骤执行{}，切换回聊天模式", isFailed ? "（含失败步骤）" : "完成");
-        }
-
-        // 持久化 taskPlan 并推送更新事件
-        persistTaskPlan(ctx);
-        ctx.getEvent().getEventPublisher().updateTaskPlan(ctx, taskPlan);
-    }
-
     private boolean shouldBreakIterator(AgentChatContext ctx) {
         AgentIteratorState iteratorState = ctx.getIteratorState();
         if (ctx.getEvent().getAgentThread().isInterrupted()) {
@@ -257,8 +183,8 @@ public class AgentChatServiceImpl implements AgentChatService {
         if (eventRegistry.get(stopKey) != null) {
             return true;
         }
-        // 聊天模式，已经经过了一轮。
-        if (iteratorState.getAgentMode() == AgentMode.CHAT && ctx.getIteratorState().getCurrentIterator().get() > 0) {
+        // 各 Processor 在适当时候设置 finished=true（语义正交于 agentMode）
+        if (iteratorState.isFinished()) {
             return true;
         }
         return iteratorState.getCurrentIterator().get() >= iteratorState.getMaxIterations();
@@ -266,10 +192,46 @@ public class AgentChatServiceImpl implements AgentChatService {
 
     private void preProcessors(AgentChatContext ctx) {
         for (AgentChatPreProcessor processor : preProcessors) {
-            processor.process(ctx);
+            ctx.getMetrics().getStopWatch().start(processor.getClass().getSimpleName());
+            try {
+                processor.process(ctx);
+            } finally {
+                ctx.getMetrics().getStopWatch().stop();
+            }
         }
         ChatClient newClient = ctx.getEvent().getChatClient().mutate().defaultAdvisors(modelThrottleAdvisor).build();
         ctx.getEvent().setChatClient(newClient);
+    }
+
+    /**
+     * 打印全链路耗时统计（各阶段、各策略实现类的逐条耗时 + 累计耗时）
+     * <p>
+     * 使用纳秒 API ({@link org.springframework.util.StopWatch.TaskInfo#getTimeNanos()}) 避免亚毫秒操作被截断为 0ms。
+     * 小于 1ms 的操作显示微秒（μs），≥ 1ms 的操作显示毫秒（ms），累计值始终显示毫秒。
+     */
+    private void logStopWatch(AgentChatContext ctx) {
+        var sw = ctx.getMetrics().getStopWatch();
+        long cumulativeNanos = 0;
+        for (var task : sw.getTaskInfo()) {
+            long taskNanos = task.getTimeNanos();
+            cumulativeNanos += taskNanos;
+            if (taskNanos < 1_000_000) {
+                log.info("[agent-chat-{}] {} 耗时 {}μs（累计 {}ms）",
+                        ctx.getAgentMsg().getId(),
+                        task.getTaskName(),
+                        taskNanos / 1_000,
+                        cumulativeNanos / 1_000_000);
+            } else {
+                log.info("[agent-chat-{}] {} 耗时 {}ms（累计 {}ms）",
+                        ctx.getAgentMsg().getId(),
+                        task.getTaskName(),
+                        taskNanos / 1_000_000,
+                        cumulativeNanos / 1_000_000);
+            }
+        }
+        log.info("[agent-chat-{}] ===== 总耗时 {}ms =====",
+                ctx.getAgentMsg().getId(),
+                sw.getTotalTimeNanos() / 1_000_000);
     }
 
     @Override

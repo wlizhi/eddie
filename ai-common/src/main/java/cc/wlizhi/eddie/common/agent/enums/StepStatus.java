@@ -16,6 +16,7 @@ public enum StepStatus {
     PROCESSING("processing"),
     COMPLETED("completed"),
     FAILED("failed"),
+    INTERRUPTED("interrupted"),
     ;
 
     private final String value;

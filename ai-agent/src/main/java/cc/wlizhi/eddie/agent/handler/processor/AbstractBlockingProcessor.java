@@ -68,7 +68,6 @@ public abstract class AbstractBlockingProcessor implements ResponseStreamProcess
             throw new AppException(ApiResultCode.PROVIDER_CALL_FAILED,
                     "阻塞式模型调用返回 null，请检查日志确认异常原因");
         }
-        ctx.getOutput().setLastResponse(response);
 
         // ==================== 基类统一收尾（子类不可跳过） ====================
 
@@ -79,7 +78,7 @@ public abstract class AbstractBlockingProcessor implements ResponseStreamProcess
         log.debug("doBlock，getTotalTokens:{}，getPromptTokens：{}，getCompletionTokens：{}", usage.getTotalTokens(), usage.getPromptTokens(), usage.getCompletionTokens());
 
         // 2. 从 ChatResponse 提取 token 统计，增量合并到 ctx.tokenStatists
-        TokenStatsHelper.extractAndMergeTokenStats(ctx);
+        TokenStatsHelper.extractAndMergeTokenStats(ctx, response);
 
         // 3. 先推流给前端（低延迟，用户先看到数据）
         if (ctx.getOutput().getTokenStatists() != null) {

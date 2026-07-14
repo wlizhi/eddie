@@ -49,7 +49,7 @@ public class AgentStepStreamContext {
      * 当前迭代步骤的缓冲状态（从 taskPlan.steps[currentStep-1].status 同步而来）。
      * 工具执行中可修改此值，流结束后由 doChat 循环检测并回写到 taskPlan。
      */
-    private StepStatus stepStatus;
+    private volatile StepStatus stepStatus;
 
     /**
      * 累积的 thinking 内容（reasoning_content）

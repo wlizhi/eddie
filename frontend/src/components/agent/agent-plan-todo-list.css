@@ -105,6 +105,11 @@
     background: var(--danger-default);
 }
 
+/* 中断节点之后的连接线用警告色 */
+.plan-bar-node.interrupted + .plan-bar-node::before {
+    background: var(--warning-default);
+}
+
 
 .node-dot {
     width: 1.25rem;
@@ -139,6 +144,11 @@
 .node-dot.failed {
     background: var(--danger-default);
     border: 2px solid var(--danger-default);
+}
+
+.node-dot.interrupted {
+    background: var(--warning-default);
+    border: 2px solid var(--warning-default);
 }
 
 .node-icon {
@@ -238,6 +248,10 @@
     color: var(--danger-default);
 }
 
+.plan-todo-item.interrupted {
+    color: var(--warning-default);
+}
+
 .todo-dot {
     width: 0.5rem;
     height: 0.5rem;
@@ -266,6 +280,11 @@
 .todo-dot.failed {
     background: var(--danger-default);
     border: 1.5px solid var(--danger-default);
+}
+
+.todo-dot.interrupted {
+    background: var(--warning-default);
+    border: 1.5px solid var(--warning-default);
 }
 
 @keyframes aptl-dot-pulse {

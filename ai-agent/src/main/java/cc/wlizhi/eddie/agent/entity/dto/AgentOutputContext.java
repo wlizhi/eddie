@@ -8,7 +8,6 @@ package cc.wlizhi.eddie.agent.entity.dto;
 import cc.wlizhi.eddie.chat.entity.dto.ChatToolExecutionEvent;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
 
 import java.util.ArrayList;
@@ -26,11 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AgentOutputContext {
 
     /**
-     * 最后一次 ChatResponse（用于提取 tool_calls 和 token 用量）
-     */
-    private ChatResponse lastResponse;
-
-    /**
      * 工具回调列表
      */
     private ToolCallback[] toolCallbacks;
@@ -38,17 +32,17 @@ public class AgentOutputContext {
     /**
      * 流式处理中累积的回答内容
      */
-    private final StringBuilder fullAnswer = new StringBuilder();
+    private StringBuilder fullAnswer = new StringBuilder();
 
     /**
      * 流式处理中累积的思考内容（reasoning_content）
      */
-    private final StringBuilder fullThinking = new StringBuilder();
+    private StringBuilder fullThinking = new StringBuilder();
 
     /**
      * 工具执行记录列表（用于持久化到 ai_agent_session_msg.tool_calls）
      */
-    private final List<ChatToolExecutionEvent> toolCalls = new ArrayList<>();
+    private List<ChatToolExecutionEvent> toolCalls = new ArrayList<>();
 
     /**
      * 消耗统计
