@@ -9,6 +9,7 @@ import cc.wlizhi.eddie.common.entity.dto.GeneralSettings;
 import cc.wlizhi.eddie.common.tool.BuiltInToolProvider;
 import cc.wlizhi.eddie.common.util.ConfigUtil;
 import cc.wlizhi.eddie.memory.context.GlobalConfigContext;
+import cc.wlizhi.eddie.tools.service.WebFetchSummarizer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.jsoup.Jsoup;
@@ -64,19 +65,27 @@ public class WebFetchTools implements BuiltInToolProvider {
             "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.122 Mobile Safari/537.36"
     );
     private static final int TIMEOUT_SECONDS = 15;
-    private static final int DEFAULT_MAX_CHARS = 5000;
-    private static final int MAX_CHARS = 15_000;
+    private static final int DEFAULT_MAX_CHARS = 10_000;
+    private static final int MAX_CHARS = 20_000;
     private static final String SPA_STUB_MESSAGE = "该网站内容由 JavaScript 动态渲染，当前抓取方式无法获取正文。建议通过搜索引擎摘要或其他来源获取信息。";
     private static final Random RANDOM = new Random();
 
     private record FetchResult(Document document, String error, Integer httpStatus) {
-        boolean isSuccess() { return document != null; }
+        boolean isSuccess() {
+            return document != null;
+        }
 
-        static FetchResult success(Document doc) { return new FetchResult(doc, null, null); }
+        static FetchResult success(Document doc) {
+            return new FetchResult(doc, null, null);
+        }
 
-        static FetchResult error(int httpStatus, String message) { return new FetchResult(null, message, httpStatus); }
+        static FetchResult error(int httpStatus, String message) {
+            return new FetchResult(null, message, httpStatus);
+        }
 
-        static FetchResult error(String message) { return new FetchResult(null, message, null); }
+        static FetchResult error(String message) {
+            return new FetchResult(null, message, null);
+        }
     }
 
     private final HttpClient httpClient;
@@ -86,6 +95,9 @@ public class WebFetchTools implements BuiltInToolProvider {
 
     @Resource
     private GlobalConfigContext globalConfigContext;
+
+    @Resource
+    private WebFetchSummarizer webFetchSummarizer;
 
     public WebFetchTools() {
         CookieManager cookieManager = new CookieManager();
@@ -98,11 +110,12 @@ public class WebFetchTools implements BuiltInToolProvider {
     }
 
     @Tool(name = "fetch",
-            description = "获取指定 URL 列表的网页内容，提取正文后返回干净的 Markdown 文本，适合 LLM 阅读。每个 URL 独立截断")
+            description = "获取指定 URL 列表的网页内容，提取正文后返回干净的 Markdown 文本，适合 LLM 阅读。每个 URL 独立截断，超限时优先用 LLM 生成摘要")
     public String fetchMarkdown(
             @ToolParam(description = "要抓取的 URL 列表") List<String> urls,
-            @ToolParam(required = false, description = "每个网页最大返回字符数，默认 " + DEFAULT_MAX_CHARS + "，最大 " + MAX_CHARS + "，超出部分会被截断") Integer maxCharacters,
-            @ToolParam(required = false, description = "模式：article（提取正文）或 full（全文），默认 article") String mode) {
+            @ToolParam(required = false, description = "每个网页最大返回字符数，默认 " + DEFAULT_MAX_CHARS + "，最大 " + MAX_CHARS + "，超出部分会用 LLM 生成摘要") Integer maxCharacters,
+            @ToolParam(required = false, description = "模式：article（提取正文）或 full（全文），默认 article") String mode,
+            @ToolParam(required = false, description = "摘要关注方向，帮助 LLM 聚焦相关内容（如：技术细节、价格信息、核心论点等）") String purpose) {
 
         if (urls == null || urls.isEmpty()) return "错误：未提供 URL";
 
@@ -121,8 +134,8 @@ public class WebFetchTools implements BuiltInToolProvider {
                     result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
                 }
                 result.append("抓取失败")
-                      .append(fr.httpStatus() != null ? " [HTTP " + fr.httpStatus() + "]" : "")
-                      .append(": ").append(fr.error()).append("\n\n");
+                        .append(fr.httpStatus() != null ? " [HTTP " + fr.httpStatus() + "]" : "")
+                        .append(": ").append(fr.error()).append("\n\n");
                 continue;
             }
             Document doc = fr.document();
@@ -155,9 +168,14 @@ public class WebFetchTools implements BuiltInToolProvider {
                 result.append("---\n来源 ").append(i + 1).append(": ").append(url).append("\n\n");
             }
 
-            // 每个网页独立截断
+            // 每个网页独立截断，优先用 LLM 摘要
             if (markdown.length() > maxChars) {
-                markdown = markdown.substring(0, maxChars) + "\n\n...（内容已截断）";
+                String summary = webFetchSummarizer.summarize(markdown, purpose, maxChars >> 2);
+                if (summary != null) {
+                    markdown = summary;
+                } else {
+                    markdown = markdown.substring(0, maxChars) + "\n\n...（内容已截断）";
+                }
             }
             result.append(markdown).append("\n\n");
 
@@ -574,37 +592,37 @@ public class WebFetchTools implements BuiltInToolProvider {
         el.select(
                 // 技术标签（决不包含正文）
                 "script, style, iframe, noscript, svg, canvas, " +
-                // 页面结构标签
-                "nav, footer, header, aside, " +
-                // Cookie / GDPR / 隐私弹窗
-                "div[class*=cookie], div[id*=cookie], " +
-                "div[class*=consent], div[id*=consent], " +
-                "div[class*=gdpr], div[id*=gdpr], " +
-                "div[class*=\"privacy\"], div[id*=\"privacy\"], " +
-                // 遮罩层 / 模态框 / 弹窗
-                "div[class*=overlay], div[id*=overlay], " +
-                "div[class*=modal], div[id*=modal], " +
-                "div[class*=popup], div[id*=popup], " +
-                "div[class*=dialog], div[id*=dialog], " +
-                // 广告
-                ".ad, .ads, .advertisement, .adsbygoogle, " +
-                "div[class*=ad-], div[id*=ad-], " +
-                "div[class*=sponsor], div[id*=sponsor], " +
-                "div[class*=\"promo\"], " +
-                // 侧栏 / 评论 / 推荐
-                ".sidebar, .comment, .comments, .comment-list, " +
-                ".related-posts, .recommend, " +
-                // 小工具 / 社交
-                ".menu, .widget, .social-share, .share-buttons, " +
-                "div[class*=social], " +
-                // 浮动通知 / 订阅
-                "div[class*=toast], div[class*=notification], " +
-                "div[class*=subscribe], div[id*=subscribe], " +
-                "div[class*=newsletter], div[id*=newsletter], " +
-                // 底部版权 / 面包屑 / 分页
-                ".copyright, .breadcrumb, .pagination, " +
-                // 登录/注册提示
-                "div[class*=login], div[class*=signup]"
+                        // 页面结构标签
+                        "nav, footer, header, aside, " +
+                        // Cookie / GDPR / 隐私弹窗
+                        "div[class*=cookie], div[id*=cookie], " +
+                        "div[class*=consent], div[id*=consent], " +
+                        "div[class*=gdpr], div[id*=gdpr], " +
+                        "div[class*=\"privacy\"], div[id*=\"privacy\"], " +
+                        // 遮罩层 / 模态框 / 弹窗
+                        "div[class*=overlay], div[id*=overlay], " +
+                        "div[class*=modal], div[id*=modal], " +
+                        "div[class*=popup], div[id*=popup], " +
+                        "div[class*=dialog], div[id*=dialog], " +
+                        // 广告
+                        ".ad, .ads, .advertisement, .adsbygoogle, " +
+                        "div[class*=ad-], div[id*=ad-], " +
+                        "div[class*=sponsor], div[id*=sponsor], " +
+                        "div[class*=\"promo\"], " +
+                        // 侧栏 / 评论 / 推荐
+                        ".sidebar, .comment, .comments, .comment-list, " +
+                        ".related-posts, .recommend, " +
+                        // 小工具 / 社交
+                        ".menu, .widget, .social-share, .share-buttons, " +
+                        "div[class*=social], " +
+                        // 浮动通知 / 订阅
+                        "div[class*=toast], div[class*=notification], " +
+                        "div[class*=subscribe], div[id*=subscribe], " +
+                        "div[class*=newsletter], div[id*=newsletter], " +
+                        // 底部版权 / 面包屑 / 分页
+                        ".copyright, .breadcrumb, .pagination, " +
+                        // 登录/注册提示
+                        "div[class*=login], div[class*=signup]"
         ).remove();
 
         // 第二层：带保护的删除 — 只删除不含显著段落的元素

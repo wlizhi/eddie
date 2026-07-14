@@ -51,9 +51,9 @@ public enum GlobalConfigKey {
     DB_INIT_VERSION("数据库初始化版本号", ConfigType.BACKEND),
 
     /**
-     * 工具调用响应最大长度（纯数字字符串，如 "5000"）
+     * 工具调用渲染最大长度（纯数字字符串，如 "5000"）
      */
-    TOOL_CALL_MAX_LENGTH("工具调用响应最大长度", ConfigType.BACKEND),
+    TOOL_CALL_RENDER_MAX_LENGTH("工具调用渲染最大长度", ConfigType.FRONTEND),
 
     /**
      * 工具结果返回模型的最大字符数（纯数字字符串，如 "20000"，0=不截断）

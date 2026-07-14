@@ -114,7 +114,7 @@ VALUES ('DEFAULT_MODEL', '{}', 'FRONTEND', '默认对话模型'),
        ('GENERAL_SETTINGS',
         '{"searchResultCount":8,"webFetchMaxChars":8000,"enableAutoTitle":true,"titleGenerationRounds":1}',
         'FRONTEND', '常规设置'),
-       ('TOOL_CALL_MAX_LENGTH', '20000', 'BACKEND', '工具调用响应最大长度')
+       ('TOOL_CALL_RENDER_MAX_LENGTH', '5000', 'FRONTEND', '工具调用渲染最大长度')
 ON CONFLICT(config_key) DO NOTHING;
 
 -- 工具定义表：注册系统中可用的工具（内置工具或 MCP 工具）

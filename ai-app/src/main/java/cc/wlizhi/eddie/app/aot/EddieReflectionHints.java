@@ -74,6 +74,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 cc.wlizhi.eddie.agent.entity.response.AgentMessageVO.class,
                 GeneralSettings.class,
                 ModelJsonItem.class,
+                cc.wlizhi.eddie.common.entity.dto.ModelSelection.class,
                 AgentMode.class,
                 TaskPlanStatus.class,
                 StepStatus.class,

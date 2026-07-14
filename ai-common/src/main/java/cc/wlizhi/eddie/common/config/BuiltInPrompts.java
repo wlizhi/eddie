@@ -15,4 +15,6 @@ public class BuiltInPrompts {
     private String agentChatPrompts;
     private String agentTaskPlanPrompts;
     private String agentTaskExecutePrompts;
+    /** 网页抓取摘要提示词 */
+    private String webFetchSummaryPrompts;
 }
