@@ -19,11 +19,12 @@ function getBackendPath() {
     const {app} = require('electron');
     let basePath;
     if (!app.isPackaged) {
-        basePath = path.join(__dirname, '..', 'target', 'eddie-app');
+        // 开发模式：target 在项目根目录
+        basePath = path.join(__dirname, '..', '..', 'target', 'eddie-app');
     } else {
         basePath = path.join(process.resourcesPath, 'eddie-app');
     }
-    // Windows 下 PE 可执行文件必须带 .exe 后缀，否则 spawn() 会失败
+    // Windows 下 PE 可执行文件必须带 .exe 后缀
     if (process.platform === 'win32') {
         basePath += '.exe';
     }

@@ -18,9 +18,10 @@ let tray = null;
  */
 function createTray(mainWindow) {
     try {
-        const iconPath = path.join(__dirname, 'icons', 'tray-icon.png');
+        // 从 src/main/tray.js → ../../icons/tray-icon.png
+        const iconPath = path.join(__dirname, '..', '..', 'icons', 'tray-icon.png');
 
-        // 图标文件不存在时不阻塞启动（发行版打包后应有此文件）
+        // 图标文件不存在时不阻塞启动
         if (!fs.existsSync(iconPath)) {
             console.warn(`[Eddie] Tray icon not found: ${iconPath}, skipping tray creation`);
             return false;

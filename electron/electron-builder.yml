@@ -10,7 +10,7 @@ directories:
   output: dist
 
 files:
-  - "*.js"
+  - "src/**/*"
   - icons/*
   - "!node_modules"
 
@@ -39,6 +39,8 @@ nsis:
   allowToChangeInstallationDirectory: true
   # 增量更新
   differentialPackage: true
+  # 卸载时清理用户数据目录（theme-prefs.json 等）
+  deleteAppDataOnUninstall: true
 
 win:
   extraResources:

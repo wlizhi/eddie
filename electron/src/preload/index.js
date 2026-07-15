@@ -1,6 +1,8 @@
 /**
  * @author Eddie
  * {@code @date} 2026-06-30
+ *
+ * 预加载脚本：通过 contextBridge 暴露安全的 Electron API 到渲染进程
  */
 
 const {contextBridge, ipcRenderer} = require('electron');
@@ -47,5 +49,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // ===== 持久化启动主题（主题切换时写入，下次启动加载页使用相同配色） =====
     saveStartupTheme: (theme) => {
         ipcRenderer.send('save-startup-theme', theme);
+    },
+
+    // ===== 实时主题更新：推送完整配色到主进程内存缓存 =====
+    updateTheme: (theme) => {
+        ipcRenderer.send('theme:update', theme);
     },
 });

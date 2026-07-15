@@ -2,7 +2,7 @@
   "name": "eddie-desktop",
   "version": "1.0.0",
   "description": "Eddie — Desktop Application",
-  "main": "main.js",
+  "main": "src/main/index.js",
   "private": true,
   "scripts": {
     "start": "electron .",
@@ -17,5 +17,8 @@
     "electron-builder": "^26.15.3"
   },
   "author": "Eddie",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "selection-hook": "^2.0.2"
+  }
 }
