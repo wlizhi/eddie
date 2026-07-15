@@ -55,4 +55,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateTheme: (theme) => {
         ipcRenderer.send('theme:update', theme);
     },
+
+    // ===== 划词助手配置变更通知：前端保存后通知主进程重新从后端拉取 =====
+    selectionConfigChanged: () => {
+        ipcRenderer.send('selection:config-changed');
+    },
 });

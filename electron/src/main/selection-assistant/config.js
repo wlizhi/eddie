@@ -8,20 +8,17 @@
 
 /**
  * 默认工具栏功能项
- * V1 仅实现 'open'（打开弹窗），其他项预留给后续扩展
  */
-const SVG_DOCUMENT = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 1.5h5l3.5 3.5v7.5a1 1 0 0 1-1 1h-7.5a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"/><path d="M8 1.5v3.5h3.5"/></svg>';
 const SVG_GLOBE = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5.5"/><path d="M2.5 5h9"/><path d="M2.5 9h9"/><path d="M7 1.5a7 7 0 0 1 0 11"/><path d="M7 1.5a7 7 0 0 0 0 11"/></svg>';
 const SVG_BOOK = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2.5v9a1 1 0 0 0 1 1h3.5L7 11l.5 1.5H11a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M7 11V4"/></svg>';
 const SVG_LIST = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="3.5" x2="11.5" y2="3.5"/><line x1="5" y1="7" x2="11.5" y2="7"/><line x1="5" y1="10.5" x2="11.5" y2="10.5"/><circle cx="2.5" cy="3.5" r=".8"/><circle cx="2.5" cy="7" r=".8"/><circle cx="2.5" cy="10.5" r=".8"/></svg>';
 const SVG_COPY = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="7" height="7" rx=".8"/><path d="M2.5 10.5v-7a1 1 0 0 1 1-1h7"/></svg>';
 
 const DEFAULT_TOOLBAR_ITEMS = [
-    { id: 'open',       label: '打开',   icon: SVG_DOCUMENT,  enabled: true,  order: 1 },
-    { id: 'translate',  label: '翻译',   icon: SVG_GLOBE,     enabled: true,  order: 2 },
-    { id: 'explain',    label: '解释',   icon: SVG_BOOK,      enabled: true,  order: 3 },
-    { id: 'summarize',  label: '总结',   icon: SVG_LIST,      enabled: true,  order: 4 },
-    { id: 'copy',       label: '复制',   icon: SVG_COPY,      enabled: true,  order: 5 },
+    { id: 'translate',  label: '翻译',   icon: SVG_GLOBE,     enabled: true,  order: 1 },
+    { id: 'explain',    label: '解释',   icon: SVG_BOOK,      enabled: true,  order: 2 },
+    { id: 'summarize',  label: '总结',   icon: SVG_LIST,      enabled: true,  order: 3 },
+    { id: 'copy',       label: '复制',   icon: SVG_COPY,      enabled: true,  order: 4 },
 ];
 
 /**
@@ -34,9 +31,17 @@ const SELECTION_ASSISTANT_DEFAULTS = {
     enabled: true,   // 测试时设为 true，上线后改回 false 由后端控制
 
     // ============================================================
+    // 翻译
+    // ============================================================
+    translate: {
+        targetLang: 'zh-CN',
+    },
+
+    // ============================================================
     // 字体（由前端全局设置同步）
     // ============================================================
     fontSize: 14,    // 基准字体大小 px，通过 IPC selection:update-config 覆盖
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif",  // CSS font-family 字符串，通过 IPC theme:update 同步
 
     // ============================================================
     // 工具栏
@@ -66,8 +71,8 @@ const SELECTION_ASSISTANT_DEFAULTS = {
         // 失焦自动关闭（禁用 — blur 事件不可靠，弹窗生命周期由用户主动关闭控制）
         autoClose: false,
 
-        // 是否默认置顶（预留）
-        alwaysOnTop: true,
+        // 是否默认置顶
+        alwaysOnTop: false,
 
         // 透明度 0-100（预留）
         opacity: 100,
@@ -78,16 +83,14 @@ const SELECTION_ASSISTANT_DEFAULTS = {
     },
 
     // ============================================================
-    // 触发方式（预留）
+    // 功能项（拖拽排序，每项可单独启用/禁用）
     // ============================================================
-    trigger: {
-        // 'selection' — 选中文本自动触发
-        // 'shortcut'  — 快捷键触发
-        mode: 'selection',
-
-        // 全局快捷键（仅 shortcut 模式下有效）
-        shortcut: 'CmdOrCtrl+Shift+E',
-    },
+    features: [
+        { id: 'translate',  label: '翻译',   enabled: true,  order: 1 },
+        { id: 'explain',    label: '解释',   enabled: true,  order: 2 },
+        { id: 'summarize',  label: '总结',   enabled: true,  order: 3 },
+        { id: 'copy',       label: '复制',   enabled: true,  order: 4 },
+    ],
 };
 
 /**

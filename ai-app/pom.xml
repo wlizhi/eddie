@@ -29,6 +29,10 @@
             <artifactId>ai-settings</artifactId>
         </dependency>
         <dependency>
+            <groupId>cc.wlizhi</groupId>
+            <artifactId>ai-assistant</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>

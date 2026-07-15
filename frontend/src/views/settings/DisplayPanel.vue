@@ -97,6 +97,7 @@
             v-model:value="displaySettings.fontFamily"
             :options="fontOptions"
             :consistent-menu-width="false"
+            menu-height="22rem"
             class="font-family-select"
             placeholder="选择字体"
         />

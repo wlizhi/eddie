@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useMobile} from '@/composables/useMobile'
-import {Clock, Cpu, Globe, Monitor, Network, Puzzle, Radio, Settings, Zap} from '@lucide/vue'
+import {Clock, Cpu, Globe, Monitor, MousePointerClick, Network, Puzzle, Radio, Settings, Zap} from '@lucide/vue'
 import ModelProviderPanel from './settings/ModelProviderPanel.vue'
 import DefaultModelPanel from './settings/DefaultModelPanel.vue'
 import GeneralPanel from './settings/GeneralPanel.vue'
@@ -16,6 +16,7 @@ import SkillsPanel from './settings/SkillsPanel.vue'
 import WebSearchPanel from './settings/WebSearchPanel.vue'
 import ChannelsPanel from './settings/ChannelsPanel.vue'
 import ScheduledTasksPanel from './settings/ScheduledTasksPanel.vue'
+import SelectionAssistantPanel from './settings/SelectionAssistantPanel.vue'
 import SettingsViewMobile from './settings/SettingsViewMobile.vue'
 
 const {isMobile} = useMobile()
@@ -41,6 +42,7 @@ const navGroups: NavGroup[] = [
     items: [
       {key: 'general', label: '常规设置', icon: Settings},
       {key: 'display', label: '显示设置', icon: Monitor},
+      {key: 'selection-assistant', label: '划词助手', icon: MousePointerClick},
     ],
   },
   {
@@ -59,6 +61,7 @@ const panelMap: Record<string, any> = {
   'default-model': DefaultModelPanel,
   'general': GeneralPanel,
   'display': DisplayPanel,
+  'selection-assistant': SelectionAssistantPanel,
   'mcp': McpPanel,
   'skills': SkillsPanel,
   'web-search': WebSearchPanel,

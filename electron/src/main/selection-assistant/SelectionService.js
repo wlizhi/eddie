@@ -5,10 +5,12 @@
  * 划词助手核心服务 — 管理 selection-hook 生命周期、事件处理、启用/禁用控制
  */
 
-const {app, screen, systemPreferences} = require('electron');
+const {app, screen, systemPreferences, nativeTheme} = require('electron');
+const http = require('http');
 const {IS_MAC, IS_WIN, IS_LINUX} = require('../utils/platform');
-const {SELECTION_ASSISTANT_DEFAULTS} = require('./config');
+const {SELECTION_ASSISTANT_DEFAULTS, FALLBACK_THEMES} = require('./config');
 const {SelectionWindows} = require('./SelectionWindows');
+const {getTheme} = require('../services/theme-persist');
 
 class SelectionService {
     constructor() {
@@ -23,6 +25,17 @@ class SelectionService {
 
         // 是否已激活
         this._activated = false;
+
+        // 弹窗数据缓存（Vue 弹窗组件通过 IPC getPopupData 读取）
+        this._popupData = null;
+    }
+
+    /**
+     * 获取弹窗启动数据（由 Vue 弹窗组件在 onMounted 时通过 IPC 调用）
+     * @returns {object|null} {action, text, fontSize, theme, targetLang}
+     */
+    getPopupData() {
+        return this._popupData;
     }
 
     // ============================================================
@@ -167,6 +180,64 @@ class SelectionService {
         return this._activated;
     }
 
+    /**
+     * 从后端 HTTP 拉取最新配置并应用到本地
+     * 启动时和运行时配置变更后均可调用
+     */
+    async refreshConfig() {
+        const CONFIG_KEY = 'SELECTION_ASSISTANT_CONFIG';
+        const BACKEND_URL = 'http://localhost:11520/api/settings/configs';
+
+        try {
+            const configs = await new Promise((resolve, reject) => {
+                http.get(BACKEND_URL, (res) => {
+                    let data = '';
+                    res.on('data', chunk => data += chunk);
+                    res.on('end', () => {
+                        try {
+                            resolve(JSON.parse(data));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+                }).on('error', reject);
+            });
+
+        const raw = configs.data?.[CONFIG_KEY];
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            this._mergeConfig(this.config, parsed);
+            // 同步 features → toolbar.items（排序和启用/禁用状态）
+            this._syncFeaturesToToolbarItems();
+            console.log('[Selection] Config refreshed from backend:', JSON.stringify(this.config));
+        } else {
+            console.warn(`[Selection] ${CONFIG_KEY} not found in backend configs`);
+        }
+
+        // 根据 enabled 状态决定激活/停用（无需对比前后变化）
+        if (this.config.enabled) {
+            if (!this._activated) {
+                this.activate();
+            }
+        } else {
+            if (this._activated) {
+                this.deactivate();
+            }
+        }
+
+        // 工具栏可见时立即刷新
+        if (this.windows.isToolbarVisible() && this._cachedText) {
+            console.log('[Selection] Toolbar visible, refreshing with updated config');
+            this._showToolbar(this._cachedText, this._lastSelectionData);
+        }
+        } catch (err) {
+            console.error('[Selection] Failed to refresh config from backend:', err.message);
+        }
+
+        // 通知所有弹窗窗口配置已更新
+        this.windows.sendToAllPopups('selection:settings-changed');
+    }
+
     // ============================================================
     // 内部方法
     // ============================================================
@@ -240,7 +311,7 @@ class SelectionService {
         }
         refPoint = {x: Math.round(refPoint.x), y: Math.round(refPoint.y)};
 
-        this.windows.showToolbar(text, this.config.toolbar.items, refPoint, this.config.fontSize);
+        this.windows.showToolbar(text, this.config.toolbar.items, refPoint, this.config.fontSize, this.config.fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif");
 
         // 加载完成后清除加载状态，如果有待处理数据则再次调用
         const win = this.windows.toolbarWindow;
@@ -368,6 +439,26 @@ class SelectionService {
     }
 
     /**
+     * 将 features 的启用/禁用状态和排序同步到 toolbar.items
+     * features 由后端配置维护（设置面板操作），toolbar.items 是工具栏实际渲染使用的数据
+     */
+    _syncFeaturesToToolbarItems() {
+        const features = this.config.features;
+        const items = this.config.toolbar.items;
+        if (!features || !features.length || !items) return;
+
+        for (const item of items) {
+            const feature = features.find(f => f.id === item.id);
+            if (feature) {
+                item.enabled = feature.enabled;
+                item.order = feature.order;
+            }
+        }
+        // 按 order 重新排序
+        items.sort((a, b) => a.order - b.order);
+    }
+
+    /**
      * 递归合并配置对象
      */
     _mergeConfig(target, source) {
@@ -395,17 +486,25 @@ class SelectionService {
             console.warn('[Selection] handleAction called but toolbar not visible, proceeding anyway');
         }
 
-        // 先打开弹窗（创建窗口+设置 visibleOnAllWorkspaces），再隐藏工具栏
-        // 顺序很重要：先 showPopup 确保新窗口已在当前空间注册，避免 hideToolbar 触发空间切换
+        // 缓存弹窗数据，供 Vue 弹窗组件通过 IPC getPopupData 获取
+        const theme = getTheme(nativeTheme.shouldUseDarkColors);
+        this._popupData = {
+            action: actionId,
+            text: this._cachedText || '',
+            fontSize: this.config.fontSize || 14,
+            theme: theme,
+            targetLang: this.config.translate?.targetLang || 'zh-CN',
+        };
+
+        // 显示弹窗，弹窗可见后再隐藏工具栏（避免中间无窗口空白期导致 macOS 激活应用）
         this.windows.showPopup(
             this._cachedText || '',
             this.config.window,
             actionId,
-            this.config.fontSize
+            this.config.fontSize,
+            // onShown：弹窗 visible 后才隐藏工具栏，确保始终有可见窗口
+            () => this.windows.hideToolbar()
         );
-
-        // 弹窗创建后再隐藏工具栏
-        this.windows.hideToolbar();
     }
 }
 

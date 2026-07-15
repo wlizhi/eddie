@@ -28,6 +28,23 @@ function register() {
                 console.warn('[theme:update] Failed to sync fontSize:', err.message);
             }
         }
+        // 同步字体类型到划词助手（跟随全局设置）
+        if (theme.fontFamily) {
+            try {
+                getSelectionService().updateConfig({fontFamily: theme.fontFamily});
+            } catch (err) {
+                console.warn('[theme:update] Failed to sync fontFamily:', err.message);
+            }
+        }
+        // 通知所有已存活的划词助手弹窗主题已变更（弹窗自行通过 IPC 获取最新主题数据）
+        try {
+            const svc = getSelectionService();
+            svc?.windows?.sendToAllPopups('selection:theme-changed');
+            svc?.windows?.sendToAllPopups('selection:settings-changed');
+            console.log('[theme:update] Notified all popup windows of theme change');
+        } catch (err) {
+            console.warn('[theme:update] Failed to notify popup:', err.message);
+        }
     });
 
     // 保留旧通道（兼容，可移除）

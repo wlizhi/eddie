@@ -55,7 +55,7 @@ export function clampFontSize(px: number): number {
 }
 
 /** 字体类型 → CSS font-family */
-const FONT_FAMILY_MAP: Record<string, string> = {
+export const FONT_FAMILY_MAP: Record<string, string> = {
     system: '-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans SC\', sans-serif',
     noto: '\'Noto Sans SC\', \'PingFang SC\', \'Microsoft YaHei\', sans-serif',
     'noto-serif': '\'Noto Serif SC\', \'Source Han Serif SC\', serif',
@@ -708,7 +708,10 @@ function syncElectronTheme(): void {
             hover: hover || '#2d2d33',
             barTrack: displaySettings.themeMode === 'dark' ? '#27272a' : '#e4e4e7',
             mode: displaySettings.themeMode,
+            themeId: displaySettings.themeId,
+            colorScheme: displaySettings.colorScheme,
             fontSize: getEffectiveFontSize(),
+            fontFamily: FONT_FAMILY_MAP[displaySettings.fontFamily] || FONT_FAMILY_MAP.system,
         }
         if (api.saveStartupTheme) api.saveStartupTheme(fullTheme)
         if (api.updateTheme) api.updateTheme(fullTheme)

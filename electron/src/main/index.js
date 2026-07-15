@@ -22,35 +22,32 @@ global.isQuitting = false;
 // App 生命周期
 // ============================================================
 app.whenReady().then(async () => {
-    // 1. 创建主窗口（含 close 事件拦截 → 隐藏到托盘）
-    createMainWindow();
+    if (!IS_STANDALONE) {
+        // 1. 先启动后端（mainWindow 尚不存在，日志仅写入文件）
+        startBackend(null);
+        try {
+            await waitForBackend(11520);
+        } catch (err) {
+            console.error(`[Eddie] ${err.message}`);
+            showErrorPage(err.message);
+            return;
+        }
+    } else {
+        console.log('[Eddie] Standalone mode: backend is managed externally');
+    }
 
-    // 2. 注册 IPC 处理器
+    // 2. 后端已就绪，创建窗口并注册 IPC
+    createMainWindow();
     setupIpc();
 
-    // 3. 初始化划词助手（不自动激活，等待后端配置）
-    initSelectionAssistant();
+    // 3. 初始化划词助手（此时可 HTTP 请求后端获取用户配置）
+    await initSelectionAssistant();
 
     // 4. 创建系统托盘
     createTray(getMainWindow());
 
-    if (IS_STANDALONE) {
-        console.log('[Eddie] Standalone mode: connecting to existing backend at http://localhost:11520');
-        navigateToApp();
-        return;
-    }
-
-    // 4. 标准模式：启动后端并等待就绪
-    startBackend(getMainWindow());
-
-    try {
-        await waitForBackend(11520);
-        navigateToApp();
-    } catch (err) {
-        console.error(`[Eddie] ${err.message}`);
-        showErrorPage(err.message);
-        // 错误时不自动退出，用户可通过托盘菜单操作
-    }
+    // 5. 导航到应用
+    navigateToApp();
 });
 
 app.on('before-quit', () => {

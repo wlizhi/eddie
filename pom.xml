@@ -32,6 +32,7 @@
         <module>ai-tools</module>
         <module>ai-memory</module>
         <module>ai-settings</module>
+        <module>ai-assistant</module>
         <module>ai-app</module>
     </modules>
 
@@ -83,6 +84,11 @@
             <dependency>
                 <groupId>cc.wlizhi</groupId>
                 <artifactId>ai-settings</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cc.wlizhi</groupId>
+                <artifactId>ai-assistant</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

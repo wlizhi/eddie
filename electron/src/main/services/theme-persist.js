@@ -104,6 +104,21 @@ function getMode() {
 }
 
 /**
+ * 获取显示设置标识符（用于划词助手弹窗本地计算主题 CSS 变量）
+ * 返回当前缓存的 themeId、themeMode、colorScheme、fontSize
+ * 无缓存时使用默认值
+ */
+function getDisplaySettings() {
+    return {
+        themeId: _themeCache?.themeId || 'default',
+        themeMode: _themeCache?.mode || getMode(),
+        colorScheme: _themeCache?.colorScheme || '#6366f1',
+        fontSize: _themeCache?.fontSize || 14,
+        fontFamily: _themeCache?.fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif",
+    };
+}
+
+/**
  * 更新主题色：同时更新内存缓存 + 持久化到磁盘
  * @param {object|null} theme - 完整主题对象（10 个字段 + mode），null 表示清除
  */
@@ -120,4 +135,4 @@ function writeThemePrefs(theme) {
     }
 }
 
-module.exports = {getTheme, getMode, writeThemePrefs};
+module.exports = {getTheme, getMode, getDisplaySettings, writeThemePrefs};
