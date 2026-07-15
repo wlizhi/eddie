@@ -74,6 +74,7 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 cc.wlizhi.eddie.agent.entity.response.AgentMessageVO.class,
                 GeneralSettings.class,
                 ModelJsonItem.class,
+                cc.wlizhi.eddie.common.entity.dto.ModelSelection.class,
                 AgentMode.class,
                 TaskPlanStatus.class,
                 StepStatus.class,
@@ -98,7 +99,11 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 AgentRoundPayload.class,
                 AgentMetadataPayload.class,
                 AgentCancelledPayload.class,
-                AgentTokenStatists.class
+                AgentTokenStatists.class,
+                // ==================== 划词助手 ====================
+                cc.wlizhi.eddie.assistant.entity.request.SelectionAssistantRequest.class,
+                cc.wlizhi.eddie.assistant.controller.SelectionAssistantController.class,
+                cc.wlizhi.eddie.assistant.service.impl.SelectionAssistantServiceImpl.class
         );
         // ==================== OpenAI SDK 内部类（Jackson 反序列化需要，使用 INVOKE_DECLARED_METHODS） ====================
         ReflectionHints reflection = hints.reflection();

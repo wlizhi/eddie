@@ -179,7 +179,7 @@ public class ChatSseTransformer {
                 }
             }
             // 第一阶段截断：SSE 实时渲染，允许更大的值
-            String configValue = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
+            String configValue = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_RENDER_MAX_LENGTH);
             int sseMaxLength = ConfigUtil.resolveIntConfig(10000, configValue, 100, MAX_TOOL_CALL_RES_LENGTH);
             if (event.getResult() != null && event.getResult().length() > sseMaxLength) {
                 event.setResult(event.getResult().substring(0, sseMaxLength) + "...（已截断）");

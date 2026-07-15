@@ -72,8 +72,10 @@ public class AgentEventPublisher {
         Long userMsgId = ctx.getUserMsg() != null ? ctx.getUserMsg().getId() : null;
         Long assistantMsgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
         Long msgId = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getId() : null;
+        String modelCode = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getModelCode() : null;
+        String modelName = ctx.getAgentMsg() != null ? ctx.getAgentMsg().getModelName() : null;
         AgentMessageCreatedPayload payload = new AgentMessageCreatedPayload(
-                msgId, null, null, userMsgId, assistantMsgId);
+                msgId, null, null, userMsgId, assistantMsgId, modelCode, modelName);
         emit(ctx, AgentEvent.MESSAGE_CREATED, ApiResult.success(payload));
     }
 

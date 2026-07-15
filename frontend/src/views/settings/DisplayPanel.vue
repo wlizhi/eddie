@@ -97,6 +97,7 @@
             v-model:value="displaySettings.fontFamily"
             :options="fontOptions"
             :consistent-menu-width="false"
+            menu-height="22rem"
             class="font-family-select"
             placeholder="选择字体"
         />
@@ -416,8 +417,8 @@ onMounted(async () => {
   // 加载工具响应最大渲染长度配置
   try {
     const configs = await fetchConfigs()
-    if (configs && configs.TOOL_CALL_MAX_LENGTH) {
-      toolCallMaxLength.value = parseInt(configs.TOOL_CALL_MAX_LENGTH, 10)
+    if (configs && configs.TOOL_CALL_RENDER_MAX_LENGTH) {
+      toolCallMaxLength.value = parseInt(configs.TOOL_CALL_RENDER_MAX_LENGTH, 10)
     }
   } catch {
     // 加载失败使用默认值
@@ -479,7 +480,7 @@ watch(
       if (newValue === undefined || newValue === null) return
       try {
         await updateConfigs({
-          TOOL_CALL_MAX_LENGTH: String(newValue)
+          TOOL_CALL_RENDER_MAX_LENGTH: String(newValue)
         })
       } catch {
         // 保存失败静默处理

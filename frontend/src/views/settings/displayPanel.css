@@ -322,6 +322,12 @@
     min-width: max-content;
 }
 
+/* 下拉菜单高度约束，超出滚动 */
+.font-family-select :deep(.n-base-select-menu) {
+    max-height: 22rem;
+    overflow-y: auto;
+}
+
 /* ===== 移动端适配 =====
    窄屏下设置行改为上下结构：label/hint 在上，控件在下 */
 @media (max-width: 48rem) {

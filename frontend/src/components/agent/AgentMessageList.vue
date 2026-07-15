@@ -323,9 +323,10 @@ function onScroll() {
 
             <!-- ===== 用户消息 / 兜底：有内容就显示 ===== -->
             <template v-else>
-              <AgentContentBlock
+              <div
                   v-if="msg.content"
-                  :content="msg.content"
+                  class="message-content"
+                  v-text="msg.content"
               />
             </template>
 

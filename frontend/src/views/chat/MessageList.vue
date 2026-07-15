@@ -288,8 +288,13 @@ function onScroll() {
 
           <!-- content -->
           <AgentContentBlock
-              v-if="msg.content"
+              v-if="msg.role === 'assistant' && msg.content"
               :content="msg.content"
+          />
+          <div
+              v-else-if="msg.content"
+              class="message-content"
+              v-text="msg.content"
           />
         </div>
 

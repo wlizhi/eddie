@@ -136,7 +136,7 @@ export const naiveThemeOverrides = computed(() => {
             optionHeightMedium: Math.round(basePx * 2.2) + 'px',
             optionPaddingSmall: `${Math.round(basePx * 0.3)}px ${Math.round(basePx * 0.8)}px`,
             optionPaddingMedium: `${Math.round(basePx * 0.35)}px ${Math.round(basePx * 0.8)}px`,
-            menuHeight: Math.round(basePx * 15) + 'px',
+            menuHeight: '22rem',
             // 下拉箭头大小
             arrowSize: Math.round(basePx * 0.8) + 'px',
         },

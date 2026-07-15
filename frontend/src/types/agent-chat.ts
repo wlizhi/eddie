@@ -185,7 +185,7 @@ export interface AgentStreamChatOptions {
     /** 收到新一轮迭代开始事件时的回调 */
     onRoundStart?: (round: number) => void
     /** 收到 message_created 事件时的回调 */
-    onMessageCreated?: (data: { userMsgId?: number; assistantMsgId?: number }) => void
+    onMessageCreated?: (data: { userMsgId?: number; assistantMsgId?: number; modelCode?: string; modelName?: string }) => void
     /** 收到 plan_started 事件时的回调（模型开始生成任务清单） */
     onPlanStarted?: () => void
     /** 收到 plan_generated 事件时的回调（任务清单首次生成完毕） */

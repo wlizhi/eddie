@@ -8,9 +8,11 @@ import cc.wlizhi.eddie.common.enums.ConfigType;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
 import cc.wlizhi.eddie.memory.dao.GlobalConfigDao;
 import cc.wlizhi.eddie.memory.event.GlobalConfigChangedEvent;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -64,6 +66,22 @@ public class GlobalConfigContext implements GlobalCache {
      */
     public Map<String, String> getAllConfigs() {
         return new LinkedHashMap<>(configMap);
+    }
+
+    /**
+     * 获取配置并反序列化为指定类型。<p>
+     * 配置不存在或 JSON 解析失败时返回 {@code null}。
+     * 具体类型需在 {@code EddieReflectionHints} 中注册反射 hint 以兼容 AOT。
+     */
+    @Nullable
+    public <T> T getConfig(GlobalConfigKey key, TypeReference<T> typeReference) {
+        String json = getConfig(key);
+        if (json == null || json.isBlank()) return null;
+        try {
+            return objectMapper.readValue(json, typeReference);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**

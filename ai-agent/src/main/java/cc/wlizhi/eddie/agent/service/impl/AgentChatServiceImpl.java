@@ -74,7 +74,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     private void doChat(AgentChatContext ctx) {
         try {
             // 按 @Order 顺序执行所有预处理器，填充 AgentChatContext 字段
-            preProcessors(ctx);
+            executePreProcessors(ctx);
 
             // 消息已持久化（preProcessors 中已完成），通知前端消息 ID
             publisher.messageCreated(ctx);
@@ -190,7 +190,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         return iteratorState.getCurrentIterator().get() >= iteratorState.getMaxIterations();
     }
 
-    private void preProcessors(AgentChatContext ctx) {
+    private void executePreProcessors(AgentChatContext ctx) {
         for (AgentChatPreProcessor processor : preProcessors) {
             ctx.getMetrics().getStopWatch().start(processor.getClass().getSimpleName());
             try {

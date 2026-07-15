@@ -63,7 +63,7 @@ public class AgentOutputContext {
     private int toolResultModelMaxLength = 100000;
 
     /**
-     * 工具结果 SSE 渲染的最大字符数（0=不截断），来自 TOOL_CALL_MAX_LENGTH 配置
+     * 工具结果 SSE 渲染的最大字符数（0=不截断），来自 TOOL_CALL_RENDER_MAX_LENGTH 配置
      */
     private int toolCallMaxLength = 5000;
 

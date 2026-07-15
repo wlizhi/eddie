@@ -51,14 +51,27 @@ public enum GlobalConfigKey {
     DB_INIT_VERSION("数据库初始化版本号", ConfigType.BACKEND),
 
     /**
-     * 工具调用响应最大长度（纯数字字符串，如 "5000"）
+     * 工具调用渲染最大长度（纯数字字符串，如 "5000"）
      */
-    TOOL_CALL_MAX_LENGTH("工具调用响应最大长度", ConfigType.BACKEND),
+    TOOL_CALL_RENDER_MAX_LENGTH("工具调用渲染最大长度", ConfigType.FRONTEND),
 
     /**
      * 工具结果返回模型的最大字符数（纯数字字符串，如 "20000"，0=不截断）
      */
     TOOL_RESULT_MODEL_MAX_LENGTH("工具结果模型上下文最大长度", ConfigType.BACKEND),
+
+    /**
+     * 划词助手配置。<p>
+     * value 为 JSON，包含字段：<br>
+     * - enabled: 是否启用<br>
+     * - toolbar.style: 工具栏显示风格（default/compact）<br>
+     * - window.rememberSize: 是否记住窗口大小<br>
+     * - window.autoClose: 失焦自动关闭<br>
+     * - window.alwaysOnTop: 默认置顶<br>
+     * - window.opacity: 窗口透明度（0~100）<br>
+     * - features: 功能项列表（含排序和启用禁用）
+     */
+    SELECTION_ASSISTANT_CONFIG("划词助手配置", ConfigType.FRONTEND),
 
     ;
 

@@ -32,8 +32,13 @@ export default defineConfig({
         emptyOutDir: true,
         // highlight.js 含所有语言定义约 ~900 kB，提高阈值消除误警
         chunkSizeWarningLimit: 1000,
-        // Rolldown: 按包分组拆分 node_modules，避免单个 vendor chunk 过大
+        // 多页面入口：主 SPA + 划词助手弹窗
+        // Rolldown 模式下，input 必须放在 rolldownOptions 中
         rolldownOptions: {
+            input: {
+                main: resolve(__dirname, 'index.html'),
+                popup: resolve(__dirname, 'popup.html'),
+            },
             output: {
                 codeSplitting: {
                     groups: [

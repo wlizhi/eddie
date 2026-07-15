@@ -45,7 +45,7 @@ public class ToolLengthConfigPreProcessor implements AgentChatPreProcessor {
         ctx.getOutput().setToolResultModelMaxLength(modelMaxLen);
 
         // 2. SSE 渲染截断（推送前端展示）
-        String sseMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_MAX_LENGTH);
+        String sseMaxLenStr = globalConfigContext.getConfig(GlobalConfigKey.TOOL_CALL_RENDER_MAX_LENGTH);
         int sseMaxLen = ConfigUtil.resolveIntConfig(5000, sseMaxLenStr, 100, 8000);
         ctx.getOutput().setToolCallMaxLength(sseMaxLen);
 

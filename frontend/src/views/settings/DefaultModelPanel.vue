@@ -176,10 +176,8 @@ async function saveSlot(slotKey: string) {
 
 // ========== 初始化加载 ==========
 onMounted(async () => {
-  // 加载模型列表
-  if (chatStore.modelSelectors.length === 0) {
-    await chatStore.loadModels()
-  }
+  // 每次进入此面板时刷新模型列表（用户可能在服务商页面修改了可用模型）
+  await chatStore.loadModels()
 
   // 加载全局配置
   try {

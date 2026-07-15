@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cc.wlizhi</groupId>
+        <artifactId>eddie</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>ai-assistant</artifactId>
+    <name>Eddie — Assistant</name>
+    <description>划词助手：翻译、总结、解释、美化</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>cc.wlizhi</groupId>
+            <artifactId>ai-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cc.wlizhi</groupId>
+            <artifactId>ai-memory</artifactId>
+        </dependency>
+    </dependencies>
+</project>

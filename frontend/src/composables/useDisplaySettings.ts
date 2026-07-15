@@ -55,7 +55,7 @@ export function clampFontSize(px: number): number {
 }
 
 /** 字体类型 → CSS font-family */
-const FONT_FAMILY_MAP: Record<string, string> = {
+export const FONT_FAMILY_MAP: Record<string, string> = {
     system: '-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans SC\', sans-serif',
     noto: '\'Noto Sans SC\', \'PingFang SC\', \'Microsoft YaHei\', sans-serif',
     'noto-serif': '\'Noto Serif SC\', \'Source Han Serif SC\', serif',
@@ -383,11 +383,12 @@ watch([() => displaySettings.themeId, () => displaySettings.themeMode], () => {
 })
 
 /**
- * 强调色变更 → 仅更新强调色 CSS 变量
+ * 强调色变更 → 更新强调色 CSS 变量 + 同步 Electron 内存/磁盘
  * 覆盖：colorScheme
  */
 watch(() => displaySettings.colorScheme, () => {
     applyColorScheme()
+    syncElectronTheme()
 })
 
 /**
@@ -396,6 +397,7 @@ watch(() => displaySettings.colorScheme, () => {
  */
 watch([() => displaySettings.fontSize, () => displaySettings.customFontSize, () => displaySettings.fontFamily], () => {
     applyFontSettings()
+    syncElectronTheme()
 })
 
 /** 加载显示设置 */
@@ -687,16 +689,32 @@ function syncElectronTheme(): void {
         symbolColor: textTertiary || '#a1a1aa',
     })
 
-    // 持久化启动主题，下次启动时 Electron 加载页使用相同配色
-    if (api.saveStartupTheme) {
-        api.saveStartupTheme({
+    // 持久化启动主题 + 实时推送完整配色到主进程内存缓存（划词工具栏使用）
+    if (api.saveStartupTheme || api.updateTheme) {
+        const bgSecondary = style.getPropertyValue('--bg-secondary').trim()
+        const bgCard = style.getPropertyValue('--bg-tertiary').trim()
+        const textSecondary = style.getPropertyValue('--text-secondary').trim()
+        const border = style.getPropertyValue('--border-default').trim()
+        const hover = style.getPropertyValue('--bg-hover').trim()
+        const fullTheme = {
             bgPrimary: bg || '#18181b',
+            bgSecondary: bgSecondary || '#27272a',
+            bgCard: bgCard || '#1f1f23',
             textPrimary: textPrimary || '#e4e4e7',
+            textSecondary: textSecondary || '#a1a1aa',
             textTertiary: textTertiary || '#52525b',
             accent: accent || '#a1a1aa',
+            border: border || '#3f3f46',
+            hover: hover || '#2d2d33',
             barTrack: displaySettings.themeMode === 'dark' ? '#27272a' : '#e4e4e7',
             mode: displaySettings.themeMode,
-        })
+            themeId: displaySettings.themeId,
+            colorScheme: displaySettings.colorScheme,
+            fontSize: getEffectiveFontSize(),
+            fontFamily: FONT_FAMILY_MAP[displaySettings.fontFamily] || FONT_FAMILY_MAP.system,
+        }
+        if (api.saveStartupTheme) api.saveStartupTheme(fullTheme)
+        if (api.updateTheme) api.updateTheme(fullTheme)
     }
 }
 
