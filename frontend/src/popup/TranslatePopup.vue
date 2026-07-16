@@ -21,8 +21,8 @@
           class="lang-select"
           @update:value="onLangChange"
       />
-      <button class="icon-btn refresh-btn" title="重新生成" @click="retry">
-        <RefreshCw stroke-width="1.3" :class="{ spinning: loading }"/>
+      <button class="icon-btn refresh-btn" title="重新生成" @click="retry" :disabled="streaming">
+        <RefreshCw stroke-width="1.3" :class="{ spinning: streaming }"/>
       </button>
     </div>
     <div class="collapse-section">
@@ -136,6 +136,7 @@ async function startStream() {
   if (!trimmed) {
     error.value = '选中文本为空，无法处理'
     loading.value = false
+    streaming.value = false
     return
   }
   try {
@@ -153,6 +154,7 @@ async function startStream() {
     if (!response.ok || !response.body) {
       error.value = `请求失败: ${response.status}`
       loading.value = false
+      streaming.value = false
       return
     }
 
@@ -180,9 +182,11 @@ async function startStream() {
     }
 
     loading.value = false
+    streaming.value = false
   } catch (err: any) {
     error.value = `网络请求失败: ${err.message}`
     loading.value = false
+    streaming.value = false
   }
 }
 
@@ -339,8 +343,13 @@ onMounted(() => {
   display: block
 }
 
-.refresh-btn .spinning {
-  animation: spin .8s linear infinite
+.refresh-btn:disabled {
+  cursor: default;
+  opacity: .5
+}
+
+.refresh-btn:disabled .spinning {
+  animation: spin 2s linear infinite
 }
 
 @keyframes spin {
