@@ -192,6 +192,7 @@ const rootStyle = computed(() => {
     return {
       fontFamily: fontFamilyCss.value,
       fontSize: fs + 'px',
+      '--font-family': fontFamilyCss.value,
       '--font-size-body': bodySize,
       '--font-size-base': baseSize,
       '--font-size-small': smallSize,
@@ -208,6 +209,12 @@ watch(() => popupData.value.fontSize, (fs) => {
   document.body.style.setProperty('--font-size-body', Math.round(fs * 0.9) + 'px')
   document.body.style.setProperty('--font-size-base', Math.round(fs * 0.867) + 'px')
   document.body.style.setProperty('--font-size-small', Math.round(fs * 0.8) + 'px')
+}, {immediate: true})
+
+// 同步 font-family 到 document.body，确保 teleport 出去的元素（如 NSelect 下拉菜单）字体跟随全局设置
+watch(fontFamilyCss, (ff) => {
+  document.body.style.setProperty('--font-family', ff)
+  document.body.style.fontFamily = ff
 }, {immediate: true})
 
 /** Naive UI 主题覆盖：从弹窗 CSS 变量映射（与 useNaiveThemeOverrides 一致） */
@@ -262,6 +269,10 @@ const naiveThemeOverrides = computed(() => {
       optionHeightSmall: Math.round(basePx * 2) + 'px',
       optionPaddingSmall: `${Math.round(basePx * 0.3)}px ${Math.round(basePx * 0.8)}px`,
       arrowSize: smallPx + 'px',
+    },
+    InternalSelection: {
+      paddingSingle: '0 1.8rem 0 .2rem',
+      // paddingMultiple: '3px 20px 0 8px',
     },
     // ===== Tooltip 悬浮提示（折叠图标 "原文" 提示条）=====
     Tooltip: {
@@ -410,7 +421,7 @@ onUnmounted(() => {
 /* ===== 全局重置 ===== */
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden}
-body{display:flex;flex-direction:column}
+body{display:flex;flex-direction:column;font-family:var(--font-family)}
 
 /* ===== 根容器 ===== */
 .popup-root{
@@ -529,7 +540,6 @@ body{display:flex;flex-direction:column}
 }
 .n-base-select-menu .n-base-select-option--group-header {
     font-size: var(--font-size-small) !important;
-    font-weight: 600;
 }
 .n-dropdown-option-body {
     font-size: var(--font-size-base) !important;

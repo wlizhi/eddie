@@ -25,18 +25,17 @@ const {IS_MAC} = require('../utils/platform');
 
 function calcToolbarHeight(fontSize) {
     const btnH = Math.ceil(fontSize * 1.5);
-    const padV = Math.ceil(fontSize * 0.28);
+    const padV = Math.ceil(fontSize * 0.18);
     return btnH + padV * 2;
 }
 
 function getBtnHeight(fontSize) { return Math.ceil(fontSize * 1.5); }
-function getBtnPad(fontSize) { return Math.ceil(fontSize * 0.28); }
-function getContainerPadV(fontSize) { return Math.ceil(fontSize * 0.28); }
-function getContainerPadH(fontSize) { return Math.ceil(fontSize * 0.28); }
+function getBtnPad(fontSize) { return Math.ceil(fontSize * 0.18); }
+function getContainerPadV(fontSize) { return Math.ceil(fontSize * 0.18); }
+function getContainerPadH(fontSize) { return Math.ceil(fontSize * 0.18); }
 function getBtnFontSize(fontSize) { return Math.max(11, Math.round(fontSize * 0.82)); }
 function getDividerH(fontSize) { return Math.ceil(fontSize * 0.7); }
 function getCloseBtnSize(fontSize) { return Math.ceil(fontSize * 1.14); }
-function getCloseMargin(fontSize) { return Math.max(2, Math.round(fontSize * 0.21)); }
 function getToolbarGap(fontSize) { return Math.max(2, Math.round(fontSize * 0.14)); }
 
 // 全局默认 CSS font-family（系统默认字体）
@@ -59,11 +58,10 @@ function calcToolbarWidth(items, fontSize, toolbarStyle) {
     const padH = getContainerPadH(fontSize);
     const btnPad = getBtnPad(fontSize);
     const gap = getToolbarGap(fontSize);
-    const iconW = 14;
+    const iconW = Math.round(fontSize * 0.86);
     const gapIconText = Math.max(2, Math.round(fontSize * 0.15));
     const dividerW = 1;
     const closeBtn = getCloseBtnSize(fontSize);
-    const closeMargin = getCloseMargin(fontSize);
     const showLabel = toolbarStyle !== 'compact';
 
     let actionsW = 0;
@@ -74,7 +72,7 @@ function calcToolbarWidth(items, fontSize, toolbarStyle) {
         if (idx < enabled.length - 1) actionsW += dividerW + gap;
     });
 
-    return padH + actionsW + gap + closeBtn + closeMargin + padH;
+    return padH + actionsW + gap + closeBtn + padH;
 }
 
 // ============================================================
@@ -88,12 +86,17 @@ function getToolbarHtml(theme, text, items, fontSize, fontFamily, toolbarStyle) 
         .replace(/"/g, '"');
 
     const showLabel = toolbarStyle !== 'compact';
+    const iconSize = Math.round(fontSize * 0.86);
     const itemsHtml = items
         .filter(i => i.enabled)
         .sort((a, b) => a.order - b.order)
         .map((i, idx, arr) => {
             const label = i.label || '';
-            const btnContent = showLabel ? `${i.icon || ''} ${label}` : `${i.icon || ''}`;
+            const icon = i.icon
+                ? i.icon.replace(/width="14"/, `width="${iconSize}"`)
+                        .replace(/height="14"/, `height="${iconSize}"`)
+                : '';
+            const btnContent = showLabel ? `${icon} ${label}` : `${icon}`;
             const btn = `<button class="action-btn" data-id="${i.id}">${btnContent}</button>`;
             return idx < arr.length - 1 ? btn + '<div class="btn-divider"></div>' : btn;
         })
@@ -107,7 +110,6 @@ function getToolbarHtml(theme, text, items, fontSize, fontFamily, toolbarStyle) 
     const btnFs = getBtnFontSize(fontSize);
     const dividerH = getDividerH(fontSize);
     const closeSz = getCloseBtnSize(fontSize);
-    const closeMargin = getCloseMargin(fontSize);
     const padV = getContainerPadV(fontSize);
     const padH = getContainerPadH(fontSize);
     const gap = getToolbarGap(fontSize);
@@ -152,7 +154,6 @@ body{
     width:${closeSz}px;height:${closeSz}px;border:none;border-radius:4px;
     font-size:${Math.round(fontSize * 0.86)}px;cursor:pointer;background:transparent;
     color:${theme.textTertiary};-webkit-app-region:no-drag;
-    margin-right:${closeMargin}px;
     transition:background .12s;
 }
 .close-btn:hover{background:${theme.hover};color:${theme.textPrimary}}
@@ -358,10 +359,32 @@ class SelectionWindows {
 
     /**
      * 隐藏工具栏
+     * macOS：使用 focus-guard 防止隐藏工具栏时主窗口被前置
      */
     hideToolbar() {
+        // macOS focus-guard
+        let focusGuard = null;
+        if (IS_MAC) {
+            focusGuard = [];
+            for (const w of require('electron').BrowserWindow.getAllWindows()) {
+                if (!w.isDestroyed() && w.isVisible() && w.isFocusable()) {
+                    focusGuard.push(w);
+                    w.setFocusable(false);
+                }
+            }
+        }
+
         if (this.toolbarWindow && !this.toolbarWindow.isDestroyed()) {
             this.toolbarWindow.hide();
+        }
+
+        // 50ms 后恢复焦点能力
+        if (IS_MAC && focusGuard) {
+            setTimeout(() => {
+                for (const w of focusGuard) {
+                    if (!w.isDestroyed()) w.setFocusable(true);
+                }
+            }, 50);
         }
     }
 

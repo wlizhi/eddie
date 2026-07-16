@@ -220,8 +220,8 @@ const DEFAULT_CONFIG: SelectionAssistantConfig = {
     {id: 'translate', label: '翻译', icon: SVG_GLOBE, enabled: true, order: 1},
     {id: 'explain', label: '解释', icon: SVG_BOOK, enabled: true, order: 2},
     {id: 'summarize', label: '总结', icon: SVG_LIST, enabled: true, order: 3},
-    {id: 'copy', label: '复制', icon: SVG_COPY, enabled: true, order: 4},
-    {id: 'beautify', label: '美化', icon: SVG_BEAUTIFY, enabled: true, order: 5},
+    {id: 'beautify', label: '美化', icon: SVG_BEAUTIFY, enabled: true, order: 4},
+    {id: 'copy', label: '复制', icon: SVG_COPY, enabled: true, order: 5},
   ],
 }
 

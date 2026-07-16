@@ -266,9 +266,9 @@ onMounted(() => {
 }
 
 .source-badge {
-  font-size: var(--font-size-small);
+  font-size: var(--font-size-base);
   color: var(--text-secondary);
-  padding: 0 .5em;
+  padding: 0 .2rem;
   border: 1px solid var(--border-base);
   border-radius: 4px;
   background: var(--bg-tertiary);
@@ -303,8 +303,7 @@ onMounted(() => {
 .lang-select {
   font-size: var(--font-size-small) !important;
   flex: none;
-  min-width: 8rem;
-  width: 12rem;
+  width: 10em;
   display: flex;
   align-items: center;
 }
