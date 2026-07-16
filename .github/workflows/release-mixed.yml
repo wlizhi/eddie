@@ -327,7 +327,7 @@ jobs:
         if: runner.os == 'Linux' && steps.check.outputs.skip != 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxkbfile-dev libx11-dev
+          sudo apt-get install -y libxkbfile-dev libxtst-dev libx11-dev libxfixes-dev libevdev-dev libwayland-dev
 
       - name: Install Electron dependencies
         if: steps.check.outputs.skip != 'true'
