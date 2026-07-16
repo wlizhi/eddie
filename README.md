@@ -61,6 +61,7 @@ java -jar dist/eddie-app.jar
 
 - **💬 多模型聊天** — 支持 DeepSeek / OpenAI 等兼容 API，对话中可随时切换模型
 - **🤖 智能体** — 自主规划任务、逐步执行，集成 MCP 工具调用
+- **📝 划词助手** — 任意程序页面，选中任意文本后弹出工具栏，支持翻译、解释、总结 AI 操作
 - **🔌 MCP 工具扩展** — 通过 MCP 协议接入 WebSearch、WebFetch 等外部工具
 - **🧠 模型记忆** — 短期对话记忆、智能体任务上下文记忆
 - **🖥 纯本地运行** — 数据存储在本地 `~/.eddie/`，隐私安全
@@ -176,6 +177,7 @@ java -jar dist/eddie-app.jar
 | [`ai-memory`](ai-memory)     | `cc.wlizhi.eddie.memory`   | 记忆：模型记忆、上下文处理及缓存相关            |
 | [`ai-chat`](ai-chat)         | `cc.wlizhi.eddie.chat`     | 助手聊天：对话管理、上下文构建               |
 | [`ai-agent`](ai-agent)       | `cc.wlizhi.eddie.agent`    | 智能体：任务规划、步骤执行                 |
+| [`ai-assistant`](ai-assistant) | `cc.wlizhi.eddie.assistant` | 划词助手：选中文本 AI 操作处理            |
 | [`ai-app`](ai-app)           | `cc.wlizhi.eddie.app`      | 启动入口 + GraalVM 打包             |
 
 ---
@@ -223,6 +225,7 @@ java -jar dist/eddie-app.jar
 - 🎨 **显示设置** — 界面主题与显示选项
 - 🤖 **模型服务管理** — 模型提供商配置与默认模型选择
 - 🔌 **MCP 服务管理** — MCP 工具服务的注册与配置
+- 📝 **划词助手** — 任意程序页面，选中文本弹出工具栏，支持翻译、解释、总结 AI 操作
 - 🧠 **模型记忆**
 - 🤖 **智能体**
 
