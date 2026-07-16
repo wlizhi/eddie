@@ -158,7 +158,6 @@ const HEADER_TITLES: Record<string, string> = {
   summarize: '总结',
   copy: '复制',
   beautify: '美化',
-  open: '美化',
 }
 
 const currentComponent = computed(() => {
@@ -167,7 +166,7 @@ const currentComponent = computed(() => {
     explain: ExplainPopup,
     summarize: SummarizePopup,
     copy: CopyPopup,
-    open: OpenPopup,
+    beautify: OpenPopup,
   }
   return map[popupData.value.action] || OpenPopup
 })
@@ -426,13 +425,13 @@ body{display:flex;flex-direction:column}
 /* ===== 通用 Header ===== */
 .header{
   display:flex;align-items:center;justify-content:space-between;
-  padding:6px 12px;
-  border-bottom:1px solid var(--border-base);
+  padding:4px 10px;
+  border-bottom:1px solid color-mix(in srgb, var(--border-base) 40%, transparent);
   background:var(--bg-secondary);
   -webkit-app-region:drag;flex-shrink:0;
 }
 .header-title{
-  font-size:var(--font-size-base);font-weight:600;display:flex;align-items:center;gap:6px;
+  font-size:var(--font-size-base);font-weight:500;display:flex;align-items:center;gap:6px;
 }
 .header-title svg{flex-shrink:0}
 .header-actions{display:flex;gap:3px;-webkit-app-region:no-drag}
@@ -449,7 +448,7 @@ body{display:flex;flex-direction:column}
 /* ===== 内容区通用 ===== */
 .content{
   flex:1;display:flex;flex-direction:column;
-  padding:8px 12px;gap:4px;min-height:0;overflow-y:auto;
+  padding:5px;gap:4px;min-height:0;overflow-y:auto;
 }
 
 /* ===== 简约折叠原文区（图标 + 水平细线） ===== */
@@ -484,8 +483,8 @@ body{display:flex;flex-direction:column}
   flex:1;display:flex;flex-direction:column;gap:4px;min-height:0;
 }
 .result-content{
-  flex:1;padding:8px 10px;border-radius:6px;
-  background:var(--msg-assistant-bg);border:1px solid var(--border-base);
+  flex:1;padding:4px;border-radius:6px;
+  background:var(--msg-assistant-bg);border:1px solid color-mix(in srgb, var(--border-base) 40%, transparent);
   font-size:var(--font-size-body);line-height:1.6;color:var(--text-primary);
   min-height:0;overflow-y:auto;position:relative;
 }

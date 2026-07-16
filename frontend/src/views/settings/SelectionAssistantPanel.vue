@@ -141,6 +141,7 @@
             @dragend="onDragEnd"
         >
           <span class="drag-handle"><GripVertical :size="14" :stroke-width="1.5"/></span>
+          <span class="feature-icon" v-html="item.icon"></span>
           <span class="feature-label">{{ item.label }}</span>
           <n-switch
               :size="'small'"
@@ -175,9 +176,17 @@ import {useDragSort} from '@/composables/useDragSort'
 
 const CONFIG_KEY = 'SELECTION_ASSISTANT_CONFIG'
 
+// ===== SVG 图标（与 electron 配置保持一致） =====
+const SVG_GLOBE = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5.5"/><path d="M2.5 5h9"/><path d="M2.5 9h9"/><path d="M7 1.5a7 7 0 0 1 0 11"/><path d="M7 1.5a7 7 0 0 0 0 11"/></svg>'
+const SVG_BOOK = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2.5v9a1 1 0 0 0 1 1h3.5L7 11l.5 1.5H11a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M7 11V4"/></svg>'
+const SVG_LIST = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="3.5" x2="11.5" y2="3.5"/><line x1="5" y1="7" x2="11.5" y2="7"/><line x1="5" y1="10.5" x2="11.5" y2="10.5"/><circle cx="2.5" cy="3.5" r=".8"/><circle cx="2.5" cy="7" r=".8"/><circle cx="2.5" cy="10.5" r=".8"/></svg>'
+const SVG_COPY = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="7" height="7" rx=".8"/><path d="M2.5 10.5v-7a1 1 0 0 1 1-1h7"/></svg>'
+const SVG_BEAUTIFY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>'
+
 interface FeatureItem {
   id: string
   label: string
+  icon: string
   enabled: boolean
   order: number
 }
@@ -208,11 +217,11 @@ const DEFAULT_CONFIG: SelectionAssistantConfig = {
     opacity: 100,
   },
   features: [
-    {id: 'translate', label: '翻译', enabled: true, order: 1},
-    {id: 'explain', label: '解释', enabled: true, order: 2},
-    {id: 'summarize', label: '总结', enabled: true, order: 3},
-    {id: 'copy', label: '复制', enabled: true, order: 4},
-    {id: 'beautify', label: '美化', enabled: true, order: 5},
+    {id: 'translate', label: '翻译', icon: SVG_GLOBE, enabled: true, order: 1},
+    {id: 'explain', label: '解释', icon: SVG_BOOK, enabled: true, order: 2},
+    {id: 'summarize', label: '总结', icon: SVG_LIST, enabled: true, order: 3},
+    {id: 'copy', label: '复制', icon: SVG_COPY, enabled: true, order: 4},
+    {id: 'beautify', label: '美化', icon: SVG_BEAUTIFY, enabled: true, order: 5},
   ],
 }
 
@@ -313,8 +322,14 @@ async function loadConfig() {
         if (parsed.window.opacity != null) config.window.opacity = parsed.window.opacity
       }
       if (parsed.features && parsed.features.length > 0) {
+        // 合并策略：以默认 features 为基底，用已保存的覆盖 enabled/order，保留新增项（如 beautify）
+        const savedFeatures = parsed.features
+        const merged = DEFAULT_CONFIG.features.map(defaultF => {
+          const saved = savedFeatures.find((f: FeatureItem) => f.id === defaultF.id)
+          return saved ? {...defaultF, enabled: saved.enabled, order: saved.order} : defaultF
+        })
         config.features.length = 0
-        config.features.push(...parsed.features)
+        config.features.push(...merged)
       }
     }
   } catch (err: any) {
@@ -324,7 +339,12 @@ async function loadConfig() {
 
 async function saveConfig() {
   try {
-    await updateConfigs({[CONFIG_KEY]: JSON.stringify(config)})
+    // 保存时忽略 icon 字段（由默认配置提供，保持存储最小化）
+    const payload = {
+      ...config,
+      features: config.features.map(({icon, ...rest}) => rest),
+    }
+    await updateConfigs({[CONFIG_KEY]: JSON.stringify(payload)})
     // 通知 Electron 主进程重新从后端拉取配置（网页环境安全跳过）
     ;(window as any).electronAPI?.selectionConfigChanged()
   } catch (err: any) {
@@ -489,6 +509,13 @@ onMounted(() => {
   cursor: grab;
   flex-shrink: 0;
   transition: color 0.15s;
+}
+
+.feature-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
 }
 
 @media (hover: hover) {
