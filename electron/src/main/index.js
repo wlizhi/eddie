@@ -10,7 +10,7 @@ const {startBackend, killBackend, waitForBackend} = require('./backend');
 const {createMainWindow, navigateToApp, showErrorPage, getMainWindow} = require('./window');
 const {setupIpc} = require('./ipc');
 const {createTray} = require('./tray');
-const {initSelectionAssistant} = require('./selection-assistant');
+const {initSelectionAssistant, getSelectionService} = require('./selection-assistant');
 const {IS_STANDALONE} = require('./utils/platform');
 
 // ============================================================
@@ -53,6 +53,8 @@ app.whenReady().then(async () => {
 app.on('before-quit', () => {
     // 真正退出时（托盘"退出"或 Cmd+Q）才杀后端
     global.isQuitting = true;
+    // 先清理划词助手（停止 hook 事件线程 + 关闭窗口），否则进程无法退出
+    getSelectionService().destroy();
     killBackend();
 });
 

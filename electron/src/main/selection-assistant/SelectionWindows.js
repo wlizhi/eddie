@@ -52,7 +52,7 @@ function measureText(s, fontSize) {
 }
 
 // 根据功能项动态计算工具栏宽度
-function calcToolbarWidth(items, fontSize) {
+function calcToolbarWidth(items, fontSize, toolbarStyle) {
     const enabled = items.filter(i => i.enabled).sort((a, b) => a.order - b.order);
     if (!enabled.length) return 120;
 
@@ -64,11 +64,13 @@ function calcToolbarWidth(items, fontSize) {
     const dividerW = 1;
     const closeBtn = getCloseBtnSize(fontSize);
     const closeMargin = getCloseMargin(fontSize);
+    const showLabel = toolbarStyle !== 'compact';
 
     let actionsW = 0;
     enabled.forEach((item, idx) => {
-        const textW = measureText(item.label || '', fontSize);
-        actionsW += btnPad + iconW + gapIconText + textW + btnPad;
+        const textW = showLabel ? measureText(item.label || '', fontSize) : 0;
+        const gapW = showLabel ? gapIconText : 0;
+        actionsW += btnPad + iconW + gapW + textW + btnPad;
         if (idx < enabled.length - 1) actionsW += dividerW + gap;
     });
 
@@ -78,19 +80,21 @@ function calcToolbarWidth(items, fontSize) {
 // ============================================================
 // 工具栏 HTML
 // ============================================================
-function getToolbarHtml(theme, text, items, fontSize, fontFamily) {
+function getToolbarHtml(theme, text, items, fontSize, fontFamily, toolbarStyle) {
     const textEscaped = text
         .replace(/&/g, '&')
         .replace(/</g, '<')
         .replace(/>/g, '>')
         .replace(/"/g, '"');
 
+    const showLabel = toolbarStyle !== 'compact';
     const itemsHtml = items
         .filter(i => i.enabled)
         .sort((a, b) => a.order - b.order)
         .map((i, idx, arr) => {
             const label = i.label || '';
-            const btn = `<button class="action-btn" data-id="${i.id}">${i.icon || ''} ${label}</button>`;
+            const btnContent = showLabel ? `${i.icon || ''} ${label}` : `${i.icon || ''}`;
+            const btn = `<button class="action-btn" data-id="${i.id}">${btnContent}</button>`;
             return idx < arr.length - 1 ? btn + '<div class="btn-divider"></div>' : btn;
         })
         .join('');
@@ -286,14 +290,15 @@ class SelectionWindows {
      * @param {number} fontSize - 基准字体大小 px
      * @param {string} [fontFamily='system'] - 字体类型 ID
      */
-    showToolbar(text, items, position, fontSize, fontFamily) {
+    showToolbar(text, items, position, fontSize, fontFamily, toolbarStyle) {
         const win = this.ensureToolbar();
         const theme = this.getCurrentTheme();
 
         const fs = fontSize || 14;
         const ff = fontFamily || DEFAULT_FONT_FAMILY;
+        const style = toolbarStyle || 'default';
         const toolbarHeight = calcToolbarHeight(fs);
-        const toolbarWidth = calcToolbarWidth(items, fs);
+        const toolbarWidth = calcToolbarWidth(items, fs, style);
 
         // 计算位置：确保不超出屏幕边界
         const display = screen.getDisplayNearestPoint(position);
@@ -347,7 +352,7 @@ class SelectionWindows {
         });
         console.log('[Toolbar] loadURL called');
         win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(
-            getToolbarHtml(theme, text, items, fs, ff)
+            getToolbarHtml(theme, text, items, fs, ff, style)
         )}`);
     }
 
@@ -699,3 +704,5 @@ class SelectionWindows {
 }
 
 module.exports = {SelectionWindows};
+module.exports = {SelectionWindows};
+

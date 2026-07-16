@@ -61,6 +61,7 @@ const POPUP_VAR_KEYS = [
   '--hljs-comment', '--hljs-type', '--hljs-built-in', '--hljs-punctuation',
   '--hljs-variable', '--hljs-tag', '--hljs-selector-class', '--hljs-title',
   '--hljs-regexp', '--hljs-meta', '--hljs-deletion', '--hljs-addition',
+  '--scrollbar-thumb',
 ]
 
 const popupData = ref<PopupData>({
@@ -363,6 +364,30 @@ onUnmounted(() => {
 
 <style>
 @import '@/assets/styles/markdown.css';
+
+/* ===== 自定义滚动条（与主进程前端 theme.css 一致） ===== */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--scrollbar-thumb) 85%, black);
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
 
 /* ===== 全局重置 ===== */
 *{margin:0;padding:0;box-sizing:border-box}
