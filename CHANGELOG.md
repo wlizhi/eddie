@@ -53,7 +53,7 @@
 - 修复工具 enabled 字段在待审批场景下的空指针问题，新增 enabledStatus 字段（0=禁用/1=启用/2=待审批）
 - 修复 StepFinishTool 最后一步完成时未回填 result 到 taskPlan 的问题，前端新增结果摘要展示区域
 
-## [1.0.3-beta] - 2026-07-16
+## [1.0.2-beta] - 2026-07-16
 
 ### Added
 
