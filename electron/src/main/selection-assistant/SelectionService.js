@@ -311,7 +311,7 @@ class SelectionService {
         }
         refPoint = {x: Math.round(refPoint.x), y: Math.round(refPoint.y)};
 
-        this.windows.showToolbar(text, this.config.toolbar.items, refPoint, this.config.fontSize, this.config.fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif");
+        this.windows.showToolbar(text, this.config.toolbar.items, refPoint, this.config.fontSize, this.config.fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif", this.config.toolbar.style);
 
         // 加载完成后清除加载状态，如果有待处理数据则再次调用
         const win = this.windows.toolbarWindow;

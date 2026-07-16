@@ -12,9 +12,12 @@ directories:
 files:
   - "src/**/*"
   - icons/*
-  - "!node_modules"
 
 icon: icons/icon.png
+
+# 原生模块必须解出 ASAR（.node 文件无法从 ASAR 加载）
+asarUnpack:
+  - "node_modules/selection-hook/**"
 
 # extraResources 已移至各平台独立配置，详见 win/mac/linux 块
 
