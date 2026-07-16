@@ -13,12 +13,14 @@ const SVG_GLOBE = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" s
 const SVG_BOOK = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2.5v9a1 1 0 0 0 1 1h3.5L7 11l.5 1.5H11a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M7 11V4"/></svg>';
 const SVG_LIST = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="3.5" x2="11.5" y2="3.5"/><line x1="5" y1="7" x2="11.5" y2="7"/><line x1="5" y1="10.5" x2="11.5" y2="10.5"/><circle cx="2.5" cy="3.5" r=".8"/><circle cx="2.5" cy="7" r=".8"/><circle cx="2.5" cy="10.5" r=".8"/></svg>';
 const SVG_COPY = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="7" height="7" rx=".8"/><path d="M2.5 10.5v-7a1 1 0 0 1 1-1h7"/></svg>';
+const SVG_BEAUTIFY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>';
 
 const DEFAULT_TOOLBAR_ITEMS = [
     { id: 'translate',  label: '翻译',   icon: SVG_GLOBE,     enabled: true,  order: 1 },
     { id: 'explain',    label: '解释',   icon: SVG_BOOK,      enabled: true,  order: 2 },
     { id: 'summarize',  label: '总结',   icon: SVG_LIST,      enabled: true,  order: 3 },
     { id: 'copy',       label: '复制',   icon: SVG_COPY,      enabled: true,  order: 4 },
+    { id: 'beautify',   label: '美化',   icon: SVG_BEAUTIFY,  enabled: true,  order: 5 },
 ];
 
 /**
@@ -90,6 +92,7 @@ const SELECTION_ASSISTANT_DEFAULTS = {
         { id: 'explain',    label: '解释',   enabled: true,  order: 2 },
         { id: 'summarize',  label: '总结',   enabled: true,  order: 3 },
         { id: 'copy',       label: '复制',   enabled: true,  order: 4 },
+        { id: 'beautify',   label: '美化',   enabled: true,  order: 5 },
     ],
 };
 

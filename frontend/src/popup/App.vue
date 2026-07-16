@@ -20,7 +20,7 @@
           </button>
         </div>
       </div>
-      <component :is="currentComponent" :data="popupData" />
+      <component :is="currentComponent" :data="popupData" :key="popupData.action" />
     </n-config-provider>
   </div>
 </template>
@@ -149,6 +149,7 @@ const HEADER_ICONS: Record<string, string> = {
   explain: '<svg width="1em" height="1em" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2.5v9a1 1 0 0 0 1 1h3.5L7 11l.5 1.5H11a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M7 11V4"/></svg>',
   summarize: '<svg width="1em" height="1em" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="3.5" x2="11.5" y2="3.5"/><line x1="5" y1="7" x2="11.5" y2="7"/><line x1="5" y1="10.5" x2="11.5" y2="10.5"/><circle cx="2.5" cy="3.5" r=".8"/><circle cx="2.5" cy="7" r=".8"/><circle cx="2.5" cy="10.5" r=".8"/></svg>',
   copy: '<svg width="1em" height="1em" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="7" height="7" rx=".8"/><path d="M2.5 10.5v-7a1 1 0 0 1 1-1h7"/></svg>',
+  beautify: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>',
 }
 
 const HEADER_TITLES: Record<string, string> = {
@@ -156,6 +157,7 @@ const HEADER_TITLES: Record<string, string> = {
   explain: '解释',
   summarize: '总结',
   copy: '复制',
+  beautify: '美化',
   open: '美化',
 }
 
@@ -227,6 +229,7 @@ const naiveThemeOverrides = computed(() => {
   const textPrimary = t['--text-primary'] || '#18181b'
   const textTertiary = t['--text-tertiary'] || '#a1a1aa'
   const borderBase = t['--border-base'] || '#e4e4e7'
+  const textSecondaryColor = t['--text-secondary'] || '#71717a'
 
   return {
     common: {
@@ -235,7 +238,7 @@ const naiveThemeOverrides = computed(() => {
       primaryColorPressed: accentHover,
       bodyColor: bgPrimary,
       textColor1: textPrimary,
-      textColor2: t['--text-secondary'] || '#71717a',
+      textColor2: textSecondaryColor,
       textColor3: textTertiary,
       borderColor: borderBase,
       hoverColor: bgHover,
@@ -260,6 +263,22 @@ const naiveThemeOverrides = computed(() => {
       optionHeightSmall: Math.round(basePx * 2) + 'px',
       optionPaddingSmall: `${Math.round(basePx * 0.3)}px ${Math.round(basePx * 0.8)}px`,
       arrowSize: smallPx + 'px',
+    },
+    // ===== Tooltip 悬浮提示（折叠图标 "原文" 提示条）=====
+    Tooltip: {
+      color: bgSecondary,
+      textColor: textPrimary,
+      borderRadius: '6px',
+      fontSize: smallPx + 'px',
+      padding: '5px 9px',
+    },
+    // ===== Popover 弹出层（NTooltip 内部使用 NPopover 渲染）=====
+    Popover: {
+      color: bgSecondary,
+      textColor: textPrimary,
+      borderRadius: '6px',
+      fontSize: smallPx + 'px',
+      padding: '5px 9px',
     },
   }
 })
@@ -433,29 +452,26 @@ body{display:flex;flex-direction:column}
   padding:8px 12px;gap:4px;min-height:0;overflow-y:auto;
 }
 
-/* ===== 折叠原文区 ===== */
+/* ===== 简约折叠原文区（图标 + 水平细线） ===== */
 .collapse-section{
-  border:1px solid var(--border-base);border-radius:6px;
-  overflow:hidden;flex-shrink:0;
+  flex-shrink:0;
 }
 .collapse-header{
   display:flex;align-items:center;gap:6px;
-  padding:8px 12px;cursor:pointer;user-select:none;
-  background:var(--bg-tertiary);transition:background .12s;
+  padding:3px 0;cursor:pointer;user-select:none;
 }
-.collapse-header:hover{background:var(--bg-hover)}
+.collapse-header:hover{opacity:.7}
+.collapse-header::after{
+  content:'';flex:1;height:1px;
+  background:var(--border-base);opacity:.3;
+}
 .collapse-icon{
-  font-size:var(--font-size-small);color:var(--text-tertiary);
+  font-size:10px;color:var(--text-tertiary);line-height:1;
   transition:transform .15s;flex-shrink:0;
 }
 .collapse-icon.rotated{transform:rotate(90deg)}
-.collapse-label{
-  font-size:var(--font-size-small);font-weight:500;color:var(--text-tertiary);
-  text-transform:uppercase;letter-spacing:.5px;
-}
 .collapse-body{
-  border-top:1px solid var(--border-base);padding:10px 12px;
-  background:var(--bg-primary);
+  padding:4px 0 4px 14px; /* 左侧缩进对齐图标下方 */
 }
 .collapse-body .sel-text{
   padding:0;border:none;background:transparent;
@@ -467,16 +483,11 @@ body{display:flex;flex-direction:column}
 .result-section{
   flex:1;display:flex;flex-direction:column;gap:4px;min-height:0;
 }
-.result-label{
-  font-size:var(--font-size-small);font-weight:500;color:var(--text-tertiary);
-  display:flex;align-items:center;gap:4px;
-  text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;
-}
 .result-content{
   flex:1;padding:8px 10px;border-radius:6px;
   background:var(--msg-assistant-bg);border:1px solid var(--border-base);
   font-size:var(--font-size-body);line-height:1.6;color:var(--text-primary);
-  min-height:0;overflow-y:auto;
+  min-height:0;overflow-y:auto;position:relative;
 }
 
 /* ===== loading 动画 ===== */

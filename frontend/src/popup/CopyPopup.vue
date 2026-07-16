@@ -10,8 +10,12 @@
   <div class="content">
     <div class="collapse-section">
       <div class="collapse-header" @click="collapsed = !collapsed">
-        <span class="collapse-icon" :class="{rotated: !collapsed}">&#9654;</span>
-        <span class="collapse-label">原文</span>
+        <n-tooltip trigger="hover" placement="top" :show-arrow="false">
+          <template #trigger>
+            <span class="collapse-icon" :class="{rotated: !collapsed}">&#9654;</span>
+          </template>
+          原文
+        </n-tooltip>
       </div>
       <div v-show="!collapsed" class="collapse-body">
         <div class="sel-text">{{ data.text }}</div>
@@ -32,6 +36,7 @@
 
 <script setup lang="ts">
 import {ref, onMounted} from 'vue'
+import {NTooltip} from 'naive-ui'
 
 const props = defineProps<{ data: { text: string } }>()
 const collapsed = ref(true)

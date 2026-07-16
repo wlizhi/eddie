@@ -212,6 +212,7 @@ const DEFAULT_CONFIG: SelectionAssistantConfig = {
     {id: 'explain', label: '解释', enabled: true, order: 2},
     {id: 'summarize', label: '总结', enabled: true, order: 3},
     {id: 'copy', label: '复制', enabled: true, order: 4},
+    {id: 'beautify', label: '美化', enabled: true, order: 5},
   ],
 }
 
