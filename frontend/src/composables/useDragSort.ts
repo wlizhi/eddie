@@ -10,9 +10,9 @@
  */
 import {ref} from 'vue'
 
-export function useDragSort<T extends { id: number }>(
+export function useDragSort<T extends { id: string | number }>(
     getList: () => T[],
-    onSort: (ids: number[]) => Promise<void>,
+    onSort: (ids: (string | number)[]) => Promise<void>,
     onError?: () => void
 ) {
     const dragIndex = ref<number | null>(null)
