@@ -5,7 +5,7 @@
  * 划词助手核心服务 — 管理 selection-hook 生命周期、事件处理、启用/禁用控制
  */
 
-const {app, screen, systemPreferences, nativeTheme} = require('electron');
+const {app, clipboard, screen, systemPreferences, nativeTheme} = require('electron');
 const http = require('http');
 const {IS_MAC, IS_WIN, IS_LINUX} = require('../utils/platform');
 const {SELECTION_ASSISTANT_DEFAULTS, FALLBACK_THEMES} = require('./config');
@@ -35,6 +35,9 @@ class SelectionService {
         this._lastMouseDownTime = 0;
 
         this._lastSelectionProgram = '';
+
+        /** 三击延迟读取定时器 ID */
+        this._tripleClickTimer = null;
     }
 
     getPopupData() {
@@ -81,6 +84,7 @@ class SelectionService {
         if (!this._activated) return;
 
         try {
+            this._cancelTripleClickTimer();
             if (this.selectionHook) {
                 this.selectionHook.stop();
                 this.selectionHook.removeAllListeners();
@@ -175,6 +179,13 @@ class SelectionService {
         }
     }
 
+    _cancelTripleClickTimer() {
+        if (this._tripleClickTimer) {
+            clearTimeout(this._tripleClickTimer);
+            this._tripleClickTimer = null;
+        }
+    }
+
     _onTextSelection = (data) => {
         if (!data) return;
 
@@ -264,19 +275,46 @@ class SelectionService {
     _onGlobalMouseUp = (event) => {
         if (!event || event.button !== 0) return;
 
-        if (this._pendingTextUpdate) {
-            this._pendingTextUpdate = false;
-
-            if (this._clickCount >= 3) {
-                setTimeout(() => {
-                    if (!this.selectionHook) return;
+        // ★ 三击专用路径：独立于 _pendingTextUpdate / _cachedText，完全隔离
+        // selection-hook 在 JCEF 中三击后 Accessibility API 更新存在不确定延迟
+        if (this._clickCount >= 3) {
+            this._cancelTripleClickTimer();
+            // 立即读取一次（大多数情况此时 JCEF 已更新选区）
+            let bestText = this._cachedText || '';
+            try {
+                if (this._activated && this.selectionHook) {
                     const current = this.selectionHook.getCurrentSelection();
-                    const text = (current && current.text) ? current.text.trim() : '';
-                    if (!text) return;
-                    this._applySelectionText(text);
-                }, 80);
+                    const t = (current && current.text) ? current.text.trim() : '';
+                    if (t && t.length > bestText.length) {
+                        bestText = t;
+                    }
+                }
+            } catch (_) {}
+            // 如果立即读取到了更长的文本（段落 > 单词），立即应用
+            if (bestText.length > (this._cachedText || '').length) {
+                this._applySelectionText(bestText);
                 return;
             }
+            // 延迟重试（JCEF 可能还未更新 Accessibility 状态）
+            this._tripleClickTimer = setTimeout(() => {
+                this._tripleClickTimer = null;
+                if (!this._activated || !this.selectionHook || !this.windows.isToolbarVisible() || this.windows.isAnyPopupVisible()) return;
+                try {
+                    const current = this.selectionHook.getCurrentSelection();
+                    const t = (current && current.text) ? current.text.trim() : '';
+                    if (t && t.length > bestText.length) {
+                        bestText = t;
+                    }
+                } catch (_) {}
+                if (bestText.length > (this._cachedText || '').length + 2) {
+                    this._applySelectionText(bestText);
+                }
+            }, 150);
+            return;
+        }
+
+        if (this._pendingTextUpdate) {
+            this._pendingTextUpdate = false;
 
             const current = this.selectionHook.getCurrentSelection();
             const text = (current && current.text) ? current.text.trim() : '';
@@ -355,8 +393,17 @@ class SelectionService {
             return;
         }
 
+        // 多击序列（双击/三击）不隐藏工具栏，让 _onTextSelection / _onGlobalMouseUp 更新选中文本
+        if (this._clickCount > 1) {
+            return;
+        }
+
         this.windows.hideToolbar();
         this._cachedText = '';
+        // 单击（非多击序列）清除 pendingTextUpdate，阻止 _onGlobalMouseUp 误读当前选中
+        if (this._clickCount <= 1) {
+            this._pendingTextUpdate = false;
+        }
     };
 
     _getReferencePoint(_data) {
@@ -393,6 +440,17 @@ class SelectionService {
     }
 
     handleAction(actionId) {
+        // copy 操作：直接复制到剪贴板，不打开弹窗
+        if (actionId === 'copy') {
+            const text = this._cachedText || '';
+            if (text) {
+                clipboard.writeText(text);
+            }
+            this.windows.hideToolbar();
+            this._cachedText = '';
+            return;
+        }
+
         const theme = getTheme(nativeTheme.shouldUseDarkColors);
         this._popupData = {
             action: actionId,
