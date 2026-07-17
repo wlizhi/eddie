@@ -6,6 +6,19 @@
  */
 
 const {app} = require('electron');
+
+// ============================================================
+// 过滤 macOS 系统层 Text Input 警告日志（_TIPropertyValueIsValid）
+// ============================================================
+const stderrWrite = process.stderr.write.bind(process.stderr);
+process.stderr.write = (buf, enc, cb) => {
+    if (buf && (buf.includes('_TIPropertyValueIsValid') || buf.includes('imkxpc_setApplicationProperty'))) {
+        if (typeof cb === 'function') cb();
+        return true;
+    }
+    return stderrWrite(buf, enc, cb);
+};
+
 const {startBackend, killBackend, waitForBackend} = require('./backend');
 const {createMainWindow, navigateToApp, showErrorPage, getMainWindow} = require('./window');
 const {setupIpc} = require('./ipc');

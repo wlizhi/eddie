@@ -259,21 +259,12 @@ class SelectionWindows {
             },
         });
 
-        // 转发渲染进程日志到主进程控制台，用于调试
-        this.toolbarWindow.webContents.on('console-message', (_e, level, message) => {
-            console.log(`[Toolbar:renderer] ${message}`);
-        });
-
         this.toolbarWindow.webContents.on('crashed', () => {
             console.error('[Toolbar] WebContents crashed!');
         });
 
         this.toolbarWindow.webContents.on('did-fail-load', (_e, code, desc) => {
             console.error(`[Toolbar] Failed to load: ${code} ${desc}`);
-        });
-
-        this.toolbarWindow.webContents.on('did-stop-loading', () => {
-            console.log('[Toolbar] did-stop-loading fired');
         });
 
         this.toolbarWindow.on('closed', () => {
@@ -325,33 +316,26 @@ class SelectionWindows {
         // 等新 HTML 加载完成后再显示，避免残留旧内容闪现
         win.webContents.once('did-finish-load', () => {
             if (!win.isDestroyed()) {
-                console.log('[Toolbar] did-finish-load, injecting event handlers');
                 // 注入 font-family CSS（data: URL 中 CSS font-family 不生效，需用 insertCSS 注入）
                 const fontCSS = `body, .action-btn { font-family: ${ff} !important; }`;
                 win.webContents.insertCSS(fontCSS).catch(err => console.error('[Toolbar] insertCSS failed:', err));
 
                 // 通过 executeJavaScript 注入事件处理器（运行在主 world，可访问 contextBridge 暴露的 selectionAPI）
                 win.webContents.executeJavaScript(`
-                    console.log('[Toolbar] Event handlers injected, selectionAPI:', typeof window.selectionAPI);
-
                     document.getElementById('closeBtn').addEventListener('click', () => {
-                        console.log('[Toolbar] Close button clicked');
                         window.selectionAPI.hideToolbar();
                     });
 
                     document.querySelectorAll('.action-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
-                            console.log('[Toolbar] Button clicked:', btn.dataset.id);
                             window.selectionAPI.sendAction(btn.dataset.id);
                         });
                     });
                 `).catch(err => console.error('[Toolbar] executeJavaScript failed:', err));
 
-                console.log('[Toolbar] did-finish-load, showing window');
                 win.showInactive();
             }
         });
-        console.log('[Toolbar] loadURL called');
         win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(
             getToolbarHtml(theme, text, items, fs, ff, style)
         )}`);
@@ -360,6 +344,7 @@ class SelectionWindows {
     /**
      * 隐藏工具栏
      * macOS：使用 focus-guard 防止隐藏工具栏时主窗口被前置
+     * 注意：弹窗窗口不参与 focusGuard，避免触发 blur → autoClose 导致弹窗意外关闭
      */
     hideToolbar() {
         // macOS focus-guard
@@ -367,6 +352,9 @@ class SelectionWindows {
         if (IS_MAC) {
             focusGuard = [];
             for (const w of require('electron').BrowserWindow.getAllWindows()) {
+                // 排除弹窗窗口，不干扰弹窗的焦点状态
+                if (this.popupWindows.includes(w)) continue;
+
                 if (!w.isDestroyed() && w.isVisible() && w.isFocusable()) {
                     focusGuard.push(w);
                     w.setFocusable(false);
@@ -416,6 +404,19 @@ class SelectionWindows {
     }
 
     /**
+     * 是否有弹窗处于可见状态
+     * 用于抑制工具栏重复弹出：弹窗可见时，鼠标点击弹窗内部不应唤出工具栏
+     */
+    isAnyPopupVisible() {
+        for (const win of this.popupWindows) {
+            if (!win.isDestroyed() && win.isVisible()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 创建弹窗窗口
      * @param {object} windowConfig - 窗口配置
      * @returns {BrowserWindow}
@@ -423,8 +424,6 @@ class SelectionWindows {
     _createPopupWindow(windowConfig) {
         const winWidth = windowConfig?.width || 500;
         const winHeight = windowConfig?.height || 400;
-
-        console.log(`[showPopup] Creating BrowserWindow ${winWidth}x${winHeight}`);
 
         const win = new BrowserWindow({
             width: winWidth,
@@ -444,14 +443,8 @@ class SelectionWindows {
             },
         });
 
-        // 转发渲染进程日志到主进程控制台，用于调试
-        win.webContents.on('console-message', (_e, level, message) => {
-            console.log(`[Popup:renderer] ${message}`);
-        });
-
         // 窗口关闭时自动从列表中移除
         win.once('closed', () => {
-            console.log('[showPopup] Popup closed');
             this._removeWindow(win);
         });
 
@@ -476,8 +469,6 @@ class SelectionWindows {
      * @param {function} [onShown] - 弹窗显示后的回调（用于延迟隐藏工具栏）
      */
     showPopup(text, windowConfig, actionId, fontSize, onShown) {
-        console.log(`[showPopup] actionId=${actionId}, textLength=${text.length}, windowConfig=`, JSON.stringify(windowConfig));
-
         // 创建新窗口（不销毁旧窗口）
         const win = this._createPopupWindow(windowConfig);
         const theme = this.getCurrentTheme();
@@ -497,7 +488,6 @@ class SelectionWindows {
         if (this.toolbarWindow && !this.toolbarWindow.isDestroyed() &&
             windowConfig?.position === 'follow-toolbar') {
             const tbBounds = this.toolbarWindow.getBounds();
-            console.log('[showPopup] Follow toolbar position:', tbBounds);
             const display = screen.getDisplayNearestPoint({x: tbBounds.x, y: tbBounds.y});
             const workArea = display.workArea;
             posX = Math.round(tbBounds.x + (tbBounds.width - winWidth) / 2);
@@ -519,8 +509,6 @@ class SelectionWindows {
             posX = Math.round(workArea.x + (workArea.width - winWidth) / 2);
             posY = Math.round(workArea.y + (workArea.height - winHeight) / 2);
         }
-
-        console.log(`[showPopup] Position: (${posX}, ${posY})`);
 
         win.setPosition(posX, posY, false);
         win.setBounds({width: winWidth, height: winHeight, x: posX, y: posY});
@@ -566,7 +554,6 @@ class SelectionWindows {
 
         // 每次新建窗口，ready-to-show 正常触发
         win.once('ready-to-show', () => {
-            console.log('[showPopup] ready-to-show fired, showing popup');
             win.showInactive();
 
             // 通知渲染进程初始置顶状态（更新图标）
@@ -578,9 +565,7 @@ class SelectionWindows {
             }
         });
 
-        console.log('[showPopup] Loading URL:', getPopupUrl());
         win.loadURL(getPopupUrl());
-        console.log('[showPopup] loadURL done');
     }
 
     /**
@@ -603,10 +588,14 @@ class SelectionWindows {
         if (win.isDestroyed()) return;
 
         // macOS focus-guard
+        // 排除弹窗窗口，避免影响其他弹窗的正常交互
         let focusGuard = null;
         if (IS_MAC) {
             focusGuard = [];
             for (const w of require('electron').BrowserWindow.getAllWindows()) {
+                // 排除弹窗窗口，不干扰弹窗的焦点状态
+                if (this.popupWindows.includes(w)) continue;
+
                 if (!w.isDestroyed() && w.isVisible() && w.isFocusable()) {
                     focusGuard.push(w);
                     w.setFocusable(false);
@@ -652,8 +641,6 @@ class SelectionWindows {
         win.setAlwaysOnTop(newState);
         win._isPinned = newState;
 
-        console.log(`[Selection] Popup pin toggled: ${newState}`);
-
         if (newState) {
             // 置顶 → 移除 blur/hide 监听，autoClose 失效
             if (win._blurHandler) {
@@ -664,7 +651,6 @@ class SelectionWindows {
                 win.removeListener('hide', win._hideHandler);
                 win._hideHandler = null;
             }
-            console.log('[Selection] autoClose disabled (pinned)');
         } else {
             // 取消置顶 → 如果配置了 autoClose，恢复 blur/hide 监听
             if (win._autoCloseConfig) {
@@ -679,7 +665,6 @@ class SelectionWindows {
                 win._hideHandler = autoCloseFn;
                 win.on('blur', autoCloseFn);
                 win.on('hide', autoCloseFn);
-                console.log('[Selection] autoClose re-enabled (unpinned)');
             }
         }
 
@@ -726,6 +711,5 @@ class SelectionWindows {
     }
 }
 
-module.exports = {SelectionWindows};
 module.exports = {SelectionWindows};
 
