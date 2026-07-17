@@ -61,6 +61,21 @@ import {renderMd} from '@/utils/markdown'
 import {RefreshCw, Copy} from '@lucide/vue'
 import {NSelect, NTooltip} from 'naive-ui'
 
+/**
+ * 流会话类型
+ * 每个流拥有独立的作用域，变量不被外部修改
+ */
+interface StreamSession {
+  /** 后端分配的会话序列号（由 start 事件设置） */
+  seq: number
+  /** 功能类型 */
+  action: string
+  /** cancelled 事件的 Promise，用于 stopSession 等待 */
+  cancelledPromise: Promise<void>
+  /** 解析 cancelledPromise 的函数 */
+  resolveCancelled: (() => void) | null
+}
+
 const props = defineProps<{ data: { text: string; targetLang?: string } }>()
 
 const collapsed = ref(true)
@@ -114,22 +129,61 @@ const targetLangDisplay = computed(() => {
   return opt ? opt.zhLabel : '简体中文'
 })
 
-function onLangChange() {
-  retry()
+// ============================================================
+// 会话管理
+// ============================================================
+
+/** 当前活跃的流会话。模块级仅有此引用，所有流相关变量封装在 session 对象中 */
+let currentSession: StreamSession | null = null
+
+/**
+ * 创建独立的流会话
+ * 每个会话拥有自己的 seq、cancelledPromise，完全不受外部影响
+ */
+function createSession(action: string): StreamSession {
+  let resolveCancelled: (() => void) | null = null
+  const cancelledPromise = new Promise<void>(resolve => {
+    resolveCancelled = resolve
+  })
+  return {seq: 0, action, cancelledPromise, resolveCancelled}
 }
 
-/** 代数计数器：每次发起新请求时递增 */
-let currentGeneration = 0
+/**
+ * 优雅停止指定会话
+ *
+ * 流程：
+ * 1. 调用 POST /stop 传入会话的 seq
+ * 2. 后端返回 404 → 流已结束，直接返回
+ * 3. 后端返回 200 → 等待此会话的 cancelled 事件
+ */
+async function stopSession(session: StreamSession | null): Promise<void> {
+  if (!session || session.seq === 0) return
+
+  try {
+    const res = await fetch('/api/selection-assistant/stop', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: session.action, sequenceId: session.seq}),
+    })
+    const data = await res.json()
+    if (data.code === 404) return
+    // 等待此会话自身的 cancelled 事件
+    await session.cancelledPromise
+  } catch {
+    // 网络异常，继续后续流程
+  }
+}
+
+// ============================================================
+// 流式请求
+// ============================================================
 
 /**
  * 发起流式翻译请求
  *
- * 不主动 abort 旧请求（避免浏览器连接状态影响新请求）。
- * 旧请求的 while 循环每次 reader.read() 后通过代数检测发现已被取代，
- * 自动退出读取循环，后续事件通过代数计数器静默忽略。
+ * @param session 此流所属的会话，所有事件处理基于此 session，不依赖外部变量
  */
-async function startStream() {
-  const gen = ++currentGeneration
+async function startStream(session: StreamSession) {
   streaming.value = true
   const trimmed = props.data.text?.trim()
   if (!trimmed) {
@@ -150,7 +204,7 @@ async function startStream() {
     })
 
     if (!response.ok || !response.body) {
-      if (gen !== currentGeneration) return
+      if (currentSession !== session) return
       error.value = `请求失败: ${response.status}`
       loading.value = false
       streaming.value = false
@@ -165,39 +219,43 @@ async function startStream() {
       const {done, value} = await reader.read()
       if (done) break
 
-      // 被后续请求取代 → 停止读取，静默退出
-      if (gen !== currentGeneration) return
-
       buffer += decoder.decode(value, {stream: true})
       const parts = buffer.split('\n\n')
       buffer = parts.pop() || ''
 
+      // 先处理事件，确保 cancelled 在会话检查前被处理
       for (const block of parts) {
         if (!block.trim()) continue
-        processEvent(block)
+        processEvent(block, session)
       }
+
+      // 当前会话已被取代（另一个 onLangChange 已创建新会话），停止读取
+      if (currentSession !== session) return
     }
 
     // 处理剩余 buffer
     if (buffer.trim()) {
-      processEvent(buffer)
+      processEvent(buffer, session)
     }
 
-    // 被后续请求取代 → 静默忽略
-    if (gen !== currentGeneration) return
+    if (currentSession !== session) return
     loading.value = false
     streaming.value = false
   } catch (err: any) {
-    // 被后续请求取代 → 静默忽略
-    if (gen !== currentGeneration) return
-    // 当前请求的真实异常 → 友好提示
+    if (currentSession !== session) return
     error.value = `网络请求失败: ${err.message}`
     loading.value = false
     streaming.value = false
   }
 }
 
-function processEvent(block: string) {
+/**
+ * 处理 SSE 事件
+ *
+ * @param block SSE 事件块
+ * @param session 当前流所属会话，事件更新写入此会话而非模块变量
+ */
+function processEvent(block: string, session: StreamSession) {
   const lines = block.split('\n')
   let eventType = ''
   let dataStr = ''
@@ -213,11 +271,28 @@ function processEvent(block: string) {
     const parsed = JSON.parse(dataStr)
 
     switch (eventType) {
+      case 'start': {
+        // 将会话序列号写入此会话，不修改外部变量
+        if (parsed.seq) {
+          session.seq = parsed.seq
+        }
+        break
+      }
       case 'delta': {
         if (parsed.content) {
           loading.value = false
           result.value += parsed.content
         }
+        break
+      }
+      case 'cancelled': {
+        // 解析此会话的 cancelledPromise，通知 stopSession 停止等待
+        if (session.resolveCancelled) {
+          session.resolveCancelled()
+          session.resolveCancelled = null
+        }
+        loading.value = false
+        streaming.value = false
         break
       }
       case 'metadata':
@@ -236,15 +311,55 @@ function processEvent(block: string) {
   }
 }
 
+// ============================================================
+// 用户交互
+// ============================================================
+
 /**
- * 重新生成翻译
+ * 目标语言切换
+ *
+ * 流程：
+ * 1. 停止当前会话（等待完全停止）
+ * 2. 清空 UI
+ * 3. 创建新会话，启动新流
  */
-function retry() {
+async function onLangChange() {
+  const oldSession = currentSession
+
+  // 等待旧流完全停止（cancelled 事件到达）
+  await stopSession(oldSession)
+
+  // 旧流已完全停止，安全清空 UI
   result.value = ''
   error.value = ''
   loading.value = true
   streaming.value = true
-  startStream()
+
+  // 创建新会话并启动新流
+  const session = createSession('translate')
+  currentSession = session
+  startStream(session)
+}
+
+/**
+ * 重新生成翻译
+ *
+ * 按钮在 streaming 时为 disabled 状态，正常情况下无活跃流。
+ * 但为安全起见仍执行停止流程。
+ */
+async function retry() {
+  const oldSession = currentSession
+
+  await stopSession(oldSession)
+
+  result.value = ''
+  error.value = ''
+  loading.value = true
+  streaming.value = true
+
+  const session = createSession('translate')
+  currentSession = session
+  startStream(session)
 }
 
 /** 复制渲染后的文本内容到剪贴板 */
@@ -258,7 +373,9 @@ async function copyContent() {
 }
 
 onMounted(() => {
-  startStream()
+  const session = createSession('translate')
+  currentSession = session
+  startStream(session)
 })
 </script>
 

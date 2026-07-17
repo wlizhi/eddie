@@ -15,6 +15,10 @@ contextBridge.exposeInMainWorld('selectionAPI', {
     // ============================================================
     // 窗口操作
     // ============================================================
+    /** 发送：工具栏功能按钮点击（actionId → 弹窗） */
+    sendAction: (actionId) => ipcRenderer.send('selection:action', actionId),
+    /** 发送：拖拽工具栏窗口 */
+    dragMove: (dx, dy) => ipcRenderer.send('selection:drag-move', dx, dy),
     /** 发送：隐藏工具栏 */
     hideToolbar: () => ipcRenderer.send('selection:hide-toolbar'),
     /** 发送：关闭弹窗 */

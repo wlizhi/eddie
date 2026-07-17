@@ -6,7 +6,9 @@
 package cc.wlizhi.eddie.assistant.controller;
 
 import cc.wlizhi.eddie.assistant.entity.request.SelectionAssistantRequest;
+import cc.wlizhi.eddie.assistant.entity.request.SelectionAssistantStopRequest;
 import cc.wlizhi.eddie.assistant.service.SelectionAssistantService;
+import cc.wlizhi.eddie.common.dto.ApiResult;
 import jakarta.annotation.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -52,5 +54,19 @@ public class SelectionAssistantController {
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> stream(@Validated @RequestBody SelectionAssistantRequest request) {
         return selectionAssistantService.stream(request);
+    }
+
+    /**
+     * 优雅停止当前回答
+     * <p>
+     * 通过 EventRegistry 注册停止事件，stream 流中的 takeWhile 检测到后终止。
+     * 序列号不存在时返回错误（前端可忽略），表示会话已结束。
+     *
+     * @param request 停止请求参数
+     * @return ApiResult
+     */
+    @PostMapping("/stop")
+    public ApiResult<Void> stop(@Validated @RequestBody SelectionAssistantStopRequest request) {
+        return selectionAssistantService.stop(request);
     }
 }

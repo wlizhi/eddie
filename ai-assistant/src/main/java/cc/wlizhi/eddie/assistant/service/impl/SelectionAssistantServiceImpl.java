@@ -6,10 +6,14 @@
 package cc.wlizhi.eddie.assistant.service.impl;
 
 import cc.wlizhi.eddie.assistant.entity.request.SelectionAssistantRequest;
+import cc.wlizhi.eddie.assistant.entity.request.SelectionAssistantStopRequest;
 import cc.wlizhi.eddie.assistant.service.SelectionAssistantService;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatModel;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatOptions;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiOptionsHelper;
+import cc.wlizhi.eddie.common.cache.EventRegistry;
+import cc.wlizhi.eddie.common.dto.ApiResult;
+import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.entity.ModelProviderEntity;
 import cc.wlizhi.eddie.common.entity.dto.ModelSelection;
 import cc.wlizhi.eddie.common.enums.GlobalConfigKey;
@@ -29,7 +33,11 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 
 import java.time.Duration;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 划词助手业务实现
@@ -49,6 +57,18 @@ public class SelectionAssistantServiceImpl implements SelectionAssistantService 
     private static final TypeReference<ModelSelection> MODEL_SEL_REF = new TypeReference<>() {
     };
 
+    /**
+     * 全局递增会话计数器，每次请求递增，用于唯一标识本次会话
+     */
+    private final AtomicInteger sessionCounter = new AtomicInteger(0);
+
+    /**
+     * 活跃会话序列号集合，用于 stop 接口校验 seq 是否有效
+     * <p>
+     * 会话开始（stream 发射 start 事件前）添加，doFinally 中移除。
+     */
+    private final Set<Integer> activeSessions = ConcurrentHashMap.newKeySet();
+
     @Resource
     private GlobalConfigContext globalConfig;
 
@@ -61,13 +81,22 @@ public class SelectionAssistantServiceImpl implements SelectionAssistantService 
     @Resource
     private ObjectMapper objectMapper;
 
+    @Resource
+    private EventRegistry chatEventRegistry;
+
     @Override
     public Flux<ServerSentEvent<String>> stream(SelectionAssistantRequest request) {
+        // ===== 0. 生成会话唯一序列号 =====
+        int seq = sessionCounter.incrementAndGet();
+        activeSessions.add(seq);
+        String action = request.getAction();
+        String eventKey = buildEventKey(action, seq);
+
         return Mono.fromCallable(() -> {
                     // ===== 1. 解析模型选择 & 供应商配置（同步，纯内存操作） =====
-                    ModelSelection modelSel = resolveModelSelection(request.getAction());
+                    ModelSelection modelSel = resolveModelSelection(action);
                     if (modelSel == null) {
-                        throw new AppException(getModelNotConfiguredHint(request.getAction()));
+                        throw new AppException(getModelNotConfiguredHint(action));
                     }
                     ModelProviderEntity provider = providerContext.getModelProviderById(modelSel.getProviderId());
                     if (provider == null) {
@@ -80,32 +109,83 @@ public class SelectionAssistantServiceImpl implements SelectionAssistantService 
                     // ===== 2. 流式调用 → 映射为 SSE 事件（纯响应式管道） =====
                     long startMs = System.currentTimeMillis();
                     String systemPrompt = resolvePrompt(request);
+                    AtomicBoolean wasStopped = new AtomicBoolean(false);
 
+                    // 2.0 在模型调用前检测是否已被停止（快速切换场景）
+                    if (chatEventRegistry.contains(eventKey)) {
+                        log.info("模型调用前检测到停止事件, 跳过模型调用: seq={}, action={}", seq, action);
+                        wasStopped.set(true);
+                        // 直接发射 start + cancelled，不做模型 API 调用
+                        return Flux.just(buildStartEvent(seq), buildCancelledEvent());
+                    }
+
+                    // 2.1 先发射 start 事件，告知前端会话序列号
+                    Flux<ServerSentEvent<String>> startEvent = Flux.just(buildStartEvent(seq));
+
+                    // 2.2 流式 delta，每个 chunk 前检测停止事件
                     Flux<ServerSentEvent<String>> deltaStream = client.prompt()
                             .system(systemPrompt)
                             .user(request.getText())
                             .stream()
                             .content()
+                            .takeWhile(chunk -> {
+                                boolean stopped = chatEventRegistry.contains(eventKey);
+                                if (stopped) {
+                                    wasStopped.set(true);
+                                    log.info("检测到停止事件, 终止流: seq={}, action={}", seq, action);
+                                }
+                                return !stopped;
+                            })
                             .map(SelectionAssistantServiceImpl::buildDeltaEvent);
 
-                    Flux<ServerSentEvent<String>> metadataEvent = Flux.just(
-                            buildMetadataEvent(System.currentTimeMillis() - startMs));
+                    // 2.3 终止事件：cancelled（被停止）或 metadata（正常完成）
+                    Flux<ServerSentEvent<String>> terminalEvent = Mono.fromSupplier(() -> {
+                        if (wasStopped.get()) {
+                            return buildCancelledEvent();
+                        }
+                        return buildMetadataEvent(System.currentTimeMillis() - startMs);
+                    }).flux();
 
-                    return deltaStream.concatWith(metadataEvent);
+                    // start → delta ... → cancelled | metadata
+                    return startEvent.concatWith(deltaStream.concatWith(terminalEvent));
                 })
                 .doFinally(signalType -> {
+                    // 清理活跃会话集合 & 注册表
+                    activeSessions.remove(seq);
+                    chatEventRegistry.remove(eventKey);
                     if (signalType == SignalType.CANCEL) {
-                        log.info("客户端断开SSE连接: action={}", request.getAction());
+                        log.info("客户端断开SSE连接: seq={}, action={}", seq, action);
                     }
                 })
                 .onErrorResume(CancellationException.class, e -> {
-                    log.debug("流式处理被客户端取消: action={}, msg={}", request.getAction(), e.getMessage());
+                    log.debug("流式处理被客户端取消: seq={}, action={}, msg={}", seq, action, e.getMessage());
                     return Flux.empty();
                 })
                 .onErrorResume(e -> {
-                    log.warn("划词助手处理异常: action={}, msg={}", request.getAction(), e.getMessage());
+                    log.warn("划词助手处理异常: seq={}, action={}, msg={}", seq, action, e.getMessage());
                     return Flux.just(buildErrorEvent(e.getMessage()));
                 });
+    }
+
+    @Override
+    public ApiResult<Void> stop(SelectionAssistantStopRequest request) {
+        int seq = request.getSequenceId();
+        String action = request.getAction();
+        // 校验序列号是否在活跃会话中，防止误传或恶意调用
+        if (!activeSessions.contains(seq)) {
+            log.warn("停止请求的序列号不存在或已结束: seq={}, action={}", seq, action);
+            return ApiResult.error(ApiResultCode.NOT_FOUND, "序列号不存在，会话已结束");
+        }
+        log.info("优雅停止会话: seq={}, action={}", seq, action);
+        chatEventRegistry.register(buildEventKey(action, seq), "graceful");
+        return ApiResult.success();
+    }
+
+    /**
+     * 构建事件注册表 key，格式：selection-assistant:{action}:{seq}
+     */
+    private static String buildEventKey(String action, int seq) {
+        return "selection-assistant:" + action + ":" + seq;
     }
 
     /**
@@ -189,6 +269,20 @@ public class SelectionAssistantServiceImpl implements SelectionAssistantService 
     }
 
     // ========== SSE 事件构建 ==========
+
+    private static ServerSentEvent<String> buildStartEvent(int seq) {
+        return ServerSentEvent.<String>builder()
+                .event("start")
+                .data("{\"seq\":" + seq + "}")
+                .build();
+    }
+
+    private static ServerSentEvent<String> buildCancelledEvent() {
+        return ServerSentEvent.<String>builder()
+                .event("cancelled")
+                .data("{}")
+                .build();
+    }
 
     private static ServerSentEvent<String> buildDeltaEvent(String content) {
         return ServerSentEvent.<String>builder()

@@ -43,6 +43,14 @@ import {renderMd} from '@/utils/markdown'
 import {Copy} from '@lucide/vue'
 import {NTooltip} from 'naive-ui'
 
+/** 流会话类型 */
+interface StreamSession {
+  seq: number
+  action: string
+  cancelledPromise: Promise<void>
+  resolveCancelled: (() => void) | null
+}
+
 const props = defineProps<{ data: { text: string } }>()
 
 const collapsed = ref(true)
@@ -53,7 +61,21 @@ const copyDone = ref(false)
 const showCopy = ref(false)
 const rendered = computed(() => renderMd(result.value))
 
-async function startStream() {
+// ============================================================
+// 会话管理
+// ============================================================
+
+let currentSession: StreamSession | null = null
+
+function createSession(action: string): StreamSession {
+  let resolveCancelled: (() => void) | null = null
+  const cancelledPromise = new Promise<void>(resolve => {
+    resolveCancelled = resolve
+  })
+  return {seq: 0, action, cancelledPromise, resolveCancelled}
+}
+
+async function startStream(session: StreamSession) {
   const trimmed = props.data.text?.trim()
   if (!trimmed) {
     error.value = '选中文本为空，无法处理'
@@ -76,17 +98,20 @@ async function startStream() {
       buffer += decoder.decode(value, {stream: true})
       const parts = buffer.split('\n\n')
       buffer = parts.pop() || ''
-      for (const block of parts) { if (block.trim()) processEvent(block) }
+      for (const block of parts) { if (block.trim()) processEvent(block, session) }
+      if (currentSession !== session) return
     }
-    if (buffer.trim()) processEvent(buffer)
+    if (buffer.trim()) processEvent(buffer, session)
+    if (currentSession !== session) return
     loading.value = false
   } catch (err: any) {
+    if (currentSession !== session) return
     error.value = `网络请求失败: ${err.message}`
     loading.value = false
   }
 }
 
-function processEvent(block: string) {
+function processEvent(block: string, session: StreamSession) {
   const lines = block.split('\n')
   let eventType = ''
   let dataStr = ''
@@ -98,7 +123,19 @@ function processEvent(block: string) {
   try {
     const parsed = JSON.parse(dataStr)
     switch (eventType) {
+      case 'start': {
+        if (parsed.seq) session.seq = parsed.seq
+        break
+      }
       case 'delta': if (parsed.content) { loading.value = false; result.value += parsed.content } break
+      case 'cancelled': {
+        if (session.resolveCancelled) {
+          session.resolveCancelled()
+          session.resolveCancelled = null
+        }
+        loading.value = false
+        break
+      }
       case 'metadata': loading.value = false; break
       case 'error': error.value = parsed.message || '未知错误'; loading.value = false; break
     }
@@ -115,7 +152,11 @@ async function copyContent() {
   } catch { /* ignore */ }
 }
 
-onMounted(() => startStream())
+onMounted(() => {
+  const session = createSession('explain')
+  currentSession = session
+  startStream(session)
+})
 </script>
 
 <style scoped>
