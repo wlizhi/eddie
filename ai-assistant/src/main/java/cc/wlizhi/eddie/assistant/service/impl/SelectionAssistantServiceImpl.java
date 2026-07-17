@@ -26,8 +26,10 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 import java.time.Duration;
+import java.util.concurrent.CancellationException;
 
 /**
  * 划词助手业务实现
@@ -90,6 +92,15 @@ public class SelectionAssistantServiceImpl implements SelectionAssistantService 
                             buildMetadataEvent(System.currentTimeMillis() - startMs));
 
                     return deltaStream.concatWith(metadataEvent);
+                })
+                .doFinally(signalType -> {
+                    if (signalType == SignalType.CANCEL) {
+                        log.info("客户端断开SSE连接: action={}", request.getAction());
+                    }
+                })
+                .onErrorResume(CancellationException.class, e -> {
+                    log.debug("流式处理被客户端取消: action={}, msg={}", request.getAction(), e.getMessage());
+                    return Flux.empty();
                 })
                 .onErrorResume(e -> {
                     log.warn("划词助手处理异常: action={}, msg={}", request.getAction(), e.getMessage());

@@ -23,16 +23,19 @@ const {IS_MAC} = require('../utils/platform');
 //   containerPadV = ceil(14 * 0.28) = 4
 //   toolbarHeight = btnHeight + containerPadV * 2 = 29
 
-function calcToolbarHeight(fontSize) {
+function calcToolbarHeight(fontSize, toolbarStyle) {
+    const btnPad = Math.ceil(fontSize * 0.09);
     const btnH = Math.ceil(fontSize * 1.5);
-    const padV = Math.ceil(fontSize * 0.18);
+    const padV = toolbarStyle === 'compact'
+        ? 0
+        : Math.ceil(fontSize * 0.12);
     return btnH + padV * 2;
 }
 
 function getBtnHeight(fontSize) { return Math.ceil(fontSize * 1.5); }
-function getBtnPad(fontSize) { return Math.ceil(fontSize * 0.18); }
-function getContainerPadV(fontSize) { return Math.ceil(fontSize * 0.18); }
-function getContainerPadH(fontSize) { return Math.ceil(fontSize * 0.18); }
+function getBtnPad(fontSize) { return Math.ceil(fontSize * 0.09); }
+function getContainerPadV(fontSize) { return Math.ceil(fontSize * 0.12); }
+function getContainerPadH(fontSize) { return Math.ceil(fontSize * 0.12); }
 function getBtnFontSize(fontSize) { return Math.max(11, Math.round(fontSize * 0.82)); }
 function getDividerH(fontSize) { return Math.ceil(fontSize * 0.7); }
 function getCloseBtnSize(fontSize) { return Math.ceil(fontSize * 1.14); }
@@ -104,7 +107,7 @@ function getToolbarHtml(theme, text, items, fontSize, fontFamily, toolbarStyle) 
 
     const fontFamilyCSS = fontFamily || DEFAULT_FONT_FAMILY;
 
-    const toolbarH = calcToolbarHeight(fontSize);
+    const toolbarH = calcToolbarHeight(fontSize, toolbarStyle);
     const btnH = getBtnHeight(fontSize);
     const btnPad = getBtnPad(fontSize);
     const btnFs = getBtnFontSize(fontSize);
@@ -112,6 +115,7 @@ function getToolbarHtml(theme, text, items, fontSize, fontFamily, toolbarStyle) 
     const closeSz = getCloseBtnSize(fontSize);
     const padV = getContainerPadV(fontSize);
     const padH = getContainerPadH(fontSize);
+    const tbPadH = Math.ceil(fontSize * 0.12);
     const gap = getToolbarGap(fontSize);
 
     return `<!DOCTYPE html>
@@ -127,36 +131,35 @@ body{
     user-select:none;
 }
 .toolbar{
-    -webkit-app-region:drag;
     display:flex;align-items:center;height:${toolbarH}px;
-    padding:0 ${padH}px;gap:${gap}px;
+    padding:0 ${tbPadH}px;gap:${gap}px;
     background:${theme.bgSecondary};border-radius:8px;
     border:1px solid ${theme.border};
     box-shadow:0 4px 10px rgba(0,0,0,.3);
 }
-.actions{display:flex;align-items:center;gap:${gap}px;-webkit-app-region:no-drag}
+.actions{display:flex;align-items:center;gap:${gap}px;flex-shrink:0}
 .action-btn{
-    -webkit-app-region:no-drag;
     display:inline-flex;align-items:center;gap:${Math.max(2, Math.round(fontSize * 0.15))}px;
-    height:${btnH}px;padding:0 ${btnPad}px;border:none;border-radius:5px;
+    padding:${btnPad}px ${btnPad}px;border:none;border-radius:5px;
     font-size:${btnFs}px;cursor:pointer;white-space:nowrap;
     background:transparent;color:${theme.textPrimary};
     transition:background .12s;
 }
 .action-btn:hover{background:${theme.hover}}
 .action-btn:active{background:${theme.border}}
+.action-btn svg{pointer-events:none}
 .btn-divider{
     width:1px;height:${dividerH}px;align-self:center;
     background:${theme.border};opacity:.3;flex-shrink:0;
 }
 .close-btn{
     display:inline-flex;align-items:center;justify-content:center;
-    width:${closeSz}px;height:${closeSz}px;border:none;border-radius:4px;
+    width:${closeSz}px;height:${closeSz}px;border:none;border-radius:4px;flex-shrink:0;
     font-size:${Math.round(fontSize * 0.86)}px;cursor:pointer;background:transparent;
-    color:${theme.textTertiary};-webkit-app-region:no-drag;
-    transition:background .12s;
+    color:${theme.textTertiary};transition:background .12s;
 }
 .close-btn:hover{background:${theme.hover};color:${theme.textPrimary}}
+.close-btn svg{pointer-events:none}
 </style>
 </head>
 <body>
@@ -289,10 +292,11 @@ class SelectionWindows {
         const fs = fontSize || 14;
         const ff = fontFamily || DEFAULT_FONT_FAMILY;
         const style = toolbarStyle || 'default';
-        const toolbarHeight = calcToolbarHeight(fs);
+        const toolbarHeight = calcToolbarHeight(fs, style);
         const toolbarWidth = calcToolbarWidth(items, fs, style);
 
-        // 计算位置：确保不超出屏幕边界
+        // 先用 calcToolbarWidth 计算初始宽度（与最终值接近，减少闪烁），
+        // 加载后通过测量实际渲染宽度做最终修正
         const display = screen.getDisplayNearestPoint(position);
         const workArea = display.workArea;
 
@@ -318,22 +322,75 @@ class SelectionWindows {
             if (!win.isDestroyed()) {
                 // 注入 font-family CSS（data: URL 中 CSS font-family 不生效，需用 insertCSS 注入）
                 const fontCSS = `body, .action-btn { font-family: ${ff} !important; }`;
-                win.webContents.insertCSS(fontCSS).catch(err => console.error('[Toolbar] insertCSS failed:', err));
+                win.webContents.insertCSS(fontCSS).catch(() => {});
 
-                // 通过 executeJavaScript 注入事件处理器（运行在主 world，可访问 contextBridge 暴露的 selectionAPI）
+                // 注入事件处理器 + 拖拽 + 测量实际内容宽度并修正
                 win.webContents.executeJavaScript(`
                     document.getElementById('closeBtn').addEventListener('click', () => {
                         window.selectionAPI.hideToolbar();
                     });
-
                     document.querySelectorAll('.action-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
                             window.selectionAPI.sendAction(btn.dataset.id);
                         });
                     });
-                `).catch(err => console.error('[Toolbar] executeJavaScript failed:', err));
-
-                win.showInactive();
+                    // 窗口拖拽（替代 -webkit-app-region）
+                    (function() {
+                        var toolbar = document.querySelector('.toolbar');
+                        var dragging = false, startX, startY;
+                        toolbar.addEventListener('mousedown', function(e) {
+                            if (e.target.closest('.action-btn') || e.target.closest('.close-btn')) return;
+                            dragging = true;
+                            startX = e.screenX;
+                            startY = e.screenY;
+                            e.preventDefault();
+                        });
+                        document.addEventListener('mousemove', function(e) {
+                            if (!dragging) return;
+                            var dx = e.screenX - startX;
+                            var dy = e.screenY - startY;
+                            if (dx !== 0 || dy !== 0) {
+                                window.selectionAPI.dragMove(dx, dy);
+                                startX = e.screenX;
+                                startY = e.screenY;
+                            }
+                        });
+                        document.addEventListener('mouseup', function() {
+                            dragging = false;
+                        });
+                    })();
+                    var tb = document.querySelector('.toolbar');
+                    var s = getComputedStyle(tb);
+                    var pl = parseFloat(s.paddingLeft) || 0;
+                    var pr = parseFloat(s.paddingRight) || 0;
+                    // columnGap 可能返回 "2px"，gap 可能返回 "0px 2px"(row+column)，取最后一项
+                    var gv = (s.columnGap || s.gap || '0px').trim().split(/\s+/);
+                    var cg = parseFloat(gv[gv.length - 1]) || 0;
+                    // 累加所有直接子元素的 offsetWidth + 子元素之间的 gap
+                    // +1 补偿子像素取整误差（offsetWidth 取整后累加可能比实际少 1px）
+                    var sum = 0, children = tb.children;
+                    for (var i = 0; i < children.length; i++) {
+                        sum += children[i].offsetWidth;
+                        if (i < children.length - 1) sum += cg;
+                    }
+                    pl + sum + pr + 1;
+                `).then(actualWidth => {
+                    if (win.isDestroyed() || typeof actualWidth !== 'number') return;
+                    var newWidth = Math.ceil(actualWidth);
+                    // 偏差超过 1px 才修正，避免无意义抖动
+                    if (Math.abs(newWidth - toolbarWidth) > 1) {
+                        var newX = Math.round(Math.max(workArea.x, Math.min(
+                            position.x - newWidth / 2,
+                            workArea.x + workArea.width - newWidth
+                        )));
+                        win.setBounds({width: newWidth, height: toolbarHeight, x: newX, y});
+                    }
+                    win.showInactive();
+                    win.webContents.focus();
+                }).catch(function() {
+                    win.showInactive();
+                    win.webContents.focus();
+                });
             }
         });
         win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(

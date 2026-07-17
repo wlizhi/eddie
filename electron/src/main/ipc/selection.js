@@ -26,6 +26,15 @@ function register() {
         service.windows.hideToolbar();
     });
 
+    // 工具栏操作：拖拽窗口
+    ipcMain.on('selection:drag-move', (event, dx, dy) => {
+        const win = require('electron').BrowserWindow.fromWebContents(event.sender);
+        if (win && !win.isDestroyed()) {
+            const [x, y] = win.getPosition();
+            win.setPosition(x + dx, y + dy);
+        }
+    });
+
     // 弹窗操作：关闭弹窗（由指定窗口的关闭按钮触发）
     ipcMain.on('selection:close-popup', (event) => {
         const win = require('electron').BrowserWindow.fromWebContents(event.sender);

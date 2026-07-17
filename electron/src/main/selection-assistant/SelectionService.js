@@ -180,8 +180,6 @@ class SelectionService {
 
         const text = (data.text || '').trim();
         if (!text) return;
-
-        this._lastSelectionTime = Date.now();
         this._lastSelectionData = data;
         this._lastSelectionProgram = data.programName || '';
         this._pendingTextUpdate = true;

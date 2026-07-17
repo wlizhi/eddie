@@ -118,20 +118,19 @@ function onLangChange() {
   retry()
 }
 
-/** 当前请求的 AbortController，用于取消上一次未完成的请求 */
-let currentAbort: AbortController | null = null
+/** 代数计数器：每次发起新请求时递增 */
+let currentGeneration = 0
 
 /**
  * 发起流式翻译请求
+ *
+ * 不主动 abort 旧请求（避免浏览器连接状态影响新请求）。
+ * 旧请求的 while 循环每次 reader.read() 后通过代数检测发现已被取代，
+ * 自动退出读取循环，后续事件通过代数计数器静默忽略。
  */
 async function startStream() {
+  const gen = ++currentGeneration
   streaming.value = true
-  // 取消上一次未完成的请求
-  if (currentAbort) {
-    currentAbort.abort()
-  }
-  currentAbort = new AbortController()
-  const {signal} = currentAbort
   const trimmed = props.data.text?.trim()
   if (!trimmed) {
     error.value = '选中文本为空，无法处理'
@@ -148,10 +147,10 @@ async function startStream() {
         text: props.data.text,
         targetLang: targetLangDisplay.value,
       }),
-      signal,
     })
 
     if (!response.ok || !response.body) {
+      if (gen !== currentGeneration) return
       error.value = `请求失败: ${response.status}`
       loading.value = false
       streaming.value = false
@@ -165,6 +164,9 @@ async function startStream() {
     while (true) {
       const {done, value} = await reader.read()
       if (done) break
+
+      // 被后续请求取代 → 停止读取，静默退出
+      if (gen !== currentGeneration) return
 
       buffer += decoder.decode(value, {stream: true})
       const parts = buffer.split('\n\n')
@@ -181,9 +183,14 @@ async function startStream() {
       processEvent(buffer)
     }
 
+    // 被后续请求取代 → 静默忽略
+    if (gen !== currentGeneration) return
     loading.value = false
     streaming.value = false
   } catch (err: any) {
+    // 被后续请求取代 → 静默忽略
+    if (gen !== currentGeneration) return
+    // 当前请求的真实异常 → 友好提示
     error.value = `网络请求失败: ${err.message}`
     loading.value = false
     streaming.value = false

@@ -15,13 +15,8 @@ contextBridge.exposeInMainWorld('selectionAPI', {
     // ============================================================
     // 窗口操作
     // ============================================================
-
-    /** 发送：点击功能项（工具栏使用） */
-    sendAction: (actionId) => ipcRenderer.send('selection:action', actionId),
-
     /** 发送：隐藏工具栏 */
     hideToolbar: () => ipcRenderer.send('selection:hide-toolbar'),
-
     /** 发送：关闭弹窗 */
     closePopup: () => ipcRenderer.send('selection:close-popup'),
 
