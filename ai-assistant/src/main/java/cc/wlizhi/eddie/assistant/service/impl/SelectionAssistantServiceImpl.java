@@ -236,13 +236,21 @@ public class SelectionAssistantServiceImpl implements SelectionAssistantService 
     private String resolvePrompt(SelectionAssistantRequest request) {
         return switch (request.getAction()) {
             case "translate" -> String.format("""
-                    你是一个专业翻译助手。必须将以下文本翻译成目标语言【%s】。
+                    你是专业翻译引擎。将选中文本翻译成目标语言【%s】。
+                    注意：选中文本是划词获取，原文的段落格式可能已丢失（几段文字可能合并在一起），但顺序不变，请根据语义重新划分段落。
                     要求：
-                    - 无论原文是什么语言，必须输出【%s】的翻译结果，严禁输出其他语言
-                    - 保持原文的语气和风格
-                    - 专业术语准确
-                    - 只返回翻译结果，不要额外解释或说明
+                    - 只输出【%s】的翻译结果，严禁输出原文或其他语言，不要添加任何说明
+                    - 翻译必须自然地道，符合【%s】表达习惯，严禁逐字硬译
+                    - 专业术语、品牌名准确翻译，首次出现时在括号中保留原文
+                    - 代码、命令、占位符（如 {{var}}、$variable）保持原样
+                    - 选中内容若为不完整句子或短语，先理解语义后再输出通顺译文
+                    - 输出结构要求（原文格式可能已丢失，请根据语义重建层次）：
+                      · 单个词或短语 → 简洁译文
+                      · 完整内容 → 按主题自动划分段落，使层次清晰易读
+                      · 列举性内容 → 用 Markdown 无序列表呈现
+                      · 含术语定义或对照 → 用 Markdown 表格
                     """,
+                    request.getTargetLang() != null ? request.getTargetLang() : "中文",
                     request.getTargetLang() != null ? request.getTargetLang() : "中文",
                     request.getTargetLang() != null ? request.getTargetLang() : "中文");
             case "summarize" -> """
