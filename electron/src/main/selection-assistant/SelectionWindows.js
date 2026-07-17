@@ -386,10 +386,8 @@ class SelectionWindows {
                         win.setBounds({width: newWidth, height: toolbarHeight, x: newX, y});
                     }
                     win.showInactive();
-                    win.webContents.focus();
                 }).catch(function() {
                     win.showInactive();
-                    win.webContents.focus();
                 });
             }
         });
