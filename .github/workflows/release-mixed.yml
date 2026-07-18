@@ -102,15 +102,13 @@ jobs:
       - name: Native compile (Linux)
         if: runner.os == 'Linux' && steps.check.outputs.skip != 'true'
         run: |
-          mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -DjvmArgs="-Xmx4g"
+          mvn -Pnative native:compile -pl ai-app -DskipTests 
 
       - name: Native compile (Windows)
         if: runner.os == 'Windows' && steps.check.outputs.skip != 'true'
         shell: bash
         run: |
-          mvn -Pnative native:compile -pl ai-app -DskipTests \
-            -DjvmArgs="-Xmx4g"
+          mvn -Pnative native:compile -pl ai-app -DskipTests 
 
       - name: Rename binary
         if: steps.check.outputs.skip != 'true'
