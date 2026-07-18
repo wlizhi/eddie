@@ -78,7 +78,7 @@ public class McpToolServiceImpl implements McpToolService {
      */
     @PostConstruct
     public void registerReconnectCallback() {
-        initScheduler.addTask(this.getClass().getSimpleName(), 100, this::doRegisterReconnectCallback, true);
+        initScheduler.addTask(this.getClass().getSimpleName(), 100, this::doRegisterReconnectCallback);
     }
 
     private void doRegisterReconnectCallback() {

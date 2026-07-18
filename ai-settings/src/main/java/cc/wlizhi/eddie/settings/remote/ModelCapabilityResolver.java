@@ -51,7 +51,7 @@ public class ModelCapabilityResolver {
 
     @PostConstruct
     public void init() {
-        initScheduler.addTask(this.getClass().getSimpleName(), 0, this::doInit, true);
+        initScheduler.addTask(this.getClass().getSimpleName(), 0, this::doInit);
     }
 
     private void doInit() {

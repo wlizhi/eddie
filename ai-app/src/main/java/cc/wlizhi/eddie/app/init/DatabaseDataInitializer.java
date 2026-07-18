@@ -67,7 +67,7 @@ public class DatabaseDataInitializer {
         int currentVersion = getCurrentVersion();
         log.info("当前数据库初始化版本: {}", currentVersion);
 
-        List<VersionedScript> allScripts = scanVersionedSqlFiles();
+        List<VersionedScript> allScripts = scanVersionedSqlFiles(currentVersion);
         if (allScripts.isEmpty()) {
             log.info("没有待执行的数据库初始化脚本");
             return;
@@ -158,7 +158,7 @@ public class DatabaseDataInitializer {
     private record VersionedScript(int version, String scriptPath, String sql) {
     }
 
-    private List<VersionedScript> scanVersionedSqlFiles() {
+    private List<VersionedScript> scanVersionedSqlFiles(int currentVersion) {
         List<VersionedScript> result = new ArrayList<>();
         List<String> initScripts = eddieProperties.getInitScripts();
         for (String scriptPath : initScripts) {
@@ -166,6 +166,12 @@ public class DatabaseDataInitializer {
             int version = parseVersionFromFilename(filename);
             if (version < 0) {
                 log.debug("跳过不匹配的 SQL 文件: {}", filename);
+                continue;
+            }
+
+            // 跳过已执行的旧版本脚本，避免不必要的文件读取 I/O
+            if (version <= currentVersion) {
+                log.debug("跳过已执行的初始化脚本 [{}] v{}", scriptPath, version);
                 continue;
             }
 

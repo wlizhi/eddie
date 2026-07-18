@@ -8,6 +8,7 @@ package cc.wlizhi.eddie.app.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -29,6 +30,18 @@ public class WebConfig implements WebMvcConfigurer {
     private ApiTimingInterceptor apiTimingInterceptor;
     @Value("${eddie.images}")
     private String imagesPath;
+
+    /**
+     * CORS 配置：允许 Electron 自定义协议（eddie://）和开发服务器访问后端 API
+     */
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/api/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {

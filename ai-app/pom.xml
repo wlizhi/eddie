@@ -14,6 +14,10 @@
     <name>Eddie — App</name>
     <description>启动入口 + GraalVM 打包</description>
 
+    <properties>
+        <native.build.optimization>-Os</native.build.optimization>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>cc.wlizhi</groupId>
@@ -86,7 +90,7 @@
                             <imageName>eddie-app</imageName>
                             <mainClass>cc.wlizhi.eddie.app.EddieApplication</mainClass>
                             <buildArgs>
-                                <buildArg>-Os</buildArg>
+                                <buildArg>${native.build.optimization}</buildArg>
                                 <buildArg>-H:GenerateDebugInfo=0</buildArg>
                                 <buildArg>-H:IncludeResources=prompts/.*,db/.*</buildArg>
                                 <buildArg>

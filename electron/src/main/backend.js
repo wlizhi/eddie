@@ -111,8 +111,10 @@ function startBackend(mainWindow) {
 // ============================================================
 // 等待后端端口就绪
 // ============================================================
-function waitForBackend(port, retries = 60) {
+function waitForBackend(port, retries = 600) {
     return new Promise((resolve, reject) => {
+        const RETRY_MS = 30;
+        const REQ_TIMEOUT = 200;
         const check = (n) => {
             if (global.isQuitting) {
                 reject(new Error('App is quitting'));
@@ -132,16 +134,15 @@ function waitForBackend(port, retries = 60) {
             req.on('error', () => {
                 if (onSettled()) return;
                 if (n > 0) {
-                    console.log(`[Eddie] Waiting for backend... (${n} retries left)`);
-                    setTimeout(() => check(n - 1), 1000);
+                    setTimeout(() => check(n - 1), RETRY_MS);
                 } else {
                     reject(new Error('Backend did not start in time'));
                 }
             });
-            req.setTimeout(2000, () => {
+            req.setTimeout(REQ_TIMEOUT, () => {
                 if (onSettled()) return;
                 req.destroy();
-                if (n > 0) setTimeout(() => check(n - 1), 1000);
+                if (n > 0) setTimeout(() => check(n - 1), RETRY_MS);
                 else reject(new Error('Backend did not start in time'));
             });
         };

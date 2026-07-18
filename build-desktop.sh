@@ -66,7 +66,7 @@ build_native() {
     cd "$PROJECT_DIR"
     mvn clean
     mvn install -Pnative -pl ai-app -am -DskipTests
-    mvn -Pnative native:compile -pl ai-app -DskipTests -Dnative-image.buildArgs="-J-Xmx12g"
+    mvn -Pnative native:compile -pl ai-app -DskipTests -Dnative.build.optimization="-Os" -DjvmArgs="-Xmx10g"
 
     mkdir -p "$DIST_DIR"
     cp "$PROJECT_DIR/ai-app/target/eddie-app" "$DIST_DIR/eddie-app"
@@ -167,7 +167,7 @@ build_all() {
     cd "$PROJECT_DIR"
     mvn clean
     mvn install -Pnative -pl ai-app -am -DskipTests
-    mvn -Pnative native:compile -pl ai-app -DskipTests -Dnative-image.buildArgs="-J-Xmx12g"
+    mvn -Pnative native:compile -pl ai-app -DskipTests -Dnative.build.optimization="-Os" -DjvmArgs="-Xmx10g"
     mkdir -p "$DIST_DIR"
     cp "$PROJECT_DIR/ai-app/target/eddie-app" "$DIST_DIR/eddie-app"
     log_info "Native Image → $DIST_DIR/eddie-app"

@@ -18,16 +18,9 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -41,7 +34,6 @@ import java.util.stream.Collectors;
  * 对应的 MCP Server 记录，工具注册时关联该 MCP Server ID。
  */
 @Slf4j
-@DependsOn("dataSourceScriptDatabaseInitializer")
 @Component
 public class ToolRegisterInitializer {
 

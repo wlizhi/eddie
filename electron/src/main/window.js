@@ -9,7 +9,7 @@
 const {BrowserWindow} = require('electron');
 const path = require('path');
 const {getTheme, getMode, getDisplaySettings} = require('./services/theme-persist');
-const {IS_MAC, IS_WIN, IS_STANDALONE} = require('./utils/platform');
+const {IS_MAC, IS_WIN} = require('./utils/platform');
 
 let mainWindow = null;
 
@@ -208,16 +208,13 @@ function createMainWindow() {
 }
 
 // ============================================================
-// 导航到应用页面
+// 导航到应用页面（port: 本地 HTTP 服务端口）
 // ============================================================
-function navigateToApp() {
+function navigateToApp(port) {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const {app} = require('electron');
-    const url = IS_STANDALONE || app.isPackaged
-        ? 'http://localhost:11520'
-        : 'http://localhost:5173';
-    mainWindow.loadURL(url);
-    if (!app.isPackaged && !IS_STANDALONE) mainWindow.webContents.openDevTools();
+    mainWindow.loadURL(`http://localhost:${port}`);
+    if (!app.isPackaged) mainWindow.webContents.openDevTools();
 }
 
 // ============================================================
