@@ -35,8 +35,11 @@ global.isQuitting = false;
 // App 生命周期
 // ============================================================
 app.whenReady().then(async () => {
+    // 1. 立即创建窗口，显示启动动画（不依赖后端）
+    createMainWindow();
+
     if (!IS_STANDALONE) {
-        // 1. 先启动后端（mainWindow 尚不存在，日志仅写入文件）
+        // 2. 启动后端（窗口已存在，日志可通过 IPC 传递到加载页）
         startBackend(null);
         try {
             await waitForBackend(11520);
@@ -49,8 +52,7 @@ app.whenReady().then(async () => {
         console.log('[Eddie] Standalone mode: backend is managed externally');
     }
 
-    // 2. 后端已就绪，创建窗口并注册 IPC
-    createMainWindow();
+    // 3. 后端已就绪，注册 IPC 并初始化其余组件
     setupIpc();
 
     // 3. 初始化划词助手（此时可 HTTP 请求后端获取用户配置）

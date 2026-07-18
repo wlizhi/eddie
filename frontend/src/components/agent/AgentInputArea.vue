@@ -620,31 +620,47 @@ defineExpose({focusInput})
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  flex-wrap: wrap;
 }
 
 /* toggle 按钮 */
 .toggle-chip {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-4);
+  font-size: var(--font-size-small);
+  font-family: inherit;
+  line-height: 1.4;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
-  cursor: pointer;
-  font-size: var(--font-size-xs);
   color: var(--text-quaternary);
+  cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
 
-.toggle-chip:hover {
+.toggle-chip:hover:not(.disabled) {
   background: var(--bg-hover);
-  color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.toggle-chip.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-chip.disabled:hover {
+  background: transparent;
 }
 
 .toggle-chip.active {
   color: var(--accent-default);
+  background: var(--accent-light-bg);
+}
+
+.toggle-chip.active:hover {
   background: var(--accent-light-bg);
 }
 
@@ -660,20 +676,20 @@ defineExpose({focusInput})
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 1.8em;
+  height: 1.8em;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
-  cursor: pointer;
   color: var(--text-quaternary);
-  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
 }
 
 .new-chat-btn:hover {
   background: var(--bg-hover);
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 /* 发送/中断按钮 */
@@ -682,10 +698,10 @@ defineExpose({focusInput})
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: var(--size-btn-md);
+  height: var(--size-btn-md);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, opacity 0.15s;
   flex-shrink: 0;
@@ -694,16 +710,16 @@ defineExpose({focusInput})
 
 .send-btn {
   background: var(--accent-default);
-  color: #fff;
-}
-
-.send-btn:hover:not(:disabled) {
-  opacity: 0.9;
+  color: var(--text-inverse);
 }
 
 .send-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+.send-btn:not(:disabled):hover {
+  background: var(--accent-hover);
 }
 
 .stop-btn {

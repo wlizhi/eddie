@@ -8,7 +8,7 @@
 
 const {BrowserWindow} = require('electron');
 const path = require('path');
-const {getTheme, getMode} = require('./services/theme-persist');
+const {getTheme, getMode, getDisplaySettings} = require('./services/theme-persist');
 const {IS_MAC, IS_WIN, IS_STANDALONE} = require('./utils/platform');
 
 let mainWindow = null;
@@ -16,32 +16,80 @@ let mainWindow = null;
 // ============================================================
 // 启动加载页 — 使用主题颜色（从 theme-persist 内存缓存读取）
 // ============================================================
-function getLoadingHtml(theme) {
-    const {bgPrimary: bg, textPrimary: text, accent, textTertiary, barTrack} = theme;
+function getLoadingHtml(theme, fontFamily) {
+    const {bgPrimary: bg, textPrimary: text, accent, textTertiary} = theme;
+    const ff = fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif";
 
     return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Eddie</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;
-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+height:100vh;font-family:${ff};
 background:${bg};color:${text};user-select:none;overflow:hidden}
-.brand{text-align:center;margin-bottom:48px}
-.brand h1{font-size:36px;font-weight:600;letter-spacing:4px}
-.bar-wrap{width:120px;height:2px;background:${barTrack};border-radius:1px;overflow:hidden}
-.bar-inner{width:40%;height:100%;background:${accent};border-radius:1px;
-animation:slide 1.4s ease-in-out infinite}
-@keyframes slide{0%{transform:translateX(-100%)}50%{transform:translateX(150%)}100%{transform:translateX(250%)}}
-.status{position:fixed;bottom:28px;font-size:12px;color:${textTertiary};letter-spacing:1px}</style></head><body>
-<div class="brand"><h1>Eddie</h1></div>
-<div class="bar-wrap"><div class="bar-inner"></div></div>
-<div class="status">INITIALIZING</div></body></html>`;
+
+/* Background soft glow */
+body::before{content:'';position:absolute;width:520px;height:520px;border-radius:50%;
+background:radial-gradient(circle,${accent}10 0%,transparent 70%);
+top:50%;left:50%;transform:translate(-50%,-50%);
+animation:glowPulse 4s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{opacity:0.35;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}}
+
+/* Logo wrapper - entrance */
+.logo-wrap{text-align:center;margin-bottom:32px;
+animation:logoEntrance .8s cubic-bezier(.34,1.56,.64,1) forwards;
+opacity:0;transform:scale(.85)}
+@keyframes logoEntrance{to{opacity:1;transform:scale(1)}}
+
+/* ===== Eddie letter animations ===== */
+.brand-text{display:inline-flex;gap:2px;position:relative;padding:0 4px}
+.letter{display:inline-block;font-size:52px;font-weight:700;
+font-family:${ff};
+animation:letterWave 2.8s ease-in-out infinite}
+.l1{animation-delay:0s}.l2{animation-delay:.18s}.l3{animation-delay:.36s}
+.l4{animation-delay:.54s}.l5{animation-delay:.72s}
+@keyframes letterWave{
+0%,100%{transform:translateY(0) scale(1)}
+25%{transform:translateY(-8px) scale(1.04)}
+50%{transform:translateY(0) scale(1)}
+75%{transform:translateY(-4px) scale(1.02)}
+}
+
+/* Electric spark dots */
+.sparks{display:flex;gap:3px;justify-content:center;margin-top:6px;height:4px}
+.spark{width:3px;height:3px;border-radius:50%;background:${accent};opacity:0;
+animation:sparkle 2.8s ease-in-out infinite}
+.s1{animation-delay:.1s}.s2{animation-delay:.3s}.s3{animation-delay:.5s}
+.s4{animation-delay:.7s}.s5{animation-delay:.9s}
+@keyframes sparkle{
+0%,100%{opacity:0;transform:scale(0)}
+20%{opacity:.8;transform:scale(1.2)}
+40%{opacity:0;transform:scale(0)}
+}
+
+/* Status */
+.status{position:fixed;bottom:28px;font-size:11px;color:${textTertiary};letter-spacing:2px;
+animation:statusPulse 2s ease-in-out infinite}
+@keyframes statusPulse{0%,100%{opacity:.5}50%{opacity:1}}</style></head><body>
+
+<div class="logo-wrap">
+<div class="brand-text">
+<span class="letter l1" style="color:${accent}">E</span>
+<span class="letter l2" style="color:${accent}">d</span>
+<span class="letter l3" style="color:${accent}">d</span>
+<span class="letter l4" style="color:${accent}">i</span>
+<span class="letter l5" style="color:${accent}">e</span>
+</div>
+<div class="sparks"><span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span><span class="spark s4"></span><span class="spark s5"></span></div>
+</div>
+
+<div class="status">INITIALIZING</div>
+
+</body></html>`;
 }
 
 // ============================================================
 // 错误提示页
 // ============================================================
 function showErrorPage(errorMessage) {
-    if (mainWindow && !mainWindow.isDestroyed()) return;
-
     const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Eddie - 启动失败</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -54,6 +102,12 @@ h2{margin-bottom:.75rem;font-size:20px}
 <div class="icon">⚠️</div><h2>后端服务启动失败</h2>
 <p class="detail">${errorMessage}</p><p class="hint">请查看日志文件获取详细信息</p>
 </body></html>`;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        // 窗口已存在时，在现有窗口中加载错误页
+        mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+        return;
+    }
 
     mainWindow = new BrowserWindow({
         width: 480, height: 320, resizable: false,
@@ -74,6 +128,7 @@ h2{margin-bottom:.75rem;font-size:20px}
 // ============================================================
 function createMainWindow() {
     const startupTheme = getTheme(getMode() === 'dark');
+    const {fontFamily} = getDisplaySettings();
 
     const browserOptions = {
         width: 1200, height: 800, minWidth: 800, minHeight: 600,
@@ -98,7 +153,7 @@ function createMainWindow() {
 
     mainWindow = new BrowserWindow(browserOptions);
 
-    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getLoadingHtml(startupTheme))}`);
+    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getLoadingHtml(startupTheme, fontFamily))}`);
     mainWindow.once('ready-to-show', () => mainWindow.show());
 
     // ============================================================
