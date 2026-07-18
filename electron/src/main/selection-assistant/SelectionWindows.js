@@ -7,169 +7,12 @@
 
 const {BrowserWindow, screen, nativeTheme, app} = require('electron');
 const path = require('path');
-const fs = require('fs');
 const {getTheme} = require('../services/theme-persist');
 const {IS_MAC} = require('../utils/platform');
-
-// ============================================================
-// 工具栏尺寸计算（基于 fontSize，跟随全局字体设置）
-// ============================================================
-
-// 基准：fontSize 为 14px 时，各尺寸
-//   btnHeight = ceil(14 * 1.5) = 21
-//   btnPad    = ceil(14 * 0.28) = 4
-//   padV      = ceil(14 * 0.28) = 4
-//   dividerH  = ceil(14 * 0.7) = 10
-//   containerPadV = ceil(14 * 0.28) = 4
-//   toolbarHeight = btnHeight + containerPadV * 2 = 29
-
-function calcToolbarHeight(fontSize, toolbarStyle) {
-    const btnPad = Math.ceil(fontSize * 0.09);
-    const btnH = Math.ceil(fontSize * 1.5);
-    const padV = toolbarStyle === 'compact'
-        ? 0
-        : Math.ceil(fontSize * 0.12);
-    return btnH + padV * 2;
-}
-
-function getBtnHeight(fontSize) { return Math.ceil(fontSize * 1.5); }
-function getBtnPad(fontSize) { return Math.ceil(fontSize * 0.09); }
-function getContainerPadV(fontSize) { return Math.ceil(fontSize * 0.12); }
-function getContainerPadH(fontSize) { return Math.ceil(fontSize * 0.12); }
-function getBtnFontSize(fontSize) { return Math.max(11, Math.round(fontSize * 0.82)); }
-function getDividerH(fontSize) { return Math.ceil(fontSize * 0.7); }
-function getCloseBtnSize(fontSize) { return Math.ceil(fontSize * 1.14); }
-function getToolbarGap(fontSize) { return Math.max(2, Math.round(fontSize * 0.14)); }
-
-// 全局默认 CSS font-family（系统默认字体）
-const DEFAULT_FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif";
-
-// 度量文字宽度
-function measureText(s, fontSize) {
-    const cjkW = Math.round(fontSize * 0.86); // 中文字宽 ≈ 0.86em
-    const asciiW = Math.round(fontSize * 0.5); // ASCII 字宽 ≈ 0.5em
-    let w = 0;
-    for (const ch of s) w += ch.charCodeAt(0) > 127 ? cjkW : asciiW;
-    return w;
-}
-
-// 根据功能项动态计算工具栏宽度
-function calcToolbarWidth(items, fontSize, toolbarStyle) {
-    const enabled = items.filter(i => i.enabled).sort((a, b) => a.order - b.order);
-    if (!enabled.length) return 120;
-
-    const padH = getContainerPadH(fontSize);
-    const btnPad = getBtnPad(fontSize);
-    const gap = getToolbarGap(fontSize);
-    const iconW = Math.round(fontSize * 0.86);
-    const gapIconText = Math.max(2, Math.round(fontSize * 0.15));
-    const dividerW = 1;
-    const closeBtn = getCloseBtnSize(fontSize);
-    const showLabel = toolbarStyle !== 'compact';
-
-    let actionsW = 0;
-    enabled.forEach((item, idx) => {
-        const textW = showLabel ? measureText(item.label || '', fontSize) : 0;
-        const gapW = showLabel ? gapIconText : 0;
-        actionsW += btnPad + iconW + gapW + textW + btnPad;
-        if (idx < enabled.length - 1) actionsW += dividerW + gap;
-    });
-
-    return padH + actionsW + gap + closeBtn + padH;
-}
-
-// ============================================================
-// 工具栏 HTML
-// ============================================================
-function getToolbarHtml(theme, text, items, fontSize, fontFamily, toolbarStyle) {
-    const textEscaped = text
-        .replace(/&/g, '&')
-        .replace(/</g, '<')
-        .replace(/>/g, '>')
-        .replace(/"/g, '"');
-
-    const showLabel = toolbarStyle !== 'compact';
-    const iconSize = Math.round(fontSize * 0.86);
-    const itemsHtml = items
-        .filter(i => i.enabled)
-        .sort((a, b) => a.order - b.order)
-        .map((i, idx, arr) => {
-            const label = i.label || '';
-            const icon = i.icon
-                ? i.icon.replace(/width="14"/, `width="${iconSize}"`)
-                        .replace(/height="14"/, `height="${iconSize}"`)
-                : '';
-            const btnContent = showLabel ? `${icon} ${label}` : `${icon}`;
-            const btn = `<button class="action-btn" data-id="${i.id}">${btnContent}</button>`;
-            return idx < arr.length - 1 ? btn + '<div class="btn-divider"></div>' : btn;
-        })
-        .join('');
-
-    const fontFamilyCSS = fontFamily || DEFAULT_FONT_FAMILY;
-
-    const toolbarH = calcToolbarHeight(fontSize, toolbarStyle);
-    const btnH = getBtnHeight(fontSize);
-    const btnPad = getBtnPad(fontSize);
-    const btnFs = getBtnFontSize(fontSize);
-    const dividerH = getDividerH(fontSize);
-    const closeSz = getCloseBtnSize(fontSize);
-    const padV = getContainerPadV(fontSize);
-    const padH = getContainerPadH(fontSize);
-    const tbPadH = Math.ceil(fontSize * 0.12);
-    const gap = getToolbarGap(fontSize);
-
-    return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden}
-body{
-    font-family:${fontFamilyCSS};
-    font-size:${fontSize}px;background:transparent;color:${theme.textPrimary};
-    user-select:none;
-}
-.toolbar{
-    display:flex;align-items:center;height:${toolbarH}px;
-    padding:0 ${tbPadH}px;gap:${gap}px;
-    background:${theme.bgSecondary};border-radius:8px;
-    border:1px solid ${theme.border};
-    box-shadow:0 4px 10px rgba(0,0,0,.3);
-}
-.actions{display:flex;align-items:center;gap:${gap}px;flex-shrink:0}
-.action-btn{
-    display:inline-flex;align-items:center;gap:${Math.max(2, Math.round(fontSize * 0.15))}px;
-    padding:${btnPad}px ${btnPad}px;border:none;border-radius:5px;
-    font-size:${btnFs}px;cursor:pointer;white-space:nowrap;
-    background:transparent;color:${theme.textPrimary};
-    transition:background .12s;
-}
-.action-btn:hover{background:${theme.hover}}
-.action-btn:active{background:${theme.border}}
-.action-btn svg{pointer-events:none}
-.btn-divider{
-    width:1px;height:${dividerH}px;align-self:center;
-    background:${theme.border};opacity:.3;flex-shrink:0;
-}
-.close-btn{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:${closeSz}px;height:${closeSz}px;border:none;border-radius:4px;flex-shrink:0;
-    font-size:${Math.round(fontSize * 0.86)}px;cursor:pointer;background:transparent;
-    color:${theme.textTertiary};transition:background .12s;
-}
-.close-btn:hover{background:${theme.hover};color:${theme.textPrimary}}
-.close-btn svg{pointer-events:none}
-</style>
-</head>
-<body>
-<div class="toolbar">
-    <div class="actions">${itemsHtml}</div>
-    <button class="close-btn" id="closeBtn"><svg width="${Math.round(fontSize * 0.86)}" height="${Math.round(fontSize * 0.86)}" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="4" x2="10" y2="10"/><line x1="10" y1="4" x2="4" y2="10"/></svg></button>
-</div>
-</body>
-</html>`;
-}
+const {calcToolbarHeight, calcToolbarWidth} = require('./toolbar/toolbar-dimensions');
+const {getToolbarHtml} = require('./toolbar/toolbar-template');
+const {withFocusGuard} = require('./utils/focus-guard');
+const {loadPopupSize, savePopupSize} = require('./popups/popup-size-persist');
 
 // ============================================================
 // 弹窗 URL 生成（Vue 构建的 popup.html，由后端 static/ 提供服务）
@@ -290,7 +133,7 @@ class SelectionWindows {
         const theme = this.getCurrentTheme();
 
         const fs = fontSize || 14;
-        const ff = fontFamily || DEFAULT_FONT_FAMILY;
+        const ff = fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif";
         const style = toolbarStyle || 'default';
         const toolbarHeight = calcToolbarHeight(fs, style);
         const toolbarWidth = calcToolbarWidth(items, fs, style);
@@ -402,33 +245,11 @@ class SelectionWindows {
      * 注意：弹窗窗口不参与 focusGuard，避免触发 blur → autoClose 导致弹窗意外关闭
      */
     hideToolbar() {
-        // macOS focus-guard
-        let focusGuard = null;
-        if (IS_MAC) {
-            focusGuard = [];
-            for (const w of require('electron').BrowserWindow.getAllWindows()) {
-                // 排除弹窗窗口，不干扰弹窗的焦点状态
-                if (this.popupWindows.includes(w)) continue;
-
-                if (!w.isDestroyed() && w.isVisible() && w.isFocusable()) {
-                    focusGuard.push(w);
-                    w.setFocusable(false);
-                }
+        withFocusGuard(this.popupWindows, () => {
+            if (this.toolbarWindow && !this.toolbarWindow.isDestroyed()) {
+                this.toolbarWindow.hide();
             }
-        }
-
-        if (this.toolbarWindow && !this.toolbarWindow.isDestroyed()) {
-            this.toolbarWindow.hide();
-        }
-
-        // 50ms 后恢复焦点能力
-        if (IS_MAC && focusGuard) {
-            setTimeout(() => {
-                for (const w of focusGuard) {
-                    if (!w.isDestroyed()) w.setFocusable(true);
-                }
-            }, 50);
-        }
+        });
     }
 
     /**
@@ -642,42 +463,19 @@ class SelectionWindows {
 
         if (win.isDestroyed()) return;
 
-        // macOS focus-guard
-        // 排除弹窗窗口，避免影响其他弹窗的正常交互
-        let focusGuard = null;
-        if (IS_MAC) {
-            focusGuard = [];
-            for (const w of require('electron').BrowserWindow.getAllWindows()) {
-                // 排除弹窗窗口，不干扰弹窗的焦点状态
-                if (this.popupWindows.includes(w)) continue;
-
-                if (!w.isDestroyed() && w.isVisible() && w.isFocusable()) {
-                    focusGuard.push(w);
-                    w.setFocusable(false);
-                }
+        withFocusGuard(this.popupWindows, () => {
+            // 移除 blur/hide 监听
+            if (win._blurHandler) {
+                win.removeListener('blur', win._blurHandler);
+                win._blurHandler = null;
             }
-        }
+            if (win._hideHandler) {
+                win.removeListener('hide', win._hideHandler);
+                win._hideHandler = null;
+            }
 
-        // 移除 blur/hide 监听
-        if (win._blurHandler) {
-            win.removeListener('blur', win._blurHandler);
-            win._blurHandler = null;
-        }
-        if (win._hideHandler) {
-            win.removeListener('hide', win._hideHandler);
-            win._hideHandler = null;
-        }
-
-        win.destroy();
-
-        // 50ms 后恢复焦点能力
-        if (IS_MAC && focusGuard) {
-            setTimeout(() => {
-                for (const w of focusGuard) {
-                    if (!w.isDestroyed()) w.setFocusable(true);
-                }
-            }, 50);
-        }
+            win.destroy();
+        });
     }
 
     /**
@@ -742,27 +540,15 @@ class SelectionWindows {
     }
 
     // ============================================================
-    // 弹窗尺寸持久化
+    // 弹窗尺寸持久化（委托给 popup-size-persist 工具）
     // ============================================================
 
     _loadPopupSize() {
-        try {
-            if (fs.existsSync(this._popupSizePath)) {
-                const raw = fs.readFileSync(this._popupSizePath, 'utf-8');
-                return JSON.parse(raw);
-            }
-        } catch { /* ignore */ }
-        return null;
+        return loadPopupSize(this._popupSizePath);
     }
 
     _savePopupSize(size) {
-        try {
-            const dir = path.dirname(this._popupSizePath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, {recursive: true});
-            }
-            fs.writeFileSync(this._popupSizePath, JSON.stringify({width: size[0], height: size[1]}), 'utf-8');
-        } catch { /* ignore */ }
+        savePopupSize(this._popupSizePath, size);
     }
 }
 
