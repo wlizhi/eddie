@@ -20,7 +20,7 @@ const agentStore = useAgentStore()
 
 const DEFAULT_SHOWN = 3
 const agentListCollapsed = ref(false)
-const showAllAgents = ref(true)
+const showAllAgents = ref(false)
 const editAgentId = ref<number | null>(null)
 const showCreateAgent = ref(false)
 

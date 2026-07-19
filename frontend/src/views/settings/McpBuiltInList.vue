@@ -76,7 +76,7 @@
                 v-show="!field.dependsOn || getServerFieldValue(server, field.dependsOn) === field.dependsOnValue"
             >
               <label class="config-field-label">{{ field.label }}</label>
-              <span class="config-field-hint">{{ field.description }}</span>
+              <span class="config-field-hint" v-html="renderMd(field.description)" />
 
               <!-- select 类型 -->
               <n-select
@@ -103,6 +103,18 @@
                   v-else-if="field.type === 'string'"
                   :value="getServerFieldValue(server, field.name)"
                   :placeholder="field.placeholder"
+                  class="config-input"
+                  @update:value="(val: string) => setServerFieldValue(server, field.name, val)"
+                  @blur="saveServerConfig(server)"
+              />
+
+              <!-- password 类型（敏感信息，如 API Key） -->
+              <n-input
+                  v-else-if="field.type === 'password'"
+                  :value="getServerFieldValue(server, field.name)"
+                  :placeholder="field.placeholder"
+                  type="password"
+                  show-password-on="click"
                   class="config-input"
                   @update:value="(val: string) => setServerFieldValue(server, field.name, val)"
                   @blur="saveServerConfig(server)"
@@ -163,7 +175,7 @@
                     v-show="!field.dependsOn || getFieldValue(server, tool.name, field.dependsOn) === field.dependsOnValue"
                 >
                   <label class="config-field-label">{{ field.label }}</label>
-                  <span class="config-field-hint">{{ field.description }}</span>
+                  <span class="config-field-hint" v-html="renderMd(field.description)" />
 
                   <!-- select 类型 -->
                   <n-select
@@ -190,6 +202,18 @@
                       v-else-if="field.type === 'string'"
                       :value="getFieldValue(server, tool.name, field.name)"
                       :placeholder="field.placeholder"
+                      class="config-input"
+                      @update:value="(val: string) => setFieldValue(server, tool.name, field.name, val)"
+                      @blur="saveConfig(server, tool.name)"
+                  />
+
+                  <!-- password 类型（敏感信息，如 API Key） -->
+                  <n-input
+                      v-else-if="field.type === 'password'"
+                      :value="getFieldValue(server, tool.name, field.name)"
+                      :placeholder="field.placeholder"
+                      type="password"
+                      show-password-on="click"
                       class="config-input"
                       @update:value="(val: string) => setFieldValue(server, tool.name, field.name, val)"
                       @blur="saveConfig(server, tool.name)"
@@ -603,8 +627,8 @@ async function saveServerConfig(server: McpServer) {
 
 /* ===== 部分启用标签 ===== */
 .mcp-tag.partial {
-  background: var(--tag-warning-bg, #fef3cd);
-  color: var(--tag-warning-text, #856404);
+  background: var(--tag-warning-bg);
+  color: var(--tag-warning-text);
 }
 
 /* ===== Toggle 开关（em 单位，随全局字号缩放） ===== */
@@ -702,6 +726,17 @@ async function saveServerConfig(server: McpServer) {
   color: var(--text-tertiary);
   margin-bottom: 6px;
   line-height: 1.4;
+}
+
+/* ===== 参数描述中的超链接（使用 :deep 穿透 v-html 生成的内容，参考 markdown.css 配色） ===== */
+.config-field-hint :deep(a) {
+  color: var(--accent-default);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.config-field-hint :deep(a):hover {
+  opacity: 0.85;
 }
 
 .config-input {

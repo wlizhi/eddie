@@ -211,4 +211,13 @@ const showPending = computed(() =>
   0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
   30% { transform: translateY(-3px); opacity: 1; }
 }
+
+/* ===== 思考区域选中文本增强对比度 =====
+   暗色模式下 --text-quaternary（#8a8a8a）与选择背景色过于接近。
+   不覆盖文字颜色（保留语法高亮/链接等原有色彩），
+   仅显式设置选中背景以确保可见。 */
+.thinking-content::selection,
+.thinking-content *::selection {
+  background: var(--bg-selected);
+}
 </style>

@@ -287,4 +287,13 @@ const cardClass = computed(() => ({
 .tool-reject-btn:active {
   transform: scale(0.96);
 }
+
+/* ===== 工具结果区域选中文本增强对比度 =====
+   暗色模式下 --text-quaternary 与选择背景色过于接近。
+   不覆盖文字颜色（保留语法高亮/链接等原有色彩），
+   仅显式设置选中背景以确保可见。 */
+.tool-execution-result::selection,
+.tool-execution-result *::selection {
+  background: var(--bg-selected);
+}
 </style>

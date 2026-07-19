@@ -20,7 +20,7 @@ const assistantStore = useAssistantStore()
 
 const DEFAULT_SHOWN = 3
 const assistantListCollapsed = ref(false)
-const showAllAssistants = ref(true)
+const showAllAssistants = ref(false)
 const editAssistantId = ref<number | null>(null)
 const showCreateAssistant = ref(false)
 

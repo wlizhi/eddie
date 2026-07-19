@@ -5,48 +5,6 @@
 
 <template>
   <div class="panel">
-    <!-- ===== 搜索设置 ===== -->
-    <div class="settings-group">
-      <div class="group-label">
-        <Search :size="16" :stroke-width="2" class="group-icon"/>
-        搜索设置
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <span class="setting-label">搜索结果数量</span>
-          <span class="setting-hint">内置搜索工具每次返回的结果数量（1~20）</span>
-        </div>
-        <n-input-number
-            v-model:value="searchResultCount"
-            :min="1"
-            :max="20"
-            :step="1"
-            :show-button="false"
-            class="number-input"
-            placeholder="8"
-            @blur="saveField('searchResultCount', searchResultCount)"
-        />
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <span class="setting-label">网页抓取最大字符数</span>
-          <span class="setting-hint">抓取网页内容时的最大字符数限制（1,000~15,000）</span>
-        </div>
-        <n-input-number
-            v-model:value="webFetchMaxChars"
-            :min="1000"
-            :max="15000"
-            :step="500"
-            :show-button="false"
-            class="number-input"
-            placeholder="4000"
-            @blur="saveField('webFetchMaxChars', webFetchMaxChars)"
-        />
-      </div>
-    </div>
-
     <!-- ===== 会话标题设置 ===== -->
     <div class="settings-group">
       <div class="group-label">
@@ -145,14 +103,12 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {NInputNumber, NSelect, NSwitch} from 'naive-ui'
-import {Search, Sparkles, Wrench, Bug} from '@lucide/vue'
+import {Sparkles, Wrench, Bug} from '@lucide/vue'
 import {fetchConfigs, updateConfigs} from '@/api/settings'
 import {showToast} from '@/composables/useToast'
 
 const GENERAL_SETTINGS_KEY = 'GENERAL_SETTINGS'
 
-const searchResultCount = ref<number | null>(null)
-const webFetchMaxChars = ref<number | null>(null)
 const enableAutoTitle = ref(true)
 const titleGenerationRounds = ref<number | null>(1)
 const logLevel = ref('')
@@ -176,12 +132,6 @@ onMounted(async () => {
     const raw = configs[GENERAL_SETTINGS_KEY]
     const settings = raw ? JSON.parse(raw) : {}
 
-    if (settings.searchResultCount != null) {
-      searchResultCount.value = Math.min(Math.max(settings.searchResultCount, 1), 20)
-    }
-    if (settings.webFetchMaxChars != null) {
-      webFetchMaxChars.value = Math.min(Math.max(settings.webFetchMaxChars, 1000), 15000)
-    }
     if (settings.enableAutoTitle != null) {
       enableAutoTitle.value = settings.enableAutoTitle === true
     }
@@ -237,8 +187,6 @@ function onLogLevelChange(val: string) {
   logLevel.value = val
   // 从本地 ref 构造完整的 GENERAL_SETTINGS JSON，避免先 GET 再 PUT
   const settings: Record<string, any> = {
-    searchResultCount: searchResultCount.value,
-    webFetchMaxChars: webFetchMaxChars.value,
     enableAutoTitle: enableAutoTitle.value,
     titleGenerationRounds: titleGenerationRounds.value,
     logLevel: val,

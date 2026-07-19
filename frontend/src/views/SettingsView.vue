@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, provide, ref} from 'vue'
 import {useMobile} from '@/composables/useMobile'
 import {Clock, Cpu, Globe, Monitor, MousePointerClick, Network, Puzzle, Radio, Settings, Zap} from '@lucide/vue'
 import ModelProviderPanel from './settings/ModelProviderPanel.vue'
@@ -47,9 +47,9 @@ const navGroups: NavGroup[] = [
   },
   {
     items: [
+      {key: 'web-search', label: '网络搜索', icon: Globe},
       {key: 'mcp', label: 'MCP 服务', icon: Network},
       {key: 'skills', label: '技能', icon: Puzzle},
-      {key: 'web-search', label: '网络搜索', icon: Globe},
       {key: 'channels', label: '频道', icon: Radio},
       {key: 'scheduled-tasks', label: '定时任务', icon: Clock},
     ],
@@ -71,6 +71,13 @@ const panelMap: Record<string, any> = {
 
 const activeKey = ref<string>('model-provider')
 const currentPanel = computed(() => panelMap[activeKey.value])
+
+/** 子面板可通过 inject('navigateTo') 跳转到其他设置页 */
+provide('navigateTo', (key: string) => {
+  if (panelMap[key]) {
+    activeKey.value = key
+  }
+})
 </script>
 
 <template>
