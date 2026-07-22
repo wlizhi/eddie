@@ -30,6 +30,8 @@ public enum ApiResultCode implements ResultCode {
      */
     UNAUTHORIZED(401, "unauthorized"),
 
+    PERMISSION_DENIED(403, "permission denied"),
+
     /**
      * 资源不存在
      */

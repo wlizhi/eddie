@@ -19,6 +19,7 @@ import cc.wlizhi.eddie.common.enums.ApiResultCode;
 import cc.wlizhi.eddie.common.exception.ToolApprovalException;
 import cc.wlizhi.eddie.common.exception.UserStopException;
 import com.openai.errors.InternalServerException;
+import com.openai.errors.PermissionDeniedException;
 import com.openai.errors.RateLimitException;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -145,6 +146,12 @@ public class AgentChatServiceImpl implements AgentChatService {
                         actualCause.getMessage());
                 publisher.error(ctx, ApiResultCode.PROVIDER_CALL_FAILED,
                         "模型服务商接口异常（" + actualCause.getMessage() + "），请稍后重试", null);
+                return;
+            }
+            if (actualCause instanceof PermissionDeniedException) {
+                log.warn("模型服务商返回权限异常: message={}", actualCause.getMessage());
+                publisher.error(ctx, ApiResultCode.PERMISSION_DENIED,
+                        "免费配额已用尽，请充值后重试", actualCause.getMessage());
                 return;
             }
         }
