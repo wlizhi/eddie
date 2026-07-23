@@ -82,7 +82,7 @@
 .user-name-label,
 .assistant-name-label {
     font-size: var(--font-size-small);
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-secondary);
     padding: 0 var(--space-1);
     line-height: 1.3;

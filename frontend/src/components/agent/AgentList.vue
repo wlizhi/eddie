@@ -231,7 +231,7 @@ const displayedAgents = computed(() => {
 
 .agent-name {
   font-size: var(--font-size-base);
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-primary);
   flex: 1;
   min-width: 0;

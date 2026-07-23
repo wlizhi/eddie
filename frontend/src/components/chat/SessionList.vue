@@ -282,7 +282,7 @@ function selectSession(session: SessionVO) {
   align-items: center;
   gap: 6px;
   font-size: var(--font-size-small);
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-primary);
   min-width: 0;
 }
