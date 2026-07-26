@@ -5,6 +5,7 @@ import cc.wlizhi.eddie.common.cache.InitScheduler;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -18,24 +19,24 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 版本化数据库初始化脚本执行器。<p>
- * 在 Spring Boot 完成 DDL 建表后执行，
- * 扫描 {@code classpath:db/init/*.sql} 文件，按文件名中的版本号 >
- * 当前已执行版本，顺序执行增量 SQL 脚本。
+ * 版本化数据库迁移/初始化脚本执行器。<p>
+ * 支持主库（eddie.db）和 Agent 库（eddie-agent.db），双库各自维护版本号。
+ * 两个库统一使用 {@code global_config} 表中的 {@code DB_INIT_VERSION} 键追踪版本。
  *
  * <h3>文件名规则</h3>
  * <pre>
  *   model_provider_init_1.sql  → 版本 1
  *   settings_init-10.sql       → 版本 10
+ *   agent-v1.sql               → 版本 1
  * </pre>
  * 解析规则：取最后一个 {@code _} 或 {@code -} 到扩展名 {@code .} 之间的数字作为版本号。
  *
  * <h3>执行流程</h3>
  * <ol>
- *   <li>查询 {@code global_config} 中 {@code DB_INIT_VERSION} 的值</li>
+ *   <li>查询各自 {@code global_config} 中 {@code DB_INIT_VERSION} 的值</li>
  *   <li>无记录 → 插入版本 {@code 0}</li>
- *   <li>按 {@code eddie.init-scripts} 配置顺序扫描所有 {@code .sql} 文件，解析版本号</li>
- *   <li>筛选版本号 > 当前版本的脚本，按配置顺序执行</li>
+ *   <li>按配置顺序扫描所有 {@code .sql} 文件，解析版本号</li>
+ *   <li>筛选版本号 > 当前版本的脚本，按版本号升序执行</li>
  *   <li>更新 {@code DB_INIT_VERSION} 为最大成功执行的版本号</li>
  * </ol>
  *
@@ -51,29 +52,65 @@ public class DatabaseDataInitializer {
     private JdbcTemplate jdbcTemplate;
 
     @Resource
+    @Qualifier("agentJdbcTemplate")
+    private JdbcTemplate agentJdbcTemplate;
+
+    @Resource
     private ResourceLoader resourceLoader;
 
     @Resource
     private EddieProperties eddieProperties;
+
     @Resource
     private InitScheduler initScheduler;
 
     @PostConstruct
     public void init() {
-        initScheduler.addTask(this.getClass().getSimpleName(), 10, this::executePendingMigrations, true);
+        // 确保 Agent 库有 global_config 表（与主库一致的版本追踪机制）
+        ensureGlobalConfigTable(agentJdbcTemplate);
+
+        // 注册两个任务：主库先执行（10），Agent 库后执行（15）
+        initScheduler.addTask("mainDbInit", 10, () ->
+                executePendingMigrations(jdbcTemplate,
+                        eddieProperties.getMigrationScripts(),
+                        eddieProperties.getInitScripts()), true);
+        initScheduler.addTask("agentDbInit", 15, () ->
+                executePendingMigrations(agentJdbcTemplate,
+                        eddieProperties.getAgentMigrationScripts(),
+                        eddieProperties.getAgentInitScripts()), true);
     }
 
-    private void executePendingMigrations() {
-        int currentVersion = getCurrentVersion();
+    /**
+     * 确保目标数据库存在 global_config 表（用于版本追踪）。
+     */
+    private void ensureGlobalConfigTable(JdbcTemplate jt) {
+        jt.execute("""
+                CREATE TABLE IF NOT EXISTS global_config (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    config_key  TEXT NOT NULL UNIQUE,
+                    config_val  TEXT NOT NULL DEFAULT '{}',
+                    config_type TEXT NOT NULL DEFAULT 'FRONTEND',
+                    description TEXT NOT NULL DEFAULT '',
+                    updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+                )
+                """);
+    }
+
+    /**
+     * 对指定数据库执行待处理的迁移脚本和初始化脚本。<p>
+     * 先执行迁移脚本（DDL），再执行初始化脚本（数据），
+     * 统一使用当前库的 {@code DB_INIT_VERSION} 追踪版本。
+     */
+    private void executePendingMigrations(JdbcTemplate jt, List<String> migrationScripts, List<String> initScripts) {
+        int currentVersion = getCurrentVersion(jt);
         log.info("当前数据库初始化版本: {}", currentVersion);
 
-        List<VersionedScript> allScripts = scanVersionedSqlFiles(currentVersion);
+        List<VersionedScript> allScripts = scanVersionedSqlFiles(migrationScripts, initScripts, currentVersion);
         if (allScripts.isEmpty()) {
             log.info("没有待执行的数据库初始化脚本");
             return;
         }
 
-        // 筛选版本号 > 当前版本的脚本（allScripts 已按版本号升序排序）
         List<VersionedScript> toExecute = allScripts.stream()
                 .filter(s -> s.version() > currentVersion)
                 .toList();
@@ -83,7 +120,7 @@ public class DatabaseDataInitializer {
             return;
         }
 
-        log.info("待执行的初始化脚本: {}", toExecute.stream()
+        log.info("待执行的脚本: {}", toExecute.stream()
                 .map(s -> "v" + s.version() + " (" + s.scriptPath() + ")")
                 .toList());
 
@@ -92,17 +129,17 @@ public class DatabaseDataInitializer {
             int version = script.version();
             String path = script.scriptPath();
             try {
-                log.info("执行数据库初始化脚本 [{}] v{}...", path, version);
-                executeSqlScript(script.sql());
+                log.info("执行脚本 [{}] v{}...", path, version);
+                executeSqlScript(jt, script.sql());
                 maxVersion = Math.max(maxVersion, version);
-                log.info("数据库初始化脚本 [{}] v{} 执行成功", path, version);
+                log.info("脚本 [{}] v{} 执行成功", path, version);
             } catch (Exception e) {
-                log.error("数据库初始化脚本 [{}] v{} 执行失败: {}", path, version, e.getMessage());
+                log.error("脚本 [{}] v{} 执行失败: {}", path, version, e.getMessage());
             }
         }
 
         if (maxVersion > currentVersion) {
-            updateVersion(maxVersion);
+            updateVersion(jt, maxVersion);
             log.info("数据库初始化版本已更新至 v{}", maxVersion);
         }
     }
@@ -111,30 +148,26 @@ public class DatabaseDataInitializer {
      * 执行 SQL 脚本内容。<p>
      * 先移除所有 {@code --} 注释行，再按 {@code ;} 拆分逐条执行。
      */
-    private void executeSqlScript(String script) {
-        // 移除所有 -- 开头的注释行
+    private void executeSqlScript(JdbcTemplate jt, String script) {
         String cleaned = script.replaceAll("(?m)^--.*$", "");
-        // 按分号拆分为单条语句
         String[] statements = cleaned.split(";");
         for (String stmt : statements) {
             String trimmed = stmt.trim();
             if (trimmed.isEmpty()) {
                 continue;
             }
-            jdbcTemplate.execute(trimmed);
+            jt.execute(trimmed);
         }
     }
 
     /**
      * 获取当前已执行的数据库初始化版本号。
-     * 如果 {@code global_config} 中不存在 {@code DB_INIT_VERSION} 记录，
-     * 则插入版本 {@code 0} 并返回。
      */
-    private int getCurrentVersion() {
+    private int getCurrentVersion(JdbcTemplate jt) {
         String sql = "SELECT config_val FROM global_config WHERE config_key = ?";
-        var results = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("config_val"), VERSION_KEY);
+        var results = jt.query(sql, (rs, rowNum) -> rs.getString("config_val"), VERSION_KEY);
         if (results.isEmpty()) {
-            jdbcTemplate.update(
+            jt.update(
                     "INSERT INTO global_config (config_key, config_val, description) VALUES (?, '0', '数据库初始化版本号')",
                     VERSION_KEY);
             return 0;
@@ -143,55 +176,59 @@ public class DatabaseDataInitializer {
             return Integer.parseInt(results.get(0));
         } catch (NumberFormatException e) {
             log.warn("全局配置 DB_INIT_VERSION 值异常: {}, 重置为 0", results.get(0));
-            jdbcTemplate.update("UPDATE global_config SET config_val = '0' WHERE config_key = ?", VERSION_KEY);
+            jt.update("UPDATE global_config SET config_val = '0' WHERE config_key = ?", VERSION_KEY);
             return 0;
         }
     }
 
     /**
-     * 脚本文件及其版本号的内部记录。
-     *
-     * @param version    解析出的版本号
-     * @param scriptPath classpath 路径，用于失败日志追踪
-     * @param sql        SQL 脚本内容
+     * 扫描迁移脚本和初始化脚本，读取文件内容返回，已执行的跳过。
      */
-    private record VersionedScript(int version, String scriptPath, String sql) {
-    }
-
-    private List<VersionedScript> scanVersionedSqlFiles(int currentVersion) {
+    private List<VersionedScript> scanVersionedSqlFiles(List<String> migrationScripts, List<String> initScripts, int currentVersion) {
         List<VersionedScript> result = new ArrayList<>();
-        List<String> initScripts = eddieProperties.getInitScripts();
-        for (String scriptPath : initScripts) {
-            String filename = scriptPath.substring(scriptPath.lastIndexOf('/') + 1);
-            int version = parseVersionFromFilename(filename);
-            if (version < 0) {
-                log.debug("跳过不匹配的 SQL 文件: {}", filename);
-                continue;
-            }
-
-            // 跳过已执行的旧版本脚本，避免不必要的文件读取 I/O
-            if (version <= currentVersion) {
-                log.debug("跳过已执行的初始化脚本 [{}] v{}", scriptPath, version);
-                continue;
-            }
-
-            org.springframework.core.io.Resource resource = resourceLoader.getResource("classpath:" + scriptPath);
-
-            try (var reader = new BufferedReader(
-                    new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
-                String sql = reader.lines().collect(Collectors.joining("\n")).trim();
-                if (sql.isEmpty()) {
-                    log.warn("初始化脚本 [{}] v{} 内容为空，跳过", scriptPath, version);
-                    continue;
-                }
-                result.add(new VersionedScript(version, scriptPath, sql));
-            } catch (Exception e) {
-                log.error("加载初始化脚本 {} 失败: {}", scriptPath, e.getMessage());
-            }
+        // 先扫迁移脚本（DDL），再扫初始化脚本（数据），确保 DDL 先执行
+        for (String scriptPath : migrationScripts) {
+            addVersionedScript(result, scriptPath, currentVersion);
         }
-        // 按版本号升序排序；同一版本内保持配置顺序（稳定排序）
+        for (String scriptPath : initScripts) {
+            addVersionedScript(result, scriptPath, currentVersion);
+        }
         result.sort(Comparator.comparingInt(VersionedScript::version));
         return result;
+    }
+
+    /**
+     * 将版本化 SQL 脚本添加到结果列表（已执行的跳过）。
+     */
+    private void addVersionedScript(List<VersionedScript> result, String scriptPath, int currentVersion) {
+        String filename = scriptPath.substring(scriptPath.lastIndexOf('/') + 1);
+        int version = parseVersionFromFilename(filename);
+        if (version < 0) {
+            log.debug("跳过不匹配的 SQL 文件: {}", filename);
+            return;
+        }
+        if (version <= currentVersion) {
+            log.debug("跳过已执行的脚本 [{}] v{}", scriptPath, version);
+            return;
+        }
+        org.springframework.core.io.Resource resource = resourceLoader.getResource("classpath:" + scriptPath);
+        try (var reader = new BufferedReader(
+                new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
+            String sql = reader.lines().collect(Collectors.joining("\n")).trim();
+            if (sql.isEmpty()) {
+                log.warn("脚本 [{}] v{} 内容为空，跳过", scriptPath, version);
+                return;
+            }
+            result.add(new VersionedScript(version, scriptPath, sql));
+        } catch (Exception e) {
+            log.error("加载脚本 {} 失败: {}", scriptPath, e.getMessage());
+        }
+    }
+
+    /**
+     * 脚本文件及其版本号的内部记录。
+     */
+    private record VersionedScript(int version, String scriptPath, String sql) {
     }
 
     /**
@@ -201,11 +238,9 @@ public class DatabaseDataInitializer {
      * <pre>
      *   model_provider_init_1.sql  → 1
      *   settings_init-10.sql       → 10
+     *   agent-v1.sql               → 1
      *   abc.sql                    → -1 (无分隔符)
      * </pre>
-     *
-     * @param filename 文件名，不含路径
-     * @return 版本号，或 -1 表示无法解析
      */
     private int parseVersionFromFilename(String filename) {
         int dotIdx = filename.lastIndexOf('.');
@@ -232,9 +267,9 @@ public class DatabaseDataInitializer {
     /**
      * 更新 {@code global_config} 中 {@code DB_INIT_VERSION} 的值。
      */
-    private void updateVersion(int version) {
+    private void updateVersion(JdbcTemplate jt, int version) {
         long now = System.currentTimeMillis();
-        jdbcTemplate.update(
+        jt.update(
                 "UPDATE global_config SET config_val = ?, updated_at = ? WHERE config_key = ?",
                 String.valueOf(version), now, VERSION_KEY);
     }

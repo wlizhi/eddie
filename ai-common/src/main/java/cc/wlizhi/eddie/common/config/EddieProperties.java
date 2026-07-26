@@ -30,6 +30,25 @@ public class EddieProperties {
     private List<String> initScripts = new ArrayList<>();
 
     /**
+     * 数据库 DDL 迁移 SQL 脚本 classpath 路径列表
+     * 与 initScripts 共用 DB_INIT_VERSION 版本号，迁移脚本执行完后再执行初始化脚本。
+     * 文件名规则与 initScripts 一致：末尾 _数字.sql / -数字.sql 中的数字即为版本号。
+     */
+    private List<String> migrationScripts = new ArrayList<>();
+
+    /**
+     * Agent 数据库 DDL 迁移 SQL 脚本 classpath 路径列表
+     * 文件名规则同 migrationScripts，在 Agent 库各自的 global_config 中独立维护版本号。
+     */
+    private List<String> agentMigrationScripts = new ArrayList<>();
+
+    /**
+     * Agent 数据库初始化 SQL 脚本 classpath 路径列表
+     * 文件名规则同 initScripts，在 Agent 库各自的 global_config 中独立维护版本号。
+     */
+    private List<String> agentInitScripts = new ArrayList<>();
+
+    /**
      * 提示词模板文件映射
      */
     @NestedConfigurationProperty

@@ -34,9 +34,13 @@ spring:
 # 自定义属性
 eddie:
   version: 1.0.0-beta
+  migration-scripts:
+    - db/migration/v1.sql
   init-scripts:
     - db/init/model_provider_init_1.sql
     - db/init/ai_assistant_init_1.sql
+  agent-init-scripts:
+  agent-migration-scripts:
   prompts:
     session-title-prompts: prompts/title-generation.md
     agent-chat-prompts: prompts/agent-chat.md
@@ -48,4 +52,4 @@ eddie:
     driver-class-name: org.sqlite.JDBC
     maximum-pool-size: 1
     schema-location: classpath:db/ddl/schema-agent.sql
-    init-mode: always
+    init-mode: never
