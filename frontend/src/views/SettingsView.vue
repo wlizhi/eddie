@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed, provide, ref} from 'vue'
 import {useMobile} from '@/composables/useMobile'
-import {Clock, Cpu, Globe, Monitor, MousePointerClick, Network, Puzzle, Radio, Settings, Zap} from '@lucide/vue'
+import {Clock, Cpu, Globe, Info, Monitor, MousePointerClick, Network, Puzzle, Radio, Settings, Zap} from '@lucide/vue'
 import ModelProviderPanel from './settings/ModelProviderPanel.vue'
 import DefaultModelPanel from './settings/DefaultModelPanel.vue'
 import GeneralPanel from './settings/GeneralPanel.vue'
@@ -17,6 +17,7 @@ import WebSearchPanel from './settings/WebSearchPanel.vue'
 import ChannelsPanel from './settings/ChannelsPanel.vue'
 import ScheduledTasksPanel from './settings/ScheduledTasksPanel.vue'
 import SelectionAssistantPanel from './settings/SelectionAssistantPanel.vue'
+import AboutPanel from './settings/AboutPanel.vue'
 import SettingsViewMobile from './settings/SettingsViewMobile.vue'
 
 const {isMobile} = useMobile()
@@ -54,6 +55,11 @@ const navGroups: NavGroup[] = [
       {key: 'scheduled-tasks', label: '定时任务', icon: Clock},
     ],
   },
+  {
+    items: [
+      {key: 'about', label: '关于', icon: Info},
+    ],
+  },
 ]
 
 const panelMap: Record<string, any> = {
@@ -67,6 +73,7 @@ const panelMap: Record<string, any> = {
   'web-search': WebSearchPanel,
   'channels': ChannelsPanel,
   'scheduled-tasks': ScheduledTasksPanel,
+  'about': AboutPanel,
 }
 
 const activeKey = ref<string>('model-provider')

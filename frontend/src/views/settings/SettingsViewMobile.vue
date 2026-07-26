@@ -15,12 +15,13 @@
 <script setup lang="ts">
 import type {Component} from 'vue'
 import {computed, ref} from 'vue'
-import {Cpu, Monitor, Network, Zap} from '@lucide/vue'
+import {Cpu, Info, Monitor, Network, Zap} from '@lucide/vue'
 import {useIconSize} from '@/composables/useIconSize'
 import ModelProviderPanelMobile from './ModelProviderPanelMobile.vue'
 import DefaultModelPanel from './DefaultModelPanel.vue'
 import DisplayPanel from './DisplayPanel.vue'
 import McpPanelMobile from './McpPanelMobile.vue'
+import AboutPanel from './AboutPanel.vue'
 
 const {iconSizeSm} = useIconSize()
 
@@ -37,6 +38,7 @@ const navItems: NavItem[] = [
   {key: 'display', label: '显示设置', icon: Monitor, component: DisplayPanel},
   {key: 'mcp', label: 'MCP 服务', icon: Network, component: McpPanelMobile},
   // 占位面板（技能/搜索/频道/定时任务）手机端暂不展示
+  {key: 'about', label: '关于', icon: Info, component: AboutPanel},
 ]
 
 /** 当前所在页：'list' 或具体 panel key */

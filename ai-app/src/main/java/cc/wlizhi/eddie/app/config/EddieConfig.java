@@ -19,14 +19,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.client.RestClient;
 
 import javax.sql.DataSource;
+import java.net.ProxySelector;
+import java.net.http.HttpClient;
 import java.util.concurrent.Executors;
 
 @Slf4j
@@ -99,6 +103,32 @@ public class EddieConfig {
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
+    }
+
+    /**
+     * 创建 RestClient，通过 {@code java.net.useSystemProxies} 启用系统原生代理检测。
+     * <p>
+     * 跨平台支持 macOS/Windows/Linux 系统代理设置：
+     * <ul>
+     *   <li>macOS：读取 System Configuration（scutil），兼容 Clash/Surge/Shadowsocks 等</li>
+     *   <li>Windows：读取 Internet Options 注册表代理设置</li>
+     *   <li>Linux：读取 GNOME 设置或环境变量</li>
+     * </ul>
+     * TUN 模式（虚拟网卡接管）无需代理配置，流量透明通过。
+     * 环境变量 {@code HTTPS_PROXY} / {@code http_proxy} / {@code ALL_PROXY} 优先级高于系统代理。
+     */
+    @Bean
+    public RestClient restClient() {
+        // 启用 JDK 系统代理检测（读取 OS 原生代理设置）
+        System.setProperty("java.net.useSystemProxies", "true");
+
+        HttpClient httpClient = HttpClient.newBuilder()
+                .proxy(ProxySelector.getDefault())
+                .build();
+
+        return RestClient.builder()
+                .requestFactory(new JdkClientHttpRequestFactory(httpClient))
+                .build();
     }
 
     // ==================== 虚拟线程配置 ====================

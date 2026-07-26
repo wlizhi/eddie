@@ -27,6 +27,7 @@ import cc.wlizhi.eddie.common.agent.enums.TaskPlanStatus;
 import cc.wlizhi.eddie.common.ai.openai.EddieOpenAiChatModel;
 import cc.wlizhi.eddie.common.ai.openai.ModelParams;
 import cc.wlizhi.eddie.common.dao.ChatModelProviderDao;
+import cc.wlizhi.eddie.app.controller.AppController;
 import cc.wlizhi.eddie.common.dto.*;
 import cc.wlizhi.eddie.common.entity.GlobalConfigEntity;
 import cc.wlizhi.eddie.common.entity.McpServerEntity;
@@ -103,7 +104,11 @@ public class EddieReflectionHints implements RuntimeHintsRegistrar {
                 // ==================== 划词助手 ====================
                 cc.wlizhi.eddie.assistant.entity.request.SelectionAssistantRequest.class,
                 cc.wlizhi.eddie.assistant.controller.SelectionAssistantController.class,
-                cc.wlizhi.eddie.assistant.service.impl.SelectionAssistantServiceImpl.class
+                cc.wlizhi.eddie.assistant.service.impl.SelectionAssistantServiceImpl.class,
+                // ==================== 应用版本升级 ====================
+                AppController.AppVersionVO.class,
+                AppController.UpdateCheckResult.class,
+                AppController.GitHubRelease.class
         );
         // ==================== OpenAI SDK 内部类（Jackson 反序列化需要，使用 INVOKE_DECLARED_METHODS） ====================
         ReflectionHints reflection = hints.reflection();

@@ -33,7 +33,7 @@ spring:
 
 # 自定义属性
 eddie:
-  version: 1.0.0-beta
+  version: 1.0.2-beta
   migration-scripts:
     - db/migration/v1.sql
   init-scripts:
