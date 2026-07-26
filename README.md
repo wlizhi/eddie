@@ -7,10 +7,18 @@
 ## 🖼 截图
 
 <div align="center">
-  <a href="screenshots/assistant.png"><img src="screenshots/assistant.png" alt="聊天界面" width="30%"></a>
-  <a href="screenshots/agent.png"><img src="screenshots/agent.png" alt="智能体界面" width="30%"></a>
-  <a href="screenshots/settings.png"><img src="screenshots/settings.png" alt="设置面板" width="30%"></a>
+  <a href="screenshots/assistant.png"><img src="screenshots/assistant.png" alt="聊天界面" width="60%"></a>
 </div>
+
+<details>
+<summary>📷 查看更多截图</summary>
+
+<div align="center">
+  <a href="screenshots/agent.png"><img src="screenshots/agent.png" alt="智能体界面" width="45%"></a>
+  <a href="screenshots/settings.png"><img src="screenshots/settings.png" alt="设置面板" width="45%"></a>
+</div>
+
+</details>
 
 ---
 
