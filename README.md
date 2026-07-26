@@ -6,8 +6,8 @@
 
 ## 🖼 截图
 
-<div align="center">
-  <a href="screenshots/assistant.png"><img src="screenshots/assistant.png" alt="聊天界面" width="60%"></a>
+<div>
+  <a href="screenshots/assistant.png"><img src="screenshots/assistant.png" alt="聊天界面" width="100%"></a>
 </div>
 
 <details>
