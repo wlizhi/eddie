@@ -108,6 +108,69 @@ trim() {
 scriptDir="$(dirname "$0")"
 scriptName="$(basename "$0")"
 
+# --- JAVA_VERSION_AUTODETECT: begin ---
+# Auto-select a local JDK whose major version matches <java.version> in pom.xml,
+# so this wrapper (and IntelliJ's Maven runner) never uses a mismatched JVM.
+# Opt out with MVNW_JAVA_AUTODETECT=false.
+# @author Eddie @date 2026-09-29
+java_major_of() {
+  _v="$("$1/bin/java" -version 2>&1 | sed -n 's/.*version "\([0-9][0-9.]*\).*/\1/p' | head -n 1)"
+  case "$_v" in
+  1.*) _v="${_v#1.}" ;;
+  esac
+  printf %s "${_v%%.*}"
+}
+
+if [ "${MVNW_JAVA_AUTODETECT:-true}" != false ] && [ -f "$scriptDir/pom.xml" ]; then
+  _want="$(sed -n 's:.*<java\.version>\([^<]*\)</java\.version>.*:\1:p' "$scriptDir/pom.xml" | head -n 1)"
+  [ -n "$_want" ] || _want="$(sed -n 's:.*<maven\.compiler\.release>\([^<]*\)</maven\.compiler\.release>.*:\1:p' "$scriptDir/pom.xml" | head -n 1)"
+  _want_major="${_want%%.*}"
+  case "$_want" in
+  1.*) _want_major="$(printf %s "${_want#1.}" | cut -d. -f1)" ;;
+  esac
+  if [ -n "$_want_major" ]; then
+    _cur_major=""
+    if [ -n "${JAVA_HOME-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+      _cur_major="$(java_major_of "$JAVA_HOME")"
+    fi
+    if [ "$_cur_major" != "$_want_major" ]; then
+      _new_home=""
+      if [ -x /usr/libexec/java_home ]; then
+        _new_home="$(/usr/libexec/java_home -v "$_want_major" 2>/dev/null || :)"
+      fi
+      if [ -z "$_new_home" ]; then
+        for _d in /usr/lib/jvm/* /Library/Java/JavaVirtualMachines/*/Contents/Home; do
+          [ -x "$_d/bin/java" ] || continue
+          if [ "$(java_major_of "$_d")" = "$_want_major" ]; then
+            _new_home="$_d"
+            break
+          fi
+        done
+      fi
+      if [ -n "$_new_home" ]; then
+        JAVA_HOME="$_new_home"
+        export JAVA_HOME
+        verbose "JAVA_HOME auto-set to $JAVA_HOME (pom java.version=$_want)"
+      else
+        verbose "no local JDK matching java.version=$_want found; keeping JAVA_HOME=${JAVA_HOME-}"
+      fi
+    fi
+  fi
+fi
+
+# always report the JDK this build will actually run on
+_javacmd=""
+if [ -n "${JAVA_HOME-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+  _javacmd="$JAVA_HOME/bin/java"
+else
+  _javacmd="$(command -v java 2>/dev/null || :)"
+fi
+if [ -n "$_javacmd" ]; then
+  _javaver="$("$_javacmd" -version 2>&1 | sed -n 's/.*version "\([^"]*\)".*/\1/p' | head -n 1 || :)"
+  printf '%s\n' "[mvnw] using JDK ${_javaver} at $_javacmd" >&2
+fi
+# --- JAVA_VERSION_AUTODETECT: end ---
+
 # parse distributionUrl and optional distributionSha256Sum, requires .mvn/wrapper/maven-wrapper.properties
 while IFS="=" read -r key value; do
   case "${key-}" in
