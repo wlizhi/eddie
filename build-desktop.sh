@@ -19,6 +19,11 @@
 #   ./build-desktop.sh --clean                      # 清理
 #   ./build-desktop.sh --clean --all                # 清理后完整构建
 #
+# JDK 说明:
+#   脚本会自动定位 JDK 25（不改动全局默认 JDK，不影响其他项目）。
+#   可用 JAVA25_HOME 显式指定 JDK 25 路径，例如：
+#     JAVA25_HOME=$(/usr/libexec/java_home -v 25) ./build-desktop.sh --jar
+#
 
 set -euo pipefail
 
@@ -35,6 +40,65 @@ NC='\033[0m'
 log_info()  { echo "${GREEN}[INFO]${NC} $1"; }
 log_warn()  { echo "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo "${RED}[ERROR]${NC} $1"; }
+
+# ============================================================
+# JDK 自动选择 — 仅供本脚本使用，不修改全局默认 JDK
+# 优先级：JAVA25_HOME → 已满足 25 的 JAVA_HOME → GraalVM → 其他 JDK 25
+# 可用 JAVA25_HOME 指向自定义 JDK 25（推荐 Oracle GraalVM 25）
+# ============================================================
+java_major_of() {
+    # 兼容 _JAVA_OPTIONS 注入的 "Picked up ..." 前置行，只取 version "xx"
+    "$1/bin/java" -version 2>&1 | grep -m1 -oE 'version "[0-9]+' | tr -dc '0-9'
+}
+
+setup_java() {
+    local jh="${JAVA_HOME:-}"
+
+    # 已有满足 25 的 JAVA_HOME 则直接复用
+    if [ -n "$jh" ] && [ -x "$jh/bin/java" ] && [ "$(java_major_of "$jh")" = "25" ]; then
+        log_info "使用 JDK 25: $jh"
+        return 0
+    fi
+
+    # 收集候选路径
+    local candidates=()
+    [ -n "${JAVA25_HOME:-}" ] && candidates+=("$JAVA25_HOME")
+    if [ "$(uname -s)" = "Darwin" ] && [ -x /usr/libexec/java_home ]; then
+        local mac_home
+        mac_home="$(/usr/libexec/java_home -v 25 2>/dev/null || true)"
+        [ -n "$mac_home" ] && candidates+=("$mac_home")
+    fi
+    local d
+    for d in /usr/lib/jvm/*25* "$HOME"/.sdkman/candidates/java/*25* \
+             "$HOME"/.jdks/*25* "$HOME"/Library/Java/JavaVirtualMachines/*25* \
+             "/c/Program Files/Java/"*25* "/c/Program Files/Eclipse Adoptium/"*25*; do
+        [ -d "$d" ] && candidates+=("$d")
+    done
+
+    # 选中第一个可用的 25（优先 GraalVM）
+    local home pick="" graal=""
+    if [ ${#candidates[@]} -gt 0 ]; then
+        for home in "${candidates[@]}"; do
+            [ -x "$home/bin/java" ] || continue
+            [ "$(java_major_of "$home")" = "25" ] || continue
+            case "$(basename "$home")" in
+                *graalvm*|*GraalVM*|*graal*) [ -z "$graal" ] && graal="$home" ;;
+                *) [ -z "$pick" ] && pick="$home" ;;
+            esac
+        done
+        [ -n "$graal" ] && pick="$graal"
+    fi
+
+    if [ -z "$pick" ]; then
+        log_error "未找到 JDK 25（本项目要求 Java 25）。"
+        log_error "请安装 JDK 25（推荐 Oracle GraalVM 25），或设置 JAVA25_HOME 指向它。"
+        exit 1
+    fi
+
+    export JAVA_HOME="$pick"
+    export PATH="$JAVA_HOME/bin:$PATH"
+    log_info "自动选用 JDK 25: $JAVA_HOME"
+}
 
 # 构建结果日志数组 — 每个构建函数自行追加产物信息
 BUILD_RESULTS=()
@@ -61,6 +125,12 @@ clean() {
 build_native() {
     log_info "===== 构建 Native Image ====="
 
+    setup_java
+    if ! command -v native-image >/dev/null 2>&1; then
+        log_error "未找到 native-image，请使用 GraalVM 25（可用 JAVA25_HOME 指向它）"
+        exit 1
+    fi
+
     sh "$PROJECT_DIR/frontend/build.sh"
 
     cd "$PROJECT_DIR"
@@ -81,6 +151,8 @@ build_native() {
 # ============================================================
 build_jar() {
     log_info "===== 构建 JAR ====="
+
+    setup_java
 
     # JAR 需要包含前端静态资源，先构建前端并复制到 static/
     sh "$PROJECT_DIR/frontend/build.sh"
@@ -158,6 +230,12 @@ build_electron() {
 # ============================================================
 build_all() {
     log_info "===== 完整构建 ====="
+
+    setup_java
+    if ! command -v native-image >/dev/null 2>&1; then
+        log_error "未找到 native-image，请使用 GraalVM 25（可用 JAVA25_HOME 指向它）"
+        exit 1
+    fi
 
     # 1. 构建前端，复制到 static/（JAR 和 Native 共用）
     sh "$PROJECT_DIR/frontend/build.sh"
@@ -320,4 +398,7 @@ main() {
     fi
 }
 
-main "$@"
+# 仅在被直接执行时运行；被 source 时只暴露函数（便于测试与复用）
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+fi
