@@ -29,7 +29,7 @@ public enum GlobalConfigKey {
 
     /**
      * 显示设置（字体大小、字体类型、主题模式等）
-     * value 为 JSON: {"fontSize":"medium","fontFamily":"system","themeMode":"light","colorScheme":"blue"}
+     * value 为 JSON: {"fontSize":"medium","fontFamily":"system","themeMode":"light","colorScheme":"blue","chatContentMaxWidth":60}
      */
     DISPLAY_SETTINGS("显示设置", ConfigType.FRONTEND),
 

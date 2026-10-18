@@ -54,6 +54,19 @@ export function clampFontSize(px: number): number {
     return Math.max(MIN_SAFE, Math.min(MAX_SAFE, Math.round(px)))
 }
 
+/** 聊天内容区默认最大宽度（rem），窄屏模式下消息区与输入框共用 */
+export const DEFAULT_CHAT_CONTENT_MAX_WIDTH_REM = 50
+export const MIN_CHAT_CONTENT_MAX_WIDTH_REM = 30
+export const MAX_CHAT_CONTENT_MAX_WIDTH_REM = 100
+
+/** 将聊天内容宽度 clamp 到可调范围内 */
+export function clampChatContentMaxWidth(rem: number): number {
+    return Math.max(
+        MIN_CHAT_CONTENT_MAX_WIDTH_REM,
+        Math.min(MAX_CHAT_CONTENT_MAX_WIDTH_REM, Math.round(rem)),
+    )
+}
+
 /** 字体类型 → CSS font-family */
 export const FONT_FAMILY_MAP: Record<string, string> = {
     system: '-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, \'Noto Sans SC\', sans-serif',
@@ -331,6 +344,8 @@ export interface DisplaySettings {
     wideMode: boolean
     /** 聊天模式（false = 问答模式左对齐） */
     chatMode: boolean
+    /** 窄屏模式下聊天内容区（消息列表 + 输入框）的最大宽度，单位 rem；未设置时使用默认值 */
+    chatContentMaxWidth?: number
     /** 用户昵称（全局） */
     nickname?: string
     /** 用户头像（全局）：文字/emoji/图片URL */
@@ -400,6 +415,14 @@ watch([() => displaySettings.fontSize, () => displaySettings.customFontSize, () 
     syncElectronTheme()
 })
 
+/**
+ * 聊天内容宽度变更 → 更新布局 CSS 变量
+ * 覆盖：chatContentMaxWidth
+ */
+watch(() => displaySettings.chatContentMaxWidth, () => {
+    applyLayoutSettings()
+})
+
 /** 加载显示设置 */
 export async function loadDisplaySettings(): Promise<void> {
     if (loaded) return
@@ -446,6 +469,16 @@ export async function loadDisplaySettings(): Promise<void> {
                 parsed.colorScheme = DEFAULT_ACCENT_COLOR
             }
 
+            // 聊天内容宽度：只接受正数；非法值视为未设置，回退默认宽度
+            if (parsed.chatContentMaxWidth !== undefined && parsed.chatContentMaxWidth !== null) {
+                const width = parsed.chatContentMaxWidth
+                if (typeof width === 'number' && Number.isFinite(width) && width > 0) {
+                    parsed.chatContentMaxWidth = clampChatContentMaxWidth(width)
+                } else {
+                    delete parsed.chatContentMaxWidth
+                }
+            }
+
             Object.assign(displaySettings, {
                 ...defaultSettings,
                 ...parsed,
@@ -480,6 +513,7 @@ export async function saveDisplaySettings(): Promise<void> {
             customFontSize: displaySettings.customFontSize,
             wideMode: displaySettings.wideMode,
             chatMode: displaySettings.chatMode,
+            chatContentMaxWidth: displaySettings.chatContentMaxWidth,
             nickname: displaySettings.nickname,
             avatar: displaySettings.avatar,
             showMetaTime: displaySettings.showMetaTime,
@@ -498,6 +532,11 @@ export function getEffectiveFontSize(): number {
         return clampFontSize(displaySettings.customFontSize)
     }
     return FONT_SIZE_MAP[displaySettings.fontSize] ?? 16
+}
+
+/** 获取当前生效的聊天内容最大宽度（rem） */
+export function getEffectiveChatContentMaxWidth(): number {
+    return displaySettings.chatContentMaxWidth ?? DEFAULT_CHAT_CONTENT_MAX_WIDTH_REM
 }
 
 /** 获取当前主题的亮/深色变量集 */
@@ -657,12 +696,24 @@ function applyFontSettings(): void {
 }
 
 /**
- * 完整应用到 DOM（初始加载时使用，包含主题、强调色、字体全部）
+ * 应用布局相关 CSS 变量（聊天内容最大宽度）
+ * 由 chatContentMaxWidth 变更触发
+ */
+function applyLayoutSettings(): void {
+    document.documentElement.style.setProperty(
+        '--chat-content-max-width',
+        `${getEffectiveChatContentMaxWidth()}rem`,
+    )
+}
+
+/**
+ * 完整应用到 DOM（初始加载时使用，包含主题、强调色、字体、布局全部）
  */
 export function applyDisplaySettings(): void {
     applyTheme()
     applyColorScheme()
     applyFontSettings()
+    applyLayoutSettings()
 }
 
 /**

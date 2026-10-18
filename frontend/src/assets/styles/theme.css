@@ -155,6 +155,9 @@
     --size-btn-md: 1.75rem; /* 28px */
     --size-btn-lg: 2rem; /* 32px */
 
+    /* 窄屏模式下聊天内容区最大宽度（由 JS 在 applyDisplaySettings 中动态覆盖） */
+    --chat-content-max-width: 50rem;
+
     /* 图标尺寸（由 JS 在 applyDisplaySettings 中动态覆盖，此处为后备值）
        已统一为 rem 单位，以跟随基准字号自适应 */
     --icon-size-xs: .75rem; /* 12px @ base=16px */

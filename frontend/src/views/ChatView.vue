@@ -168,7 +168,7 @@ function onSelectSuggestion(text: string) {
 /* ===== 窄屏模式：子组件根元素居中缩窄 ===== */
 .chat-view.narrow :deep(.message-list),
 .chat-view.narrow :deep(.input-area) {
-  max-width: 50rem;
+  max-width: var(--chat-content-max-width);
   margin: 0 auto;
   width: 100%;
 }

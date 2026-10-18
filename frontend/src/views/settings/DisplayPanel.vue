@@ -198,6 +198,34 @@
 
       <div class="setting-row">
         <div class="setting-info">
+          <span class="setting-label">内容最大宽度</span>
+          <span class="setting-hint">
+            窄屏模式下消息区与输入框的宽度上限，留空使用默认
+            {{ DEFAULT_CHAT_CONTENT_MAX_WIDTH_REM }}rem（约 {{ defaultChatContentMaxWidthPx }}px）
+          </span>
+        </div>
+        <div class="font-size-input-group">
+          <n-input-number
+              v-model:value="chatContentMaxWidthInput"
+              class="number-input"
+              :min="MIN_CHAT_CONTENT_MAX_WIDTH_REM"
+              :max="MAX_CHAT_CONTENT_MAX_WIDTH_REM"
+              :step="2"
+              :precision="0"
+              :show-button="false"
+              :disabled="displaySettings.wideMode"
+              clearable
+              placeholder="默认"
+              @update:value="handleChatContentMaxWidthInput"
+              @blur="handleChatContentMaxWidthBlur"
+              @clear="handleChatContentMaxWidthClear"
+          />
+          <span class="font-size-unit">rem</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
           <span class="setting-label">消息展示</span>
           <span class="setting-hint">聊天模式用户消息右对齐，问答模式统一左对齐</span>
         </div>
@@ -284,8 +312,10 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {NInputNumber, NModal, NSelect, NSwitch} from 'naive-ui'
 import {
   applyDisplay,
+  clampChatContentMaxWidth,
   clampFontSize,
   COLOR_SCHEMES,
+  DEFAULT_CHAT_CONTENT_MAX_WIDTH_REM,
   displaySettings,
   FONT_OPTIONS,
   FONT_SIZE_MAP,
@@ -294,7 +324,9 @@ import {
   getThemes,
   isPresetColor,
   loadDisplaySettings,
+  MAX_CHAT_CONTENT_MAX_WIDTH_REM,
   MAX_RECOMMENDED,
+  MIN_CHAT_CONTENT_MAX_WIDTH_REM,
   MIN_RECOMMENDED,
   saveDisplaySettings,
 } from '@/composables/useDisplaySettings'
@@ -316,6 +348,53 @@ const fontSizeLevels: { value: FontSizeLevel; label: string }[] = [
 
 /** 输入框中显示的像素值 */
 const fontSizeInput = ref<number>(getEffectiveFontSize())
+
+/** 默认聊天内容宽度对应的像素值（随字号动态换算，仅用于提示） */
+const defaultChatContentMaxWidthPx = computed(() =>
+    Math.round(DEFAULT_CHAT_CONTENT_MAX_WIDTH_REM * getEffectiveFontSize()),
+)
+
+// ===== 聊天内容最大宽度 =====
+/** 输入框显示值；null 表示未设置（使用默认宽度） */
+const chatContentMaxWidthInput = ref<number | null>(null)
+/** 输入过程中的防抖保存定时器 */
+let chatContentMaxWidthSaveTimer = 0
+
+/** 聊天内容宽度输入：实时预览 + 防抖保存 */
+function handleChatContentMaxWidthInput(value: number | null) {
+  displaySettings.chatContentMaxWidth =
+      value !== null && Number.isFinite(value) && value > 0
+          ? clampChatContentMaxWidth(value)
+          : undefined
+  window.clearTimeout(chatContentMaxWidthSaveTimer)
+  chatContentMaxWidthSaveTimer = window.setTimeout(() => {
+    saveDisplaySettings().catch(() => {
+    })
+  }, 400)
+}
+
+/** 立即应用并保存聊天内容宽度（null / 非法值 = 恢复默认） */
+function persistChatContentMaxWidth(value: number | null) {
+  window.clearTimeout(chatContentMaxWidthSaveTimer)
+  const next = value !== null && Number.isFinite(value) && value > 0
+      ? clampChatContentMaxWidth(value)
+      : undefined
+  chatContentMaxWidthInput.value = next ?? null
+  displaySettings.chatContentMaxWidth = next
+  applyDisplay()
+  saveDisplaySettings().catch(() => {
+  })
+}
+
+/** 聊天内容宽度失焦：clamp 兜底并保存 */
+function handleChatContentMaxWidthBlur() {
+  persistChatContentMaxWidth(chatContentMaxWidthInput.value)
+}
+
+/** 清空输入：恢复默认宽度并保存 */
+function handleChatContentMaxWidthClear() {
+  persistChatContentMaxWidth(null)
+}
 
 // ===== 个人信息 - 头像 =====
 const showAvatarPicker = ref(false)
@@ -413,6 +492,7 @@ onMounted(async () => {
   await loadDisplaySettings()
   // 加载完成后同步输入框显示值
   fontSizeInput.value = getEffectiveFontSize()
+  chatContentMaxWidthInput.value = displaySettings.chatContentMaxWidth ?? null
 
   // 加载工具响应最大渲染长度配置
   try {

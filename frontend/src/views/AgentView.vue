@@ -196,7 +196,7 @@ function onSelectSuggestion(text: string) {
 /* 窄屏模式 */
 .agent-view.narrow :deep(.agent-message-list),
 .agent-view.narrow :deep(.agent-input-area) {
-  max-width: 50rem;
+  max-width: var(--chat-content-max-width);
   margin: 0 auto;
   width: 100%;
 }
