@@ -41,13 +41,18 @@ const {isMobile} = useMobile()
 const inputAreaRef = ref<InstanceType<typeof InputArea> | null>(null)
 
 onMounted(async () => {
-  // 并行加载基础数据（显示设置、模型列表、助手列表）
-  // loadList() 会自动设置 activeId → 触发下面的 watch 来同步思考和 MCP 工具
+  // 先加载显示设置与模型列表，确保同步助手默认模型时下拉选项已就绪，
+  // 否则 NSelect 找不到匹配项会直接显示原始复合 key（providerId::modelId）
   await Promise.all([
     loadDisplaySettings(),
     chatStore.loadModels(),
-    assistantStore.loadList(),
   ])
+  // loadList() 会自动设置 activeId → 触发下面的 watch 来同步思考和 MCP 工具
+  await assistantStore.loadList()
+  // activeId 已存在（如从其它页面返回）时 watch 不会触发，这里补一次模型同步
+  if (!chatStore.currentModelId) {
+    syncModelFromAssistant()
+  }
 })
 
 /**

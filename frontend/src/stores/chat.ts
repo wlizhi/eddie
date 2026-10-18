@@ -243,14 +243,41 @@ export const useChatStore = defineStore('chat', () => {
         }
     }
 
+    /**
+     * 判断模型是否存在于当前可选列表中
+     *
+     * NSelect 的 value 在 options 中找不到匹配项时会直接回退显示原始 value
+     * （即 `${providerId}::${modelId}`），因此设置选中值前必须先校验。
+     */
+    function isModelSelectable(modelId: string, providerId: number): boolean {
+        if (!modelId || !providerId) return false
+        return modelSelectors.value.some(
+            selector => selector.providerId === providerId
+                && selector.models.some(model => model.modelId === modelId)
+        )
+    }
+
+    /** 选中第一个可用模型；无可选模型时清空，避免 NSelect 显示原始复合 key */
+    function selectFirstAvailableModel(): void {
+        for (const selector of modelSelectors.value) {
+            const first = selector.models[0]
+            if (first) {
+                currentModelId.value = first.modelId
+                currentProviderId.value = first.providerId
+                return
+            }
+        }
+        currentModelId.value = ''
+        currentProviderId.value = 0
+    }
+
     async function loadModels(): Promise<void> {
         try {
             const list = await fetchModelList()
             modelSelectors.value = list
-            if (!currentModelId.value && list.length > 0 && list[0].models.length > 0) {
-                const first = list[0].models[0]
-                currentModelId.value = first.modelId
-                currentProviderId.value = first.providerId
+            // 已选模型可能因供应商模型列表变化而不再存在，回退到第一个可用模型
+            if (!isModelSelectable(currentModelId.value, currentProviderId.value)) {
+                selectFirstAvailableModel()
             }
         } catch (err) {
             console.error('加载模型列表失败:', err)
@@ -258,6 +285,12 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     function selectModel(modelId: string, providerId: number): void {
+        // 助手配置的模型可能已被删除/改名，或模型列表尚未加载完成，
+        // 此时不能直接赋值，否则 NSelect 会显示原始复合 key
+        if (!isModelSelectable(modelId, providerId)) {
+            selectFirstAvailableModel()
+            return
+        }
         currentModelId.value = modelId
         currentProviderId.value = providerId
     }
