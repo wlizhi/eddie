@@ -581,10 +581,8 @@ public class McpToolServiceImpl implements McpToolService {
                     existing.setDescription(remote.getDescription());
                     changed = true;
                 }
-                String displayName = remote.getDescription() != null && !remote.getDescription().isBlank()
-                        ? remote.getDescription() : remote.getName();
-                if (!displayName.equals(existing.getDisplayName())) {
-                    existing.setDisplayName(displayName);
+                if (!remote.getName().equals(existing.getDisplayName())) {
+                    existing.setDisplayName(remote.getName());
                     changed = true;
                 }
                 if (changed) {
@@ -595,8 +593,7 @@ public class McpToolServiceImpl implements McpToolService {
                 ToolDefinitionEntity entity = new ToolDefinitionEntity();
                 entity.setToolType(ToolType.MCP);
                 entity.setName(remote.getName());
-                entity.setDisplayName(remote.getDescription() != null && !remote.getDescription().isBlank()
-                        ? remote.getDescription() : remote.getName());
+                entity.setDisplayName(remote.getName());
                 entity.setDescription(remote.getDescription());
                 entity.setEnabled(1);
                 entity.setBuiltIn(0);

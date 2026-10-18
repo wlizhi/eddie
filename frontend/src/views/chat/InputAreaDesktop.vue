@@ -23,6 +23,7 @@ import {NButton, NCheckbox, NModal, NPopselect, NSelect, NSpace} from 'naive-ui'
 import {Brain, ChevronDown, ChevronRight, Globe, Network, Plus, Send, Square} from '@lucide/vue'
 import {useIconSize} from '@/composables/useIconSize'
 import type {ToolSourceVO} from '@/types/mcpServer'
+import {mcpToolLabel} from '@/utils/mcp'
 
 const {iconSizeXs, iconSizeSm} = useIconSize()
 
@@ -411,9 +412,10 @@ defineExpose({focusInput})
                 <div v-for="tool in mcp.tools" :key="tool.name" class="mcp-tool-row">
                   <NCheckbox
                       :checked="chatStore.selectedToolNames.includes(tool.name)"
+                      :title="tool.description || tool.name"
                       @update:checked="(v: boolean) => onToolCheck(v, tool.name)"
                   >
-                    {{ tool.displayName || tool.name }}
+                    {{ mcpToolLabel(tool) }}
                   </NCheckbox>
                   <span class="mcp-tool-status" :class="getToolStatusLabel(mcp, tool.name) === '自动' ? 'status-auto' : 'status-approval'">{{ getToolStatusLabel(mcp, tool.name) }}</span>
                 </div>

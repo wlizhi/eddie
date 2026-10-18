@@ -12,6 +12,7 @@ import {useChatStore} from '@/stores/chat'
 import {NButton, NCheckbox, NModal, NSpace} from 'naive-ui'
 import {ChevronDown, ChevronRight} from '@lucide/vue'
 import type {ToolSourceVO} from '@/types/mcpServer'
+import {mcpToolLabel} from '@/utils/mcp'
 
 const chatStore = useChatStore()
 
@@ -146,9 +147,10 @@ function confirmSelection() {
               <div v-for="tool in mcp.tools" :key="tool.name" class="mcp-tool-row-mobile">
                 <NCheckbox
                     :checked="mcpTempSelectedToolNames.includes(tool.name)"
+                    :title="tool.description || tool.name"
                     @update:checked="(v: boolean) => onToolCheck(v, tool.name)"
                 >
-                  {{ tool.displayName || tool.name }}
+                  {{ mcpToolLabel(tool) }}
                 </NCheckbox>
                 <span class="mcp-tool-status-mobile" :class="getToolStatusLabel(mcp, tool.name) === '自动' ? 'status-auto-mobile' : 'status-approval-mobile'">{{ getToolStatusLabel(mcp, tool.name) }}</span>
               </div>

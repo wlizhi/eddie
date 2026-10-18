@@ -23,6 +23,7 @@ import {ref} from 'vue'
 import {TOOL_STATUS_OPTIONS} from '@/api/assistant'
 import type {McpServerItem} from '@/api/assistant'
 import type {McpToolItem} from '@/types/mcpServer'
+import {mcpToolLabel} from '@/utils/mcp'
 import AssistantAvatar from '../common/AssistantAvatar.vue'
 import AvatarPicker from '../common/AvatarPicker.vue'
 import ModelParamsInput from '../common/ModelParamsInput.vue'
@@ -259,7 +260,7 @@ function handleSaveWithValidation() {
             </div>
             <div v-if="expandedMcpId === mcp.id && mcp.tools?.length" class="mcp-tool-list">
               <div v-for="tool in mcp.tools" :key="tool.id" class="mcp-tool-row">
-                <span class="mcp-tool-name">{{ tool.displayName || tool.name }}</span>
+                <span class="mcp-tool-name" :title="tool.description || tool.name">{{ mcpToolLabel(tool) }}</span>
                 <div class="tool-status-group">
                   <button
                       v-for="opt in TOOL_STATUS_OPTIONS"
